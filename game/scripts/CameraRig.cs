@@ -18,6 +18,12 @@ public partial class CameraRig : Node3D
     [Export] public float StartDistance { get; set; } = 45f;
     [Export] public float WheelZoomFactor { get; set; } = 1.15f;
     [Export] public float KeyZoomPerSecond { get; set; } = 2.2f;
+    /// <summary>Farthest zoom in the <see cref="StoreOverview"/>: far enough to see the whole Store.</summary>
+    [Export] public float OverviewMaxDistance { get; set; } = 2600f;
+    /// <summary>Tilt in the <see cref="StoreOverview"/>, steeper than the Observer's, for a map-like view.</summary>
+    [Export] public float OverviewTilt { get; set; } = 75f;
+    /// <summary>The camera's far plane in the <see cref="StoreOverview"/>.</summary>
+    [Export] public float OverviewFar { get; set; } = 8000f;
 
     [ExportGroup("Tilt (degrees from horizontal, within 50-60)")]
     [Export(PropertyHint.Range, "50,60")] public float TiltNear { get; set; } = 50f;
@@ -45,6 +51,7 @@ public partial class CameraRig : Node3D
     private bool _dragPanning;
     private bool _dragRotating;
     private float _storeSize;
+    private float _normalFar;
 
     /// <summary>Raised with the shift whenever the rig jumps a whole Store length across a seam.</summary>
     public event Action<Vector3>? Recentred;
@@ -66,7 +73,26 @@ public partial class CameraRig : Node3D
         Position = _targetFocus;
         _targetDistance = _distance = Mathf.Clamp(StartDistance, MinDistance, MaxDistance);
         _targetYaw = _yaw = Mathf.DegToRad(30f);
+        _normalFar = Camera.Far;
+        StoreOverview.Changed += OnOverviewChanged;
         ApplyTransform();
+    }
+
+    public override void _ExitTree() => StoreOverview.Changed -= OnOverviewChanged;
+
+    private void OnOverviewChanged(bool enabled)
+    {
+        Camera.Far = enabled ? OverviewFar : _normalFar;
+        if (enabled)
+        {
+            // Look at the whole Store from above its centre.
+            _targetFocus = new Vector3(_storeSize / 2f, 0f, _storeSize / 2f);
+            _targetDistance = OverviewMaxDistance * 0.65f;
+        }
+        else
+        {
+            _targetDistance = ClampDistance(_targetDistance);
+        }
     }
 
     public override void _UnhandledInput(InputEvent @event)
@@ -106,10 +132,11 @@ public partial class CameraRig : Node3D
         Position = Position.Lerp(_targetFocus, blend);
         _yaw = Mathf.Lerp(_yaw, _targetYaw, blend);
         _distance = Mathf.Lerp(_distance, _targetDistance, blend);
-        if (WrapFocus)
+        if (StoreOverview.Enabled)
+            ClampIntoStore();
+        else if (WrapFocus)
             WrapIntoStore();
-        ApplyTransform();
-    }
+        ApplyTransform();    }
 
     /// <summary>Moves the focus and its target instantly, with no easing (dev tools only).</summary>
     public void JumpTo(Vector3 focus)
@@ -149,6 +176,13 @@ public partial class CameraRig : Node3D
         Recentred?.Invoke(shift);
     }
 
+    /// <summary>In the overview the Store is drawn once, so the focus stays on it instead of wrapping.</summary>
+    private void ClampIntoStore()
+    {
+        _targetFocus = new Vector3(Mathf.Clamp(_targetFocus.X, 0f, _storeSize), 0f, Mathf.Clamp(_targetFocus.Z, 0f, _storeSize));
+        Position = new Vector3(Mathf.Clamp(Position.X, 0f, _storeSize), 0f, Mathf.Clamp(Position.Z, 0f, _storeSize));
+    }
+
     private void ReadKeyboard(float dt)
     {
         // Typing in a text field (e.g. the seed input) must not move the camera.
@@ -178,10 +212,13 @@ public partial class CameraRig : Node3D
         _targetFocus += right * screenMetres.X + down * screenMetres.Y;
     }
 
-    private float ClampDistance(float distance) => Mathf.Clamp(distance, MinDistance, MaxDistance);
+    private float ClampDistance(float distance) =>
+        Mathf.Clamp(distance, MinDistance, StoreOverview.Enabled ? OverviewMaxDistance : MaxDistance);
 
     private float Tilt(float distance)
     {
+        if (StoreOverview.Enabled)
+            return Mathf.DegToRad(OverviewTilt);
         var zoom = Mathf.InverseLerp(MinDistance, MaxDistance, distance);
         return Mathf.DegToRad(Mathf.Lerp(TiltNear, TiltFar, Mathf.Clamp(zoom, 0f, 1f)));
     }

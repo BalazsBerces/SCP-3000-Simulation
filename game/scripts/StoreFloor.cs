@@ -14,7 +14,7 @@ public partial class StoreFloor : MeshInstance3D
     [Export] public SimulationHost Host { get; set; } = null!;
     [Export] public CameraRig Rig { get; set; } = null!;
 
-    /// <summary>Metres per texture repeat, per Department type; each divides the 1536 m Store length.</summary>
+    /// <summary>Metres per texture repeat, per Department type; each divides the 1344 m Store length.</summary>
     private static readonly float[] LayerMetres = [3.0f, 2.0f, 2.4f, 3.0f, 2.0f, 2.4f, 2.0f];
 
     /// <summary>Albedo balance per Department type (food market, showrooms, lighting, warehouse, bath/kitchen, plants, kids).</summary>
@@ -24,10 +24,13 @@ public partial class StoreFloor : MeshInstance3D
         new(1f, 1f, 1f), new(1f, 1f, 1f), new(1f, 1f, 1f),
     ];
 
+    private PlaneMesh _followingPlane = null!;
+
     public override void _Ready()
     {
         var reach = Rig.Camera.Far;
-        Mesh = new PlaneMesh { Size = new Vector2(2f * reach, 2f * reach) };
+        Mesh = _followingPlane = new PlaneMesh { Size = new Vector2(2f * reach, 2f * reach) };
+        StoreOverview.Changed += OnOverviewChanged;
         var space = Host.Snapshot.Space;
         FloorMaterial.SetShaderParameter("store_size", space.Size);
         FloorMaterial.SetShaderParameter("chunk_size", space.ChunkSize);
@@ -41,9 +44,28 @@ public partial class StoreFloor : MeshInstance3D
         FollowFocus();
     }
 
-    public override void _ExitTree() => Host.WorldCreated -= ShowDepartments;
+    public override void _ExitTree()
+    {
+        Host.WorldCreated -= ShowDepartments;
+        StoreOverview.Changed -= OnOverviewChanged;
+    }
 
-    public override void _Process(double delta) => FollowFocus();
+    public override void _Process(double delta)
+    {
+        if (!StoreOverview.Enabled)
+            FollowFocus();
+    }
+
+    /// <summary>In the overview the floor covers the Store exactly once, so its edges show its true size.</summary>
+    private void OnOverviewChanged(bool enabled)
+    {
+        var size = Host.Snapshot.Space.Size;
+        Mesh = enabled ? new PlaneMesh { Size = new Vector2(size, size) } : _followingPlane;
+        if (enabled)
+            Position = new Vector3(size / 2f, 0f, size / 2f);
+        else
+            FollowFocus();
+    }
 
     /// <summary>The floor material, shared with the wrap debug overlay.</summary>
     public ShaderMaterial FloorMaterial => (ShaderMaterial)MaterialOverride;

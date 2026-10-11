@@ -9,7 +9,8 @@ namespace Scp3008.Game;
 /// both seams with a tall red post at the corner, crates just inside each side of every seam
 /// (teal on the east and south edges, violet on the west and north edges), and the focus
 /// position and chunk. The markers are drawn through <see cref="WrappedInstances"/>, so they
-/// show the ghost copies across the seams. View only: it never touches the simulation.
+/// show the ghost copies across the seams. F4 (or the user argument <c>--overview</c>) toggles the <see cref="StoreOverview"/>.
+/// View only: it never touches the simulation.
 /// </summary>
 public partial class WrapDebugOverlay : Node3D
 {
@@ -20,6 +21,7 @@ public partial class WrapDebugOverlay : Node3D
     private const float MarkerSpacing = 32f;
 
     private Label _label = null!;
+    private Label _overviewLabel = null!;
     private StoreSpace _space = StoreSpace.Standard;
 
     public bool Enabled { get; private set; }
@@ -48,8 +50,25 @@ public partial class WrapDebugOverlay : Node3D
         };
         _label.AddThemeFontSizeOverride("font_size", 18);
         hud.AddChild(_label);
+        _overviewLabel = new Label
+        {
+            Name = "OverviewInfo",
+            Text = $"Store overview: {size:0} m x {size:0} m, drawn once with no wrap, haze or far cut-off    F4 returns",
+            AnchorTop = 1f, AnchorBottom = 1f, OffsetLeft = 16f, OffsetTop = -76f,
+            Visible = false,
+        };
+        _overviewLabel.AddThemeFontSizeOverride("font_size", 18);
+        hud.AddChild(_overviewLabel);
 
         SetEnabled(OS.GetCmdlineUserArgs().Contains("--wrap-debug"));
+        if (OS.GetCmdlineUserArgs().Contains("--overview"))
+            CallDeferred(MethodName.ToggleOverview);
+    }
+
+    private void ToggleOverview()
+    {
+        StoreOverview.Set(!StoreOverview.Enabled);
+        _overviewLabel.Visible = StoreOverview.Enabled;
     }
 
     public override void _UnhandledKeyInput(InputEvent @event)
@@ -57,6 +76,11 @@ public partial class WrapDebugOverlay : Node3D
         if (@event is InputEventKey { Pressed: true, Echo: false, Keycode: Key.F3 })
         {
             SetEnabled(!Enabled);
+            GetViewport().SetInputAsHandled();
+        }
+        else if (@event is InputEventKey { Pressed: true, Echo: false, Keycode: Key.F4 })
+        {
+            ToggleOverview();
             GetViewport().SetInputAsHandled();
         }
     }

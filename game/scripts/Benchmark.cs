@@ -26,7 +26,7 @@ public partial class Benchmark : Node
     [Export] public double MeasureSeconds { get; set; } = 20.0;
 
     /// <summary>Where the path starts: the lamp displays near the middle of Store 3008.</summary>
-    [Export] public Vector2 Start { get; set; } = new(768f, 768f);
+    [Export] public Vector2 Start { get; set; } = new(664f, 637f);
 
     private static readonly Vector2I Resolution = new(1920, 1080);
 

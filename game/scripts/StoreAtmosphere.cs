@@ -58,6 +58,9 @@ public partial class StoreAtmosphere : Node
     private FogMaterial _haze = null!;
     private double _dropoutLeft;
     private float _appliedLevel;
+    // Fog settings from the scene, restored when the overview is switched off.
+    private bool _fogEnabled;
+    private bool _volumetricFogEnabled;
 
     /// <summary>The Store light level shown this frame (0 out, 1 fully on), before flicker.</summary>
     public float LightLevel { get; private set; } = 1f;
@@ -70,6 +73,19 @@ public partial class StoreAtmosphere : Node
         _environment = World.Environment;
         _haze = (FogMaterial)GroundHaze.Material;
         Apply(Look.Blend(Closed, Open, _appliedLevel = 1f));
+        _fogEnabled = _environment.FogEnabled;
+        _volumetricFogEnabled = _environment.VolumetricFogEnabled;
+        StoreOverview.Changed += OnOverviewChanged;
+    }
+
+    public override void _ExitTree() => StoreOverview.Changed -= OnOverviewChanged;
+
+    /// <summary>The overview shows the whole Store, so the haze is lifted while it is on.</summary>
+    private void OnOverviewChanged(bool enabled)
+    {
+        _environment.FogEnabled = !enabled && _fogEnabled;
+        _environment.VolumetricFogEnabled = !enabled && _volumetricFogEnabled;
+        GroundHaze.Visible = !enabled;
     }
 
     public override void _Process(double delta)

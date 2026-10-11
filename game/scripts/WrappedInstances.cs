@@ -52,6 +52,7 @@ public partial class WrappedInstances : Node3D
     private readonly Dictionary<ChunkCoord, ChunkImages> _chunks = new();
     private StoreSpace _space = StoreSpace.Standard;
     private (long X, long Y)? _placedAroundCell;
+    private bool _placedOverview;
 
     /// <summary>Replaces all instances. Transform origins are Store positions in world space and may be unwrapped.</summary>
     public void SetInstances(StoreSpace space, IEnumerable<Transform3D> transforms) =>
@@ -72,6 +73,7 @@ public partial class WrappedInstances : Node3D
         _chunks.Clear();
         _space = space;
         _placedAroundCell = null;
+        _placedOverview = false;
 
         var byChunk = instances
             .Select(i => i with { Transform = i.Transform with { Origin = space.Wrap(i.Transform.Origin.ToStore()).ToWorld(i.Transform.Origin.Y) } })
@@ -132,10 +134,30 @@ public partial class WrappedInstances : Node3D
         return occluder;
     }
 
+    public override void _EnterTree() => StoreOverview.Changed += OnOverviewChanged;
+
+    public override void _ExitTree() => StoreOverview.Changed -= OnOverviewChanged;
+
+    private void OnOverviewChanged(bool enabled)
+    {
+        foreach (var images in _chunks.Values)
+            foreach (var image in images.Images)
+                ShowRanges(image, enabled);
+        // Force a fresh placement in the new mode.
+        _placedAroundCell = null;
+        _placedOverview = false;
+    }
+
     public override void _Process(double delta)
     {
         if (_chunks.Count == 0)
             return;
+        if (StoreOverview.Enabled)
+        {
+            if (!_placedOverview)
+                PlaceOverview();
+            return;
+        }
         // Runs after the camera rig (see CameraRig.ProcessPriority), so a recentring across a
         // seam changes the focus cell and the images are re-placed in the same frame.
         var focus = Rig.Focus.ToStore();
@@ -175,32 +197,71 @@ public partial class WrappedInstances : Node3D
                 images.Images[i].Root.Visible = false;
     }
 
+    /// <summary>The <see cref="StoreOverview"/>: every chunk once, at its own place, with no ghost copies.</summary>
+    private void PlaceOverview()
+    {
+        _placedOverview = true;
+        foreach (var images in _chunks.Values)
+        {
+            if (images.Images.Count == 0)
+                images.Images.Add(NewImage(images));
+            for (var i = 0; i < images.Images.Count; i++)
+            {
+                var image = images.Images[i];
+                image.Root.Position = Vector3.Zero;
+                image.Root.Visible = i == 0;
+                if (image.Occluder is not null)
+                    image.Occluder.Visible = false;
+            }
+        }
+    }
+
     /// <summary>One wrapped image of a chunk: its detailed and coarse instances and its occluder.</summary>
     private Image NewImage(ChunkImages images)
     {
         var root = new Node3D();
         AddChild(root);
-        var detail = new MultiMeshInstance3D { Multimesh = images.Detail, VisibilityRangeEnd = FarDistance };
+        var detail = new MultiMeshInstance3D { Multimesh = images.Detail };
         root.AddChild(detail);
+        MultiMeshInstance3D? coarse = null;
         if (images.Coarse is not null)
-        {
-            detail.VisibilityRangeEnd = LodDistance;
-            detail.VisibilityRangeEndMargin = LodMargin;
-            root.AddChild(new MultiMeshInstance3D
-            {
-                Multimesh = images.Coarse,
-                VisibilityRangeBegin = LodDistance,
-                VisibilityRangeBeginMargin = LodMargin,
-                VisibilityRangeEnd = FarDistance,
-            });
-        }
+            root.AddChild(coarse = new MultiMeshInstance3D { Multimesh = images.Coarse });
         OccluderInstance3D? occluder = null;
         if (images.Occluder is not null)
             root.AddChild(occluder = new OccluderInstance3D { Occluder = images.Occluder });
-        return new Image(root, occluder);
+        var image = new Image(root, detail, coarse, occluder);
+        ShowRanges(image, StoreOverview.Enabled);
+        return image;
     }
 
-    private sealed record Image(Node3D Root, OccluderInstance3D? Occluder);
+    /// <summary>
+    /// Normally: the detailed mesh near the camera, the coarse one farther out, nothing past
+    /// <see cref="FarDistance"/>. In the overview: the coarse mesh (or the detailed one if there is
+    /// none) at every distance, since the camera is far above the whole Store.
+    /// </summary>
+    private void ShowRanges(Image image, bool overview)
+    {
+        var (detail, coarse) = (image.Detail, image.Coarse);
+        if (overview)
+        {
+            detail.Visible = coarse is null;
+            detail.VisibilityRangeEnd = 0f;
+            if (coarse is not null)
+                coarse.VisibilityRangeBegin = coarse.VisibilityRangeEnd = 0f;
+            return;
+        }
+        detail.Visible = true;
+        detail.VisibilityRangeEnd = coarse is null ? FarDistance : LodDistance;
+        detail.VisibilityRangeEndMargin = coarse is null ? 0f : LodMargin;
+        if (coarse is not null)
+        {
+            coarse.VisibilityRangeBegin = LodDistance;
+            coarse.VisibilityRangeBeginMargin = LodMargin;
+            coarse.VisibilityRangeEnd = FarDistance;
+        }
+    }
+
+    private sealed record Image(Node3D Root, MultiMeshInstance3D Detail, MultiMeshInstance3D? Coarse, OccluderInstance3D? Occluder);
 
     private sealed class ChunkImages(MultiMesh detail, MultiMesh? coarse, ArrayOccluder3D? occluder)
     {

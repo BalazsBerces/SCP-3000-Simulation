@@ -10,8 +10,8 @@ namespace Scp3008.Core;
 /// </summary>
 public sealed record StoreSpace
 {
-    /// <summary>The standard Store: 24 × 24 chunks of 64 m, about 1.5 × 1.5 km.</summary>
-    public static StoreSpace Standard { get; } = new(chunkSize: 64f, chunksPerSide: 24);
+    /// <summary>The standard Store: 21 × 21 chunks of 64 m, 1344 × 1344 m (about 1.3 × 1.3 km).</summary>
+    public static StoreSpace Standard { get; } = new(chunkSize: 64f, chunksPerSide: 21);
 
     public StoreSpace(float chunkSize, int chunksPerSide)
     {

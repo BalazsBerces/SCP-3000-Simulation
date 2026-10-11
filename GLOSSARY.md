@@ -15,7 +15,7 @@ The line where the wrapping Store meets itself; crossing it brings you out on th
 _Avoid_: Edge, border (the Store has none)
 
 **Chunk**:
-A 64 m square of the Store's grid (the Store is 24 × 24 Chunks, about 1.5 × 1.5 km); the unit of streaming, culling, navigation rebuilding and simulation level of detail.
+A 64 m square of the Store's grid (the Store is 21 × 21 Chunks, 1344 × 1344 m); the unit of streaming, culling, navigation rebuilding and simulation level of detail.
 _Avoid_: Tile (floor tiles are visual), cell, sector
 
 **Ghost copy**:

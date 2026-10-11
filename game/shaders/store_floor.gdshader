@@ -15,7 +15,7 @@ uniform vec3 layer_tint[7];
 // Department type index (0-6) per department cell, as R8 (value / 255).
 uniform sampler2D department_map : filter_nearest, repeat_enable;
 uniform float department_cell_size = 16.0;
-uniform float store_size = 1536.0;
+uniform float store_size = 1344.0;
 uniform float border_width = 0.12;
 uniform vec3 border_color : source_color = vec3(0.12, 0.12, 0.12);
 

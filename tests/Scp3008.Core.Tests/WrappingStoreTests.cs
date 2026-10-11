@@ -19,21 +19,21 @@ public class WrappingStoreTests
         Assert.True(Vector2.Distance(expected, actual) < Tolerance, $"Expected {expected}, got {actual}.");
 
     [Fact]
-    public void The_store_is_about_one_and_a_half_km_square_and_divided_into_chunks()
+    public void The_store_is_about_one_and_a_third_km_square_and_divided_into_chunks()
     {
         var store = NewStore();
 
-        Assert.InRange(store.Size, 1400f, 1600f);
+        Assert.Equal(1344f, store.Size);
         Assert.Equal(64f, store.ChunkSize);
-        Assert.Equal(24, store.ChunksPerSide);
+        Assert.Equal(21, store.ChunksPerSide);
         Assert.Equal(store.Size, store.ChunkSize * store.ChunksPerSide);
-        Assert.Equal(576, store.ChunkCount);
+        Assert.Equal(441, store.ChunkCount);
     }
 
     [Theory]
-    [InlineData(-10f, 1540f, 1526f, 4f)]
-    [InlineData(1536f, 0f, 0f, 0f)]
-    [InlineData(3 * 1536f + 5f, -2 * 1536f - 5f, 5f, 1531f)]
+    [InlineData(-10f, 1348f, 1334f, 4f)]
+    [InlineData(1344f, 0f, 0f, 0f)]
+    [InlineData(3 * 1344f + 5f, -2 * 1344f - 5f, 5f, 1339f)]
     [InlineData(700f, 300f, 700f, 300f)]
     public void Positions_off_the_floor_wrap_back_onto_it(float x, float y, float wrappedX, float wrappedY)
     {
@@ -51,14 +51,14 @@ public class WrappingStoreTests
 
         Assert.InRange(wrapped.X, 0f, store.Size - float.Epsilon);
         Assert.InRange(wrapped.Y, 0f, store.Size - float.Epsilon);
-        Assert.Equal(new ChunkCoord(23, 23), store.ChunkOf(new Vector2(-1e-6f, -1e-6f)));
+        Assert.Equal(new ChunkCoord(20, 20), store.ChunkOf(new Vector2(-1e-6f, -1e-6f)));
     }
 
     [Fact]
     public void Distance_and_direction_go_the_short_way_across_the_east_west_seam()
     {
         var store = NewStore();
-        var nearEastEdge = new Vector2(1530f, 700f);
+        var nearEastEdge = new Vector2(1338f, 700f);
         var nearWestEdge = new Vector2(6f, 700f);
 
         Assert.Equal(12f, store.Distance(nearEastEdge, nearWestEdge), Tolerance);
@@ -73,7 +73,7 @@ public class WrappingStoreTests
     {
         var store = NewStore();
         var nearNorthEdge = new Vector2(400f, 4f);
-        var nearSouthEdge = new Vector2(400f, 1528f);
+        var nearSouthEdge = new Vector2(400f, 1336f);
 
         Assert.Equal(12f, store.Distance(nearNorthEdge, nearSouthEdge), Tolerance);
         AssertClose(new Vector2(0f, -12f), store.Delta(nearNorthEdge, nearSouthEdge));
@@ -85,7 +85,7 @@ public class WrappingStoreTests
     public void Distance_and_direction_go_the_short_way_across_the_corner()
     {
         var store = NewStore();
-        var nearSouthEastCorner = new Vector2(1530f, 1530f);
+        var nearSouthEastCorner = new Vector2(1338f, 1338f);
         var nearNorthWestCorner = new Vector2(3f, 6f);
 
         Assert.Equal(15f, store.Distance(nearSouthEastCorner, nearNorthWestCorner), Tolerance);
@@ -99,7 +99,7 @@ public class WrappingStoreTests
     {
         var store = NewStore();
         var here = new Vector2(5f, 5f);
-        var lapsAway = new Vector2(5f + 1536f, 5f - 2 * 1536f);
+        var lapsAway = new Vector2(5f + 1344f, 5f - 2 * 1344f);
 
         Assert.Equal(0f, store.Distance(here, lapsAway), Tolerance);
         Assert.Equal(Vector2.Zero, store.Direction(here, here));
@@ -129,8 +129,8 @@ public class WrappingStoreTests
     [Theory]
     [InlineData(0f, 0f, 0, 0)]
     [InlineData(63.9f, 64f, 0, 1)]
-    [InlineData(-0.5f, -0.5f, 23, 23)]
-    [InlineData(1537f, 700f, 0, 10)]
+    [InlineData(-0.5f, -0.5f, 20, 20)]
+    [InlineData(1345f, 700f, 0, 10)]
     public void Every_position_falls_in_one_chunk(float x, float y, int chunkX, int chunkY)
     {
         var store = NewStore();
@@ -147,9 +147,9 @@ public class WrappingStoreTests
 
         Assert.Equal(16, images.Count);
         Assert.Contains(new ChunkImage(new ChunkCoord(0, 0), Vector2.Zero), images);
-        Assert.Contains(new ChunkImage(new ChunkCoord(23, 0), new Vector2(-1536f, 0f)), images);
-        Assert.Contains(new ChunkImage(new ChunkCoord(0, 23), new Vector2(0f, -1536f)), images);
-        Assert.Contains(new ChunkImage(new ChunkCoord(23, 23), new Vector2(-1536f, -1536f)), images);
+        Assert.Contains(new ChunkImage(new ChunkCoord(20, 0), new Vector2(-1344f, 0f)), images);
+        Assert.Contains(new ChunkImage(new ChunkCoord(0, 20), new Vector2(0f, -1344f)), images);
+        Assert.Contains(new ChunkImage(new ChunkCoord(20, 20), new Vector2(-1344f, -1344f)), images);
         Assert.All(images, image =>
         {
             var placedOrigin = store.ChunkOrigin(image.Chunk) + image.Offset;
@@ -163,15 +163,15 @@ public class WrappingStoreTests
     {
         var store = NewStore();
 
-        var images = store.ChunkImagesAround(new Vector2(768f, 768f), reach: 1000f)
+        var images = store.ChunkImagesAround(new Vector2(672f, 672f), reach: 1000f)
             .Where(image => image.Chunk == new ChunkCoord(0, 0))
             .Select(image => image.Offset)
             .ToList();
 
         Assert.Equal(4, images.Count);
         Assert.Contains(new Vector2(0f, 0f), images);
-        Assert.Contains(new Vector2(1536f, 0f), images);
-        Assert.Contains(new Vector2(0f, 1536f), images);
-        Assert.Contains(new Vector2(1536f, 1536f), images);
+        Assert.Contains(new Vector2(1344f, 0f), images);
+        Assert.Contains(new Vector2(0f, 1344f), images);
+        Assert.Contains(new Vector2(1344f, 1344f), images);
     }
 }
