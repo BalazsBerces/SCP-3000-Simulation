@@ -125,6 +125,13 @@ public partial class CameraRig : Node3D
         ApplyTransform();
     }
 
+    /// <summary>Sets the heading instantly, with no easing (dev tools only).</summary>
+    public void JumpToYaw(float radians)
+    {
+        _targetYaw = _yaw = radians;
+        ApplyTransform();
+    }
+
     /// <summary>Moves the focus target by a world-space offset; the camera eases after it.</summary>
     public void MoveTargetBy(Vector3 offset) => _targetFocus += offset with { Y = 0f };
 

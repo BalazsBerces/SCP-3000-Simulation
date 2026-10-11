@@ -65,4 +65,32 @@ public class TimeControlTests
         Assert.Equal(TimeSpan.FromHours(8), sim.Snapshot.Clock.TimeOfDay);
         Assert.Equal(2, sim.Snapshot.Clock.Day);
     }
+
+    [Fact]
+    public void Advancing_to_a_time_of_day_stops_the_next_time_the_store_clock_shows_it()
+    {
+        using var sim = NewWorld();
+        var events = new List<DomainEvent>();
+        using var subscription = sim.Subscribe(events.Add);
+
+        sim.AdvanceTo(TimeSpan.FromHours(23));
+        Assert.Equal((1, TimeSpan.FromHours(23)), (sim.Snapshot.Clock.Day, sim.Snapshot.Clock.TimeOfDay));
+        Assert.Single(events.OfType<ClosingTimeBegan>());
+
+        sim.AdvanceTo(TimeSpan.FromHours(7));
+        Assert.Equal((2, TimeSpan.FromHours(7)), (sim.Snapshot.Clock.Day, sim.Snapshot.Clock.TimeOfDay));
+
+        sim.AdvanceTo(TimeSpan.FromHours(7));
+        Assert.Equal((2, TimeSpan.FromHours(7)), (sim.Snapshot.Clock.Day, sim.Snapshot.Clock.TimeOfDay));
+    }
+
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(24)]
+    public void Advancing_to_a_time_outside_the_day_is_rejected(int hours)
+    {
+        using var sim = NewWorld();
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => sim.AdvanceTo(TimeSpan.FromHours(hours)));
+    }
 }

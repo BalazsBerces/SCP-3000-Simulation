@@ -63,7 +63,15 @@ public readonly record struct FurniturePiece(int Id, FurnitureType Type, Vector2
 /// <param name="Depth">Size along the piece's depth (front-back) axis, in metres.</param>
 /// <param name="Height">Height, in metres.</param>
 /// <param name="IsFloorCovering">Flat pieces (rugs) that other Furniture may stand on.</param>
-public sealed record FurnitureSpec(FurnitureType Type, float Width, float Depth, float Height, bool IsFloorCovering = false);
+/// <param name="LightRadius">
+/// How far a Lamp's light reaches, in metres; zero for Furniture that gives no light. Lamps on
+/// display run on the Store's power, so they shine with the Store lights and go out at Closing time.
+/// </param>
+public sealed record FurnitureSpec(FurnitureType Type, float Width, float Depth, float Height, bool IsFloorCovering = false, float LightRadius = 0f)
+{
+    /// <summary>Whether this is a Lamp: Furniture that gives light.</summary>
+    public bool IsLamp => LightRadius > 0f;
+}
 
 /// <summary>The specs of every Furniture type.</summary>
 public static class FurnitureCatalog
@@ -83,8 +91,8 @@ public static class FurnitureCatalog
             new(FurnitureType.FlatPackBox, 1.2f, 0.9f, 0.7f),
             new(FurnitureType.ShelfUnit, 2.0f, 0.6f, 2.1f),
             new(FurnitureType.DisplayTable, 1.6f, 0.8f, 0.75f),
-            new(FurnitureType.TableLamp, 0.3f, 0.3f, 0.5f),
-            new(FurnitureType.FloorLamp, 0.45f, 0.45f, 1.7f),
+            new(FurnitureType.TableLamp, 0.3f, 0.3f, 0.5f, LightRadius: 3f),
+            new(FurnitureType.FloorLamp, 0.45f, 0.45f, 1.7f, LightRadius: 5f),
             new(FurnitureType.Sofa, 2.2f, 0.95f, 0.85f),
             new(FurnitureType.Armchair, 0.85f, 0.85f, 0.9f),
             new(FurnitureType.CoffeeTable, 1.2f, 0.6f, 0.45f),

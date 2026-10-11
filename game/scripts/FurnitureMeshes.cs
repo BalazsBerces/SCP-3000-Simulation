@@ -8,6 +8,8 @@ namespace Scp3008.Game;
 /// core's Furniture specs, with CC0 PBR materials (see assets/textures/CREDITS.md). Mesh space:
 /// origin at the centre of the footprint on its base, X along the width, Z along the depth with
 /// the front facing +Z, Y up. Materials marked as tinted take their colour from the instance.
+/// Each type also has a coarse mesh for the distance (level of detail): parts too thin to show
+/// from far away are left out, round parts have fewer sides and materials skip their normal maps.
 /// </summary>
 public static class FurnitureMeshes
 {
@@ -34,14 +36,65 @@ public static class FurnitureMeshes
         LampShade,
     }
 
-    private static readonly Dictionary<FurnitureType, ArrayMesh> Cache = new();
+    // Emission of a lit lamp shade.
+    private const float LampShadeGlow = 0.6f;
+
+    // Coarse meshes leave out parts thinner than this (legs, handles, poles), in metres.
+    private const float CoarseMinThickness = 0.06f;
+
+    private static readonly Dictionary<(FurnitureType, bool Coarse), ArrayMesh> Cache = new();
     private static Dictionary<Part, Material>? _materials;
+    private static Dictionary<Part, Material>? _coarseMaterials;
+
+    /// <summary>How brightly every lamp shade glows, from 0 (off) to 1 (lit).</summary>
+    public static void SetLampGlow(float level)
+    {
+        var energy = LampShadeGlow * Mathf.Max(level, 0f);
+        ((StandardMaterial3D)Materials()[Part.LampShade]).EmissionEnergyMultiplier = energy;
+        ((StandardMaterial3D)CoarseMaterials()[Part.LampShade]).EmissionEnergyMultiplier = energy;
+    }
+
+    /// <summary>The coarse mesh for a Furniture type, drawn in the distance; built once and shared.</summary>
+    public static ArrayMesh CoarseFor(FurnitureType type) => Get(type, coarse: true);
+
+    /// <summary>
+    /// Upright rectangles in mesh space, four corners each, inside the solid, full-height parts of
+    /// a Furniture type (wardrobe and fridge bodies, shelving back panels) that hide what stands
+    /// behind them; used as occluders for occlusion culling. Flat panels rather than boxes keep the
+    /// occluders cheap. Empty for Furniture that is open, low or small.
+    /// </summary>
+    public static Vector3[] OccluderQuads(FurnitureType type)
+    {
+        var spec = FurnitureCatalog.Spec(type);
+        var (hw, hd, h) = (spec.Width / 2f, spec.Depth / 2f, spec.Height);
+        Vector3[] Across(float z, float bottom) => [new(-hw, bottom, z), new(hw, bottom, z), new(hw, h, z), new(-hw, h, z)];
+        Vector3[] Along(float x) => [new(x, 0f, -hd), new(x, 0f, hd), new(x, h, hd), new(x, h, -hd)];
+        return type switch
+        {
+            // Solid bodies: two panels crossing at the centre.
+            FurnitureType.Wardrobe or FurnitureType.Fridge => [.. Across(0f, 0f), .. Along(0f)],
+            FurnitureType.Bookcase => Across(-hd + 0.005f, 0f),
+            FurnitureType.ShelfUnit => Across(-hd + 0.0075f, 0.1f),
+            FurnitureType.GroceryShelf => Across(0f, 0f),
+            _ => [],
+        };
+    }
+
+    /// <summary>Height of a Lamp's bulb above its base, inside the shade.</summary>
+    public static float BulbHeight(FurnitureType type) => type switch
+    {
+        FurnitureType.TableLamp => 0.4f,
+        FurnitureType.FloorLamp => 1.55f,
+        _ => throw new ArgumentOutOfRangeException(nameof(type), type, "Not a Lamp."),
+    };
 
     /// <summary>The mesh for a Furniture type; built once and shared.</summary>
-    public static ArrayMesh For(FurnitureType type)
+    public static ArrayMesh For(FurnitureType type) => Get(type, coarse: false);
+
+    private static ArrayMesh Get(FurnitureType type, bool coarse)
     {
-        if (!Cache.TryGetValue(type, out var mesh))
-            Cache[type] = mesh = Build(type);
+        if (!Cache.TryGetValue((type, coarse), out var mesh))
+            Cache[(type, coarse)] = mesh = Build(type, coarse);
         return mesh;
     }
 
@@ -87,12 +140,12 @@ public static class FurnitureMeshes
         new(1f, 1f, 1f), new(0.92f, 0.9f, 0.86f), new(0.85f, 0.8f, 0.72f), new(0.96f, 0.93f, 0.9f),
     ];
 
-    private static ArrayMesh Build(FurnitureType type)
+    private static ArrayMesh Build(FurnitureType type, bool coarse)
     {
         var spec = FurnitureCatalog.Spec(type);
         var (w, d, h) = (spec.Width, spec.Depth, spec.Height);
         var (hw, hd) = (w / 2f, d / 2f);
-        var b = new Builder();
+        var b = new Builder(coarse);
         switch (type)
         {
             case FurnitureType.PalletRack:
@@ -314,7 +367,7 @@ public static class FurnitureMeshes
                 b.Box(Part.Maple, new Vector3(-hw, 0f, -hd), new Vector3(hw, h, hd));
                 break;
         }
-        return b.Commit(Materials());
+        return b.Commit(coarse ? CoarseMaterials() : Materials());
     }
 
     /// <summary>Four legs of square section reaching from the floor to <paramref name="top"/>.</summary>
@@ -359,7 +412,7 @@ public static class FurnitureMeshes
         var shade = Plain(new Color(0.95f, 0.9f, 0.78f), 0.8f);
         shade.EmissionEnabled = true;
         shade.Emission = new Color(1f, 0.85f, 0.6f);
-        shade.EmissionEnergyMultiplier = 0.35f;
+        shade.EmissionEnergyMultiplier = LampShadeGlow;
 
         _materials = new Dictionary<Part, Material>
         {
@@ -386,15 +439,36 @@ public static class FurnitureMeshes
         return _materials;
     }
 
-    /// <summary>Accumulates parts into one surface per material, with UVs in metres and tangents for normal maps.</summary>
-    private sealed class Builder
+    /// <summary>The materials of the coarse meshes: the same looks without normal maps.</summary>
+    private static Dictionary<Part, Material> CoarseMaterials()
+    {
+        if (_coarseMaterials is not null)
+            return _coarseMaterials;
+        _coarseMaterials = Materials().ToDictionary(m => m.Key, m =>
+        {
+            var material = (StandardMaterial3D)m.Value.Duplicate();
+            material.NormalEnabled = false;
+            return (Material)material;
+        });
+        return _coarseMaterials;
+    }
+
+    /// <summary>
+    /// Accumulates parts into one surface per material, with UVs in metres and tangents for normal maps.
+    /// A coarse builder leaves out thin parts and gives round parts fewer sides.
+    /// </summary>
+    private sealed class Builder(bool coarse)
     {
         private readonly Dictionary<Part, SurfaceTool> _surfaces = new();
 
         public void Box(Part part, Vector3 min, Vector3 max)
         {
-            var tool = Surface(part);
             var size = max - min;
+            float[] extents = [size.X, size.Y, size.Z];
+            Array.Sort(extents);
+            if (coarse && extents[1] < CoarseMinThickness)
+                return;
+            var tool = Surface(part);
             // Each face: normal, the two in-face axes (scaled by size) and its corner.
             Face(tool, min with { Z = max.Z }, new Vector3(size.X, 0, 0), new Vector3(0, size.Y, 0), Vector3.Back);
             Face(tool, max with { Y = min.Y, Z = min.Z }, new Vector3(-size.X, 0, 0), new Vector3(0, size.Y, 0), Vector3.Forward);
@@ -407,6 +481,10 @@ public static class FurnitureMeshes
         /// <summary>A capped cylinder (or cone frustum) standing on <paramref name="baseCentre"/>.</summary>
         public void Cylinder(Part part, Vector3 baseCentre, float bottomRadius, float topRadius, float height, int segments = 12)
         {
+            if (coarse && 2f * Mathf.Max(bottomRadius, topRadius) < CoarseMinThickness)
+                return;
+            if (coarse)
+                segments = Math.Max(5, segments / 2);
             var tool = Surface(part);
             var top = baseCentre + new Vector3(0, height, 0);
             var slope = (bottomRadius - topRadius) / height;

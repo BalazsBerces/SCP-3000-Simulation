@@ -89,7 +89,9 @@ public partial class TimeControls : CanvasLayer
         var phase = StoreHours.PhaseAt(timeOfDay) == DayPhase.Open ? "Open" : "Closing time";
         _clockLabel.Text = $"Day {day}   {timeOfDay.Hours:00}:{timeOfDay.Minutes:00}   {phase}";
         _dayProgress.Value = timeOfDay.TotalDays;
-        _buttons[Host.Speed].SetPressedNoSignal(true);
+        // Without a signal the button group does not unpress the others, so set every button.
+        foreach (var (speed, button) in _buttons)
+            button.SetPressedNoSignal(speed == Host.Speed);
     }
 
     private void SetSpeed(SimulationSpeed speed)

@@ -59,10 +59,7 @@ public partial class SimulationHost : Node
         }
         var simulation = Simulation.Create(new WorldConfig(Seed));
         if (startTime is { } target)
-        {
-            var wait = target - simulation.Snapshot.Clock.TimeOfDay;
-            simulation.Advance(wait < TimeSpan.Zero ? wait + TimeSpan.FromDays(1) : wait);
-        }
+            simulation.AdvanceTo(target);
         Adopt(simulation, SimulationSpeed.Normal);
     }
 
@@ -70,6 +67,9 @@ public partial class SimulationHost : Node
     {
         _simulation.Start();
     }
+
+    /// <summary>Fast-forwards the Store clock to the next <paramref name="timeOfDay"/> (dev tool, e.g. for the benchmark).</summary>
+    public void AdvanceTo(TimeSpan timeOfDay) => _simulation.AdvanceTo(timeOfDay);
 
     /// <summary>Generates a new Store from <paramref name="seed"/> in the background, then replaces the current world.</summary>
     public void CreateWorld(int seed)

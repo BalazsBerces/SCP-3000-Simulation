@@ -1,0 +1,15 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="PackedScene" path="res://Main.tscn" id="1_main"]
+[ext_resource type="Script" path="res://scripts/Benchmark.cs" id="2_benchmark"]
+
+[node name="Benchmark" type="Node"]
+
+[node name="Main" parent="." instance=ExtResource("1_main")]
+
+[node name="Runner" type="Node" parent="." node_paths=PackedStringArray("Host", "Rig", "Atmosphere", "Lamps")]
+script = ExtResource("2_benchmark")
+Host = NodePath("../Main/SimulationHost")
+Rig = NodePath("../Main/CameraRig")
+Atmosphere = NodePath("../Main/StoreAtmosphere")
+Lamps = NodePath("../Main/LampLights")

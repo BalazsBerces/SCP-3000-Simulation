@@ -27,6 +27,7 @@ public partial class DevCapture : Node
     [Export] public SeedPanel Seeds { get; set; } = null!;
     [Export] public StoreAtmosphere Atmosphere { get; set; } = null!;
     [Export] public AmbientAudio Audio { get; set; } = null!;
+    [Export] public LampLights Lamps { get; set; } = null!;
 
     private string? _capturePath;
     private double _captureAfter = 3.0;
@@ -114,6 +115,7 @@ public partial class DevCapture : Node
         var clock = Host.Snapshot.Clock;
         GD.Print($"Store time: day {clock.Day} {clock.TimeOfDay:hh\\:mm}, {clock.Phase}. {Atmosphere.Describe()}");
         GD.Print($"Ambient audio: {Audio.Describe()}");
+        GD.Print($"Lamps: {Lamps.Describe()}");
         if (_capturePath is not null)
         {
             var image = GetViewport().GetTexture().GetImage();

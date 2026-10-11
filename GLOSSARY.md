@@ -37,6 +37,10 @@ Any huge, far-visible feature of the Store (Pillars, the till wall, the flooded 
 A single physical object in the Store (wardrobe, shelf unit, sofa, lamp…) that can be moved, used, built with or disassembled.
 _Avoid_: Prop, object, item
 
+**Lamp**:
+A piece of Furniture that gives light (table lamp, floor lamp). Lamps on display run on the Store's power, so they shine with the Store lights and go out at Closing time.
+_Avoid_: Fixture, light (that is what a Lamp gives)
+
 **Goods**:
 Small stock on shelves (food, batteries, bulbs, cables) taken as-is rather than placed in the world.
 _Avoid_: Loot, items

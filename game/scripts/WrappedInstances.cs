@@ -9,14 +9,45 @@ namespace Scp3008.Game;
 /// <see cref="ViewReach"/>, so objects near a seam are drawn on both sides of it (ghost copies)
 /// and panning across a seam never reveals a gap. Placement is refreshed only when the focus
 /// moves into another chunk, and only moves nodes; the instance data is built once.
+/// With a <see cref="CoarseMesh"/>, chunks farther than <see cref="LodDistance"/> from the camera
+/// draw it instead (level of detail); with <see cref="OccluderQuads"/>, every chunk also hides
+/// what is behind those parts of its instances from rendering (occlusion culling).
 /// </summary>
 public partial class WrappedInstances : Node3D
 {
     [Export] public CameraRig Rig { get; set; } = null!;
     [Export] public Mesh? Mesh { get; set; }
 
+    /// <summary>A simpler mesh drawn instead of <see cref="Mesh"/> for chunks far from the camera.</summary>
+    [Export] public Mesh? CoarseMesh { get; set; }
+
+    /// <summary>Distance from the camera to a chunk's centre beyond which <see cref="CoarseMesh"/> is drawn.</summary>
+    [Export] public float LodDistance { get; set; } = 110f;
+
+    /// <summary>
+    /// Distance from the camera to a chunk's centre beyond which it is not drawn at all: the haze
+    /// hides it. The Observer camera at its farthest zoom sees floor up to about 510 m away, so
+    /// this leaves a chunk's half-diagonal to spare.
+    /// </summary>
+    [Export] public float FarDistance { get; set; } = 600f;
+
     /// <summary>How far from the focus content must be drawn; at least the farthest floor the camera can see.</summary>
     [Export] public float ViewReach { get; set; } = 700f;
+
+    /// <summary>
+    /// Flat rectangles in mesh space, four corners each, that hide what is behind them; every
+    /// instance contributes them as occluders.
+    /// </summary>
+    public Vector3[] OccluderQuads { get; set; } = [];
+
+    /// <summary>
+    /// Only chunks whose centre lies within this distance of the focus occlude: they hide the most,
+    /// and every occluder makes the per-frame occlusion test dearer.
+    /// </summary>
+    [Export] public float OccluderReach { get; set; } = 160f;
+
+    // Switching meshes waits this far past LodDistance, so a chunk does not flip back and forth.
+    private const float LodMargin = 6f;
 
     private readonly Dictionary<ChunkCoord, ChunkImages> _chunks = new();
     private StoreSpace _space = StoreSpace.Standard;
@@ -36,8 +67,8 @@ public partial class WrappedInstances : Node3D
     private void SetInstances(StoreSpace space, IEnumerable<(Transform3D Transform, Color Color)> instances, bool useColors)
     {
         foreach (var images in _chunks.Values)
-            foreach (var image in images.Nodes)
-                image.QueueFree();
+            foreach (var image in images.Images)
+                image.Root.QueueFree();
         _chunks.Clear();
         _space = space;
         _placedAroundCell = null;
@@ -63,16 +94,42 @@ public partial class WrappedInstances : Node3D
                     buffer[o + 12] = color.R; buffer[o + 13] = color.G; buffer[o + 14] = color.B; buffer[o + 15] = color.A;
                 }
             }
-            var multiMesh = new MultiMesh
-            {
-                TransformFormat = MultiMesh.TransformFormatEnum.Transform3D,
-                UseColors = useColors,
-                Mesh = Mesh,
-                InstanceCount = chunkInstances.Length,
-            };
-            multiMesh.Buffer = buffer;
-            _chunks[group.Key] = new ChunkImages(multiMesh);
+            _chunks[group.Key] = new ChunkImages(
+                NewMultiMesh(Mesh, buffer, chunkInstances.Length, useColors),
+                CoarseMesh is null ? null : NewMultiMesh(CoarseMesh, buffer, chunkInstances.Length, useColors),
+                OccluderQuads.Length == 0 ? null : NewOccluder(chunkInstances.Select(i => i.Transform)));
         }
+    }
+
+    private static MultiMesh NewMultiMesh(Mesh? mesh, float[] buffer, int count, bool useColors)
+    {
+        var multiMesh = new MultiMesh
+        {
+            TransformFormat = MultiMesh.TransformFormatEnum.Transform3D,
+            UseColors = useColors,
+            Mesh = mesh,
+            InstanceCount = count,
+        };
+        multiMesh.Buffer = buffer;
+        return multiMesh;
+    }
+
+    /// <summary>One occluder for a whole chunk: every occluder rectangle of every instance, as two triangles each.</summary>
+    private ArrayOccluder3D NewOccluder(IEnumerable<Transform3D> transforms)
+    {
+        var vertices = new List<Vector3>();
+        var indices = new List<int>();
+        foreach (var transform in transforms)
+            for (var quad = 0; quad < OccluderQuads.Length; quad += 4)
+            {
+                var first = vertices.Count;
+                for (var corner = 0; corner < 4; corner++)
+                    vertices.Add(transform * OccluderQuads[quad + corner]);
+                indices.AddRange([first, first + 1, first + 2, first, first + 2, first + 3]);
+            }
+        var occluder = new ArrayOccluder3D();
+        occluder.SetArrays([.. vertices], [.. indices]);
+        return occluder;
     }
 
     public override void _Process(double delta)
@@ -99,23 +156,57 @@ public partial class WrappedInstances : Node3D
                 continue;
             var index = used.GetValueOrDefault(image.Chunk);
             used[image.Chunk] = index + 1;
-            if (index == images.Nodes.Count)
+            if (index == images.Images.Count)
+                images.Images.Add(NewImage(images));
+            var placed = images.Images[index];
+            // Unmoved images keep their transform, so occlusion culling need not rebuild them.
+            var position = image.Offset.ToWorld();
+            if (placed.Root.Position != position)
+                placed.Root.Position = position;
+            placed.Root.Visible = true;
+            if (placed.Occluder is not null)
             {
-                var node = new MultiMeshInstance3D { Multimesh = images.MultiMesh };
-                AddChild(node);
-                images.Nodes.Add(node);
+                var centre = _space.ChunkOrigin(image.Chunk) + image.Offset + new System.Numerics.Vector2(_space.ChunkSize / 2f);
+                placed.Occluder.Visible = System.Numerics.Vector2.Distance(centre, focus) <= OccluderReach;
             }
-            images.Nodes[index].Position = image.Offset.ToWorld();
-            images.Nodes[index].Visible = true;
         }
         foreach (var (chunk, images) in _chunks)
-            for (var i = used.GetValueOrDefault(chunk); i < images.Nodes.Count; i++)
-                images.Nodes[i].Visible = false;
+            for (var i = used.GetValueOrDefault(chunk); i < images.Images.Count; i++)
+                images.Images[i].Root.Visible = false;
     }
 
-    private sealed class ChunkImages(MultiMesh multiMesh)
+    /// <summary>One wrapped image of a chunk: its detailed and coarse instances and its occluder.</summary>
+    private Image NewImage(ChunkImages images)
     {
-        public MultiMesh MultiMesh { get; } = multiMesh;
-        public List<MultiMeshInstance3D> Nodes { get; } = [];
+        var root = new Node3D();
+        AddChild(root);
+        var detail = new MultiMeshInstance3D { Multimesh = images.Detail, VisibilityRangeEnd = FarDistance };
+        root.AddChild(detail);
+        if (images.Coarse is not null)
+        {
+            detail.VisibilityRangeEnd = LodDistance;
+            detail.VisibilityRangeEndMargin = LodMargin;
+            root.AddChild(new MultiMeshInstance3D
+            {
+                Multimesh = images.Coarse,
+                VisibilityRangeBegin = LodDistance,
+                VisibilityRangeBeginMargin = LodMargin,
+                VisibilityRangeEnd = FarDistance,
+            });
+        }
+        OccluderInstance3D? occluder = null;
+        if (images.Occluder is not null)
+            root.AddChild(occluder = new OccluderInstance3D { Occluder = images.Occluder });
+        return new Image(root, occluder);
+    }
+
+    private sealed record Image(Node3D Root, OccluderInstance3D? Occluder);
+
+    private sealed class ChunkImages(MultiMesh detail, MultiMesh? coarse, ArrayOccluder3D? occluder)
+    {
+        public MultiMesh Detail { get; } = detail;
+        public MultiMesh? Coarse { get; } = coarse;
+        public ArrayOccluder3D? Occluder { get; } = occluder;
+        public List<Image> Images { get; } = [];
     }
 }

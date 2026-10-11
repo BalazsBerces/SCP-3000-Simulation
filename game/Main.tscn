@@ -1,4 +1,4 @@
-[gd_scene load_steps=15 format=3]
+[gd_scene load_steps=16 format=3]
 
 [ext_resource type="Script" path="res://scripts/SimulationHost.cs" id="1_host"]
 [ext_resource type="Script" path="res://scripts/StoreFloor.cs" id="2_floor"]
@@ -11,6 +11,7 @@
 [ext_resource type="Script" path="res://scripts/SeedPanel.cs" id="9_seed"]
 [ext_resource type="Script" path="res://scripts/StoreAtmosphere.cs" id="10_atmosphere"]
 [ext_resource type="Script" path="res://scripts/AmbientAudio.cs" id="11_audio"]
+[ext_resource type="Script" path="res://scripts/LampLights.cs" id="12_lamps"]
 
 [sub_resource type="Environment" id="Environment_store"]
 background_mode = 1
@@ -95,6 +96,12 @@ script = ExtResource("8_furniture")
 Host = NodePath("../SimulationHost")
 Rig = NodePath("../CameraRig")
 
+[node name="LampLights" type="Node3D" parent="." node_paths=PackedStringArray("Host", "Rig", "Atmosphere")]
+script = ExtResource("12_lamps")
+Host = NodePath("../SimulationHost")
+Rig = NodePath("../CameraRig")
+Atmosphere = NodePath("../StoreAtmosphere")
+
 [node name="SeedPanel" type="CanvasLayer" parent="." node_paths=PackedStringArray("Host", "Rig")]
 script = ExtResource("9_seed")
 Host = NodePath("../SimulationHost")
@@ -110,10 +117,11 @@ Host = NodePath("../SimulationHost")
 Rig = NodePath("../CameraRig")
 Floor = NodePath("../StoreFloor")
 
-[node name="DevCapture" type="Node" parent="." node_paths=PackedStringArray("Rig", "Host", "Seeds", "Atmosphere", "Audio")]
+[node name="DevCapture" type="Node" parent="." node_paths=PackedStringArray("Rig", "Host", "Seeds", "Atmosphere", "Audio", "Lamps")]
 script = ExtResource("5_capture")
 Atmosphere = NodePath("../StoreAtmosphere")
 Audio = NodePath("../AmbientAudio")
+Lamps = NodePath("../LampLights")
 Rig = NodePath("../CameraRig")
 Host = NodePath("../SimulationHost")
 Seeds = NodePath("../SeedPanel")

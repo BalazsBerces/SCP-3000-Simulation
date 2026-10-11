@@ -57,23 +57,29 @@ public partial class StoreAtmosphere : Node
     private Godot.Environment _environment = null!;
     private FogMaterial _haze = null!;
     private double _dropoutLeft;
+    private float _appliedLevel;
 
     /// <summary>The Store light level shown this frame (0 out, 1 fully on), before flicker.</summary>
     public float LightLevel { get; private set; } = 1f;
+
+    /// <summary>The Store light level shown this frame, flicker included; Lamps on display follow it.</summary>
+    public float ShownLightLevel { get; private set; } = 1f;
 
     public override void _Ready()
     {
         _environment = World.Environment;
         _haze = (FogMaterial)GroundHaze.Material;
-        Apply(Look.Blend(Closed, Open, 1f));
+        Apply(Look.Blend(Closed, Open, _appliedLevel = 1f));
     }
 
     public override void _Process(double delta)
     {
         var timeOfDay = TimeSpan.FromTicks(Host.InterpolatedStoreTime.Ticks % TimeSpan.TicksPerDay);
         LightLevel = (float)StoreHours.LightLevelAt(timeOfDay);
-        var shown = LightLevel * Flicker(delta);
-        Apply(Look.Blend(Closed, Open, shown));
+        ShownLightLevel = LightLevel * Flicker(delta);
+        // The light is steady most of the day; only push a new look when it changes.
+        if (ShownLightLevel != _appliedLevel)
+            Apply(Look.Blend(Closed, Open, _appliedLevel = ShownLightLevel));
 
         var focus = Rig.Focus;
         GroundHaze.GlobalPosition = new Vector3(focus.X, 0f, focus.Z);
@@ -84,7 +90,8 @@ public partial class StoreAtmosphere : Node
         $"Store light {LightLevel:0.00}, ambient {_environment.AmbientLightEnergy:0.000}, " +
         $"fog {_environment.FogDensity:0.0000}, haze {_haze.Density:0.000} (volumetric {_environment.VolumetricFogEnabled})";
 
-    // While the lights are fading, tubes drop out for a moment now and then, most often halfway.
+    // While the lights are fading, tubes drop out for a moment now and then, most often halfway;
+    // a paused Store stands still, so no new dropouts start then.
     private float Flicker(double delta)
     {
         if (_dropoutLeft > 0)
@@ -93,7 +100,7 @@ public partial class StoreAtmosphere : Node
             return 0.35f;
         }
         var fading = 1f - Mathf.Abs(2f * LightLevel - 1f);
-        if (LightLevel is > 0.01f and < 0.99f && _random.Randf() < fading * 6f * delta)
+        if (Host.Speed != SimulationSpeed.Paused && LightLevel is > 0.01f and < 0.99f && _random.Randf() < fading * 6f * delta)
             _dropoutLeft = _random.RandfRange(0.04f, 0.16f);
         return 1f;
     }

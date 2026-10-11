@@ -111,6 +111,23 @@ public sealed class Simulation : IDisposable
         AdvanceTicks(StoreClock.TicksFor(storeTime));
     }
 
+    /// <summary>
+    /// Advances simulated Store time synchronously to the next moment the Store clock shows
+    /// <paramref name="timeOfDay"/> (rounded to whole ticks); does nothing if it already does.
+    /// Lands exactly even while the simulation thread is running.
+    /// </summary>
+    public void AdvanceTo(TimeSpan timeOfDay)
+    {
+        if (timeOfDay < TimeSpan.Zero || timeOfDay >= TimeSpan.FromDays(1))
+            throw new ArgumentOutOfRangeException(nameof(timeOfDay), "A time of day lies from 00:00 up to 24:00.");
+        var target = StoreClock.TicksFor(timeOfDay) % StoreClock.TicksPerStoreDay;
+        lock (_stepLock)
+        {
+            var now = StoreClock.TicksFor(new StoreClock(_tick).TimeOfDay);
+            RunTicks((target - now + StoreClock.TicksPerStoreDay) % StoreClock.TicksPerStoreDay);
+        }
+    }
+
     /// <summary>Advances the simulation synchronously by a number of fixed ticks.</summary>
     public void AdvanceTicks(long ticks)
     {
