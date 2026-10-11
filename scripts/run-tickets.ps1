@@ -91,7 +91,10 @@ function Invoke-Agent($t, $log) {
   $cliArgs = @('-p', '--dangerously-skip-permissions', '--output-format', 'stream-json', '--verbose')
   if ($Model) { $cliArgs += @('--model', $Model) }
   $final = ''
-  Get-Prompt $t | & claude @cliArgs | ForEach-Object {
+  # The prompt goes in as an argument: piped stdin does not expand the /implement slash command.
+  # PS 5.1 does not escape embedded double quotes in native arguments, so swap them for single quotes.
+  $prompt = (Get-Prompt $t).Replace('"', "'")
+  & claude @cliArgs $prompt | ForEach-Object {
     $line = "$_"
     Add-Content -Path $log -Value $line -Encoding UTF8
     try { $ev = $line | ConvertFrom-Json } catch { return }
