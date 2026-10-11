@@ -6,9 +6,6 @@ namespace Scp3008.Core;
 /// </summary>
 public sealed class Simulation : IDisposable
 {
-    /// <summary>Edge length of the Store floor, in metres (about 1.5 km).</summary>
-    public const float StoreSize = 1536f;
-
     /// <summary>
     /// Real time between simulation steps. Each step runs as many fixed ticks as the speed value,
     /// so at 1x the core ticks 20 times per real second and a Store day lasts 10 real minutes.
@@ -198,7 +195,7 @@ public sealed class Simulation : IDisposable
     }
 
     private WorldSnapshot BuildSnapshot() =>
-        new(_config.Seed, new StoreClock(_tick), StoreSize, _speed);
+        new(_config.Seed, new StoreClock(_tick), StoreSpace.Standard, _speed);
 
     private sealed class Subscription(Simulation owner, Action<DomainEvent> handler) : IDisposable
     {

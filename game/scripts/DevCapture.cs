@@ -1,3 +1,4 @@
+using System.Globalization;
 using Godot;
 
 namespace Scp3008.Game;
@@ -5,16 +6,29 @@ namespace Scp3008.Game;
 /// <summary>
 /// Development aid for unattended checks. With user arguments after "--":
 ///   --capture=&lt;png path&gt;   save a screenshot after <c>--capture-after</c> seconds (default 3) and quit;
-///   --fps-report           print the average frame rate over the capture window.
+///   --fps-report           print the average frame rate over the capture window;
+///   --focus=x,y            start the camera focused on Store position (x, y);
+///   --pan=vx,vy            pan the camera focus at (vx, vy) metres per second, then report how
+///                          often it crossed a seam and its largest per-frame step, overall
+///                          and on the crossing frames (a jump would show as a big step there);
+///   --no-focus-wrap        never shift the camera back onto the floor (to compare images of the same place).
 /// Does nothing in normal runs.
 /// </summary>
 public partial class DevCapture : Node
 {
+    [Export] public CameraRig Rig { get; set; } = null!;
+
     private string? _capturePath;
     private double _captureAfter = 3.0;
     private bool _fpsReport;
+    private Vector3 _panVelocity;
     private double _elapsed;
     private int _frames;
+    private int _seamCrossings;
+    private float _largestFocusStep;
+    private float _largestCrossingStep;
+    private bool _crossedThisFrame;
+    private Vector3 _lastFocus;
 
     public override void _Ready()
     {
@@ -23,22 +37,50 @@ public partial class DevCapture : Node
             if (arg.StartsWith("--capture="))
                 _capturePath = arg["--capture=".Length..];
             else if (arg.StartsWith("--capture-after="))
-                _captureAfter = double.Parse(arg["--capture-after=".Length..], System.Globalization.CultureInfo.InvariantCulture);
+                _captureAfter = double.Parse(arg["--capture-after=".Length..], CultureInfo.InvariantCulture);
             else if (arg == "--fps-report")
                 _fpsReport = true;
+            else if (arg.StartsWith("--focus="))
+                Rig.JumpTo(ParseFloorVector(arg["--focus=".Length..]));
+            else if (arg.StartsWith("--pan="))
+                _panVelocity = ParseFloorVector(arg["--pan=".Length..]);
+            else if (arg == "--no-focus-wrap")
+                Rig.WrapFocus = false;
         }
-        SetProcess(_capturePath is not null || _fpsReport);
+        _lastFocus = Rig.Focus;
+        // Keep the step measurement continuous across the rig's whole-Store shifts.
+        Rig.Recentred += shift =>
+        {
+            _seamCrossings++;
+            _crossedThisFrame = true;
+            _lastFocus += shift;
+        };
+        SetProcess(_capturePath is not null || _fpsReport || _panVelocity != Vector3.Zero);
     }
 
     public override void _Process(double delta)
     {
+        // Runs after the rig has moved this frame (CameraRig.ProcessPriority).
+        var step = (Rig.Focus - _lastFocus).Length();
+        _largestFocusStep = Mathf.Max(_largestFocusStep, step);
+        if (_crossedThisFrame)
+            _largestCrossingStep = Mathf.Max(_largestCrossingStep, step);
+        _crossedThisFrame = false;
+        _lastFocus = Rig.Focus;
+        if (_panVelocity != Vector3.Zero)
+            Rig.MoveTargetBy(_panVelocity * (float)delta);
+
         _elapsed += delta;
         _frames++;
-        if (_elapsed < _captureAfter)
+        if (_elapsed < _captureAfter || (_capturePath is null && !_fpsReport))
             return;
 
         if (_fpsReport)
             GD.Print($"FPS average over {_elapsed:0.0}s: {_frames / _elapsed:0.0}");
+        if (_panVelocity != Vector3.Zero)
+            GD.Print($"Camera: {_seamCrossings} seam crossings, largest focus step {_largestFocusStep:0.000} m/frame " +
+                     $"(on crossing frames {_largestCrossingStep:0.000} m), " +
+                     $"focus now ({Rig.Focus.X:0.0}, {Rig.Focus.Z:0.0})");
         if (_capturePath is not null)
         {
             var image = GetViewport().GetTexture().GetImage();
@@ -46,5 +88,13 @@ public partial class DevCapture : Node
             GD.Print(error == Error.Ok ? $"Screenshot saved to {_capturePath}" : $"Screenshot failed: {error}");
         }
         GetTree().Quit();
+    }
+
+    private static Vector3 ParseFloorVector(string text)
+    {
+        var parts = text.Split(',');
+        return new Vector3(
+            float.Parse(parts[0], CultureInfo.InvariantCulture), 0f,
+            float.Parse(parts[1], CultureInfo.InvariantCulture));
     }
 }

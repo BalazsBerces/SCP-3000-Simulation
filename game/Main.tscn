@@ -1,4 +1,4 @@
-[gd_scene load_steps=11 format=3]
+[gd_scene load_steps=12 format=3]
 
 [ext_resource type="Script" path="res://scripts/SimulationHost.cs" id="1_host"]
 [ext_resource type="Script" path="res://scripts/StoreFloor.cs" id="2_floor"]
@@ -6,6 +6,7 @@
 [ext_resource type="Script" path="res://scripts/TimeControls.cs" id="4_time"]
 [ext_resource type="Script" path="res://scripts/DevCapture.cs" id="5_capture"]
 [ext_resource type="Shader" path="res://shaders/store_floor.gdshader" id="6_floor_shader"]
+[ext_resource type="Script" path="res://scripts/WrapDebugOverlay.cs" id="7_wrap_debug"]
 
 [sub_resource type="ProceduralSkyMaterial" id="SkyMaterial_ceiling"]
 sky_top_color = Color(0.32, 0.33, 0.34, 1)
@@ -40,10 +41,11 @@ transform = Transform3D(0.866025, -0.40558, 0.29237, 0, 0.584958, 0.811064, -0.5
 light_color = Color(0.95, 0.97, 1, 1)
 light_energy = 0.9
 
-[node name="StoreFloor" type="MeshInstance3D" parent="." node_paths=PackedStringArray("Host")]
+[node name="StoreFloor" type="MeshInstance3D" parent="." node_paths=PackedStringArray("Host", "Rig")]
 material_override = SubResource("ShaderMaterial_floor")
 script = ExtResource("2_floor")
 Host = NodePath("../SimulationHost")
+Rig = NodePath("../CameraRig")
 
 [node name="CameraRig" type="Node3D" parent="." node_paths=PackedStringArray("Host", "Camera")]
 script = ExtResource("3_camera")
@@ -60,5 +62,12 @@ current = true
 script = ExtResource("4_time")
 Host = NodePath("../SimulationHost")
 
-[node name="DevCapture" type="Node" parent="."]
+[node name="WrapDebugOverlay" type="Node3D" parent="." node_paths=PackedStringArray("Host", "Rig", "Floor")]
+script = ExtResource("7_wrap_debug")
+Host = NodePath("../SimulationHost")
+Rig = NodePath("../CameraRig")
+Floor = NodePath("../StoreFloor")
+
+[node name="DevCapture" type="Node" parent="." node_paths=PackedStringArray("Rig")]
 script = ExtResource("5_capture")
+Rig = NodePath("../CameraRig")

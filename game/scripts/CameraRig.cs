@@ -31,6 +31,12 @@ public partial class CameraRig : Node3D
     /// <summary>How quickly the camera catches up with its targets (higher is snappier).</summary>
     [Export] public float Smoothing { get; set; } = 7f;
 
+    /// <summary>
+    /// Keep the focus on the Store floor by shifting the rig a whole Store length when it pans
+    /// across a seam. Wrapped content is placed around the focus, so the shift is invisible.
+    /// </summary>
+    [Export] public bool WrapFocus { get; set; } = true;
+
     private Vector3 _targetFocus;
     private float _targetYaw;
     private float _targetDistance;
@@ -40,9 +46,22 @@ public partial class CameraRig : Node3D
     private bool _dragRotating;
     private float _storeSize;
 
+    /// <summary>Raised with the shift whenever the rig jumps a whole Store length across a seam.</summary>
+    public event Action<Vector3>? Recentred;
+
+    /// <summary>The point on the floor the camera looks at, always on the floor while <see cref="WrapFocus"/> is on.</summary>
+    public Vector3 Focus => Position;
+
+    public override void _EnterTree()
+    {
+        // Run before the nodes that place wrapped content around the focus, so a recentring
+        // and the matching content placement land in the same frame.
+        ProcessPriority = -100;
+    }
+
     public override void _Ready()
     {
-        _storeSize = Host.Snapshot.StoreSize;
+        _storeSize = Host.Snapshot.Space.Size;
         _targetFocus = new Vector3(_storeSize / 2f, 0f, _storeSize / 2f);
         Position = _targetFocus;
         _targetDistance = _distance = Mathf.Clamp(StartDistance, MinDistance, MaxDistance);
@@ -87,7 +106,33 @@ public partial class CameraRig : Node3D
         Position = Position.Lerp(_targetFocus, blend);
         _yaw = Mathf.Lerp(_yaw, _targetYaw, blend);
         _distance = Mathf.Lerp(_distance, _targetDistance, blend);
+        if (WrapFocus)
+            WrapIntoStore();
         ApplyTransform();
+    }
+
+    /// <summary>Moves the focus and its target instantly, with no easing (dev tools only).</summary>
+    public void JumpTo(Vector3 focus)
+    {
+        Position = _targetFocus = focus with { Y = 0f };
+        ApplyTransform();
+    }
+
+    /// <summary>Moves the focus target by a world-space offset; the camera eases after it.</summary>
+    public void MoveTargetBy(Vector3 offset) => _targetFocus += offset with { Y = 0f };
+
+    private void WrapIntoStore()
+    {
+        // Shift by whole Store lengths, applied to the eased focus and its target alike, so the
+        // easing carries on undisturbed on the other side of the seam.
+        var shift = new Vector3(
+            -_storeSize * Mathf.Floor(Position.X / _storeSize), 0f,
+            -_storeSize * Mathf.Floor(Position.Z / _storeSize));
+        if (shift == Vector3.Zero)
+            return;
+        Position += shift;
+        _targetFocus += shift;
+        Recentred?.Invoke(shift);
     }
 
     private void ReadKeyboard(float dt)
@@ -112,9 +157,8 @@ public partial class CameraRig : Node3D
     {
         var right = new Vector3(Mathf.Cos(_targetYaw), 0f, -Mathf.Sin(_targetYaw));
         var down = new Vector3(Mathf.Sin(_targetYaw), 0f, Mathf.Cos(_targetYaw));
-        var target = _targetFocus + right * screenMetres.X + down * screenMetres.Y;
-        // The Store wraps (next ticket); until then the focus stays over the floor.
-        _targetFocus = new Vector3(Mathf.Clamp(target.X, 0f, _storeSize), 0f, Mathf.Clamp(target.Z, 0f, _storeSize));
+        // No clamping: the Store wraps, so the focus may pan across a seam.
+        _targetFocus += right * screenMetres.X + down * screenMetres.Y;
     }
 
     private float ClampDistance(float distance) => Mathf.Clamp(distance, MinDistance, MaxDistance);

@@ -10,6 +10,18 @@ An observer-only simulation of survivor communities inside an endless furniture 
 The endless, wrapping furniture-store world in which everything takes place. Always generic, never a real brand.
 _Avoid_: IKEA, map, level
 
+**Seam**:
+The line where the wrapping Store meets itself; crossing it brings you out on the opposite side. Distances and directions always take the shortest way, across a Seam if that is shorter.
+_Avoid_: Edge, border (the Store has none)
+
+**Chunk**:
+A 64 m square of the Store's grid (the Store is 24 × 24 Chunks, about 1.5 × 1.5 km); the unit of streaming, culling, navigation rebuilding and simulation level of detail.
+_Avoid_: Tile (floor tiles are visual), cell, sector
+
+**Ghost copy**:
+An extra drawing of something near a Seam at its wrapped position on the other side, so it is visible from both sides; there is still only one object.
+_Avoid_: Clone, duplicate
+
 **Department**:
 A region of the Store with its own look and resources (e.g. Showrooms, Self-serve warehouse); acts as a biome.
 _Avoid_: Biome, zone, area
