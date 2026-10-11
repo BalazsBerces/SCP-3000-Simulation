@@ -23,7 +23,7 @@ An extra drawing of something near a Seam at its wrapped position on the other s
 _Avoid_: Clone, duplicate
 
 **Department**:
-A region of the Store with its own look and resources (e.g. Showrooms, Self-serve warehouse); acts as a biome.
+A connected region of the Store with its own look, Furniture and resources; acts as a biome. Each Department has one of seven **Department types** (Restaurant/food market, Showrooms, Lighting & electrical, Self-serve warehouse, Bathrooms & kitchens, Plant section, Kids' area); separate Departments may share a type.
 _Avoid_: Biome, zone, area
 
 **Pillar**:

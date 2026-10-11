@@ -23,7 +23,17 @@ public partial class WrappedInstances : Node3D
     private (long X, long Y)? _placedAroundCell;
 
     /// <summary>Replaces all instances. Transform origins are Store positions in world space and may be unwrapped.</summary>
-    public void SetInstances(StoreSpace space, IEnumerable<Transform3D> transforms)
+    public void SetInstances(StoreSpace space, IEnumerable<Transform3D> transforms) =>
+        SetInstances(space, transforms.Select(t => (t, Colors.White)), useColors: false);
+
+    /// <summary>
+    /// Replaces all instances, each with its own colour (materials that use vertex colour as
+    /// albedo are tinted by it). Transform origins are Store positions and may be unwrapped.
+    /// </summary>
+    public void SetInstances(StoreSpace space, IEnumerable<(Transform3D Transform, Color Color)> instances) =>
+        SetInstances(space, instances, useColors: true);
+
+    private void SetInstances(StoreSpace space, IEnumerable<(Transform3D Transform, Color Color)> instances, bool useColors)
     {
         foreach (var images in _chunks.Values)
             foreach (var image in images.Nodes)
@@ -32,16 +42,35 @@ public partial class WrappedInstances : Node3D
         _space = space;
         _placedAroundCell = null;
 
-        var byChunk = transforms
-            .Select(t => t with { Origin = space.Wrap(t.Origin.ToStore()).ToWorld(t.Origin.Y) })
-            .GroupBy(t => space.ChunkOf(t.Origin.ToStore()));
+        var byChunk = instances
+            .Select(i => i with { Transform = i.Transform with { Origin = space.Wrap(i.Transform.Origin.ToStore()).ToWorld(i.Transform.Origin.Y) } })
+            .GroupBy(i => space.ChunkOf(i.Transform.Origin.ToStore()));
+        var stride = useColors ? 16 : 12;
         foreach (var group in byChunk)
         {
-            var multiMesh = new MultiMesh { TransformFormat = MultiMesh.TransformFormatEnum.Transform3D, Mesh = Mesh };
-            var chunkTransforms = group.ToArray();
-            multiMesh.InstanceCount = chunkTransforms.Length;
-            for (var i = 0; i < chunkTransforms.Length; i++)
-                multiMesh.SetInstanceTransform(i, chunkTransforms[i]);
+            var chunkInstances = group.ToArray();
+            // Filled in one go: per-instance setters are far slower for hundreds of thousands of pieces.
+            var buffer = new float[chunkInstances.Length * stride];
+            for (var i = 0; i < chunkInstances.Length; i++)
+            {
+                var (t, color) = chunkInstances[i];
+                var o = i * stride;
+                buffer[o + 0] = t.Basis.X.X; buffer[o + 1] = t.Basis.Y.X; buffer[o + 2] = t.Basis.Z.X; buffer[o + 3] = t.Origin.X;
+                buffer[o + 4] = t.Basis.X.Y; buffer[o + 5] = t.Basis.Y.Y; buffer[o + 6] = t.Basis.Z.Y; buffer[o + 7] = t.Origin.Y;
+                buffer[o + 8] = t.Basis.X.Z; buffer[o + 9] = t.Basis.Y.Z; buffer[o + 10] = t.Basis.Z.Z; buffer[o + 11] = t.Origin.Z;
+                if (useColors)
+                {
+                    buffer[o + 12] = color.R; buffer[o + 13] = color.G; buffer[o + 14] = color.B; buffer[o + 15] = color.A;
+                }
+            }
+            var multiMesh = new MultiMesh
+            {
+                TransformFormat = MultiMesh.TransformFormatEnum.Transform3D,
+                UseColors = useColors,
+                Mesh = Mesh,
+                InstanceCount = chunkInstances.Length,
+            };
+            multiMesh.Buffer = buffer;
             _chunks[group.Key] = new ChunkImages(multiMesh);
         }
     }

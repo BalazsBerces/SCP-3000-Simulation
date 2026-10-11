@@ -1,4 +1,4 @@
-[gd_scene load_steps=12 format=3]
+[gd_scene load_steps=14 format=3]
 
 [ext_resource type="Script" path="res://scripts/SimulationHost.cs" id="1_host"]
 [ext_resource type="Script" path="res://scripts/StoreFloor.cs" id="2_floor"]
@@ -7,6 +7,8 @@
 [ext_resource type="Script" path="res://scripts/DevCapture.cs" id="5_capture"]
 [ext_resource type="Shader" path="res://shaders/store_floor.gdshader" id="6_floor_shader"]
 [ext_resource type="Script" path="res://scripts/WrapDebugOverlay.cs" id="7_wrap_debug"]
+[ext_resource type="Script" path="res://scripts/FurnitureRenderer.cs" id="8_furniture"]
+[ext_resource type="Script" path="res://scripts/SeedPanel.cs" id="9_seed"]
 
 [sub_resource type="ProceduralSkyMaterial" id="SkyMaterial_ceiling"]
 sky_top_color = Color(0.32, 0.33, 0.34, 1)
@@ -58,6 +60,16 @@ near = 0.1
 far = 2000.0
 current = true
 
+[node name="FurnitureRenderer" type="Node3D" parent="." node_paths=PackedStringArray("Host", "Rig")]
+script = ExtResource("8_furniture")
+Host = NodePath("../SimulationHost")
+Rig = NodePath("../CameraRig")
+
+[node name="SeedPanel" type="CanvasLayer" parent="." node_paths=PackedStringArray("Host", "Rig")]
+script = ExtResource("9_seed")
+Host = NodePath("../SimulationHost")
+Rig = NodePath("../CameraRig")
+
 [node name="TimeControls" type="CanvasLayer" parent="." node_paths=PackedStringArray("Host")]
 script = ExtResource("4_time")
 Host = NodePath("../SimulationHost")
@@ -68,6 +80,8 @@ Host = NodePath("../SimulationHost")
 Rig = NodePath("../CameraRig")
 Floor = NodePath("../StoreFloor")
 
-[node name="DevCapture" type="Node" parent="." node_paths=PackedStringArray("Rig")]
+[node name="DevCapture" type="Node" parent="." node_paths=PackedStringArray("Rig", "Host", "Seeds")]
 script = ExtResource("5_capture")
 Rig = NodePath("../CameraRig")
+Host = NodePath("../SimulationHost")
+Seeds = NodePath("../SeedPanel")

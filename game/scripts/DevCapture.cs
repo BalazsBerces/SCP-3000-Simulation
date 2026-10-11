@@ -8,15 +8,20 @@ namespace Scp3008.Game;
 ///   --capture=&lt;png path&gt;   save a screenshot after <c>--capture-after</c> seconds (default 3) and quit;
 ///   --fps-report           print the average frame rate over the capture window;
 ///   --focus=x,y            start the camera focused on Store position (x, y);
+///   --distance=metres      start the camera at this zoom distance;
 ///   --pan=vx,vy            pan the camera focus at (vx, vy) metres per second, then report how
 ///                          often it crossed a seam and its largest per-frame step, overall
 ///                          and on the crossing frames (a jump would show as a big step there);
-///   --no-focus-wrap        never shift the camera back onto the floor (to compare images of the same place).
+///   --no-focus-wrap        never shift the camera back onto the floor (to compare images of the same place);
+///   --enter-seed=text      after one second, enter this seed in the seed input; the capture timer
+///                          restarts once the new Store is shown.
 /// Does nothing in normal runs.
 /// </summary>
 public partial class DevCapture : Node
 {
     [Export] public CameraRig Rig { get; set; } = null!;
+    [Export] public SimulationHost Host { get; set; } = null!;
+    [Export] public SeedPanel Seeds { get; set; } = null!;
 
     private string? _capturePath;
     private double _captureAfter = 3.0;
@@ -29,6 +34,7 @@ public partial class DevCapture : Node
     private float _largestCrossingStep;
     private bool _crossedThisFrame;
     private Vector3 _lastFocus;
+    private string? _seedToEnter;
 
     public override void _Ready()
     {
@@ -42,10 +48,14 @@ public partial class DevCapture : Node
                 _fpsReport = true;
             else if (arg.StartsWith("--focus="))
                 Rig.JumpTo(ParseFloorVector(arg["--focus=".Length..]));
+            else if (arg.StartsWith("--distance="))
+                Rig.JumpToDistance(float.Parse(arg["--distance=".Length..], CultureInfo.InvariantCulture));
             else if (arg.StartsWith("--pan="))
                 _panVelocity = ParseFloorVector(arg["--pan=".Length..]);
             else if (arg == "--no-focus-wrap")
                 Rig.WrapFocus = false;
+            else if (arg.StartsWith("--enter-seed="))
+                _seedToEnter = arg["--enter-seed=".Length..];
         }
         _lastFocus = Rig.Focus;
         // Keep the step measurement continuous across the rig's whole-Store shifts.
@@ -55,7 +65,13 @@ public partial class DevCapture : Node
             _crossedThisFrame = true;
             _lastFocus += shift;
         };
-        SetProcess(_capturePath is not null || _fpsReport || _panVelocity != Vector3.Zero);
+        Host.WorldCreated += snapshot =>
+        {
+            GD.Print($"New Store shown: seed {snapshot.Seed}, {snapshot.Departments.All.Count} Departments, {snapshot.Furniture.Count} pieces of Furniture.");
+            _elapsed = 0.0;
+            _frames = 0;
+        };
+        SetProcess(_capturePath is not null || _fpsReport || _panVelocity != Vector3.Zero || _seedToEnter is not null);
     }
 
     public override void _Process(double delta)
@@ -72,6 +88,13 @@ public partial class DevCapture : Node
 
         _elapsed += delta;
         _frames++;
+        if (_seedToEnter is not null && _elapsed >= 1.0)
+        {
+            Seeds.Submit(_seedToEnter);
+            _seedToEnter = null;
+        }
+        if (_seedToEnter is not null || Host.IsGenerating)
+            return;
         if (_elapsed < _captureAfter || (_capturePath is null && !_fpsReport))
             return;
 

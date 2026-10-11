@@ -1,13 +1,23 @@
-// Flat Store floor: world-space tiles with grout lines, so pan and zoom read clearly.
-// The pattern repeats exactly once per Store length, so it is seamless across the wrap.
+// Store floor: each Department has its own CC0 PBR floor texture, chosen per department cell from
+// a map of Department types, with a dark strip where two Departments meet. Every texture repeats a
+// whole number of times per Store length, so the floor is seamless across the wrap.
 shader_type spatial;
 
-uniform vec3 tile_color : source_color = vec3(0.58, 0.56, 0.52);
-uniform vec3 grout_color : source_color = vec3(0.36, 0.35, 0.33);
-// Both tile sizes must divide store_size exactly (1536 / 1.2 = 1280, 1536 / 9.6 = 160).
-uniform float tile_size = 1.2;
-uniform float grout_width = 0.025;
+// One layer per Department type, in DepartmentType order.
+uniform sampler2DArray floor_albedo : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform sampler2DArray floor_normal : hint_normal, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform sampler2DArray floor_roughness : hint_default_white, filter_linear_mipmap_anisotropic, repeat_enable;
+// Metres covered by one repeat of each layer; each must divide store_size exactly.
+uniform float layer_metres[7];
+// Albedo multiplier per layer, to balance the textures against each other.
+uniform vec3 layer_tint[7];
+
+// Department type index (0-6) per department cell, as R8 (value / 255).
+uniform sampler2D department_map : filter_nearest, repeat_enable;
+uniform float department_cell_size = 16.0;
 uniform float store_size = 1536.0;
+uniform float border_width = 0.12;
+uniform vec3 border_color : source_color = vec3(0.12, 0.12, 0.12);
 
 // Wrap debug overlay: chunk boundaries and the seams where the Store meets itself.
 uniform bool show_chunks = false;
@@ -21,16 +31,14 @@ void vertex() {
 	world_position = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 }
 
-// 1.0 on a grid line, 0.0 elsewhere, anti-aliased and faded out once the lines get thinner than a pixel.
-float grid_lines(vec2 p, float cell_size, float half_width) {
-	vec2 distance_to_line = abs(fract(p / cell_size + 0.5) - 0.5) * cell_size;
-	vec2 pixel = fwidth(p);
-	vec2 line = 1.0 - smoothstep(vec2(half_width), vec2(half_width) + pixel, distance_to_line);
-	float visibility = 1.0 - smoothstep(half_width, half_width * 6.0, max(pixel.x, pixel.y));
-	return max(line.x, line.y) * visibility;
+int department_at(ivec2 cell) {
+	ivec2 size = textureSize(department_map, 0);
+	// Cells are at most one step off the floor, and GLSL leaves % of negative numbers undefined.
+	ivec2 wrapped = (cell + size) % size;
+	return int(texelFetch(department_map, wrapped, 0).r * 255.0 + 0.5);
 }
 
-// Like grid_lines, but never fades out, so the overlay stays readable when zoomed out.
+// Grid lines that never fade out, so the overlay stays readable when zoomed out.
 float overlay_lines(vec2 p, float cell_size, float half_width) {
 	vec2 distance_to_line = abs(fract(p / cell_size + 0.5) - 0.5) * cell_size;
 	vec2 width = max(vec2(half_width), fwidth(p) * 1.5);
@@ -40,17 +48,33 @@ float overlay_lines(vec2 p, float cell_size, float half_width) {
 
 void fragment() {
 	vec2 p = world_position.xz;
-	// Tile identity comes from the wrapped position, so the same tile looks the same on every lap.
-	vec2 tile_id = floor(mod(p, store_size) / tile_size);
-	float variation = fract(sin(dot(tile_id, vec2(12.9898, 78.233))) * 43758.5453);
-	float lines = max(grid_lines(p, tile_size, grout_width), grid_lines(p, tile_size * 8.0, grout_width * 4.0));
+	vec2 wrapped = mod(p, store_size);
+	ivec2 cell = ivec2(floor(wrapped / department_cell_size));
+	vec2 in_cell = wrapped - vec2(cell) * department_cell_size;
+	int layer = department_at(cell);
 
-	vec3 color = mix(tile_color * (0.95 + 0.05 * variation), grout_color, lines);
+	// Gradients from the continuous position keep mip selection smooth across cell edges.
+	vec2 uv = p / layer_metres[layer];
+	vec2 dx = dFdx(p) / layer_metres[layer];
+	vec2 dy = dFdy(p) / layer_metres[layer];
+	vec3 coord = vec3(uv, float(layer));
+	vec3 color = textureGrad(floor_albedo, coord, dx, dy).rgb * layer_tint[layer];
+	float roughness = textureGrad(floor_roughness, coord, dx, dy).r;
+	NORMAL_MAP = textureGrad(floor_normal, coord, dx, dy).rgb;
+
+	// A strip along cell edges that face another Department.
+	float border = 0.0;
+	if (in_cell.x < border_width && department_at(cell + ivec2(-1, 0)) != layer) border = 1.0;
+	if (in_cell.x > department_cell_size - border_width && department_at(cell + ivec2(1, 0)) != layer) border = 1.0;
+	if (in_cell.y < border_width && department_at(cell + ivec2(0, -1)) != layer) border = 1.0;
+	if (in_cell.y > department_cell_size - border_width && department_at(cell + ivec2(0, 1)) != layer) border = 1.0;
+	color = mix(color, border_color, border);
+
 	if (show_chunks) {
 		color = mix(color, chunk_line_color, overlay_lines(p, chunk_size, 0.15));
 		color = mix(color, seam_line_color, overlay_lines(p, store_size, 0.6));
 	}
 	ALBEDO = color;
-	ROUGHNESS = 0.6;
+	ROUGHNESS = mix(roughness, 0.9, border);
 	SPECULAR = 0.35;
 }

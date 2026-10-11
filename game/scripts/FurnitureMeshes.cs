@@ -1,0 +1,489 @@
+using Godot;
+using Scp3008.Core;
+
+namespace Scp3008.Game;
+
+/// <summary>
+/// Builds one mesh per Furniture type from simple parts (boxes and cylinders) sized from the
+/// core's Furniture specs, with CC0 PBR materials (see assets/textures/CREDITS.md). Mesh space:
+/// origin at the centre of the footprint on its base, X along the width, Z along the depth with
+/// the front facing +Z, Y up. Materials marked as tinted take their colour from the instance.
+/// </summary>
+public static class FurnitureMeshes
+{
+    private enum Part
+    {
+        Oak,
+        Walnut,
+        Maple,
+        Fabric,
+        Bedding,
+        Cardboard,
+        RackUpright,
+        RackBeam,
+        DarkSteel,
+        LightSteel,
+        Chrome,
+        Ceramic,
+        Glass,
+        Rubber,
+        Plastic,
+        Leaf,
+        Terracotta,
+        Soil,
+        LampShade,
+    }
+
+    private static readonly Dictionary<FurnitureType, ArrayMesh> Cache = new();
+    private static Dictionary<Part, Material>? _materials;
+
+    /// <summary>The mesh for a Furniture type; built once and shared.</summary>
+    public static ArrayMesh For(FurnitureType type)
+    {
+        if (!Cache.TryGetValue(type, out var mesh))
+            Cache[type] = mesh = Build(type);
+        return mesh;
+    }
+
+    /// <summary>
+    /// A colour for one piece: tinted materials vary per piece (fabric, plastic, leaves, cardboard),
+    /// picked from a palette by the piece id so a piece keeps its colour. Visual only.
+    /// </summary>
+    public static Color TintFor(FurniturePiece piece)
+    {
+        var palette = piece.Type switch
+        {
+            FurnitureType.Sofa or FurnitureType.Armchair or FurnitureType.Rug or FurnitureType.Bed => FabricColors,
+            FurnitureType.BunkBed or FurnitureType.KidsTable or FurnitureType.KidsChair or FurnitureType.PlayCube or FurnitureType.ToyShelf => PlasticColors,
+            FurnitureType.PottedPlant or FurnitureType.LargePlant => LeafColors,
+            FurnitureType.FlatPackBox => CardboardColors,
+            _ => null,
+        };
+        if (palette is null)
+            return Colors.White;
+        var hash = (uint)piece.Id * 2654435761u;
+        return palette[(int)(hash >> 16) % palette.Length];
+    }
+
+    private static readonly Color[] FabricColors =
+    [
+        new(0.62f, 0.62f, 0.6f), new(0.78f, 0.72f, 0.6f), new(0.25f, 0.3f, 0.42f), new(0.72f, 0.56f, 0.24f),
+        new(0.36f, 0.45f, 0.36f), new(0.62f, 0.36f, 0.28f), new(0.42f, 0.42f, 0.44f), new(0.85f, 0.83f, 0.78f),
+    ];
+
+    private static readonly Color[] PlasticColors =
+    [
+        new(0.85f, 0.25f, 0.2f), new(0.95f, 0.75f, 0.2f), new(0.25f, 0.55f, 0.85f), new(0.3f, 0.7f, 0.4f),
+        new(0.9f, 0.5f, 0.7f), new(0.95f, 0.55f, 0.2f), new(0.95f, 0.95f, 0.92f),
+    ];
+
+    private static readonly Color[] LeafColors =
+    [
+        new(0.25f, 0.45f, 0.2f), new(0.32f, 0.5f, 0.22f), new(0.2f, 0.38f, 0.22f), new(0.4f, 0.52f, 0.25f),
+    ];
+
+    private static readonly Color[] CardboardColors =
+    [
+        new(1f, 1f, 1f), new(0.92f, 0.9f, 0.86f), new(0.85f, 0.8f, 0.72f), new(0.96f, 0.93f, 0.9f),
+    ];
+
+    private static ArrayMesh Build(FurnitureType type)
+    {
+        var spec = FurnitureCatalog.Spec(type);
+        var (w, d, h) = (spec.Width, spec.Depth, spec.Height);
+        var (hw, hd) = (w / 2f, d / 2f);
+        var b = new Builder();
+        switch (type)
+        {
+            case FurnitureType.PalletRack:
+            {
+                foreach (var x in new[] { -hw + 0.04f, hw - 0.04f })
+                    foreach (var z in new[] { -hd + 0.04f, hd - 0.04f })
+                        b.Box(Part.RackUpright, new Vector3(x - 0.04f, 0f, z - 0.04f), new Vector3(x + 0.04f, h, z + 0.04f));
+                foreach (var level in FurnitureCatalog.PalletRackLevels.Append(h - 0.1f))
+                    foreach (var z in new[] { -hd + 0.04f, hd - 0.04f })
+                        b.Box(Part.RackBeam, new Vector3(-hw + 0.08f, level - 0.1f, z - 0.03f), new Vector3(hw - 0.08f, level, z + 0.03f));
+                foreach (var x in new[] { -hw + 0.04f, hw - 0.04f })
+                    for (var y = 0.6f; y < h; y += 1.2f)
+                        b.Box(Part.RackUpright, new Vector3(x - 0.02f, y, -hd + 0.08f), new Vector3(x + 0.02f, y + 0.04f, hd - 0.08f));
+                break;
+            }
+            case FurnitureType.FlatPackBox:
+                b.Box(Part.Cardboard, new Vector3(-hw, 0f, -hd), new Vector3(hw, h, hd));
+                b.Box(Part.LightSteel, new Vector3(-0.04f, h, -hd), new Vector3(0.04f, h + 0.003f, hd));
+                break;
+            case FurnitureType.ShelfUnit:
+                Posts(b, Part.DarkSteel, hw, hd, h, 0.025f);
+                foreach (var y in new[] { 0.1f, 0.55f, 1.0f, 1.45f, 1.9f })
+                    b.Box(Part.LightSteel, new Vector3(-hw, y, -hd), new Vector3(hw, y + 0.03f, hd));
+                b.Box(Part.LightSteel, new Vector3(-hw, 0.1f, -hd), new Vector3(hw, h, -hd + 0.015f));
+                break;
+            case FurnitureType.DisplayTable:
+                b.Box(Part.Maple, new Vector3(-hw, h - 0.04f, -hd), new Vector3(hw, h, hd));
+                Legs(b, Part.DarkSteel, hw - 0.06f, hd - 0.06f, h - 0.04f, 0.025f);
+                break;
+            case FurnitureType.TableLamp:
+                b.Cylinder(Part.DarkSteel, Vector3.Zero, 0.1f, 0.1f, 0.03f);
+                b.Cylinder(Part.DarkSteel, new Vector3(0f, 0.03f, 0f), 0.012f, 0.012f, 0.27f);
+                b.Cylinder(Part.LampShade, new Vector3(0f, 0.3f, 0f), 0.15f, 0.09f, 0.2f);
+                break;
+            case FurnitureType.FloorLamp:
+                b.Cylinder(Part.DarkSteel, Vector3.Zero, 0.18f, 0.18f, 0.03f);
+                b.Cylinder(Part.DarkSteel, new Vector3(0f, 0.03f, 0f), 0.015f, 0.015f, 1.37f);
+                b.Cylinder(Part.LampShade, new Vector3(0f, 1.4f, 0f), 0.22f, 0.14f, 0.3f);
+                break;
+            case FurnitureType.Sofa:
+            case FurnitureType.Armchair:
+            {
+                var arm = type == FurnitureType.Sofa ? 0.2f : 0.14f;
+                var back = type == FurnitureType.Sofa ? 0.22f : 0.2f;
+                b.Box(Part.Fabric, new Vector3(-hw, 0.1f, -hd), new Vector3(hw, 0.42f, hd));
+                b.Box(Part.Fabric, new Vector3(-hw, 0.42f, -hd), new Vector3(hw, h, -hd + back));
+                b.Box(Part.Fabric, new Vector3(-hw, 0.42f, -hd), new Vector3(-hw + arm, 0.64f, hd));
+                b.Box(Part.Fabric, new Vector3(hw - arm, 0.42f, -hd), new Vector3(hw, 0.64f, hd));
+                var cushions = type == FurnitureType.Sofa ? 2 : 1;
+                var span = (w - 2f * arm) / cushions;
+                for (var i = 0; i < cushions; i++)
+                {
+                    var x0 = -hw + arm + i * span;
+                    b.Box(Part.Fabric, new Vector3(x0 + 0.01f, 0.42f, -hd + back), new Vector3(x0 + span - 0.01f, 0.53f, hd - 0.02f));
+                }
+                Legs(b, Part.Walnut, hw - 0.06f, hd - 0.06f, 0.1f, 0.025f);
+                break;
+            }
+            case FurnitureType.CoffeeTable:
+                b.Box(Part.Oak, new Vector3(-hw, h - 0.04f, -hd), new Vector3(hw, h, hd));
+                b.Box(Part.Oak, new Vector3(-hw + 0.05f, 0.1f, -hd + 0.05f), new Vector3(hw - 0.05f, 0.12f, hd - 0.05f));
+                Legs(b, Part.Oak, hw - 0.05f, hd - 0.05f, h - 0.04f, 0.025f);
+                break;
+            case FurnitureType.Bed:
+                b.Box(Part.Oak, new Vector3(-hw, 0.1f, -hd), new Vector3(hw, 0.3f, hd));
+                b.Box(Part.Bedding, new Vector3(-hw + 0.03f, 0.3f, -hd + 0.08f), new Vector3(hw - 0.03f, 0.5f, hd - 0.03f));
+                b.Box(Part.Fabric, new Vector3(-hw + 0.01f, 0.5f, -hd + 0.6f), new Vector3(hw - 0.01f, 0.56f, hd - 0.01f));
+                b.Box(Part.Bedding, new Vector3(-hw + 0.1f, 0.5f, -hd + 0.12f), new Vector3(-0.04f, 0.62f, -hd + 0.5f));
+                b.Box(Part.Bedding, new Vector3(0.04f, 0.5f, -hd + 0.12f), new Vector3(hw - 0.1f, 0.62f, -hd + 0.5f));
+                b.Box(Part.Oak, new Vector3(-hw, 0.1f, -hd), new Vector3(hw, h, -hd + 0.06f));
+                Legs(b, Part.Oak, hw - 0.04f, hd - 0.04f, 0.1f, 0.03f);
+                break;
+            case FurnitureType.Wardrobe:
+                b.Box(Part.Maple, new Vector3(-hw, 0.05f, -hd), new Vector3(hw, h, hd));
+                b.Box(Part.Rubber, new Vector3(-hw + 0.03f, 0f, -hd + 0.03f), new Vector3(hw - 0.03f, 0.05f, hd - 0.03f));
+                b.Box(Part.Walnut, new Vector3(-0.004f, 0.06f, hd), new Vector3(0.004f, h - 0.01f, hd + 0.004f));
+                b.Box(Part.Chrome, new Vector3(-0.06f, 1.0f, hd), new Vector3(-0.04f, 1.25f, hd + 0.03f));
+                b.Box(Part.Chrome, new Vector3(0.04f, 1.0f, hd), new Vector3(0.06f, 1.25f, hd + 0.03f));
+                break;
+            case FurnitureType.Bookcase:
+                b.Box(Part.Oak, new Vector3(-hw, 0f, -hd), new Vector3(-hw + 0.02f, h, hd));
+                b.Box(Part.Oak, new Vector3(hw - 0.02f, 0f, -hd), new Vector3(hw, h, hd));
+                b.Box(Part.Oak, new Vector3(-hw, 0f, -hd), new Vector3(hw, h, -hd + 0.01f));
+                for (var y = 0f; y < h; y += (h - 0.02f) / 5f)
+                    b.Box(Part.Oak, new Vector3(-hw + 0.02f, y, -hd), new Vector3(hw - 0.02f, y + 0.02f, hd));
+                break;
+            case FurnitureType.Rug:
+                b.Box(Part.Fabric, new Vector3(-hw, 0f, -hd), new Vector3(hw, h, hd));
+                break;
+            case FurnitureType.KitchenCabinet:
+                b.Box(Part.Rubber, new Vector3(-hw, 0f, -hd), new Vector3(hw, 0.1f, hd - 0.06f));
+                b.Box(Part.Maple, new Vector3(-hw + 0.005f, 0.1f, -hd), new Vector3(hw - 0.005f, h - 0.04f, hd - 0.02f));
+                b.Box(Part.Walnut, new Vector3(-hw, h - 0.04f, -hd), new Vector3(hw, h, hd));
+                b.Box(Part.Chrome, new Vector3(-0.15f, h - 0.12f, hd - 0.02f), new Vector3(0.15f, h - 0.1f, hd + 0.01f));
+                break;
+            case FurnitureType.Fridge:
+                b.Box(Part.Ceramic, new Vector3(-hw, 0f, -hd), new Vector3(hw, h, hd - 0.05f));
+                b.Box(Part.Ceramic, new Vector3(-hw, 0.02f, hd - 0.05f), new Vector3(hw, 1.18f, hd));
+                b.Box(Part.Ceramic, new Vector3(-hw, 1.2f, hd - 0.05f), new Vector3(hw, h - 0.02f, hd));
+                b.Box(Part.Chrome, new Vector3(hw - 0.08f, 0.8f, hd), new Vector3(hw - 0.06f, 1.1f, hd + 0.03f));
+                b.Box(Part.Chrome, new Vector3(hw - 0.08f, 1.3f, hd), new Vector3(hw - 0.06f, 1.5f, hd + 0.03f));
+                break;
+            case FurnitureType.Bathtub:
+                b.Box(Part.Ceramic, new Vector3(-hw, 0f, -hd), new Vector3(hw, 0.12f, hd));
+                b.Box(Part.Ceramic, new Vector3(-hw, 0.12f, -hd), new Vector3(hw, h, -hd + 0.07f));
+                b.Box(Part.Ceramic, new Vector3(-hw, 0.12f, hd - 0.07f), new Vector3(hw, h, hd));
+                b.Box(Part.Ceramic, new Vector3(-hw, 0.12f, -hd + 0.07f), new Vector3(-hw + 0.07f, h, hd - 0.07f));
+                b.Box(Part.Ceramic, new Vector3(hw - 0.07f, 0.12f, -hd + 0.07f), new Vector3(hw, h, hd - 0.07f));
+                b.Cylinder(Part.Chrome, new Vector3(-hw + 0.035f, h, 0f), 0.02f, 0.02f, 0.18f);
+                break;
+            case FurnitureType.Toilet:
+                b.Cylinder(Part.Ceramic, new Vector3(0f, 0f, 0.08f), 0.13f, 0.18f, 0.4f);
+                b.Box(Part.Ceramic, new Vector3(-0.17f, 0.4f, -0.12f), new Vector3(0.17f, 0.42f, hd - 0.02f));
+                b.Box(Part.Ceramic, new Vector3(-hw, 0.35f, -hd), new Vector3(hw, h, -hd + 0.18f));
+                break;
+            case FurnitureType.VanityUnit:
+                b.Box(Part.Maple, new Vector3(-hw + 0.01f, 0.12f, -hd), new Vector3(hw - 0.01f, h - 0.05f, hd - 0.02f));
+                b.Box(Part.Ceramic, new Vector3(-hw, h - 0.05f, -hd), new Vector3(hw, h, hd));
+                b.Cylinder(Part.Chrome, new Vector3(0f, h, -hd + 0.08f), 0.015f, 0.015f, 0.2f);
+                Legs(b, Part.Chrome, hw - 0.05f, hd - 0.05f, 0.12f, 0.015f);
+                break;
+            case FurnitureType.GroceryShelf:
+                b.Box(Part.LightSteel, new Vector3(-hw, 0f, -hd), new Vector3(hw, 0.12f, hd));
+                b.Box(Part.LightSteel, new Vector3(-hw, 0.12f, -0.02f), new Vector3(hw, h, 0.02f));
+                foreach (var y in new[] { 0.5f, 0.9f, 1.3f })
+                {
+                    b.Box(Part.LightSteel, new Vector3(-hw, y, -hd + 0.02f), new Vector3(hw, y + 0.025f, -0.02f));
+                    b.Box(Part.LightSteel, new Vector3(-hw, y, 0.02f), new Vector3(hw, y + 0.025f, hd - 0.02f));
+                }
+                b.Box(Part.RackBeam, new Vector3(-hw, h - 0.08f, -0.03f), new Vector3(hw, h, 0.03f));
+                break;
+            case FurnitureType.Freezer:
+                b.Box(Part.Ceramic, new Vector3(-hw, 0f, -hd), new Vector3(hw, h - 0.12f, hd));
+                b.Box(Part.LightSteel, new Vector3(-hw, h - 0.12f, -hd), new Vector3(hw, h - 0.08f, hd));
+                b.Box(Part.Glass, new Vector3(-hw + 0.04f, h - 0.08f, -hd + 0.04f), new Vector3(hw - 0.04f, h - 0.06f, hd - 0.04f));
+                b.Box(Part.LightSteel, new Vector3(-hw, h - 0.08f, -hd), new Vector3(hw, h, -hd + 0.04f));
+                b.Box(Part.LightSteel, new Vector3(-hw, h - 0.08f, hd - 0.04f), new Vector3(hw, h, hd));
+                break;
+            case FurnitureType.Counter:
+                b.Box(Part.Rubber, new Vector3(-hw, 0f, -hd + 0.06f), new Vector3(hw, 0.1f, hd - 0.06f));
+                b.Box(Part.Walnut, new Vector3(-hw, 0.1f, -hd + 0.03f), new Vector3(hw, h - 0.05f, hd - 0.03f));
+                b.Box(Part.Maple, new Vector3(-hw, h - 0.05f, -hd), new Vector3(hw, h, hd));
+                break;
+            case FurnitureType.DiningTable:
+                b.Box(Part.Oak, new Vector3(-hw, h - 0.04f, -hd), new Vector3(hw, h, hd));
+                Legs(b, Part.Oak, hw - 0.08f, hd - 0.08f, h - 0.04f, 0.03f);
+                break;
+            case FurnitureType.Chair:
+                b.Box(Part.Oak, new Vector3(-hw, 0.43f, -hd), new Vector3(hw, 0.47f, hd));
+                Legs(b, Part.Oak, hw - 0.03f, hd - 0.03f, 0.43f, 0.018f);
+                b.Box(Part.Oak, new Vector3(-hw, 0.47f, -hd), new Vector3(-hw + 0.035f, h, -hd + 0.035f));
+                b.Box(Part.Oak, new Vector3(hw - 0.035f, 0.47f, -hd), new Vector3(hw, h, -hd + 0.035f));
+                b.Box(Part.Oak, new Vector3(-hw, 0.62f, -hd), new Vector3(hw, h - 0.02f, -hd + 0.02f));
+                break;
+            case FurnitureType.PlantTable:
+                b.Box(Part.LightSteel, new Vector3(-hw, h - 0.04f, -hd), new Vector3(hw, h, hd));
+                b.Box(Part.LightSteel, new Vector3(-hw + 0.05f, 0.15f, -hd + 0.05f), new Vector3(hw - 0.05f, 0.17f, hd - 0.05f));
+                Legs(b, Part.LightSteel, hw - 0.05f, hd - 0.05f, h - 0.04f, 0.02f);
+                break;
+            case FurnitureType.PottedPlant:
+                b.Cylinder(Part.Terracotta, Vector3.Zero, 0.1f, 0.14f, 0.24f);
+                b.Cylinder(Part.Soil, new Vector3(0f, 0.24f, 0f), 0.13f, 0.13f, 0.01f);
+                b.Cylinder(Part.Leaf, new Vector3(0f, 0.25f, 0f), 0.12f, 0.17f, 0.15f, segments: 7);
+                b.Cylinder(Part.Leaf, new Vector3(0.02f, 0.4f, -0.01f), 0.17f, 0.04f, 0.2f, segments: 7);
+                break;
+            case FurnitureType.LargePlant:
+                b.Cylinder(Part.Terracotta, Vector3.Zero, 0.24f, 0.3f, 0.5f);
+                b.Cylinder(Part.Soil, new Vector3(0f, 0.5f, 0f), 0.28f, 0.28f, 0.01f);
+                b.Cylinder(Part.Walnut, new Vector3(0f, 0.5f, 0f), 0.04f, 0.03f, 0.9f);
+                b.Cylinder(Part.Leaf, new Vector3(0f, 1.1f, 0f), 0.2f, 0.35f, 0.4f, segments: 8);
+                b.Cylinder(Part.Leaf, new Vector3(0.03f, 1.5f, 0.02f), 0.33f, 0.2f, 0.35f, segments: 8);
+                b.Cylinder(Part.Leaf, new Vector3(-0.02f, 1.85f, 0f), 0.2f, 0.03f, 0.35f, segments: 8);
+                break;
+            case FurnitureType.ToyShelf:
+                b.Box(Part.Maple, new Vector3(-hw, 0f, -hd), new Vector3(-hw + 0.02f, h, hd));
+                b.Box(Part.Maple, new Vector3(hw - 0.02f, 0f, -hd), new Vector3(hw, h, hd));
+                b.Box(Part.Maple, new Vector3(-hw, 0f, -hd), new Vector3(hw, h, -hd + 0.01f));
+                for (var y = 0f; y < h; y += (h - 0.02f) / 3f)
+                    b.Box(Part.Maple, new Vector3(-hw + 0.02f, y, -hd), new Vector3(hw - 0.02f, y + 0.02f, hd));
+                foreach (var x in new[] { -hw / 2f, 0f, hw / 2f })
+                    b.Box(Part.Maple, new Vector3(x - 0.01f, 0f, -hd), new Vector3(x + 0.01f, h, hd));
+                for (var row = 0; row < 3; row++)
+                    for (var col = 0; col < 4; col++)
+                        if ((row + col) % 3 != 1)
+                        {
+                            var x0 = -hw + 0.03f + col * (w - 0.06f) / 4f;
+                            var y0 = 0.02f + row * (h - 0.02f) / 3f;
+                            b.Box(Part.Plastic, new Vector3(x0 + 0.02f, y0, -hd + 0.03f), new Vector3(x0 + (w - 0.06f) / 4f - 0.03f, y0 + 0.24f, hd - 0.02f));
+                        }
+                break;
+            case FurnitureType.BunkBed:
+                Posts(b, Part.Maple, hw, hd, h, 0.03f);
+                foreach (var y in new[] { 0.2f, 1.05f })
+                {
+                    b.Box(Part.Maple, new Vector3(-hw + 0.06f, y, -hd + 0.02f), new Vector3(hw - 0.06f, y + 0.1f, hd - 0.02f));
+                    b.Box(Part.Bedding, new Vector3(-hw + 0.08f, y + 0.1f, -hd + 0.05f), new Vector3(hw - 0.08f, y + 0.22f, hd - 0.05f));
+                    b.Box(Part.Plastic, new Vector3(-hw + 0.5f, y + 0.22f, -hd + 0.06f), new Vector3(hw - 0.09f, y + 0.26f, hd - 0.06f));
+                }
+                b.Box(Part.Maple, new Vector3(-hw + 0.06f, 1.4f, -hd), new Vector3(hw - 0.06f, 1.46f, -hd + 0.03f));
+                b.Box(Part.Maple, new Vector3(-hw + 0.06f, 1.4f, hd - 0.03f), new Vector3(hw - 0.6f, 1.46f, hd));
+                for (var y = 0.45f; y < 1.4f; y += 0.25f)
+                    b.Box(Part.Maple, new Vector3(hw - 0.5f, y, hd - 0.03f), new Vector3(hw - 0.06f, y + 0.03f, hd));
+                break;
+            case FurnitureType.KidsTable:
+                b.Box(Part.Plastic, new Vector3(-hw, h - 0.04f, -hd), new Vector3(hw, h, hd));
+                Legs(b, Part.Maple, hw - 0.05f, hd - 0.05f, h - 0.04f, 0.025f);
+                break;
+            case FurnitureType.KidsChair:
+                b.Box(Part.Plastic, new Vector3(-hw, 0.28f, -hd), new Vector3(hw, 0.31f, hd));
+                Legs(b, Part.Maple, hw - 0.03f, hd - 0.03f, 0.28f, 0.015f);
+                b.Box(Part.Plastic, new Vector3(-hw, 0.36f, -hd), new Vector3(hw, h, -hd + 0.03f));
+                b.Box(Part.Maple, new Vector3(-hw, 0.31f, -hd), new Vector3(-hw + 0.03f, 0.36f, -hd + 0.03f));
+                b.Box(Part.Maple, new Vector3(hw - 0.03f, 0.31f, -hd), new Vector3(hw, 0.36f, -hd + 0.03f));
+                break;
+            case FurnitureType.PlayCube:
+                b.Box(Part.Plastic, new Vector3(-hw + 0.01f, 0f, -hd + 0.01f), new Vector3(hw - 0.01f, h, hd - 0.01f));
+                break;
+            default:
+                b.Box(Part.Maple, new Vector3(-hw, 0f, -hd), new Vector3(hw, h, hd));
+                break;
+        }
+        return b.Commit(Materials());
+    }
+
+    /// <summary>Four legs of square section reaching from the floor to <paramref name="top"/>.</summary>
+    private static void Legs(Builder b, Part part, float x, float z, float top, float half)
+    {
+        foreach (var lx in new[] { -x, x })
+            foreach (var lz in new[] { -z, z })
+                b.Box(part, new Vector3(lx - half, 0f, lz - half), new Vector3(lx + half, top, lz + half));
+    }
+
+    /// <summary>Four corner posts flush with the footprint.</summary>
+    private static void Posts(Builder b, Part part, float hw, float hd, float h, float half) =>
+        Legs(b, part, hw - half, hd - half, h, half);
+
+    private static Dictionary<Part, Material> Materials()
+    {
+        if (_materials is not null)
+            return _materials;
+        StandardMaterial3D Textured(string name, float metres, Color tint, bool tinted = false)
+        {
+            var material = new StandardMaterial3D
+            {
+                AlbedoTexture = GD.Load<Texture2D>($"res://assets/textures/{name}_albedo.jpg"),
+                AlbedoColor = tint,
+                NormalEnabled = true,
+                NormalTexture = GD.Load<Texture2D>($"res://assets/textures/{name}_normal.jpg"),
+                RoughnessTexture = GD.Load<Texture2D>($"res://assets/textures/{name}_roughness.jpg"),
+                Roughness = 1f,
+                Uv1Scale = new Vector3(1f / metres, 1f / metres, 1f),
+                VertexColorUseAsAlbedo = tinted,
+            };
+            return material;
+        }
+        StandardMaterial3D Plain(Color color, float roughness, float metallic = 0f, bool tinted = false) => new()
+        {
+            AlbedoColor = color,
+            Roughness = roughness,
+            Metallic = metallic,
+            VertexColorUseAsAlbedo = tinted,
+        };
+
+        var shade = Plain(new Color(0.95f, 0.9f, 0.78f), 0.8f);
+        shade.EmissionEnabled = true;
+        shade.Emission = new Color(1f, 0.85f, 0.6f);
+        shade.EmissionEnergyMultiplier = 0.35f;
+
+        _materials = new Dictionary<Part, Material>
+        {
+            [Part.Oak] = Textured("oak", 1.2f, Colors.White),
+            [Part.Walnut] = Textured("walnut", 1.2f, Colors.White),
+            [Part.Maple] = Textured("maple", 1.2f, Colors.White),
+            [Part.Fabric] = Textured("fabric", 0.8f, Colors.White, tinted: true),
+            [Part.Bedding] = Textured("fabric", 0.8f, new Color(0.95f, 0.95f, 0.93f)),
+            [Part.Cardboard] = Textured("cardboard", 1.0f, Colors.White, tinted: true),
+            [Part.RackUpright] = Plain(new Color(0.12f, 0.25f, 0.55f), 0.45f, 0.4f),
+            [Part.RackBeam] = Plain(new Color(0.9f, 0.42f, 0.08f), 0.45f, 0.3f),
+            [Part.DarkSteel] = Plain(new Color(0.12f, 0.12f, 0.13f), 0.5f, 0.6f),
+            [Part.LightSteel] = Plain(new Color(0.72f, 0.73f, 0.74f), 0.45f, 0.5f),
+            [Part.Chrome] = Plain(new Color(0.85f, 0.86f, 0.88f), 0.15f, 1f),
+            [Part.Ceramic] = Plain(new Color(0.93f, 0.93f, 0.92f), 0.2f),
+            [Part.Glass] = Plain(new Color(0.55f, 0.65f, 0.7f), 0.05f, 0.3f),
+            [Part.Rubber] = Plain(new Color(0.08f, 0.08f, 0.08f), 0.9f),
+            [Part.Plastic] = Plain(Colors.White, 0.5f, tinted: true),
+            [Part.Leaf] = Plain(Colors.White, 0.7f, tinted: true),
+            [Part.Terracotta] = Plain(new Color(0.62f, 0.32f, 0.2f), 0.85f),
+            [Part.Soil] = Plain(new Color(0.18f, 0.12f, 0.08f), 1f),
+            [Part.LampShade] = shade,
+        };
+        return _materials;
+    }
+
+    /// <summary>Accumulates parts into one surface per material, with UVs in metres and tangents for normal maps.</summary>
+    private sealed class Builder
+    {
+        private readonly Dictionary<Part, SurfaceTool> _surfaces = new();
+
+        public void Box(Part part, Vector3 min, Vector3 max)
+        {
+            var tool = Surface(part);
+            var size = max - min;
+            // Each face: normal, the two in-face axes (scaled by size) and its corner.
+            Face(tool, min with { Z = max.Z }, new Vector3(size.X, 0, 0), new Vector3(0, size.Y, 0), Vector3.Back);
+            Face(tool, max with { Y = min.Y, Z = min.Z }, new Vector3(-size.X, 0, 0), new Vector3(0, size.Y, 0), Vector3.Forward);
+            Face(tool, min, new Vector3(0, 0, size.Z), new Vector3(0, size.Y, 0), Vector3.Left);
+            Face(tool, max with { Y = min.Y }, new Vector3(0, 0, -size.Z), new Vector3(0, size.Y, 0), Vector3.Right);
+            Face(tool, min with { Y = max.Y, Z = max.Z }, new Vector3(size.X, 0, 0), new Vector3(0, 0, -size.Z), Vector3.Up);
+            Face(tool, min, new Vector3(size.X, 0, 0), new Vector3(0, 0, size.Z), Vector3.Down);
+        }
+
+        /// <summary>A capped cylinder (or cone frustum) standing on <paramref name="baseCentre"/>.</summary>
+        public void Cylinder(Part part, Vector3 baseCentre, float bottomRadius, float topRadius, float height, int segments = 12)
+        {
+            var tool = Surface(part);
+            var top = baseCentre + new Vector3(0, height, 0);
+            var slope = (bottomRadius - topRadius) / height;
+            for (var i = 0; i < segments; i++)
+            {
+                var a0 = Mathf.Tau * i / segments;
+                var a1 = Mathf.Tau * (i + 1) / segments;
+                var (d0, d1) = (new Vector3(Mathf.Cos(a0), 0, Mathf.Sin(a0)), new Vector3(Mathf.Cos(a1), 0, Mathf.Sin(a1)));
+                var (n0, n1) = ((d0 + new Vector3(0, slope, 0)).Normalized(), (d1 + new Vector3(0, slope, 0)).Normalized());
+                var (u0, u1) = (bottomRadius * a0, bottomRadius * a1);
+                var b0 = baseCentre + d0 * bottomRadius;
+                var b1 = baseCentre + d1 * bottomRadius;
+                var t0 = top + d0 * topRadius;
+                var t1 = top + d1 * topRadius;
+                // Clockwise seen from outside, like the box faces.
+                Vertex(tool, b0, n0, new Vector2(u0, 0));
+                Vertex(tool, t1, n1, new Vector2(u1, height));
+                Vertex(tool, t0, n0, new Vector2(u0, height));
+                Vertex(tool, b0, n0, new Vector2(u0, 0));
+                Vertex(tool, b1, n1, new Vector2(u1, 0));
+                Vertex(tool, t1, n1, new Vector2(u1, height));
+                // Caps.
+                Vertex(tool, top, Vector3.Up, new Vector2(0, 0));
+                Vertex(tool, t0, Vector3.Up, new Vector2(d0.X, d0.Z) * topRadius);
+                Vertex(tool, t1, Vector3.Up, new Vector2(d1.X, d1.Z) * topRadius);
+                Vertex(tool, baseCentre, Vector3.Down, new Vector2(0, 0));
+                Vertex(tool, b1, Vector3.Down, new Vector2(d1.X, d1.Z) * bottomRadius);
+                Vertex(tool, b0, Vector3.Down, new Vector2(d0.X, d0.Z) * bottomRadius);
+            }
+        }
+
+        public ArrayMesh Commit(Dictionary<Part, Material> materials)
+        {
+            var mesh = new ArrayMesh();
+            foreach (var (part, tool) in _surfaces)
+            {
+                tool.GenerateTangents();
+                tool.Commit(mesh);
+                mesh.SurfaceSetMaterial(mesh.GetSurfaceCount() - 1, materials[part]);
+            }
+            return mesh;
+        }
+
+        private SurfaceTool Surface(Part part)
+        {
+            if (!_surfaces.TryGetValue(part, out var tool))
+            {
+                tool = new SurfaceTool();
+                tool.Begin(Mesh.PrimitiveType.Triangles);
+                _surfaces[part] = tool;
+            }
+            return tool;
+        }
+
+        /// <summary>A quad from <paramref name="corner"/> spanning <paramref name="u"/> and <paramref name="v"/>, wound to face <paramref name="normal"/>.</summary>
+        private static void Face(SurfaceTool tool, Vector3 corner, Vector3 u, Vector3 v, Vector3 normal)
+        {
+            var (lu, lv) = (u.Length(), v.Length());
+            var p00 = corner;
+            var p10 = corner + u;
+            var p11 = corner + u + v;
+            var p01 = corner + v;
+            // Godot treats clockwise triangles (seen from the front) as front faces.
+            var flip = u.Cross(v).Dot(normal) > 0f;
+            Vector3[] quad = flip ? [p00, p11, p10, p00, p01, p11] : [p00, p10, p11, p00, p11, p01];
+            Vector2[] uvs = flip
+                ? [new(0, lv), new(lu, 0), new(lu, lv), new(0, lv), new(0, 0), new(lu, 0)]
+                : [new(0, lv), new(lu, lv), new(lu, 0), new(0, lv), new(lu, 0), new(0, 0)];
+            for (var i = 0; i < 6; i++)
+                Vertex(tool, quad[i], normal, uvs[i]);
+        }
+
+        private static void Vertex(SurfaceTool tool, Vector3 position, Vector3 normal, Vector2 uv)
+        {
+            tool.SetNormal(normal);
+            tool.SetUV(uv);
+            tool.AddVertex(position);
+        }
+    }
+}

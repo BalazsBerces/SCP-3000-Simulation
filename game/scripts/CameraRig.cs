@@ -118,6 +118,13 @@ public partial class CameraRig : Node3D
         ApplyTransform();
     }
 
+    /// <summary>Sets the zoom distance instantly, with no easing (dev tools only).</summary>
+    public void JumpToDistance(float distance)
+    {
+        _targetDistance = _distance = ClampDistance(distance);
+        ApplyTransform();
+    }
+
     /// <summary>Moves the focus target by a world-space offset; the camera eases after it.</summary>
     public void MoveTargetBy(Vector3 offset) => _targetFocus += offset with { Y = 0f };
 
@@ -137,6 +144,9 @@ public partial class CameraRig : Node3D
 
     private void ReadKeyboard(float dt)
     {
+        // Typing in a text field (e.g. the seed input) must not move the camera.
+        if (GetViewport().GuiGetFocusOwner() is LineEdit)
+            return;
         var pan = Vector2.Zero;
         if (Input.IsKeyPressed(Key.W) || Input.IsKeyPressed(Key.Up)) pan.Y -= 1f;
         if (Input.IsKeyPressed(Key.S) || Input.IsKeyPressed(Key.Down)) pan.Y += 1f;

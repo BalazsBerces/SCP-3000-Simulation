@@ -17,12 +17,16 @@
   .\scripts\run-tickets.ps1                 # run until done, pausing at stage boundaries
   .\scripts\run-tickets.ps1 -Max 1          # run exactly one ticket
   .\scripts\run-tickets.ps1 -NoStagePause   # never pause, stop only on failure
+  .\scripts\run-tickets.ps1 -Effort high    # more effort for every ticket (stage ends use -StageEffort, default high)
 #>
 param(
   [string]$Repo = 'BalazsBerces/SCP-3000-Simulation',
   [int]$Max = 0,
   [switch]$NoStagePause,
-  [string]$Model = ''
+  [string]$Model = '',
+  [ValidateSet('low', 'medium', 'high', 'xhigh', 'max')] [string]$Effort = 'medium',
+  # Stage-end tickets also review the whole stage, so they get more effort.
+  [ValidateSet('low', 'medium', 'high', 'xhigh', 'max')] [string]$StageEffort = 'high'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -90,6 +94,7 @@ End your final message with exactly one line: TICKET_DONE or TICKET_BLOCKED: <re
 function Invoke-Agent($t, $log) {
   $cliArgs = @('-p', '--dangerously-skip-permissions', '--output-format', 'stream-json', '--verbose')
   if ($Model) { $cliArgs += @('--model', $Model) }
+  $cliArgs += @('--effort', $(if ($StageEnds.ContainsKey($t.Ticket)) { $StageEffort } else { $Effort }))
   $final = ''
   $firstLimits = $null; $lastLimits = $null
   # The prompt goes in as an argument: piped stdin does not expand the /implement slash command.
@@ -135,7 +140,8 @@ while ($true) {
   if ($t -eq 'ALL_BLOCKED') { Write-Host 'Open tickets remain, but all are blocked. Stopping.' -ForegroundColor Yellow; exit 1 }
 
   $log = Join-Path $logDir ('ticket-{0:D2}-{1:yyyyMMdd-HHmmss}.jsonl' -f $t.Ticket, (Get-Date))
-  Write-Host "`n=== $($t.Title)  (#$($t.Issue)) ===" -ForegroundColor Cyan
+  $runEffort = if ($StageEnds.ContainsKey($t.Ticket)) { "$StageEffort, stage end + review" } else { $Effort }
+  Write-Host "`n=== $($t.Title)  (#$($t.Issue), effort: $runEffort) ===" -ForegroundColor Cyan
   $final = Invoke-Agent $t $log
 
   $state = gh issue view $t.Issue -R $Repo --json state --jq '.state'

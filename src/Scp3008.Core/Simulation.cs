@@ -1,3 +1,5 @@
+using Scp3008.Core.Generation;
+
 namespace Scp3008.Core;
 
 /// <summary>
@@ -18,6 +20,9 @@ public sealed class Simulation : IDisposable
 
     private readonly object _stepLock = new();
     private readonly WorldConfig _config;
+    private readonly StoreSpace _space = StoreSpace.Standard;
+    private readonly DepartmentMap _departments;
+    private readonly IReadOnlyList<FurniturePiece> _furniture;
     private long _tick;
     private SimulationSpeed _speed = SimulationSpeed.Normal;
     private TimeSpan _unspentRealTime;
@@ -29,6 +34,8 @@ public sealed class Simulation : IDisposable
     private Simulation(WorldConfig config)
     {
         _config = config;
+        _departments = DepartmentGenerator.Generate(config.Seed, _space);
+        _furniture = FurnitureGenerator.Generate(config.Seed, _space, _departments);
         _snapshot = BuildSnapshot();
     }
 
@@ -195,7 +202,7 @@ public sealed class Simulation : IDisposable
     }
 
     private WorldSnapshot BuildSnapshot() =>
-        new(_config.Seed, new StoreClock(_tick), StoreSpace.Standard, _speed);
+        new(_config.Seed, new StoreClock(_tick), _space, _speed, _departments, _furniture);
 
     private sealed class Subscription(Simulation owner, Action<DomainEvent> handler) : IDisposable
     {

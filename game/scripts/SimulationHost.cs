@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Globalization;
 using Godot;
 using Scp3008.Core;
 
@@ -6,23 +7,32 @@ namespace Scp3008.Game;
 
 /// <summary>
 /// Owns the simulation core for the scene: creates the world, runs the core on its own thread,
-/// and hands snapshots and domain events to the presentation on the main thread.
+/// and hands snapshots and domain events to the presentation on the main thread. A new world
+/// (e.g. from a seed the Observer entered) is generated in the background and swapped in
+/// when ready. The user argument <c>--seed=N</c> sets the first world's seed.
 /// </summary>
 public partial class SimulationHost : Node
 {
-    /// <summary>Store seed used until the Observer can enter one.</summary>
+    /// <summary>Store seed of the first world, unless given on the command line.</summary>
     [Export] public int Seed { get; set; } = 3008;
 
     private readonly ConcurrentQueue<DomainEvent> _pendingEvents = new();
-    private readonly SnapshotInterpolator _interpolator = new(Simulation.RealTimeStep);
+    private SnapshotInterpolator _interpolator = new(Simulation.RealTimeStep);
     private Simulation _simulation = null!;
     private IDisposable? _subscription;
+    private Task<Simulation>? _nextWorld;
 
     /// <summary>Raised on the main thread for every domain event from the core.</summary>
     public event Action<DomainEvent>? DomainEventReceived;
 
+    /// <summary>Raised on the main thread when a new world has replaced the old one.</summary>
+    public event Action<WorldSnapshot>? WorldCreated;
+
     /// <summary>The latest snapshot from the core.</summary>
     public WorldSnapshot Snapshot => _simulation.Snapshot;
+
+    /// <summary>True while a new world is being generated.</summary>
+    public bool IsGenerating => _nextWorld is not null;
 
     /// <summary>Store time interpolated between the last two snapshots, for smooth display.</summary>
     public TimeSpan InterpolatedStoreTime => _interpolator.StoreTime(NowSeconds);
@@ -38,9 +48,10 @@ public partial class SimulationHost : Node
 
     public override void _EnterTree()
     {
-        _simulation = Simulation.Create(new WorldConfig(Seed));
-        _subscription = _simulation.Subscribe(_pendingEvents.Enqueue);
-        _interpolator.Observe(_simulation.Snapshot, NowSeconds);
+        foreach (var arg in OS.GetCmdlineUserArgs())
+            if (arg.StartsWith("--seed="))
+                Seed = int.Parse(arg["--seed=".Length..], CultureInfo.InvariantCulture);
+        Adopt(Simulation.Create(new WorldConfig(Seed)), SimulationSpeed.Normal);
     }
 
     public override void _Ready()
@@ -48,8 +59,34 @@ public partial class SimulationHost : Node
         _simulation.Start();
     }
 
+    /// <summary>Generates a new Store from <paramref name="seed"/> in the background, then replaces the current world.</summary>
+    public void CreateWorld(int seed)
+    {
+        if (_nextWorld is not null)
+            return;
+        Seed = seed;
+        _nextWorld = Task.Run(() => Simulation.Create(new WorldConfig(seed)));
+    }
+
     public override void _Process(double delta)
     {
+        if (_nextWorld is { IsFaulted: true } failed)
+        {
+            _nextWorld = null;
+            GD.PushError($"Store generation failed: {failed.Exception}");
+        }
+        if (_nextWorld is { IsCompleted: true } next)
+        {
+            _nextWorld = null;
+            var speed = _simulation.Speed;
+            _subscription?.Dispose();
+            _simulation.Dispose();
+            _pendingEvents.Clear();
+            Adopt(next.Result, speed);
+            _simulation.Start();
+            WorldCreated?.Invoke(_simulation.Snapshot);
+        }
+
         _interpolator.Observe(_simulation.Snapshot, NowSeconds);
         while (_pendingEvents.TryDequeue(out var domainEvent))
         {
@@ -63,5 +100,15 @@ public partial class SimulationHost : Node
     {
         _subscription?.Dispose();
         _simulation.Dispose();
+        _nextWorld?.ContinueWith(t => t.Result.Dispose(), TaskContinuationOptions.OnlyOnRanToCompletion);
+    }
+
+    private void Adopt(Simulation simulation, SimulationSpeed speed)
+    {
+        _simulation = simulation;
+        _simulation.Speed = speed;
+        _subscription = _simulation.Subscribe(_pendingEvents.Enqueue);
+        _interpolator = new SnapshotInterpolator(Simulation.RealTimeStep);
+        _interpolator.Observe(_simulation.Snapshot, NowSeconds);
     }
 }
