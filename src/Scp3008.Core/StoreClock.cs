@@ -28,6 +28,12 @@ public readonly record struct StoreClock(long Tick)
     /// <summary>Total Store time elapsed since day 1 00:00; continuous, useful for interpolation.</summary>
     public TimeSpan TotalStoreTime => TickDuration * TicksSinceDayOneMidnight;
 
+    /// <summary>Whether the Store is open or in Closing time.</summary>
+    public DayPhase Phase => StoreHours.PhaseAt(TimeOfDay);
+
+    /// <summary>How bright the Store lights are, from 0 (out) to 1 (fully on).</summary>
+    public double StoreLightLevel => StoreHours.LightLevelAt(TimeOfDay);
+
     /// <summary>Converts a Store-time duration into whole ticks, rounding to the nearest tick.</summary>
     public static long TicksFor(TimeSpan storeTime) =>
         (long)Math.Round((double)storeTime.Ticks / TickDuration.Ticks, MidpointRounding.AwayFromZero);

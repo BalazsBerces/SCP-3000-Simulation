@@ -54,8 +54,12 @@ The PA message ("The Store is now closing.") from the speaker towers that warns 
 _Avoid_: Alarm, siren
 
 **Closing time**:
-The dark phase of the day cycle when the Store lights go out and the Staff turn hostile.
+The dark phase of the day cycle when the Store lights go out and the Staff turn hostile; it runs from 22:00 until the Store reopens at 08:00 (about 40% of a Store day). The rest of the day the Store is **open**.
 _Avoid_: Night (except informally)
+
+**Store lights**:
+The Store's own overhead fluorescent lighting: fully on while the Store is open, fading out just before Closing time and back on just before reopening. Distinct from the lights Villages make for themselves.
+_Avoid_: Daylight, sun
 
 **Store day**:
 One full turn of the Store clock (24 Store hours, starting at midnight), covering the open hours and Closing time; it lasts about 10 real minutes at 1x speed.

@@ -86,7 +86,8 @@ public partial class TimeControls : CanvasLayer
         var storeTime = Host.InterpolatedStoreTime;
         var day = (int)storeTime.TotalDays + 1;
         var timeOfDay = TimeSpan.FromTicks(storeTime.Ticks % TimeSpan.TicksPerDay);
-        _clockLabel.Text = $"Day {day}   {timeOfDay.Hours:00}:{timeOfDay.Minutes:00}";
+        var phase = StoreHours.PhaseAt(timeOfDay) == DayPhase.Open ? "Open" : "Closing time";
+        _clockLabel.Text = $"Day {day}   {timeOfDay.Hours:00}:{timeOfDay.Minutes:00}   {phase}";
         _dayProgress.Value = timeOfDay.TotalDays;
         _buttons[Host.Speed].SetPressedNoSignal(true);
     }

@@ -29,8 +29,10 @@ public class DomainEventTests
 
         sim.Advance(TimeSpan.FromHours(24));
         subscription.Dispose();
+        var received = events.Count;
         sim.Advance(TimeSpan.FromHours(24));
 
-        Assert.Single(events);
+        Assert.NotEqual(0, received);
+        Assert.Equal(received, events.Count);
     }
 }

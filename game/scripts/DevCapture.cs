@@ -13,6 +13,9 @@ namespace Scp3008.Game;
 ///                          often it crossed a seam and its largest per-frame step, overall
 ///                          and on the crossing frames (a jump would show as a big step there);
 ///   --no-focus-wrap        never shift the camera back onto the floor (to compare images of the same place);
+///   --start-time=HH:MM     (read by SimulationHost) start the Store clock at this Store time;
+///   --eye-level            look from a Villager's eye height (1.7 m) along the floor instead of
+///                          from the Observer camera, to check the ground-level haze;
 ///   --enter-seed=text      after one second, enter this seed in the seed input; the capture timer
 ///                          restarts once the new Store is shown.
 /// Does nothing in normal runs.
@@ -22,6 +25,8 @@ public partial class DevCapture : Node
     [Export] public CameraRig Rig { get; set; } = null!;
     [Export] public SimulationHost Host { get; set; } = null!;
     [Export] public SeedPanel Seeds { get; set; } = null!;
+    [Export] public StoreAtmosphere Atmosphere { get; set; } = null!;
+    [Export] public AmbientAudio Audio { get; set; } = null!;
 
     private string? _capturePath;
     private double _captureAfter = 3.0;
@@ -54,6 +59,8 @@ public partial class DevCapture : Node
                 _panVelocity = ParseFloorVector(arg["--pan=".Length..]);
             else if (arg == "--no-focus-wrap")
                 Rig.WrapFocus = false;
+            else if (arg == "--eye-level")
+                AddEyeLevelCamera();
             else if (arg.StartsWith("--enter-seed="))
                 _seedToEnter = arg["--enter-seed=".Length..];
         }
@@ -104,6 +111,9 @@ public partial class DevCapture : Node
             GD.Print($"Camera: {_seamCrossings} seam crossings, largest focus step {_largestFocusStep:0.000} m/frame " +
                      $"(on crossing frames {_largestCrossingStep:0.000} m), " +
                      $"focus now ({Rig.Focus.X:0.0}, {Rig.Focus.Z:0.0})");
+        var clock = Host.Snapshot.Clock;
+        GD.Print($"Store time: day {clock.Day} {clock.TimeOfDay:hh\\:mm}, {clock.Phase}. {Atmosphere.Describe()}");
+        GD.Print($"Ambient audio: {Audio.Describe()}");
         if (_capturePath is not null)
         {
             var image = GetViewport().GetTexture().GetImage();
@@ -111,6 +121,15 @@ public partial class DevCapture : Node
             GD.Print(error == Error.Ok ? $"Screenshot saved to {_capturePath}" : $"Screenshot failed: {error}");
         }
         GetTree().Quit();
+    }
+
+    private void AddEyeLevelCamera()
+    {
+        var camera = new Camera3D { Fov = 70f, Far = 2000f };
+        Rig.AddChild(camera);
+        camera.Position = new Vector3(0f, 1.7f, 0f);
+        camera.Rotation = new Vector3(Mathf.DegToRad(-3f), 0f, 0f);
+        camera.MakeCurrent();
     }
 
     private static Vector3 ParseFloorVector(string text)

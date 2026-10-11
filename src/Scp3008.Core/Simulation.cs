@@ -181,8 +181,13 @@ public sealed class Simulation : IDisposable
     {
         _tick++;
         var clock = new StoreClock(_tick);
-        if (clock.TimeOfDay == TimeSpan.Zero)
+        var timeOfDay = clock.TimeOfDay;
+        if (timeOfDay == TimeSpan.Zero)
             Emit(new StoreDayBegan(clock, clock.Day));
+        if (timeOfDay == StoreHours.ClosingTimeStarts)
+            Emit(new ClosingTimeBegan(clock, clock.Day));
+        else if (timeOfDay == StoreHours.Reopens)
+            Emit(new StoreReopened(clock, clock.Day));
     }
 
     private void Emit(DomainEvent domainEvent)

@@ -8,3 +8,9 @@ public abstract record DomainEvent(StoreClock At);
 
 /// <summary>A new Store day began at midnight.</summary>
 public sealed record StoreDayBegan(StoreClock At, int Day) : DomainEvent(At);
+
+/// <summary>The Store lights went out: Closing time began on Store day <paramref name="Day"/>.</summary>
+public sealed record ClosingTimeBegan(StoreClock At, int Day) : DomainEvent(At);
+
+/// <summary>The Store lights came back on: Closing time ended and the Store reopened on Store day <paramref name="Day"/>.</summary>
+public sealed record StoreReopened(StoreClock At, int Day) : DomainEvent(At);

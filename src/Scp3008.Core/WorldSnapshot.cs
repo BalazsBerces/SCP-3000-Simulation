@@ -15,4 +15,11 @@ public sealed record WorldSnapshot(
     StoreSpace Space,
     SimulationSpeed Speed,
     DepartmentMap Departments,
-    IReadOnlyList<FurniturePiece> Furniture);
+    IReadOnlyList<FurniturePiece> Furniture)
+{
+    /// <summary>Whether the Store is open or in Closing time.</summary>
+    public DayPhase Phase => Clock.Phase;
+
+    /// <summary>How bright the Store lights are, from 0 (out) to 1 (fully on).</summary>
+    public double StoreLightLevel => Clock.StoreLightLevel;
+}

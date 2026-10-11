@@ -15,8 +15,8 @@ public class SimulationThreadTests
     {
         using var sim = NewWorld();
         var tickingThreads = new HashSet<int>();
-        using var _ = sim.Subscribe(_ => tickingThreads.Add(Environment.CurrentManagedThreadId));
         sim.AdvanceTicks(StoreClock.TicksFor(TimeSpan.FromHours(16)) - 3); // 3 ticks before midnight
+        using var _ = sim.Subscribe(_ => tickingThreads.Add(Environment.CurrentManagedThreadId));
 
         sim.Speed = SimulationSpeed.Fast16;
         sim.Start();

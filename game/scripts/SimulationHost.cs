@@ -9,7 +9,8 @@ namespace Scp3008.Game;
 /// Owns the simulation core for the scene: creates the world, runs the core on its own thread,
 /// and hands snapshots and domain events to the presentation on the main thread. A new world
 /// (e.g. from a seed the Observer entered) is generated in the background and swapped in
-/// when ready. The user argument <c>--seed=N</c> sets the first world's seed.
+/// when ready. User arguments: <c>--seed=N</c> sets the first world's seed, and
+/// <c>--start-time=HH:MM</c> fast-forwards it to that Store time (dev tool, e.g. to see Closing time).
 /// </summary>
 public partial class SimulationHost : Node
 {
@@ -48,10 +49,21 @@ public partial class SimulationHost : Node
 
     public override void _EnterTree()
     {
+        TimeSpan? startTime = null;
         foreach (var arg in OS.GetCmdlineUserArgs())
+        {
             if (arg.StartsWith("--seed="))
                 Seed = int.Parse(arg["--seed=".Length..], CultureInfo.InvariantCulture);
-        Adopt(Simulation.Create(new WorldConfig(Seed)), SimulationSpeed.Normal);
+            else if (arg.StartsWith("--start-time="))
+                startTime = TimeSpan.ParseExact(arg["--start-time=".Length..], @"hh\:mm", CultureInfo.InvariantCulture);
+        }
+        var simulation = Simulation.Create(new WorldConfig(Seed));
+        if (startTime is { } target)
+        {
+            var wait = target - simulation.Snapshot.Clock.TimeOfDay;
+            simulation.Advance(wait < TimeSpan.Zero ? wait + TimeSpan.FromDays(1) : wait);
+        }
+        Adopt(simulation, SimulationSpeed.Normal);
     }
 
     public override void _Ready()
@@ -90,8 +102,18 @@ public partial class SimulationHost : Node
         _interpolator.Observe(_simulation.Snapshot, NowSeconds);
         while (_pendingEvents.TryDequeue(out var domainEvent))
         {
-            if (domainEvent is StoreDayBegan began)
-                GD.Print($"Store day {began.Day} began.");
+            switch (domainEvent)
+            {
+                case StoreDayBegan began:
+                    GD.Print($"Store day {began.Day} began.");
+                    break;
+                case ClosingTimeBegan closing:
+                    GD.Print($"Closing time began on Store day {closing.Day}.");
+                    break;
+                case StoreReopened reopened:
+                    GD.Print($"The Store reopened on Store day {reopened.Day}.");
+                    break;
+            }
             DomainEventReceived?.Invoke(domainEvent);
         }
     }

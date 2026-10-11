@@ -26,3 +26,5 @@ project/assembly_name="Scp3008.Game"
 [rendering]
 
 renderer/rendering_method="forward_plus"
+environment/volumetric_fog/volume_size=48
+environment/volumetric_fog/volume_depth=48
