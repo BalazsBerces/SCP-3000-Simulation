@@ -1,28 +1,48 @@
-using System.Globalization;
 using System.Numerics;
 
 namespace Scp3008.Core.Generation;
 
-/// <summary>Places one Pillar per Chunk at an aisle intersection, including on the Seams.</summary>
+/// <summary>
+/// The fixed 3 × 3 grid of Pillars and the Sectors they divide the Store into. The layout comes
+/// from the Store geometry alone, never from the seed: Sector boundaries run on Chunk boundaries
+/// (0 m, 448 m and 896 m in the standard Store) and each Pillar stands at its Sector's centre.
+/// </summary>
 internal static class PillarGenerator
 {
-    public static IReadOnlyList<Pillar> Generate(int seed, StoreSpace space, DepartmentMap departments)
+    public const int PerSide = 3;
+    public const float Width = 32f;
+    // Far above any camera: the Pillars have no visible top and the Store no ceiling.
+    public const float Height = 1200f;
+
+    public static IReadOnlyList<Sector> Sectors(StoreSpace space)
     {
-        var pillars = new List<Pillar>();
-        var intersections = (int)(space.ChunkSize / departments.CellSize);
-        for (var y = 0; y < space.ChunksPerSide; y++)
-            for (var x = 0; x < space.ChunksPerSide; x++)
-            {
-                var random = SeededRandom.For(seed, stream: 4, x, y);
-                // Furniture remains inside a 1.5 m cell margin. A 2.4 m Pillar fits the
-                // 3 m aisle, leaving all existing displays untouched, even at a Seam.
-                var position = space.ChunkOrigin(new ChunkCoord(x, y)) +
-                    new Vector2(random.Next(intersections), random.Next(intersections)) * departments.CellSize;
-                var id = pillars.Count;
-                pillars.Add(new Pillar(id, position, 2.4f, random.Range(36f, 48f),
-                    new PillarMarking((id + 1).ToString("D3", CultureInfo.InvariantCulture),
-                        (PillarBand)random.Next(5), (PillarDamage)random.Next(3))));
-            }
-        return pillars.AsReadOnly();
+        var size = SectorSize(space);
+        var sectors = new List<Sector>();
+        for (var row = 0; row < PerSide; row++)
+            for (var column = 0; column < PerSide; column++)
+                sectors.Add(new Sector(sectors.Count, Coordinate(column, row), new Vector2(column, row) * size, size));
+        return sectors.AsReadOnly();
     }
+
+    public static IReadOnlyList<Pillar> Pillars(IReadOnlyList<Sector> sectors) =>
+        sectors.Select(s => new Pillar(s.Id, s.Name, s.Centre, Width, Height)).ToList().AsReadOnly();
+
+    /// <summary>Index of the Sector containing a position, which may be unwrapped.</summary>
+    public static int SectorIndexAt(StoreSpace space, Vector2 position)
+    {
+        var wrapped = space.Wrap(position);
+        var size = SectorSize(space);
+        var column = Math.Min((int)(wrapped.X / size), PerSide - 1);
+        var row = Math.Min((int)(wrapped.Y / size), PerSide - 1);
+        return row * PerSide + column;
+    }
+
+    private static float SectorSize(StoreSpace space)
+    {
+        if (space.ChunksPerSide % PerSide != 0)
+            throw new ArgumentException($"Sectors need a Store a multiple of {PerSide} Chunks across.", nameof(space));
+        return space.Size / PerSide;
+    }
+
+    private static string Coordinate(int column, int row) => $"{(char)('A' + column)}-{row + 1}";
 }

@@ -16,7 +16,7 @@ _Avoid_: Edge, border (the Store has none)
 
 **Chunk**:
 A 64 m square of the Store's grid (the Store is 21 × 21 Chunks, 1344 × 1344 m); the unit of streaming, culling, navigation rebuilding and simulation level of detail.
-_Avoid_: Tile (floor tiles are visual), cell, sector
+_Avoid_: Tile (floor tiles are visual), cell, Sector (a Sector is 7 × 7 Chunks)
 
 **Ghost copy**:
 An extra drawing of something near a Seam at its wrapped position on the other side, so it is visible from both sides; there is still only one object.
@@ -27,8 +27,12 @@ A connected region of the Store with its own look, Furniture and resources; acts
 _Avoid_: Biome, zone, area
 
 **Pillar**:
-A giant concrete monolith with unique markings, visible from far away; used for navigation and as a settlement anchor.
+One of nine identical, monumental concrete blocks (32 × 32 m, rising out of sight) on a regular 3 × 3 grid, 448 m apart, each standing at the centre of its Sector and marked with its grid coordinate: column letter A–C, then row number 1–3 (e.g. B-2). A Furniture-free walkway ring surrounds each one. Visible from far away; used for navigation and as a settlement anchor.
 _Avoid_: Column, monolith, tower
+
+**Sector**:
+One of the nine equal 448 × 448 m squares the Pillars divide the Store into, centred on its Pillar and named after it (e.g. Sector B-2). Sector boundaries run along Chunk boundaries and the Seams; every place in the Store lies in exactly one Sector.
+_Avoid_: Zone, region, quadrant, district
 
 **Landmark**:
 Any huge, far-visible feature of the Store (Pillars, the till wall, the flooded Department, the ball-pit sea, the clock wall, etc.).

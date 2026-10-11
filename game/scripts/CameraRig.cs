@@ -17,6 +17,11 @@ public partial class CameraRig : Node3D
     [Export] public float MaxDistance { get; set; } = 220f;
     [Export] public float StartDistance { get; set; } = 45f;
     [Export] public float WheelZoomFactor { get; set; } = 1.15f;
+    /// <summary>
+    /// Where the focus starts, relative to the Store centre. Pillar B-2 stands at the centre, so the
+    /// Observer starts just south of its walkway, facing it.
+    /// </summary>
+    [Export] public Vector2 StartFocusOffset { get; set; } = new(0f, 48f);
     [Export] public float KeyZoomPerSecond { get; set; } = 2.2f;
     /// <summary>Farthest zoom in the <see cref="StoreOverview"/>: far enough to see the whole Store.</summary>
     [Export] public float OverviewMaxDistance { get; set; } = 2600f;
@@ -72,7 +77,7 @@ public partial class CameraRig : Node3D
     public override void _Ready()
     {
         _storeSize = Host.Snapshot.Space.Size;
-        _targetFocus = new Vector3(_storeSize / 2f, 0f, _storeSize / 2f);
+        _targetFocus = new Vector3(_storeSize / 2f + StartFocusOffset.X, 0f, _storeSize / 2f + StartFocusOffset.Y);
         Position = _targetFocus;
         _targetDistance = _distance = Mathf.Clamp(StartDistance, MinDistance, MaxDistance);
         _targetYaw = _yaw = Mathf.DegToRad(30f);

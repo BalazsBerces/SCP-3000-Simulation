@@ -25,6 +25,11 @@ uniform float chunk_size = 64.0;
 uniform vec3 chunk_line_color : source_color = vec3(0.2, 0.45, 0.9);
 uniform vec3 seam_line_color : source_color = vec3(1.0, 0.35, 0.1);
 
+// Store overview only: the boundaries of the Sectors around the Pillars.
+uniform bool show_sectors = false;
+uniform float sector_size = 448.0;
+uniform vec3 sector_line_color : source_color = vec3(1.0, 0.85, 0.35);
+
 varying vec3 world_position;
 
 void vertex() {
@@ -73,6 +78,9 @@ void fragment() {
 	if (show_chunks) {
 		color = mix(color, chunk_line_color, overlay_lines(p, chunk_size, 0.15));
 		color = mix(color, seam_line_color, overlay_lines(p, store_size, 0.6));
+	}
+	if (show_sectors) {
+		color = mix(color, sector_line_color, overlay_lines(p, sector_size, 1.5));
 	}
 	ALBEDO = color;
 	ROUGHNESS = mix(roughness, 0.9, border);

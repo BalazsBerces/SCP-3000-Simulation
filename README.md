@@ -23,19 +23,26 @@ Benchmark (ADR 0004): `godot --path game res://Benchmark.tscn` flies a fixed cam
 
 Unattended check: `godot --path game -- --capture=shot.png --capture-after=5 --fps-report` saves a screenshot, prints the average fps and quits. More dev arguments: `--focus=x,y` starts the camera at a Store position, `--pan=vx,vy` pans it (metres per second) and reports seam crossings and the largest per-frame step, `--distance=m` sets the zoom distance, `--wrap-debug` turns on the wrap overlay, `--no-focus-wrap` keeps the camera off-floor (to compare two images of the same place), `--seed=N` sets the first Store's seed, `--start-time=HH:MM` starts the Store clock at that time (e.g. `23:00` for Closing time), `--eye-level` captures from a Villager's eye height to check the ground-level haze, and `--enter-seed=text` types a seed into the seed input after a second (the capture timer restarts when the new Store is shown).
 
-## Pillars
+## Pillars and Sectors
 
-`Pillars` on the facade snapshot exposes the Store's static concrete Landmarks: position, width,
-height and a unique painted number with colour bands and damage markings. Store generation uses
-an independent seed stream and places one Pillar per Chunk at an aisle intersection, clear of
-Furniture displays. They are 36–48 m tall, above the 18 m Fog banks, and never give light or power.
-`PillarRenderer` reads these records and draws instanced Ghost copies out to 1200 m, beyond the
-Furniture culling distance. Numbers appear on all four sides, near the floor and above the fog;
-the concrete and paint reflect existing light and stay dark at Closing time.
+`Pillars` on the facade snapshot lists the nine identical concrete Pillars: 32 × 32 m blocks,
+1200 m tall (beyond any camera, so their tops are never seen), on a regular 3 × 3 grid 448 m apart
+with B-2 at the Store centre. Each is marked with its grid coordinate, column letter A–C along x
+and row number 1–3 along y. The layout is the same for every Store seed. Furniture generation keeps
+each footprint and a 3 m (one-aisle) walkway ring around it clear. `Sectors` lists the nine equal
+448 × 448 m Sectors centred on and named after the Pillars, and `SectorAt(position)` (on the
+snapshot and the facade) answers which Sector a wrapped position is in; a position on a boundary
+belongs to the Sector east or south of it.
 
-For fixed visual checks, add `--pause --pillar=221 --distance=85 --clear-weather` to a dev capture.
-`--pillar` accepts the painted three-digit number. Evidence and remaining human checks are in
-[ticket 06 verification](docs/ticket-06-verification.md).
+`PillarRenderer` draws the Pillars and their Ghost copies out to 1200 m with no emission or lights.
+The coordinate is painted on all four sides at 2, 28, 60 and 100 m; the shaft darkens upwards into
+the haze, and where it stands between the camera and the followed point a dithered disc around
+that point turns see-through. In the F4 Store overview the Pillars are cut to 16 m bases and the
+floor shows the Sector boundaries and labels; the normal view shows no boundaries.
+
+For fixed visual checks, add `--pause --pillar=B-2 --distance=60 --clear-weather` to a dev capture;
+`--pillar` takes a grid coordinate and focuses just south of that Pillar's walkway. Evidence and
+remaining human checks are in [ticket 06a verification](docs/ticket-06a-verification.md).
 
 ## Weather
 

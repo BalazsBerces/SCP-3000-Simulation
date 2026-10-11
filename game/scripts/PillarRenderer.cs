@@ -3,7 +3,11 @@ using Scp3008.Core;
 
 namespace Scp3008.Game;
 
-/// <summary>Static, far-visible Pillars and their Ghost copies. Reads the snapshot only.</summary>
+/// <summary>
+/// The nine far-visible Pillars and their Ghost copies, plus the Sector labels of the
+/// <see cref="StoreOverview"/>. Reads the snapshot only. In the overview the Pillars are cut
+/// down to their bases, so the whole Store stays readable from above.
+/// </summary>
 public partial class PillarRenderer : Node3D
 {
     [Export] public SimulationHost Host { get; set; } = null!;
@@ -11,56 +15,121 @@ public partial class PillarRenderer : Node3D
 
     // Landmarks extend beyond Furniture culling. Keep placement conservative at maximum zoom.
     [Export] public float FarDistance { get; set; } = 1200f;
+
+    /// <summary>Height of the truncated Pillar bases in the overview: enough for the lowest painted label.</summary>
+    [Export] public float OverviewBaseHeight { get; set; } = 16f;
+
     private WrappedInstances _instances = null!;
+    private ShaderMaterial _material = null!;
+    private Node3D _sectorLabels = null!;
+    private WorldSnapshot _shown = null!;
 
     public override void _Ready()
     {
-        var material = new ShaderMaterial { Shader = GD.Load<Shader>("res://shaders/pillar.gdshader") };
-        material.SetShaderParameter("numbers", NumberAtlas());
+        _material = new ShaderMaterial { Shader = GD.Load<Shader>("res://shaders/pillar.gdshader") };
         _instances = new WrappedInstances
         {
             Rig = Rig,
             FarDistance = FarDistance,
             ViewReach = FarDistance + Rig.MaxDistance + Host.Snapshot.Space.ChunkSize,
-            Mesh = new BoxMesh { Size = Vector3.One, Material = material },
+            Mesh = new BoxMesh { Size = Vector3.One, Material = _material },
         };
         AddChild(_instances);
+        AddChild(_sectorLabels = new Node3D { Name = "SectorLabels" });
         Host.WorldCreated += Rebuild;
+        StoreOverview.Changed += OnOverviewChanged;
         Rebuild(Host.Snapshot);
     }
 
-    public override void _ExitTree() => Host.WorldCreated -= Rebuild;
+    public override void _ExitTree()
+    {
+        Host.WorldCreated -= Rebuild;
+        StoreOverview.Changed -= OnOverviewChanged;
+    }
+
+    public override void _Process(double delta) => _material.SetShaderParameter("focus_position", Rig.Focus);
+
+    private void OnOverviewChanged(bool _) => Rebuild(_shown);
 
     private void Rebuild(WorldSnapshot snapshot)
     {
-        _instances.SetInstances(snapshot.Space, snapshot.Pillars.Select(p =>
-            (new Transform3D(Basis.Identity.Scaled(new Vector3(p.Width, p.Height, p.Width)), p.Position.ToWorld(p.Height / 2f)),
-                new Color((float)p.Marking.Band / 4f, (float)p.Marking.Damage / 2f, int.Parse(p.Marking.Number) / 512f, 1f))));
-        GD.Print($"Pillars: {snapshot.Pillars.Count} concrete Landmarks, no emission or lights, reach {FarDistance:0} m.");
+        _shown = snapshot;
+        var overview = StoreOverview.Enabled;
+        var pillars = snapshot.Pillars;
+        _material.SetShaderParameter("labels", LabelAtlas(pillars.Select(p => p.Coordinate).ToArray()));
+        _material.SetShaderParameter("label_count", (float)pillars.Count);
+        _material.SetShaderParameter("see_through", !overview);
+        _instances.SetInstances(snapshot.Space, pillars.Select(p =>
+        {
+            var height = overview ? OverviewBaseHeight : p.Height;
+            return (new Transform3D(Basis.Identity.Scaled(new Vector3(p.Width, height, p.Width)), p.Position.ToWorld(height / 2f)),
+                new Color(pillars.Count > 1 ? p.Id / (pillars.Count - 1f) : 0f, 0f, 0f));
+        }));
+        ShowSectorLabels(snapshot, overview);
+        GD.Print($"Pillars: {pillars.Count} concrete Landmarks {(overview ? "cut to their bases" : $"{pillars[0].Height:0} m tall")}, " +
+                 $"{snapshot.Sectors.Count} Sectors, no emission or lights, reach {FarDistance:0} m.");
     }
 
-    // Painted industrial digits, baked once into a shared atlas rather than hundreds of labels.
-    private static ImageTexture NumberAtlas()
+    /// <summary>Sector names float beside each Pillar base in the overview only; the normal view has no boundary markings.</summary>
+    private void ShowSectorLabels(WorldSnapshot snapshot, bool overview)
     {
-        const int cell = 64;
-        var image = Image.CreateEmpty(cell * 32, cell * 16, false, Image.Format.Rgba8);
-        int[] masks = [0x3f, 0x06, 0x5b, 0x4f, 0x66, 0x6d, 0x7d, 0x07, 0x7f, 0x6f];
-        (int X, int Y, int W, int H)[] segments = [(2, 0, 8, 2), (10, 2, 2, 10), (10, 14, 2, 10),
-            (2, 24, 8, 2), (0, 14, 2, 10), (0, 2, 2, 10), (2, 12, 8, 2)];
-        for (var number = 0; number < 512; number++)
+        foreach (var child in _sectorLabels.GetChildren())
+            child.QueueFree();
+        _sectorLabels.Visible = overview;
+        if (!overview)
+            return;
+        foreach (var sector in snapshot.Sectors)
         {
-            var digits = number.ToString("D3", System.Globalization.CultureInfo.InvariantCulture);
-            for (var digit = 0; digit < 3; digit++)
-                for (var segment = 0; segment < 7; segment++)
-                {
-                    if ((masks[digits[digit] - '0'] & (1 << segment)) == 0)
-                        continue;
-                    var rect = segments[segment];
-                    image.FillRect(new Rect2I(number % 32 * cell + 10 + digit * 16 + rect.X,
-                        number / 32 * cell + 19 + rect.Y, rect.W, rect.H), Colors.White);
-                }
+            var label = new Label3D
+            {
+                Text = $"Sector {sector.Name}",
+                FontSize = 96,
+                PixelSize = 0.5f,
+                OutlineSize = 24,
+                OutlineModulate = Colors.Black,
+                Modulate = new Color(1f, 0.85f, 0.35f),
+                Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
+                NoDepthTest = true,
+                Shaded = false,
+            };
+            _sectorLabels.AddChild(label);
+            label.Position = (sector.Centre + new System.Numerics.Vector2(0f, sector.Size * 0.22f)).ToWorld(20f);
+        }
+    }
+
+    // Stencil lettering for the grid coordinates, baked once into a shared atlas: one 128 x 64
+    // cell per Pillar, three 5 x 7 glyphs each, rather than dozens of labels.
+    private static ImageTexture LabelAtlas(IReadOnlyList<string> texts)
+    {
+        const int cellWidth = 128, cellHeight = 64, unit = 6;
+        var image = Image.CreateEmpty(cellWidth * texts.Count, cellHeight, false, Image.Format.Rgba8);
+        for (var cell = 0; cell < texts.Count; cell++)
+        {
+            var text = texts[cell];
+            var width = text.Length * 6 - 1;
+            var left = cell * cellWidth + (cellWidth - width * unit) / 2;
+            var top = (cellHeight - 7 * unit) / 2;
+            for (var c = 0; c < text.Length; c++)
+            {
+                var rows = Glyphs[text[c]];
+                for (var y = 0; y < 7; y++)
+                    for (var x = 0; x < 5; x++)
+                        if (rows[y][x] == '#')
+                            image.FillRect(new Rect2I(left + (c * 6 + x) * unit, top + y * unit, unit, unit), Colors.White);
+            }
         }
         image.GenerateMipmaps();
         return ImageTexture.CreateFromImage(image);
     }
+
+    private static readonly Dictionary<char, string[]> Glyphs = new()
+    {
+        ['A'] = [".###.", "#...#", "#...#", "#####", "#...#", "#...#", "#...#"],
+        ['B'] = ["####.", "#...#", "#...#", "####.", "#...#", "#...#", "####."],
+        ['C'] = [".####", "#....", "#....", "#....", "#....", "#....", ".####"],
+        ['1'] = ["..#..", ".##..", "#.#..", "..#..", "..#..", "..#..", "#####"],
+        ['2'] = [".###.", "#...#", "....#", "...#.", "..#..", ".#...", "#####"],
+        ['3'] = ["####.", "....#", "....#", ".###.", "....#", "....#", "####."],
+        ['-'] = [".....", ".....", ".....", ".###.", ".....", ".....", "....."],
+    };
 }

@@ -34,6 +34,7 @@ public partial class StoreFloor : MeshInstance3D
         var space = Host.Snapshot.Space;
         FloorMaterial.SetShaderParameter("store_size", space.Size);
         FloorMaterial.SetShaderParameter("chunk_size", space.ChunkSize);
+        FloorMaterial.SetShaderParameter("sector_size", Host.Snapshot.Sectors[0].Size);
         FloorMaterial.SetShaderParameter("floor_albedo", GD.Load<TextureLayered>("res://assets/textures/floor_albedo.jpg"));
         FloorMaterial.SetShaderParameter("floor_normal", GD.Load<TextureLayered>("res://assets/textures/floor_normal.jpg"));
         FloorMaterial.SetShaderParameter("floor_roughness", GD.Load<TextureLayered>("res://assets/textures/floor_roughness.jpg"));
@@ -56,9 +57,13 @@ public partial class StoreFloor : MeshInstance3D
             FollowFocus();
     }
 
-    /// <summary>In the overview the floor covers the Store exactly once, so its edges show its true size.</summary>
+    /// <summary>
+    /// In the overview the floor covers the Store exactly once, so its outline shows its true size,
+    /// and it marks the Sector boundaries, which the normal view never shows.
+    /// </summary>
     private void OnOverviewChanged(bool enabled)
     {
+        FloorMaterial.SetShaderParameter("show_sectors", enabled);
         var size = Host.Snapshot.Space.Size;
         Mesh = enabled ? new PlaneMesh { Size = new Vector2(size, size) } : _followingPlane;
         if (enabled)

@@ -31,6 +31,7 @@ public sealed class Simulation : IDisposable
     private readonly DepartmentMap _departments;
     private readonly IReadOnlyList<FurniturePiece> _furniture;
     private readonly IReadOnlyList<Pillar> _pillars;
+    private readonly IReadOnlyList<Sector> _sectors;
     private readonly Weather _weather;
     private long _tick;
     private SimulationSpeed _speed = SimulationSpeed.Normal;
@@ -44,8 +45,9 @@ public sealed class Simulation : IDisposable
     {
         _config = config;
         _departments = DepartmentGenerator.Generate(config.Seed, _space);
-        _furniture = FurnitureGenerator.Generate(config.Seed, _space, _departments);
-        _pillars = PillarGenerator.Generate(config.Seed, _space, _departments);
+        _sectors = PillarGenerator.Sectors(_space);
+        _pillars = PillarGenerator.Pillars(_sectors);
+        _furniture = FurnitureGenerator.Generate(config.Seed, _space, _departments, _pillars);
         // Runtime randomness never comes from the Store seed (ADR 0003); it is unseeded unless a test fixes it.
         var runtimeSeed = config.RuntimeRngSeed ?? Random.Shared.Next();
         _weather = new Weather(_space, SeededRandom.For(runtimeSeed, WeatherStream));
@@ -68,6 +70,9 @@ public sealed class Simulation : IDisposable
     /// 1 (deep inside a thick Fog bank). Safe to call from any thread.
     /// </summary>
     public float FogDensityAt(Vector2 position) => _snapshot.FogDensityAt(position);
+
+    /// <inheritdoc cref="WorldSnapshot.SectorAt"/>
+    public Sector SectorAt(Vector2 position) => _snapshot.SectorAt(position);
 
     /// <summary>True while the simulation thread is running the clock.</summary>
     public bool IsRunning => _thread is { IsAlive: true } && !_stop.IsCancellationRequested;
@@ -268,7 +273,7 @@ public sealed class Simulation : IDisposable
     }
 
     private WorldSnapshot BuildSnapshot() =>
-        new(_config.Seed, new StoreClock(_tick), _space, _speed, _departments, _furniture, Array.AsReadOnly(_weather.Snapshot()), _weather.Wind, _pillars);
+        new(_config.Seed, new StoreClock(_tick), _space, _speed, _departments, _furniture, Array.AsReadOnly(_weather.Snapshot()), _weather.Wind, _pillars, _sectors);
 
     private sealed class Subscription(Simulation owner, Action<DomainEvent> handler) : IDisposable
     {

@@ -7,7 +7,8 @@ namespace Scp3008.Core.Generation;
 /// out on its own from a stream derived from the seed and the cell, inside a 1.5 m margin, so
 /// neighbouring cells are separated by 3 m aisles. Row layouts (racks, shelving) run the same way
 /// across a whole Department, so their rows line up into long shelving rows from cell to cell;
-/// room-sets turn freely, and loose pieces get free rotations.
+/// room-sets turn freely, and loose pieces get free rotations. Nothing is placed under a Pillar
+/// or in the one-aisle walkway ring around it.
 /// </summary>
 internal static class FurnitureGenerator
 {
@@ -16,9 +17,10 @@ internal static class FurnitureGenerator
     private const float HalfTurn = MathF.PI;
     private const float QuarterTurn = MathF.PI / 2f;
 
-    public static IReadOnlyList<FurniturePiece> Generate(int seed, StoreSpace space, DepartmentMap departments)
+    public static IReadOnlyList<FurniturePiece> Generate(int seed, StoreSpace space, DepartmentMap departments, IReadOnlyList<Pillar> pillars)
     {
         var pieces = new List<FurniturePiece>();
+        var keepClear = pillars.Select(p => (p.Position, HalfWidth: p.ClearHalfWidth)).ToArray();
         var cellSize = departments.CellSize;
         var rowQuarters = departments.All.Select(d => SeededRandom.For(seed, stream: 3, d.Id).Next(2)).ToArray();
         for (var y = 0; y < departments.CellsPerSide; y++)
@@ -26,7 +28,7 @@ internal static class FurnitureGenerator
             {
                 var department = departments.AtCell(x, y);
                 var cellOrigin = new Vector2(x * cellSize, y * cellSize);
-                var cell = new Cell(space, pieces, cellOrigin, cellSize, SeededRandom.For(seed, stream: 2, x, y));
+                var cell = new Cell(space, pieces, keepClear, cellOrigin, cellSize, SeededRandom.For(seed, stream: 2, x, y));
                 var frame = Frame.Turned(cellOrigin, cellSize, rowQuarters[department.Id]);
                 Fill(department.Type, cell, frame);
             }
@@ -363,11 +365,12 @@ internal static class FurnitureGenerator
     }
 
     /// <summary>
-    /// Places Furniture in one department cell, keeping it inside the cell's margin and never
-    /// letting pieces on the floor overlap. Raised pieces are placed by the caller only on a
-    /// piece that was placed.
+    /// Places Furniture in one department cell, keeping it inside the cell's margin, out of the
+    /// squares kept clear around the Pillars, and never letting pieces on the floor overlap.
+    /// Raised pieces are placed by the caller only on a piece that was placed.
     /// </summary>
-    private sealed class Cell(StoreSpace space, List<FurniturePiece> pieces, Vector2 origin, float size, SeededRandom random)
+    private sealed class Cell(StoreSpace space, List<FurniturePiece> pieces, (Vector2 Centre, float HalfWidth)[] keepClear,
+        Vector2 origin, float size, SeededRandom random)
     {
         private const float BoundsTolerance = 0.1f;
         private readonly List<Footprint> _floor = [];
@@ -378,7 +381,7 @@ internal static class FurnitureGenerator
         {
             var spec = FurnitureCatalog.Spec(type);
             var footprint = new Footprint(frame.Map(new Vector2(u, v)), frame.MapRotation(rotation), spec.Width, spec.Depth);
-            if (!Inside(footprint))
+            if (!Inside(footprint) || InKeptClear(footprint))
                 return false;
             var blocksFloor = elevation == 0f && !spec.IsFloorCovering;
             if (blocksFloor)
@@ -408,6 +411,23 @@ internal static class FurnitureGenerator
                 if (corner.X < low.X || corner.Y < low.Y || corner.X > high.X || corner.Y > high.Y)
                     return false;
             return true;
+        }
+
+        /// <summary>Whether the footprint's axis-aligned bounds reach into a square kept clear.</summary>
+        private bool InKeptClear(Footprint footprint)
+        {
+            var corners = footprint.Corners();
+            var low = new Vector2(corners.Min(c => c.X), corners.Min(c => c.Y));
+            var high = new Vector2(corners.Max(c => c.X), corners.Max(c => c.Y));
+            foreach (var (centre, halfWidth) in keepClear)
+            {
+                // The square's image nearest this cell, in case it lies across a Seam.
+                var near = footprint.Centre + space.Delta(footprint.Centre, centre);
+                if (high.X > near.X - halfWidth && low.X < near.X + halfWidth &&
+                    high.Y > near.Y - halfWidth && low.Y < near.Y + halfWidth)
+                    return true;
+            }
+            return false;
         }
     }
 

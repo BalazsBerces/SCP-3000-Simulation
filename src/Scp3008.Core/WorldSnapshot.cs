@@ -13,7 +13,8 @@ namespace Scp3008.Core;
 /// <param name="Furniture">Every piece of Furniture in the Store, each an individual object.</param>
 /// <param name="FogBanks">The Fog banks drifting through the Store.</param>
 /// <param name="Wind">The wind the Fog banks drift with, in metres per Store hour (X east, Y south).</param>
-/// <param name="Pillars">Static concrete Landmarks with unique navigation markings; never light or power sources.</param>
+/// <param name="Pillars">The nine identical concrete Pillars on the 3 × 3 grid, marked by grid coordinate; never light or power sources.</param>
+/// <param name="Sectors">The nine equal Sectors the Pillars divide the Store into, in the same order as the Pillars.</param>
 public sealed record WorldSnapshot(
     int Seed,
     StoreClock Clock,
@@ -23,7 +24,8 @@ public sealed record WorldSnapshot(
     IReadOnlyList<FurniturePiece> Furniture,
     IReadOnlyList<FogBank> FogBanks,
     Vector2 Wind,
-    IReadOnlyList<Pillar> Pillars)
+    IReadOnlyList<Pillar> Pillars,
+    IReadOnlyList<Sector> Sectors)
 {
     /// <summary>Whether the Store is open or in Closing time.</summary>
     public DayPhase Phase => Clock.Phase;
@@ -36,4 +38,10 @@ public sealed record WorldSnapshot(
     /// Fog bank), using wrapped distances to the Fog banks.
     /// </summary>
     public float FogDensityAt(Vector2 position) => FogBank.CombinedDensityAt(Space, FogBanks, position);
+
+    /// <summary>
+    /// The Sector a Store position is in. Positions may be unwrapped; a position on a Sector
+    /// boundary belongs to the Sector east or south of it.
+    /// </summary>
+    public Sector SectorAt(Vector2 position) => Sectors[Generation.PillarGenerator.SectorIndexAt(Space, position)];
 }
