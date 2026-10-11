@@ -33,7 +33,7 @@ $ErrorActionPreference = 'Stop'
 [Console]::OutputEncoding = [Text.Encoding]::UTF8
 $OutputEncoding = [Text.Encoding]::UTF8
 
-# Last ticket of each build stage: stop here for a manual visual review.
+# Last ticket number of each build stage, including inserted suffix tickets (e.g. 05b).
 $StageEnds = @{ 5 = 'Atmosphere'; 8 = 'Landmarks'; 16 = 'Villagers'; 22 = 'Fortifications'; 28 = 'Staff'; 33 = 'Relations'; 36 = 'Observer tools and Knowledge' }
 
 $root = Split-Path -Parent $PSScriptRoot
@@ -51,10 +51,15 @@ function Get-NextTicket {
       $null = $_.title -match '^(\d\d)([a-z]?): '
       $n = [int]$Matches[1]; $suffix = $Matches[2]
       [pscustomobject]@{ Issue = $_.number; Ticket = $n; Label = $Matches[1] + $suffix; Title = $_.title
-        IsStageEnd = (-not $suffix -and $StageEnds.ContainsKey($n)) }
+        IsStageEnd = $false }
     } |
     Sort-Object Ticket, Label
   if (-not $tickets) { return $null }
+  # A stage ends after its last remaining suffix ticket, not before inserted work.
+  foreach ($stageEnd in $StageEnds.Keys) {
+    $lastStageTicket = $tickets | Where-Object { $_.Ticket -eq $stageEnd } | Select-Object -Last 1
+    if ($lastStageTicket) { $lastStageTicket.IsStageEnd = $true }
+  }
   foreach ($t in $tickets) {
     # PS 5.1's ConvertFrom-Json emits a JSON array as one object; ForEach-Object unrolls it.
     $openBlockers = @(gh api "repos/$Repo/issues/$($t.Issue)/dependencies/blocked_by" | ConvertFrom-Json |

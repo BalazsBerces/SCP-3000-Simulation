@@ -14,6 +14,13 @@ public partial class LampImpostors : Node3D
     private int _capacity;
     private float[] _poolBuffer = [];
     private float[] _haloBuffer = [];
+    private readonly List<ShaderMaterial> _materials = [];
+
+    public void ApplyFog(Action<ShaderMaterial> apply)
+    {
+        foreach (var material in _materials)
+            apply(material);
+    }
 
     public override void _Ready()
     {
@@ -23,7 +30,9 @@ public partial class LampImpostors : Node3D
 
     private MultiMesh Make(PrimitiveMesh mesh, string shader)
     {
-        mesh.Material = new ShaderMaterial { Shader = GD.Load<Shader>(shader) };
+        var material = new ShaderMaterial { Shader = GD.Load<Shader>(shader) };
+        _materials.Add(material);
+        mesh.Material = material;
         var instances = new MultiMesh { TransformFormat = MultiMesh.TransformFormatEnum.Transform3D, UseColors = true, Mesh = mesh };
         AddChild(new MultiMeshInstance3D { Multimesh = instances, IgnoreOcclusionCulling = true,
             CastShadow = GeometryInstance3D.ShadowCastingSetting.Off });

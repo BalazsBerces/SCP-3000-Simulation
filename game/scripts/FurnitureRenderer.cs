@@ -15,6 +15,7 @@ public partial class FurnitureRenderer : Node3D
 {
     [Export] public SimulationHost Host { get; set; } = null!;
     [Export] public CameraRig Rig { get; set; } = null!;
+    [Export] public StoreVisibility Visibility { get; set; } = null!;
 
     public override void _Ready()
     {
@@ -35,6 +36,8 @@ public partial class FurnitureRenderer : Node3D
             {
                 Name = group.Key.ToString(),
                 Rig = Rig,
+                FarDistance = Visibility.FurnitureDistance,
+                ViewReach = Visibility.PlacementReach(Rig, snapshot.Space.ChunkSize),
                 Mesh = FurnitureMeshes.For(group.Key),
                 CoarseMesh = FurnitureMeshes.CoarseFor(group.Key),
                 OccluderQuads = FurnitureMeshes.OccluderQuads(group.Key),

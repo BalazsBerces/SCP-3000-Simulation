@@ -17,12 +17,10 @@ public partial class FogBankRenderer : Node3D
     [Export] public SimulationHost Host { get; set; } = null!;
     [Export] public CameraRig Rig { get; set; } = null!;
     [Export] public StoreAtmosphere Atmosphere { get; set; } = null!;
+    [Export] public StoreVisibility Visibility { get; set; } = null!;
 
     /// <summary>Height of a bank's dome at its centre, in metres: well above the tallest Furniture.</summary>
     [Export] public float Top { get; set; } = 18f;
-
-    /// <summary>How far from the focus banks are drawn; at least the farthest floor the camera can see.</summary>
-    [Export] public float ViewReach { get; set; } = 700f;
 
     // The Store (1344 m) is exactly 7 noise tiles, so the noise is seamless at the wrap.
     private const float NoiseTilesPerStore = 7f;
@@ -32,6 +30,8 @@ public partial class FogBankRenderer : Node3D
     private NoiseTexture3D _noise = null!;
     private Vector3 _noiseOffset;
     private TimeSpan? _lastStoreTime;
+    private ImageTexture _bankData = null!;
+    private FogBank[] _lastBanks = [];
 
     /// <summary>How many Fog bank images were drawn this frame.</summary>
     public int Drawn { get; private set; }
@@ -44,7 +44,24 @@ public partial class FogBankRenderer : Node3D
             Width = 64, Height = 64, Depth = 64, Seamless = true, Normalize = true,
             Noise = new FastNoiseLite { NoiseType = FastNoiseLite.NoiseTypeEnum.Perlin, Frequency = 0.06f, FractalOctaves = 3 },
         };
-        Host.WorldCreated += _ => _lastStoreTime = null;
+        _bankData = ImageTexture.CreateFromImage(Image.CreateEmpty(1, 1, false, Image.Format.Rgbaf));
+        Host.WorldCreated += ResetStoreTime;
+    }
+
+    public override void _ExitTree() => Host.WorldCreated -= ResetStoreTime;
+
+    private void ResetStoreTime(WorldSnapshot snapshot) => _lastStoreTime = null;
+
+    public void ApplyLampFog(ShaderMaterial material)
+    {
+        material.SetShaderParameter("banks", _bankData);
+        material.SetShaderParameter("bank_count", StoreOverview.Enabled ? 0 : _lastBanks.Length);
+        material.SetShaderParameter("store_size", Host.Snapshot.Space.Size);
+        material.SetShaderParameter("top", Top);
+        material.SetShaderParameter("core_fraction", FogBank.CoreFraction);
+        material.SetShaderParameter("noise", _noise);
+        material.SetShaderParameter("noise_offset", _noiseOffset);
+        material.SetShaderParameter("noise_scale", Host.Snapshot.Space.Size / NoiseTilesPerStore);
     }
 
     public override void _Process(double delta)
@@ -59,16 +76,27 @@ public partial class FogBankRenderer : Node3D
         RollNoise(snapshot.Wind);
 
         var look = Atmosphere.FogBankLook;
+        var banks = Host.InterpolatedFogBanks.ToArray();
+        // Paused scenes reuse the texture. Clock/light changes must still update peak density.
+        var data = banks.Select(b => b with { Density = b.Density * look.Density }).ToArray();
+        if (!data.SequenceEqual(_lastBanks))
+        {
+            var image = Image.CreateEmpty(Math.Max(1, data.Length), 1, false, Image.Format.Rgbaf);
+            for (var i = 0; i < data.Length; i++)
+                image.SetPixel(i, 0, new Color(data[i].Position.X, data[i].Position.Y, data[i].Radius, data[i].Density));
+            _bankData.SetImage(image);
+            _lastBanks = data;
+        }
         var focus = Rig.Focus.ToStore();
         var drawn = 0;
-        foreach (var bank in Host.InterpolatedFogBanks)
+        foreach (var bank in banks)
         {
             for (var oy = -1; oy <= 1; oy++)
             {
                 for (var ox = -1; ox <= 1; ox++)
                 {
                     var centre = bank.Position + new System.Numerics.Vector2(ox, oy) * size;
-                    if (System.Numerics.Vector2.Distance(centre, focus) > ViewReach + bank.Radius)
+                    if (System.Numerics.Vector2.Distance(centre, focus) > Visibility.PlacementReach(Rig, snapshot.Space.ChunkSize) + bank.Radius)
                         continue;
                     var (volume, material) = VolumeAt(drawn++);
                     volume.Position = centre.ToWorld(Top / 2f);

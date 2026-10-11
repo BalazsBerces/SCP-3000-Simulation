@@ -1,4 +1,4 @@
-[gd_scene load_steps=17 format=3]
+[gd_scene load_steps=19 format=3]
 
 [ext_resource type="Script" path="res://scripts/SimulationHost.cs" id="1_host"]
 [ext_resource type="Script" path="res://scripts/StoreFloor.cs" id="2_floor"]
@@ -14,6 +14,11 @@
 [ext_resource type="Script" path="res://scripts/LampLights.cs" id="12_lamps"]
 [ext_resource type="Script" path="res://scripts/FogBankRenderer.cs" id="13_fog_banks"]
 [ext_resource type="Script" path="res://scripts/DebugPanel.cs" id="14_debug"]
+
+[ext_resource type="Script" path="res://scripts/StoreVisibility.cs" id="15_visibility"]
+
+[sub_resource type="Resource" id="Resource_visibility"]
+script = ExtResource("15_visibility")
 
 [sub_resource type="Environment" id="Environment_store"]
 background_mode = 1
@@ -62,6 +67,7 @@ StoreLight = NodePath("../StoreLight")
 
 [node name="FogBankRenderer" type="Node3D" parent="." node_paths=PackedStringArray("Host", "Rig", "Atmosphere")]
 script = ExtResource("13_fog_banks")
+Visibility = SubResource("Resource_visibility")
 Host = NodePath("../SimulationHost")
 Rig = NodePath("../CameraRig")
 Atmosphere = NodePath("../StoreAtmosphere")
@@ -91,14 +97,17 @@ current = true
 
 [node name="FurnitureRenderer" type="Node3D" parent="." node_paths=PackedStringArray("Host", "Rig")]
 script = ExtResource("8_furniture")
+Visibility = SubResource("Resource_visibility")
 Host = NodePath("../SimulationHost")
 Rig = NodePath("../CameraRig")
 
-[node name="LampLights" type="Node3D" parent="." node_paths=PackedStringArray("Host", "Rig", "Atmosphere")]
+[node name="LampLights" type="Node3D" parent="." node_paths=PackedStringArray("Host", "Rig", "Atmosphere", "FogBanks")]
 script = ExtResource("12_lamps")
+Visibility = SubResource("Resource_visibility")
 Host = NodePath("../SimulationHost")
 Rig = NodePath("../CameraRig")
 Atmosphere = NodePath("../StoreAtmosphere")
+FogBanks = NodePath("../FogBankRenderer")
 
 [node name="SeedPanel" type="CanvasLayer" parent="." node_paths=PackedStringArray("Host", "Rig")]
 script = ExtResource("9_seed")

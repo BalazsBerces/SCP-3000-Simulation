@@ -31,6 +31,7 @@ public partial class Benchmark : Node
     private static readonly Vector2I Resolution = new(1920, 1080);
 
     private string? _shotsDirectory;
+    private string? _reproductionDirectory;
     private double? _progress;
 
     private sealed record Lighting(string Name, TimeSpan TimeOfDay, bool HoldFar = false);
@@ -57,6 +58,8 @@ public partial class Benchmark : Node
                 MeasureSeconds = double.Parse(arg["--benchmark-seconds=".Length..], CultureInfo.InvariantCulture);
             else if (arg.StartsWith("--benchmark-shots="))
                 _shotsDirectory = arg["--benchmark-shots=".Length..];
+            else if (arg.StartsWith("--lamp-reproduction="))
+                _reproductionDirectory = arg["--lamp-reproduction=".Length..];
         }
 
         DisplayServer.WindowSetVsyncMode(DisplayServer.VSyncMode.Disabled);
@@ -89,6 +92,8 @@ public partial class Benchmark : Node
             // The bank covers the near view and stays in view as the camera pulls out.
             Host.HoldClearWeather();
             Host.PlaceFogBank(new System.Numerics.Vector2(Start.X + 50f, Start.Y + 20f), 160f);
+            if (_reproductionDirectory is not null)
+                await Reproduce(lighting);
             results.Add(await Measure(lighting));
             if (_shotsDirectory is not null)
                 await Screenshots(lighting);
@@ -157,6 +162,31 @@ public partial class Benchmark : Node
             var path = Path.Combine(_shotsDirectory!, $"{lighting.Name.Replace(' ', '-').ToLowerInvariant()}-{name}.png");
             var error = GetViewport().GetTexture().GetImage().SavePng(path);
             GD.Print(error == Error.Ok ? $"Screenshot saved to {path}" : $"Screenshot failed: {error}");
+        }
+    }
+
+    // A paused, fixed bank and a continuous pan/rotation across the same Lamp displays.
+    // Capture after rendering, so evidence corresponds to the camera and light selection logged.
+    private async Task Reproduce(Lighting lighting)
+    {
+        _progress = null;
+        var tracked = Host.Snapshot.Furniture.Where(p => Scp3008.Core.FurnitureCatalog.Spec(p.Type).IsLamp)
+            .MinBy(p => Host.Snapshot.Space.Distance(p.Position, new System.Numerics.Vector2(Start.X, Start.Y))).Id;
+        DirAccess.MakeDirRecursiveAbsolute(_reproductionDirectory);
+        for (var frame = -30; frame <= 240; frame++)
+        {
+            var t = Math.Max(0, frame) / 240f;
+            Rig.JumpTo(new Vector3(Start.X - 24f + 48f * t, 0f, Start.Y));
+            Rig.JumpToDistance(45f);
+            Rig.JumpToYaw(Mathf.DegToRad(10f + 40f * t));
+            await ToSignal(RenderingServer.Singleton, RenderingServer.SignalName.FramePostDraw);
+            if (frame < 0 || frame % 20 != 0)
+                continue;
+            var path = Path.Combine(_reproductionDirectory!, $"{lighting.Name.Replace(' ', '-').ToLowerInvariant()}-{frame / 20:00}.png");
+            var error = GetViewport().GetTexture().GetImage().SavePng(path);
+            if (error != Error.Ok)
+                throw new IOException($"Reproduction capture failed: {error}");
+            GD.Print($"Reproduction {frame}: focus {Rig.Focus}, {Lamps.DescribeLamp(tracked)}, {Lamps.Describe()}, saved {path}");
         }
     }
 

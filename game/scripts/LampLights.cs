@@ -13,6 +13,8 @@ public partial class LampLights : Node3D
     [Export] public SimulationHost Host { get; set; } = null!;
     [Export] public CameraRig Rig { get; set; } = null!;
     [Export] public StoreAtmosphere Atmosphere { get; set; } = null!;
+    [Export] public FogBankRenderer FogBanks { get; set; } = null!;
+    [Export] public StoreVisibility Visibility { get; set; } = null!;
 
     /// <summary>Most Lamps lit by real lights at once; the rest use light pools. Read once, when the lights are made.</summary>
     [Export] public int MaxLights { get; set; } = 48;
@@ -42,7 +44,8 @@ public partial class LampLights : Node3D
     private StoreSpace _space = StoreSpace.Standard;
     private readonly List<Candidate> _visible = [];
     private LampImpostors _impostors = null!;
-    private (Transform3D Transform, float Fov, float Near, float Far, bool Overview, Vector2 Viewport)? _lastView;
+    private (Transform3D Transform, float Fov, float Near, float Far, bool Overview, Vector2 Viewport, float FurnitureDistance)? _lastView;
+    private float _lastCutoff;
     public int VisibleLamps => _visible.Count;
 
     public LampLights() => _byShadowRank = (a, b) => ShadowRank(a).CompareTo(ShadowRank(b));
@@ -69,6 +72,9 @@ public partial class LampLights : Node3D
             {
                 Name = i < shadowed ? $"ShadowedLamp{i}" : $"Lamp{i}",
                 LightColor = Warm,
+                // The selected lights illuminate surfaces only. Camera-dependent selection must
+                // never change the fog's illumination; source halos exist for every visible Lamp.
+                LightVolumetricFogEnergy = 0f,
                 ShadowEnabled = i < shadowed,
                 OmniShadowMode = OmniLight3D.ShadowMode.DualParaboloid,
                 ShadowBias = 0.05f,
@@ -89,8 +95,13 @@ public partial class LampLights : Node3D
     {
         // The camera that renders: the Observer camera, or a dev camera such as the eye-level one.
         var camera = GetViewport().GetCamera3D() ?? Rig.Camera;
+        _impostors.ApplyFog(material =>
+        {
+            Atmosphere.ApplyLampFog(material);
+            FogBanks.ApplyLampFog(material);
+        });
         var view = (camera.GlobalTransform, camera.Fov, camera.Near, camera.Far,
-            StoreOverview.Enabled, GetViewport().GetVisibleRect().Size);
+            StoreOverview.Enabled, GetViewport().GetVisibleRect().Size, Visibility.FurnitureDistance);
         // Display Lamps are static between world rebuilds. A stationary view needs no ranking,
         // uploads or light changes, even while the Store clock and Weather continue to advance.
         if (_lastView == view)
@@ -117,6 +128,7 @@ public partial class LampLights : Node3D
             _lit.RemoveAt(_lit.Count - 1);
         }
         ChooseShadowCasters();
+        _lastCutoff = cutoff;
         ShowLit(_lit.Count, 1f, cutoff);
         _real.Clear();
         _real.UnionWith(_lit);
@@ -129,6 +141,17 @@ public partial class LampLights : Node3D
         $"{ActiveLights} lamp lights ({ShadowedLights} shadowed, budget {_shadowSlots.Length}), " +
         $"{VisibleLamps} visible Lamps with pools/halos, {_lampsByChunk.Values.Sum(l => l.Length)} Lamps in the Store";
 
+    /// <summary>Dev evidence: identifies one stationary Lamp's contribution during camera motion.</summary>
+    public string DescribeLamp(int id)
+    {
+        var index = _visible.FindIndex(c => c.Lamp.Id == id);
+        if (index < 0)
+            return $"Lamp {id} outside view";
+        var candidate = _visible[index];
+        var real = _real.Contains(candidate) ? RealWeight(candidate.Distance, _lastCutoff) : 0f;
+        return $"Lamp {id} at {candidate.Position}: real {real:0.000}, pool {1f - real:0.000}";
+    }
+
     /// <summary>
     /// Rank around the visible floor focus, including just-offscreen Lamps so crossing a frustum
     /// plane cannot abruptly change the budget cutoff. Pools cover every sphere reaching the view.
@@ -139,7 +162,8 @@ public partial class LampLights : Node3D
         _visible.Clear();
         var keep = _lights.Length + 1;
 
-        foreach (var image in _space.ChunkImagesAround(Rig.Focus.ToStore(), StoreOverview.Enabled ? _space.Size * 2f : 764f))
+        foreach (var image in _space.ChunkImagesAround(Rig.Focus.ToStore(), StoreOverview.Enabled ? _space.Size * 2f :
+                     Visibility.PlacementReach(Rig, _space.ChunkSize) + _space.ChunkSize))
         {
             if (!_lampsByChunk.TryGetValue(image.Chunk, out var lamps))
                 continue;
@@ -148,8 +172,8 @@ public partial class LampLights : Node3D
             var offset = image.Offset.ToWorld();
             var centre = (_space.ChunkOrigin(image.Chunk) + image.Offset + new System.Numerics.Vector2(_space.ChunkSize / 2f)).ToWorld();
             // Furniture's MultiMesh bounds can be off the geometric chunk centre. Include a
-            // half-diagonal of padding beyond its 600 m visibility range so no drawn Lamp is missed.
-            if (!StoreOverview.Enabled && centre.DistanceTo(eye) > 650f)
+            // conservative diagonal of padding beyond the shared visibility range so no drawn Lamp is missed.
+            if (!StoreOverview.Enabled && centre.DistanceTo(eye) > Visibility.LampDistance(_space.ChunkSize))
                 continue;
             foreach (var lamp in lamps)
             {

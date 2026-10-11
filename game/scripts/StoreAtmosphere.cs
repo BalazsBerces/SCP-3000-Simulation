@@ -8,7 +8,7 @@ namespace Scp3008.Game;
 /// Store time and blends the scene between the bright, fluorescent open Store and dark Closing
 /// time; while the lights fade they flicker like failing fluorescent tubes. A thin haze lies
 /// everywhere for depth: distance fog that hides the far cut-off, plus a faint volumetric haze that
-/// catches the lamp light. Thick fog only lies inside the Fog banks (<see cref="FogBankRenderer"/>),
+/// gives depth between the Lamp displays. Thick fog only lies inside the Fog banks (<see cref="FogBankRenderer"/>),
 /// whose look this also sets: lit and greyish while the Store is open, dark and bluish at Closing time.
 /// The volumetric fog reaches as far as the camera can see at its current zoom, so distant Fog banks
 /// show, while close views keep their detail.
@@ -84,6 +84,13 @@ public partial class StoreAtmosphere : Node
 
     /// <summary>How the Fog banks look this frame: albedo, glow, and the shader density of a bank of density 1.</summary>
     public (Color Albedo, Color Emission, float Density) FogBankLook { get; private set; }
+
+    public void ApplyLampFog(ShaderMaterial material)
+    {
+        material.SetShaderParameter("distance_density", _environment.FogEnabled ? _environment.FogDensity : 0f);
+        material.SetShaderParameter("haze_density", _environment.VolumetricFogEnabled ? _environment.VolumetricFogDensity : 0f);
+        material.SetShaderParameter("fog_length", _environment.VolumetricFogLength);
+    }
 
     public override void _Ready()
     {
