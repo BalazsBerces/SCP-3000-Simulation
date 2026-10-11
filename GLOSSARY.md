@@ -45,6 +45,10 @@ _Avoid_: Alarm, siren
 The dark phase of the day cycle when the Store lights go out and the Staff turn hostile.
 _Avoid_: Night (except informally)
 
+**Store day**:
+One full turn of the Store clock (24 Store hours, starting at midnight), covering the open hours and Closing time; it lasts about 10 real minutes at 1x speed.
+_Avoid_: Cycle, round, turn
+
 ### People
 
 **Village**:

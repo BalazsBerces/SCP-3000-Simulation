@@ -1,0 +1,15 @@
+# .NET
+bin/
+obj/
+*.user
+.vs/
+TestResults/
+
+# Godot
+.godot/
+game/.godot/
+*.import.tmp
+export_presets.cfg
+
+# Local tooling
+.ticket-logs/

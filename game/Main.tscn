@@ -1,0 +1,64 @@
+[gd_scene load_steps=11 format=3]
+
+[ext_resource type="Script" path="res://scripts/SimulationHost.cs" id="1_host"]
+[ext_resource type="Script" path="res://scripts/StoreFloor.cs" id="2_floor"]
+[ext_resource type="Script" path="res://scripts/CameraRig.cs" id="3_camera"]
+[ext_resource type="Script" path="res://scripts/TimeControls.cs" id="4_time"]
+[ext_resource type="Script" path="res://scripts/DevCapture.cs" id="5_capture"]
+[ext_resource type="Shader" path="res://shaders/store_floor.gdshader" id="6_floor_shader"]
+
+[sub_resource type="ProceduralSkyMaterial" id="SkyMaterial_ceiling"]
+sky_top_color = Color(0.32, 0.33, 0.34, 1)
+sky_horizon_color = Color(0.42, 0.43, 0.43, 1)
+ground_bottom_color = Color(0.2, 0.2, 0.2, 1)
+ground_horizon_color = Color(0.42, 0.43, 0.43, 1)
+
+[sub_resource type="Sky" id="Sky_ceiling"]
+sky_material = SubResource("SkyMaterial_ceiling")
+
+[sub_resource type="Environment" id="Environment_store"]
+background_mode = 2
+sky = SubResource("Sky_ceiling")
+ambient_light_source = 3
+ambient_light_color = Color(0.85, 0.88, 0.9, 1)
+ambient_light_energy = 0.6
+tonemap_mode = 2
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_floor"]
+shader = ExtResource("6_floor_shader")
+
+[node name="Main" type="Node3D"]
+
+[node name="SimulationHost" type="Node" parent="."]
+script = ExtResource("1_host")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_store")
+
+[node name="StoreLight" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.866025, -0.40558, 0.29237, 0, 0.584958, 0.811064, -0.5, -0.70248, 0.506402, 0, 50, 0)
+light_color = Color(0.95, 0.97, 1, 1)
+light_energy = 0.9
+
+[node name="StoreFloor" type="MeshInstance3D" parent="." node_paths=PackedStringArray("Host")]
+material_override = SubResource("ShaderMaterial_floor")
+script = ExtResource("2_floor")
+Host = NodePath("../SimulationHost")
+
+[node name="CameraRig" type="Node3D" parent="." node_paths=PackedStringArray("Host", "Camera")]
+script = ExtResource("3_camera")
+Host = NodePath("../SimulationHost")
+Camera = NodePath("Camera3D")
+
+[node name="Camera3D" type="Camera3D" parent="CameraRig"]
+fov = 60.0
+near = 0.1
+far = 2000.0
+current = true
+
+[node name="TimeControls" type="CanvasLayer" parent="." node_paths=PackedStringArray("Host")]
+script = ExtResource("4_time")
+Host = NodePath("../SimulationHost")
+
+[node name="DevCapture" type="Node" parent="."]
+script = ExtResource("5_capture")
