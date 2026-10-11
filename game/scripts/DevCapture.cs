@@ -116,6 +116,9 @@ public partial class DevCapture : Node
         GD.Print($"Store time: day {clock.Day} {clock.TimeOfDay:hh\\:mm}, {clock.Phase}. {Atmosphere.Describe()}");
         GD.Print($"Ambient audio: {Audio.Describe()}");
         GD.Print($"Lamps: {Lamps.Describe()}");
+        var wind = Host.Snapshot.Wind;
+        GD.Print($"Weather: {Host.Snapshot.FogBanks.Count} Fog banks, wind {wind.Length():0} m per Store hour, " +
+                 $"fog density at the focus {Host.Snapshot.FogDensityAt(Rig.Focus.ToStore()):0.00}");
         if (_capturePath is not null)
         {
             var image = GetViewport().GetTexture().GetImage();

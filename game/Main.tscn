@@ -1,4 +1,4 @@
-[gd_scene load_steps=16 format=3]
+[gd_scene load_steps=17 format=3]
 
 [ext_resource type="Script" path="res://scripts/SimulationHost.cs" id="1_host"]
 [ext_resource type="Script" path="res://scripts/StoreFloor.cs" id="2_floor"]
@@ -12,6 +12,8 @@
 [ext_resource type="Script" path="res://scripts/StoreAtmosphere.cs" id="10_atmosphere"]
 [ext_resource type="Script" path="res://scripts/AmbientAudio.cs" id="11_audio"]
 [ext_resource type="Script" path="res://scripts/LampLights.cs" id="12_lamps"]
+[ext_resource type="Script" path="res://scripts/FogBankRenderer.cs" id="13_fog_banks"]
+[ext_resource type="Script" path="res://scripts/DebugPanel.cs" id="14_debug"]
 
 [sub_resource type="Environment" id="Environment_store"]
 background_mode = 1
@@ -33,13 +35,6 @@ volumetric_fog_detail_spread = 2.0
 volumetric_fog_ambient_inject = 1.0
 volumetric_fog_sky_affect = 0.0
 
-[sub_resource type="FogMaterial" id="FogMaterial_haze"]
-density = 0.16
-albedo = Color(0.82, 0.84, 0.85, 1)
-emission = Color(0.42, 0.43, 0.44, 1)
-height_falloff = 0.85
-edge_fade = 0.5
-
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_floor"]
 shader = ExtResource("6_floor_shader")
 
@@ -56,17 +51,18 @@ transform = Transform3D(0.866025, -0.40558, 0.29237, 0, 0.584958, 0.811064, -0.5
 light_color = Color(0.95, 0.97, 1, 1)
 light_energy = 0.9
 
-[node name="GroundHaze" type="FogVolume" parent="."]
-size = Vector3(600, 24, 600)
-material = SubResource("FogMaterial_haze")
-
-[node name="StoreAtmosphere" type="Node" parent="." node_paths=PackedStringArray("Host", "Rig", "World", "StoreLight", "GroundHaze")]
+[node name="StoreAtmosphere" type="Node" parent="." node_paths=PackedStringArray("Host", "Rig", "World", "StoreLight")]
 script = ExtResource("10_atmosphere")
 Host = NodePath("../SimulationHost")
 Rig = NodePath("../CameraRig")
 World = NodePath("../WorldEnvironment")
 StoreLight = NodePath("../StoreLight")
-GroundHaze = NodePath("../GroundHaze")
+
+[node name="FogBankRenderer" type="Node3D" parent="." node_paths=PackedStringArray("Host", "Rig", "Atmosphere")]
+script = ExtResource("13_fog_banks")
+Host = NodePath("../SimulationHost")
+Rig = NodePath("../CameraRig")
+Atmosphere = NodePath("../StoreAtmosphere")
 
 [node name="AmbientAudio" type="Node" parent="." node_paths=PackedStringArray("Host", "Atmosphere", "Rig")]
 script = ExtResource("11_audio")
@@ -125,3 +121,8 @@ Lamps = NodePath("../LampLights")
 Rig = NodePath("../CameraRig")
 Host = NodePath("../SimulationHost")
 Seeds = NodePath("../SeedPanel")
+
+[node name="DebugPanel" type="Node" parent="." node_paths=PackedStringArray("Host", "Rig")]
+script = ExtResource("14_debug")
+Host = NodePath("../SimulationHost")
+Rig = NodePath("../CameraRig")

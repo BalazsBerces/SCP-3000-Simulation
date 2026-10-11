@@ -56,6 +56,9 @@ public partial class CameraRig : Node3D
     /// <summary>Raised with the shift whenever the rig jumps a whole Store length across a seam.</summary>
     public event Action<Vector3>? Recentred;
 
+    /// <summary>The current zoom: the camera's distance from the focus, in metres.</summary>
+    public float Distance => _distance;
+
     /// <summary>The point on the floor the camera looks at, always on the floor while <see cref="WrapFocus"/> is on.</summary>
     public Vector3 Focus => Position;
 

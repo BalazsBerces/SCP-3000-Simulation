@@ -53,6 +53,10 @@ _Avoid_: Parts, components, scrap
 The Store's slow replenishment of Goods and Furniture, which keeps the world from running dry.
 _Avoid_: Respawn, regeneration
 
+**Fog bank**:
+A large, soft-edged region of thick fog that forms, grows, drifts with a slowly changing wind across the wrapping Store, then thins out and dissipates over Store hours. Clear stretches remain between Fog banks; a thin haze stays everywhere. Fog density affects sight and comes from Weather, independent of the Store seed.
+_Avoid_: Fog everywhere, cloud, weather cell
+
 **Closing announcement**:
 The PA message ("The Store is now closing.") from the speaker towers that warns of Closing time.
 _Avoid_: Alarm, siren

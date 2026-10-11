@@ -46,4 +46,32 @@ public sealed class SnapshotInterpolator(TimeSpan stepInterval)
         var to = _latest.Clock.TotalStoreTime;
         return from + (to - from) * Blend(nowSeconds);
     }
+
+    /// <summary>
+    /// The Fog banks to display at <paramref name="nowSeconds"/>: each bank of the latest snapshot
+    /// blended from where it was in the previous one, along the shortest wrapped path, so a bank
+    /// drifting across a seam moves smoothly. Positions may lie just outside the Store floor.
+    /// </summary>
+    public IEnumerable<FogBank> FogBanks(double nowSeconds)
+    {
+        if (_previous is null || _latest is null)
+            yield break;
+        var blend = (float)Blend(nowSeconds);
+        foreach (var bank in _latest.FogBanks)
+        {
+            var before = _previous.FogBanks.FirstOrDefault(b => b.Id == bank.Id);
+            if (before is null)
+            {
+                yield return bank;
+                continue;
+            }
+            var step = _latest.Space.Delta(before.Position, bank.Position);
+            yield return bank with
+            {
+                Position = before.Position + step * blend,
+                Radius = before.Radius + (bank.Radius - before.Radius) * blend,
+                Density = before.Density + (bank.Density - before.Density) * blend,
+            };
+        }
+    }
 }

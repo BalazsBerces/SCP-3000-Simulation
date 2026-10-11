@@ -14,3 +14,9 @@ public sealed record ClosingTimeBegan(StoreClock At, int Day) : DomainEvent(At);
 
 /// <summary>The Store lights came back on: Closing time ended and the Store reopened on Store day <paramref name="Day"/>.</summary>
 public sealed record StoreReopened(StoreClock At, int Day) : DomainEvent(At);
+
+/// <summary>A Fog bank formed; <paramref name="Bank"/> is how it looked at that moment.</summary>
+public sealed record FogBankFormed(StoreClock At, FogBank Bank) : DomainEvent(At);
+
+/// <summary>The Fog bank <paramref name="FogBankId"/> thinned out and dissipated at <paramref name="Position"/>.</summary>
+public sealed record FogBankDissipated(StoreClock At, int FogBankId, System.Numerics.Vector2 Position) : DomainEvent(At);

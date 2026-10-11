@@ -38,6 +38,9 @@ public partial class SimulationHost : Node
     /// <summary>Store time interpolated between the last two snapshots, for smooth display.</summary>
     public TimeSpan InterpolatedStoreTime => _interpolator.StoreTime(NowSeconds);
 
+    /// <summary>The Fog banks interpolated between the last two snapshots, for smooth drifting.</summary>
+    public IEnumerable<FogBank> InterpolatedFogBanks => _interpolator.FogBanks(NowSeconds);
+
     /// <summary>Time control: the speed the Store clock runs at.</summary>
     public SimulationSpeed Speed
     {
@@ -70,6 +73,17 @@ public partial class SimulationHost : Node
 
     /// <summary>Fast-forwards the Store clock to the next <paramref name="timeOfDay"/> (dev tool, e.g. for the benchmark).</summary>
     public void AdvanceTo(TimeSpan timeOfDay) => _simulation.AdvanceTo(timeOfDay);
+
+    /// <summary>Dev tool (debug panel, benchmark): places a fully formed Fog bank through the scenario builder.</summary>
+    public FogBank PlaceFogBank(System.Numerics.Vector2 position, float radius) =>
+        _simulation.Scenario.PlaceFogBank(position, radius);
+
+    /// <summary>Dev tool (benchmark): removes every Fog bank and stops new ones forming, for a fixed view.</summary>
+    public void HoldClearWeather()
+    {
+        _simulation.Scenario.SetFogBankFormation(false);
+        _simulation.Scenario.ClearFogBanks();
+    }
 
     /// <summary>Generates a new Store from <paramref name="seed"/> in the background, then replaces the current world.</summary>
     public void CreateWorld(int seed)
@@ -112,6 +126,12 @@ public partial class SimulationHost : Node
                     break;
                 case StoreReopened reopened:
                     GD.Print($"The Store reopened on Store day {reopened.Day}.");
+                    break;
+                case FogBankFormed formed:
+                    GD.Print($"Fog bank {formed.Bank.Id} formed at ({formed.Bank.Position.X:0}, {formed.Bank.Position.Y:0}).");
+                    break;
+                case FogBankDissipated dissipated:
+                    GD.Print($"Fog bank {dissipated.FogBankId} dissipated at ({dissipated.Position.X:0}, {dissipated.Position.Y:0}).");
                     break;
             }
             DomainEventReceived?.Invoke(domainEvent);

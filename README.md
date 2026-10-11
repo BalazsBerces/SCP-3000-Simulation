@@ -23,6 +23,14 @@ Benchmark (ADR 0004): `godot --path game res://Benchmark.tscn` flies a fixed cam
 
 Unattended check: `godot --path game -- --capture=shot.png --capture-after=5 --fps-report` saves a screenshot, prints the average fps and quits. More dev arguments: `--focus=x,y` starts the camera at a Store position, `--pan=vx,vy` pans it (metres per second) and reports seam crossings and the largest per-frame step, `--distance=m` sets the zoom distance, `--wrap-debug` turns on the wrap overlay, `--no-focus-wrap` keeps the camera off-floor (to compare two images of the same place), `--seed=N` sets the first Store's seed, `--start-time=HH:MM` starts the Store clock at that time (e.g. `23:00` for Closing time), `--eye-level` captures from a Villager's eye height to check the ground-level haze, and `--enter-seed=text` types a seed into the seed input after a second (the capture timer restarts when the new Store is shown).
 
+## Weather
+
+Weather: the core exposes `FogBanks`, `Wind` and `FogDensityAt(position)` through the facade's snapshots; `Simulation.FogDensityAt` reads the latest snapshot. Banks grow, drift across Seams and dissipate with formed/dissipated domain events. Runtime randomness is independent of Store generation; tests supply `RuntimeRngSeed`. Natural formation reserves at most 45% of the floor at the banks' largest sizes (including spreading during dissipation), leaving clear stretches even if banks overlap. A new Store starts with 12 Store hours of weather warm-up. These are reversible tuning choices; no new ADR is needed.
+
+The presentation interpolates each bank's position along the shortest wrapped path and draws volumetric ghost copies. Thin global haze supplies depth and hides distant chunk culling; low fog domes cover Furniture while leaving room for future giant Landmarks. The benchmark places the same 160 m radius Fog bank over its camera path after each lighting change, with MSAA 4x and TAA enabled.
+
+Dev weather tools (debug builds): F6 places a Fog bank at the camera focus. `--clear-weather` removes banks and disables natural formation; `--fog-bank=x,y[,radius]` places one through the facade's scenario builder. For a fixed capture, pass both arguments in that order. Scenario placement deliberately permits arbitrary coverage for testing; the coverage budget applies to natural formation.
+
 ## Controls
 
 - Camera: WASD or arrow keys pan, Q/E rotate, mouse wheel or R/F zoom; middle-drag pans, right-drag rotates. The Store wraps: pan in any direction forever.

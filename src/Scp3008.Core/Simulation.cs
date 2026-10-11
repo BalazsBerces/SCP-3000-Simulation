@@ -1,3 +1,4 @@
+using System.Numerics;
 using Scp3008.Core.Generation;
 
 namespace Scp3008.Core;
@@ -18,11 +19,18 @@ public sealed class Simulation : IDisposable
     // real time instead of spiralling; the rest is dropped.
     private static readonly TimeSpan MaxCatchUp = RealTimeStep * 5;
 
+    // A new world opens with weather already under way, as if it had been running this long.
+    private const double WeatherWarmUpHours = 12;
+
+    // Keys for the independent runtime random streams, one per subsystem.
+    private const int WeatherStream = 1;
+
     private readonly object _stepLock = new();
     private readonly WorldConfig _config;
     private readonly StoreSpace _space = StoreSpace.Standard;
     private readonly DepartmentMap _departments;
     private readonly IReadOnlyList<FurniturePiece> _furniture;
+    private readonly Weather _weather;
     private long _tick;
     private SimulationSpeed _speed = SimulationSpeed.Normal;
     private TimeSpan _unspentRealTime;
@@ -36,6 +44,11 @@ public sealed class Simulation : IDisposable
         _config = config;
         _departments = DepartmentGenerator.Generate(config.Seed, _space);
         _furniture = FurnitureGenerator.Generate(config.Seed, _space, _departments);
+        // Runtime randomness never comes from the Store seed (ADR 0003); it is unseeded unless a test fixes it.
+        var runtimeSeed = config.RuntimeRngSeed ?? Random.Shared.Next();
+        _weather = new Weather(_space, SeededRandom.For(runtimeSeed, WeatherStream));
+        _weather.WarmUp(WeatherWarmUpHours);
+        Scenario = new ScenarioBuilder(this);
         _snapshot = BuildSnapshot();
     }
 
@@ -44,6 +57,15 @@ public sealed class Simulation : IDisposable
 
     /// <summary>The latest published snapshot. Safe to read from any thread.</summary>
     public WorldSnapshot Snapshot => _snapshot;
+
+    /// <summary>Sets up situations (e.g. places a Fog bank), for tests and the dev debug panel.</summary>
+    public ScenarioBuilder Scenario { get; }
+
+    /// <summary>
+    /// The fog density at a Store position in the latest snapshot, from 0 (only the thin haze) to
+    /// 1 (deep inside a thick Fog bank). Safe to call from any thread.
+    /// </summary>
+    public float FogDensityAt(Vector2 position) => _snapshot.FogDensityAt(position);
 
     /// <summary>True while the simulation thread is running the clock.</summary>
     public bool IsRunning => _thread is { IsAlive: true } && !_stop.IsCancellationRequested;
@@ -198,6 +220,7 @@ public sealed class Simulation : IDisposable
     {
         _tick++;
         var clock = new StoreClock(_tick);
+        _weather.Advance(StoreClock.TickDuration.TotalHours, clock, Emit);
         var timeOfDay = clock.TimeOfDay;
         if (timeOfDay == TimeSpan.Zero)
             Emit(new StoreDayBegan(clock, clock.Day));
@@ -213,6 +236,25 @@ public sealed class Simulation : IDisposable
             handler(domainEvent);
     }
 
+    /// <summary>Applies a scenario change to the weather under the step lock and publishes a new snapshot.</summary>
+    internal T Change<T>(Func<Weather, StoreClock, Action<DomainEvent>, T> change)
+    {
+        lock (_stepLock)
+        {
+            var result = change(_weather, new StoreClock(_tick), Emit);
+            _snapshot = BuildSnapshot();
+            return result;
+        }
+    }
+
+    /// <inheritdoc cref="Change{T}"/>
+    internal void Change(Action<Weather, StoreClock, Action<DomainEvent>> change) =>
+        Change<bool>((weather, now, emit) =>
+        {
+            change(weather, now, emit);
+            return true;
+        });
+
     private void Unsubscribe(Action<DomainEvent> handler)
     {
         lock (_stepLock)
@@ -224,7 +266,7 @@ public sealed class Simulation : IDisposable
     }
 
     private WorldSnapshot BuildSnapshot() =>
-        new(_config.Seed, new StoreClock(_tick), _space, _speed, _departments, _furniture);
+        new(_config.Seed, new StoreClock(_tick), _space, _speed, _departments, _furniture, Array.AsReadOnly(_weather.Snapshot()), _weather.Wind);
 
     private sealed class Subscription(Simulation owner, Action<DomainEvent> handler) : IDisposable
     {

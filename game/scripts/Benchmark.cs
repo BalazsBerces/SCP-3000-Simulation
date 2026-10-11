@@ -84,6 +84,10 @@ public partial class Benchmark : Node
         foreach (var lighting in new[] { new Lighting("Open", TimeSpan.FromHours(12)), new Lighting("Closing time", TimeSpan.FromHours(23)) })
         {
             Host.AdvanceTo(lighting.TimeOfDay);
+            // Fix the weather after each time skip so both lightings measure the same bank.
+            // The bank covers the near view and stays in view as the camera pulls out.
+            Host.HoldClearWeather();
+            Host.PlaceFogBank(new System.Numerics.Vector2(Start.X + 50f, Start.Y + 20f), 160f);
             results.Add(await Measure(lighting));
             if (_shotsDirectory is not null)
                 await Screenshots(lighting);
@@ -92,6 +96,7 @@ public partial class Benchmark : Node
         var size = GetViewport().GetVisibleRect().Size;
         GD.Print($"Benchmark: Store {Host.Snapshot.Seed}, {size.X}x{size.Y}, {RenderingServer.GetVideoAdapterName()}, " +
                  $"{MeasureSeconds:0} s per lighting, target {TargetFps} fps average");
+        GD.Print($"  Weather: fixed Fog bank, radius 160 m; MSAA {GetViewport().Msaa3D}, TAA {GetViewport().UseTaa}");
         foreach (var r in results)
             GD.Print($"  {r.Lighting.Name,-12} average {r.AverageFps,6:0.0} fps, 1% low {r.OnePercentLowFps,6:0.0} fps " +
                      $"({r.Frames} frames in {r.Seconds:0.0} s; up to {r.MostLights} lamp lights, {r.MostShadowed} shadowed)");
