@@ -38,7 +38,7 @@ A single physical object in the Store (wardrobe, shelf unit, sofa, lamp…) that
 _Avoid_: Prop, object, item
 
 **Lamp**:
-A piece of Furniture that gives light (table lamp, floor lamp). Lamps on display run on the Store's power, so they shine with the Store lights and go out at Closing time.
+A piece of Furniture that gives light (table lamp, floor lamp). Lamps on display stay lit at all times, including Closing time; a Lamp taken away from its display needs a Village power source (battery or generator).
 _Avoid_: Fixture, light (that is what a Lamp gives)
 
 **Goods**:
@@ -122,7 +122,7 @@ _Avoid_: Level, upgrade stage
 ### Threat
 
 **Staff**:
-The faceless, silent entities of the Store: passive while the lights are on, hostile at Closing time.
+The faceless, silent entities of the Store: dormant while the Store is open, hostile at Closing time. Light does not affect them.
 _Avoid_: Employees, monsters, enemies
 
 **Belief**:
