@@ -1,0 +1,3 @@
+# Seed defines the map only; history is not deterministic
+
+The seed generates only the Store (layout, Departments, Landmarks, Pillars); starting Villages and everything that happens afterwards vary per run. We rejected full determinism (fixed tick, seeded RNG everywhere) because the observer wants each run to unfold differently even on a favourite map. As a consequence, an interesting world can only be kept by saving its full state (Furniture, Villagers, Beliefs, chronicle), so save/load is designed in from the start, and bugs cannot be reproduced from a seed alone.
