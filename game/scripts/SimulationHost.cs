@@ -53,17 +53,20 @@ public partial class SimulationHost : Node
     public override void _EnterTree()
     {
         TimeSpan? startTime = null;
+        var startPaused = false;
         foreach (var arg in OS.GetCmdlineUserArgs())
         {
             if (arg.StartsWith("--seed="))
                 Seed = int.Parse(arg["--seed=".Length..], CultureInfo.InvariantCulture);
             else if (arg.StartsWith("--start-time="))
                 startTime = TimeSpan.ParseExact(arg["--start-time=".Length..], @"hh\:mm", CultureInfo.InvariantCulture);
+            else if (arg == "--pause")
+                startPaused = true;
         }
         var simulation = Simulation.Create(new WorldConfig(Seed));
         if (startTime is { } target)
             simulation.AdvanceTo(target);
-        Adopt(simulation, SimulationSpeed.Normal);
+        Adopt(simulation, startPaused ? SimulationSpeed.Paused : SimulationSpeed.Normal);
     }
 
     public override void _Ready()

@@ -13,6 +13,7 @@ namespace Scp3008.Core;
 /// <param name="Furniture">Every piece of Furniture in the Store, each an individual object.</param>
 /// <param name="FogBanks">The Fog banks drifting through the Store.</param>
 /// <param name="Wind">The wind the Fog banks drift with, in metres per Store hour (X east, Y south).</param>
+/// <param name="Pillars">Static concrete Landmarks with unique navigation markings; never light or power sources.</param>
 public sealed record WorldSnapshot(
     int Seed,
     StoreClock Clock,
@@ -21,7 +22,8 @@ public sealed record WorldSnapshot(
     DepartmentMap Departments,
     IReadOnlyList<FurniturePiece> Furniture,
     IReadOnlyList<FogBank> FogBanks,
-    Vector2 Wind)
+    Vector2 Wind,
+    IReadOnlyList<Pillar> Pillars)
 {
     /// <summary>Whether the Store is open or in Closing time.</summary>
     public DayPhase Phase => Clock.Phase;

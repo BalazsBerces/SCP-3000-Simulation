@@ -30,6 +30,7 @@ public sealed class Simulation : IDisposable
     private readonly StoreSpace _space = StoreSpace.Standard;
     private readonly DepartmentMap _departments;
     private readonly IReadOnlyList<FurniturePiece> _furniture;
+    private readonly IReadOnlyList<Pillar> _pillars;
     private readonly Weather _weather;
     private long _tick;
     private SimulationSpeed _speed = SimulationSpeed.Normal;
@@ -44,6 +45,7 @@ public sealed class Simulation : IDisposable
         _config = config;
         _departments = DepartmentGenerator.Generate(config.Seed, _space);
         _furniture = FurnitureGenerator.Generate(config.Seed, _space, _departments);
+        _pillars = PillarGenerator.Generate(config.Seed, _space, _departments);
         // Runtime randomness never comes from the Store seed (ADR 0003); it is unseeded unless a test fixes it.
         var runtimeSeed = config.RuntimeRngSeed ?? Random.Shared.Next();
         _weather = new Weather(_space, SeededRandom.For(runtimeSeed, WeatherStream));
@@ -266,7 +268,7 @@ public sealed class Simulation : IDisposable
     }
 
     private WorldSnapshot BuildSnapshot() =>
-        new(_config.Seed, new StoreClock(_tick), _space, _speed, _departments, _furniture, Array.AsReadOnly(_weather.Snapshot()), _weather.Wind);
+        new(_config.Seed, new StoreClock(_tick), _space, _speed, _departments, _furniture, Array.AsReadOnly(_weather.Snapshot()), _weather.Wind, _pillars);
 
     private sealed class Subscription(Simulation owner, Action<DomainEvent> handler) : IDisposable
     {

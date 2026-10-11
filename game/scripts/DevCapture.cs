@@ -9,6 +9,8 @@ namespace Scp3008.Game;
 ///   --fps-report           print the average frame rate over the capture window;
 ///   --focus=x,y            start the camera focused on Store position (x, y);
 ///   --distance=metres      start the camera at this zoom distance;
+///   --pillar=number        focus on a Pillar by its painted number;
+///   --pause                freeze Store time for comparable captures;
 ///   --pan=vx,vy            pan the camera focus at (vx, vy) metres per second, then report how
 ///                          often it crossed a seam and its largest per-frame step, overall
 ///                          and on the crossing frames (a jump would show as a big step there);
@@ -56,6 +58,12 @@ public partial class DevCapture : Node
                 Rig.JumpTo(ParseFloorVector(arg["--focus=".Length..]));
             else if (arg.StartsWith("--distance="))
                 Rig.JumpToDistance(float.Parse(arg["--distance=".Length..], CultureInfo.InvariantCulture));
+            else if (arg.StartsWith("--pillar="))
+            {
+                var pillar = Host.Snapshot.Pillars.Single(p => p.Marking.Number == arg["--pillar=".Length..]);
+                Rig.JumpTo(pillar.Position.ToWorld());
+                GD.Print($"Capture Pillar {pillar.Marking.Number}: {pillar.Position}, {pillar.Height:0.0} m, {pillar.Marking.Band}, {pillar.Marking.Damage}.");
+            }
             else if (arg.StartsWith("--pan="))
                 _panVelocity = ParseFloorVector(arg["--pan=".Length..]);
             else if (arg == "--no-focus-wrap")

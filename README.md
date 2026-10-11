@@ -23,6 +23,20 @@ Benchmark (ADR 0004): `godot --path game res://Benchmark.tscn` flies a fixed cam
 
 Unattended check: `godot --path game -- --capture=shot.png --capture-after=5 --fps-report` saves a screenshot, prints the average fps and quits. More dev arguments: `--focus=x,y` starts the camera at a Store position, `--pan=vx,vy` pans it (metres per second) and reports seam crossings and the largest per-frame step, `--distance=m` sets the zoom distance, `--wrap-debug` turns on the wrap overlay, `--no-focus-wrap` keeps the camera off-floor (to compare two images of the same place), `--seed=N` sets the first Store's seed, `--start-time=HH:MM` starts the Store clock at that time (e.g. `23:00` for Closing time), `--eye-level` captures from a Villager's eye height to check the ground-level haze, and `--enter-seed=text` types a seed into the seed input after a second (the capture timer restarts when the new Store is shown).
 
+## Pillars
+
+`Pillars` on the facade snapshot exposes the Store's static concrete Landmarks: position, width,
+height and a unique painted number with colour bands and damage markings. Store generation uses
+an independent seed stream and places one Pillar per Chunk at an aisle intersection, clear of
+Furniture displays. They are 36–48 m tall, above the 18 m Fog banks, and never give light or power.
+`PillarRenderer` reads these records and draws instanced Ghost copies out to 1200 m, beyond the
+Furniture culling distance. Numbers appear on all four sides, near the floor and above the fog;
+the concrete and paint reflect existing light and stay dark at Closing time.
+
+For fixed visual checks, add `--pause --pillar=221 --distance=85 --clear-weather` to a dev capture.
+`--pillar` accepts the painted three-digit number. Evidence and remaining human checks are in
+[ticket 06 verification](docs/ticket-06-verification.md).
+
 ## Weather
 
 Weather: the core exposes `FogBanks`, `Wind` and `FogDensityAt(position)` through the facade's snapshots; `Simulation.FogDensityAt` reads the latest snapshot. Banks grow, drift across Seams and dissipate with formed/dissipated domain events. Runtime randomness is independent of Store generation; tests supply `RuntimeRngSeed`. Natural formation reserves at most 45% of the floor at the banks' largest sizes (including spreading during dissipation), leaving clear stretches even if banks overlap. A new Store starts with 12 Store hours of weather warm-up. These are reversible tuning choices; no new ADR is needed.

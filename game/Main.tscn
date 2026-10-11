@@ -1,4 +1,4 @@
-[gd_scene load_steps=19 format=3]
+[gd_scene load_steps=20 format=3]
 
 [ext_resource type="Script" path="res://scripts/SimulationHost.cs" id="1_host"]
 [ext_resource type="Script" path="res://scripts/StoreFloor.cs" id="2_floor"]
@@ -16,6 +16,7 @@
 [ext_resource type="Script" path="res://scripts/DebugPanel.cs" id="14_debug"]
 
 [ext_resource type="Script" path="res://scripts/StoreVisibility.cs" id="15_visibility"]
+[ext_resource type="Script" path="res://scripts/PillarRenderer.cs" id="16_pillars"]
 
 [sub_resource type="Resource" id="Resource_visibility"]
 script = ExtResource("15_visibility")
@@ -108,6 +109,11 @@ Host = NodePath("../SimulationHost")
 Rig = NodePath("../CameraRig")
 Atmosphere = NodePath("../StoreAtmosphere")
 FogBanks = NodePath("../FogBankRenderer")
+
+[node name="PillarRenderer" type="Node3D" parent="." node_paths=PackedStringArray("Host", "Rig")]
+script = ExtResource("16_pillars")
+Host = NodePath("../SimulationHost")
+Rig = NodePath("../CameraRig")
 
 [node name="SeedPanel" type="CanvasLayer" parent="." node_paths=PackedStringArray("Host", "Rig")]
 script = ExtResource("9_seed")
