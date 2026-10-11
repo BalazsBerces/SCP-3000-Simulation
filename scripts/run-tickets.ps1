@@ -91,6 +91,7 @@ function Invoke-Agent($t, $log) {
   $cliArgs = @('-p', '--dangerously-skip-permissions', '--output-format', 'stream-json', '--verbose')
   if ($Model) { $cliArgs += @('--model', $Model) }
   $final = ''
+  $firstLimits = $null; $lastLimits = $null
   # The prompt goes in as an argument: piped stdin does not expand the /implement slash command.
   # PS 5.1 does not escape embedded double quotes in native arguments, so swap them for single quotes.
   $prompt = (Get-Prompt $t).Replace('"', "'")
@@ -103,9 +104,23 @@ function Invoke-Agent($t, $log) {
         if ($c.type -eq 'text' -and $c.text.Trim()) { Write-Host ("  > " + ($c.text.Trim() -split "`n")[0]) -ForegroundColor Gray }
         elseif ($c.type -eq 'tool_use') { Write-Host "  - $($c.name)" -ForegroundColor DarkGray }
       }
+    } elseif ($ev.type -eq 'rate_limit_event' -and $ev.rate_limit_info.unifiedWindows) {
+      $lastLimits = $ev.rate_limit_info.unifiedWindows
+      if (-not $firstLimits) { $firstLimits = $lastLimits }
     } elseif ($ev.type -eq 'result') {
       $final = $ev.result
-      Write-Host ("  cost: `${0:N2}, turns: {1}, {2:N0} min" -f $ev.total_cost_usd, $ev.num_turns, ($ev.duration_ms / 60000)) -ForegroundColor DarkCyan
+      # On a subscription, total_cost_usd is only an estimate at API list prices; nothing is billed.
+      Write-Host ("  turns: {0}, {1:N0} min, API-price equivalent: `${2:N2}" -f $ev.num_turns, ($ev.duration_ms / 60000), $ev.total_cost_usd) -ForegroundColor DarkCyan
+      if ($lastLimits) {
+        Write-Host ("  subscription limits: 5-hour {0:P0} -> {1:P0}, weekly {2:P0} -> {3:P0}" -f `
+          $firstLimits.five_hour.utilization, $lastLimits.five_hour.utilization,
+          $firstLimits.seven_day.utilization, $lastLimits.seven_day.utilization) -ForegroundColor DarkCyan
+      }
+      # modelUsage covers every model in the run (subagents included); usage covers only the main model.
+      $models = @($ev.modelUsage.PSObject.Properties | ForEach-Object { $_.Value })
+      $sum = { param($name) ($models | Measure-Object -Property $name -Sum).Sum }
+      $total = (& $sum inputTokens) + (& $sum cacheCreationInputTokens) + (& $sum cacheReadInputTokens) + (& $sum outputTokens)
+      Write-Host ("  tokens: {0:N1}M total, {1:N0}k output" -f ($total / 1e6), ((& $sum outputTokens) / 1e3)) -ForegroundColor DarkCyan
     }
   }
   return $final
