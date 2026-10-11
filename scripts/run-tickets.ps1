@@ -45,9 +45,15 @@ if (-not (Select-String -Path $exclude -Pattern '^\.ticket-logs/' -Quiet)) { Add
 
 function Get-NextTicket {
   $open = gh issue list -R $Repo --state open --label ready-for-agent --limit 200 --json number,title | ConvertFrom-Json
-  $tickets = $open | ForEach-Object { $_ } | Where-Object { $_.title -match '^(\d\d): ' } |
-    ForEach-Object { [pscustomobject]@{ Issue = $_.number; Ticket = [int]($_.title.Substring(0, 2)); Title = $_.title } } |
-    Sort-Object Ticket
+  # Titles start with 'NN: ', or 'NNa: ' for a ticket inserted after NN (it runs after NN, before NN+1).
+  $tickets = $open | ForEach-Object { $_ } | Where-Object { $_.title -match '^(\d\d)([a-z]?): ' } |
+    ForEach-Object {
+      $null = $_.title -match '^(\d\d)([a-z]?): '
+      $n = [int]$Matches[1]; $suffix = $Matches[2]
+      [pscustomobject]@{ Issue = $_.number; Ticket = $n; Label = $Matches[1] + $suffix; Title = $_.title
+        IsStageEnd = (-not $suffix -and $StageEnds.ContainsKey($n)) }
+    } |
+    Sort-Object Ticket, Label
   if (-not $tickets) { return $null }
   foreach ($t in $tickets) {
     # PS 5.1's ConvertFrom-Json emits a JSON array as one object; ForEach-Object unrolls it.
@@ -59,7 +65,7 @@ function Get-NextTicket {
 }
 
 function Get-ReviewRule($t) {
-  if (-not $StageEnds.ContainsKey($t.Ticket)) {
+  if (-not $t.IsStageEnd) {
     return "6. Skip the /code-review step for this ticket; the code is reviewed once at the end of each build stage."
   }
   $first = 1 + [int](@($StageEnds.Keys | Where-Object { $_ -lt $t.Ticket }) + 0 | Measure-Object -Maximum).Maximum
@@ -69,7 +75,7 @@ function Get-ReviewRule($t) {
 
 function Get-Prompt($t) {
 @"
-/implement ticket $($t.Ticket) of the SCP-3008 simulation: GitHub issue #$($t.Issue) in $Repo.
+/implement ticket $($t.Label) of the SCP-3008 simulation: GitHub issue #$($t.Issue) in $Repo.
 The spec is issue #1. Read the ticket (gh issue view $($t.Issue) --comments), GLOSSARY.md, every ADR in docs/adr/, and the existing code.
 
 Project rules for this run:
@@ -94,7 +100,7 @@ End your final message with exactly one line: TICKET_DONE or TICKET_BLOCKED: <re
 function Invoke-Agent($t, $log) {
   $cliArgs = @('-p', '--dangerously-skip-permissions', '--output-format', 'stream-json', '--verbose')
   if ($Model) { $cliArgs += @('--model', $Model) }
-  $cliArgs += @('--effort', $(if ($StageEnds.ContainsKey($t.Ticket)) { $StageEffort } else { $Effort }))
+  $cliArgs += @('--effort', $(if ($t.IsStageEnd) { $StageEffort } else { $Effort }))
   $final = ''
   $firstLimits = $null; $lastLimits = $null
   # The prompt goes in as an argument: piped stdin does not expand the /implement slash command.
@@ -139,8 +145,8 @@ while ($true) {
   if ($null -eq $t) { Write-Host 'All tickets are closed. Done.' -ForegroundColor Green; break }
   if ($t -eq 'ALL_BLOCKED') { Write-Host 'Open tickets remain, but all are blocked. Stopping.' -ForegroundColor Yellow; exit 1 }
 
-  $log = Join-Path $logDir ('ticket-{0:D2}-{1:yyyyMMdd-HHmmss}.jsonl' -f $t.Ticket, (Get-Date))
-  $runEffort = if ($StageEnds.ContainsKey($t.Ticket)) { "$StageEffort, stage end + review" } else { $Effort }
+  $log = Join-Path $logDir ('ticket-{0}-{1:yyyyMMdd-HHmmss}.jsonl' -f $t.Label, (Get-Date))
+  $runEffort = if ($t.IsStageEnd) { "$StageEffort, stage end + review" } else { $Effort }
   Write-Host "`n=== $($t.Title)  (#$($t.Issue), effort: $runEffort) ===" -ForegroundColor Cyan
   $final = Invoke-Agent $t $log
 
@@ -150,16 +156,16 @@ while ($true) {
   $unpushed = git rev-list --count origin/main..main
 
   if ($state -ne 'CLOSED' -or $dirty -or [int]$unpushed -gt 0) {
-    Write-Host "Ticket $($t.Ticket) did not finish cleanly (issue: $state, uncommitted changes: $([bool]$dirty), unpushed commits: $unpushed)." -ForegroundColor Red
+    Write-Host "Ticket $($t.Label) did not finish cleanly (issue: $state, uncommitted changes: $([bool]$dirty), unpushed commits: $unpushed)." -ForegroundColor Red
     Write-Host "Agent's last message:`n$final" -ForegroundColor Red
     Write-Host "Log: $log"
     exit 1
   }
 
-  Write-Host "Ticket $($t.Ticket) done." -ForegroundColor Green
+  Write-Host "Ticket $($t.Label) done." -ForegroundColor Green
   $done++
 
-  if (-not $NoStagePause -and $StageEnds.ContainsKey($t.Ticket)) {
+  if (-not $NoStagePause -and $t.IsStageEnd) {
     Write-Host "`nStage '$($StageEnds[$t.Ticket])' is complete. Check it visually (see the closing comments on the issues)." -ForegroundColor Yellow
     $answer = Read-Host 'Continue with the next stage? (Y/n)'
     if ($answer -match '^[nN]') { break }
