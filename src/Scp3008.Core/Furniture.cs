@@ -65,7 +65,7 @@ public readonly record struct FurniturePiece(int Id, FurnitureType Type, Vector2
 /// <param name="IsFloorCovering">Flat pieces (rugs) that other Furniture may stand on.</param>
 /// <param name="LightRadius">
 /// How far a Lamp's light reaches, in metres; zero for Furniture that gives no light. Lamps on
-/// display run on the Store's power, so they shine with the Store lights and go out at Closing time.
+/// display stay lit at all times, including Closing time, independently of the Store lights.
 /// </param>
 public sealed record FurnitureSpec(FurnitureType Type, float Width, float Depth, float Height, bool IsFloorCovering = false, float LightRadius = 0f)
 {

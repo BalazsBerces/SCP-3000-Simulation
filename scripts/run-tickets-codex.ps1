@@ -112,10 +112,14 @@ function Invoke-Agent($t, $log) {
     try { $ev = $line | ConvertFrom-Json } catch { return }
     if ($ev.type -eq 'item.completed' -and $ev.item.type -eq 'agent_message') {
       $final = $ev.item.text
-      if ($final.Trim()) { Write-Host ("  > " + ($final.Trim() -split "`n")[0]) -ForegroundColor Gray }
+      if ($final.Trim()) {
+        $summary = ($final.Trim() -split '\r?\n')[0]
+        if ($summary.Length -gt 180) { $summary = $summary.Substring(0, 177) + '...' }
+        Write-Host ("  > " + $summary) -ForegroundColor Gray
+      }
     } elseif ($ev.type -eq 'item.started') {
       if ($ev.item.type -eq 'command_execution') {
-        Write-Host "  - $($ev.item.command)" -ForegroundColor DarkGray
+        Write-Host '  - Shell' -ForegroundColor DarkGray
       } elseif ($ev.item.type -eq 'mcp_tool_call') {
         Write-Host "  - $($ev.item.server)/$($ev.item.tool)" -ForegroundColor DarkGray
       }

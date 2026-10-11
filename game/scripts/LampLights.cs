@@ -4,12 +4,9 @@ using Scp3008.Core;
 namespace Scp3008.Game;
 
 /// <summary>
-/// Real lights for the Lamps nearest the camera, within the render budget (ADR 0004). Every frame
-/// the <see cref="MaxLights"/> Lamps nearest the camera whose light reaches into view each get an
-/// unshadowed clustered light, and only the <see cref="ShadowBudget"/> nearest of those cast
-/// shadows; Lamps farther away only glow. Lamps on display run on the Store's power, so the lights
-/// and the glow follow the Store light level, flicker included, and are out at Closing time.
-/// Rebuilt whenever a new world is created. View only: it never touches the simulation.
+/// Display Lamps stay lit independently of the fluorescent Store lights. A bounded set of real
+/// lights around the visible floor blends into depth-projected pools on the remaining Lamps.
+/// All visible Lamps also have a soft halo. View only; snapshots are never changed.
 /// </summary>
 public partial class LampLights : Node3D
 {
@@ -17,13 +14,13 @@ public partial class LampLights : Node3D
     [Export] public CameraRig Rig { get; set; } = null!;
     [Export] public StoreAtmosphere Atmosphere { get; set; } = null!;
 
-    /// <summary>Most Lamps lit by real lights at once; the rest only glow. Read once, when the lights are made.</summary>
+    /// <summary>Most Lamps lit by real lights at once; the rest use light pools. Read once, when the lights are made.</summary>
     [Export] public int MaxLights { get; set; } = 48;
 
     /// <summary>Most lights casting shadows at once: the nearest of the lit Lamps. Read once, when the lights are made.</summary>
     [Export] public int ShadowBudget { get; set; } = 4;
 
-    /// <summary>Lamps farther than this from the camera get no real light.</summary>
+    /// <summary>Radius around the visible floor focus in which real lights are considered.</summary>
     [Export] public float MaxDistance { get; set; } = 320f;
 
     /// <summary>Shadow-casting Lamps keep their shadows unless another Lamp is this much nearer (no flapping).</summary>
@@ -35,6 +32,7 @@ public partial class LampLights : Node3D
     // The nearest candidates, farthest first out; holds one more than there are lights, for the fade cutoff.
     private readonly PriorityQueue<Candidate, float> _nearest = new();
     private readonly List<Candidate> _lit = [];
+    private readonly HashSet<Candidate> _real = [];
     private readonly List<Candidate> _shadowCasters = [];
     private readonly Plane[] _frustum = new Plane[6];
     private OmniLight3D[] _lights = [];
@@ -42,7 +40,10 @@ public partial class LampLights : Node3D
     private int[] _shadowSlots = [];
     private readonly Comparison<Candidate> _byShadowRank;
     private StoreSpace _space = StoreSpace.Standard;
-    private float _glow = -1f;
+    private readonly List<Candidate> _visible = [];
+    private LampImpostors _impostors = null!;
+    private (Transform3D Transform, float Fov, float Near, float Far, bool Overview, Vector2 Viewport)? _lastView;
+    public int VisibleLamps => _visible.Count;
 
     public LampLights() => _byShadowRank = (a, b) => ShadowRank(a).CompareTo(ShadowRank(b));
 
@@ -75,6 +76,9 @@ public partial class LampLights : Node3D
             };
             AddChild(_lights[i]);
         }
+        FurnitureMeshes.SetLampGlow(1f);
+        _impostors = new LampImpostors();
+        AddChild(_impostors);
         Host.WorldCreated += Rebuild;
         Rebuild(Host.Snapshot);
     }
@@ -83,22 +87,23 @@ public partial class LampLights : Node3D
 
     public override void _Process(double delta)
     {
-        var level = Atmosphere.ShownLightLevel;
-        if (level != _glow)
-            FurnitureMeshes.SetLampGlow(_glow = level);
-        if (level <= 0.001f)
-        {
-            ShowLit(0, 0f, 0f);
-            return;
-        }
-
         // The camera that renders: the Observer camera, or a dev camera such as the eye-level one.
         var camera = GetViewport().GetCamera3D() ?? Rig.Camera;
+        var view = (camera.GlobalTransform, camera.Fov, camera.Near, camera.Far,
+            StoreOverview.Enabled, GetViewport().GetVisibleRect().Size);
+        // Display Lamps are static between world rebuilds. A stationary view needs no ranking,
+        // uploads or light changes, even while the Store clock and Weather continue to advance.
+        if (_lastView == view)
+            return;
+        _lastView = view;
         var planes = camera.GetFrustum();
         for (var i = 0; i < _frustum.Length; i++)
             _frustum[i] = planes[i];
         var eye = camera.GlobalPosition;
-        GatherNearest(eye);
+        var forward = -camera.GlobalBasis.Z;
+        // Intersect the centre ray with the floor; eye-level dev cameras fall back to the rig.
+        var focus = forward.Y < -0.01f ? eye + forward * (-eye.Y / forward.Y) : Rig.Focus;
+        GatherNearest(focus, eye);
 
         _lit.Clear();
         while (_nearest.Count > 0)
@@ -112,32 +117,48 @@ public partial class LampLights : Node3D
             _lit.RemoveAt(_lit.Count - 1);
         }
         ChooseShadowCasters();
-        ShowLit(_lit.Count, level, cutoff);
+        ShowLit(_lit.Count, 1f, cutoff);
+        _real.Clear();
+        _real.UnionWith(_lit);
+        _impostors.Show(_visible.Select(c => (c.Position, c.Lamp.Range,
+            _real.Contains(c) ? 1f - RealWeight(c.Distance, cutoff) : 1f)));
     }
 
     /// <summary>A one-line summary for dev reports.</summary>
     public string Describe() =>
         $"{ActiveLights} lamp lights ({ShadowedLights} shadowed, budget {_shadowSlots.Length}), " +
-        $"{_lampsByChunk.Values.Sum(l => l.Length)} Lamps in the Store";
+        $"{VisibleLamps} visible Lamps with pools/halos, {_lampsByChunk.Values.Sum(l => l.Length)} Lamps in the Store";
 
-    /// <summary>Keeps the Lamps nearest the eye whose light reaches into view: one more than there are lights.</summary>
-    private void GatherNearest(Vector3 eye)
+    /// <summary>
+    /// Rank around the visible floor focus, including just-offscreen Lamps so crossing a frustum
+    /// plane cannot abruptly change the budget cutoff. Pools cover every sphere reaching the view.
+    /// </summary>
+    private void GatherNearest(Vector3 focus, Vector3 eye)
     {
         _nearest.Clear();
+        _visible.Clear();
         var keep = _lights.Length + 1;
-        var reach = MaxDistance * MaxDistance;
-        foreach (var image in _space.ChunkImagesAround(eye.ToStore(), MaxDistance))
+
+        foreach (var image in _space.ChunkImagesAround(Rig.Focus.ToStore(), StoreOverview.Enabled ? _space.Size * 2f : 764f))
         {
             if (!_lampsByChunk.TryGetValue(image.Chunk, out var lamps))
                 continue;
+            if (StoreOverview.Enabled && image.Offset != System.Numerics.Vector2.Zero)
+                continue;
             var offset = image.Offset.ToWorld();
+            var centre = (_space.ChunkOrigin(image.Chunk) + image.Offset + new System.Numerics.Vector2(_space.ChunkSize / 2f)).ToWorld();
+            // Furniture's MultiMesh bounds can be off the geometric chunk centre. Include a
+            // half-diagonal of padding beyond its 600 m visibility range so no drawn Lamp is missed.
+            if (!StoreOverview.Enabled && centre.DistanceTo(eye) > 650f)
+                continue;
             foreach (var lamp in lamps)
             {
                 var position = lamp.Bulb + offset;
-                var distanceSquared = position.DistanceSquaredTo(eye);
-                if (distanceSquared > reach || !Reaches(position, lamp.Range))
+                var distance = new Vector2(position.X - focus.X, position.Z - focus.Z).Length();
+                if (Reaches(position, lamp.Range))
+                    _visible.Add(new Candidate(lamp, position, distance));
+                if (distance >= MaxDistance)
                     continue;
-                var distance = Mathf.Sqrt(distanceSquared);
                 // Priorities are negated distances, so the farthest kept Lamp is dequeued first.
                 if (_nearest.Count < keep)
                     _nearest.Enqueue(new Candidate(lamp, position, distance), -distance);
@@ -183,7 +204,7 @@ public partial class LampLights : Node3D
             light.Position = candidate.Position;
             light.OmniRange = candidate.Lamp.Range;
             // Lights near the edge of the budget fade out, so Lamps slip in and out of it smoothly.
-            light.LightEnergy = candidate.Lamp.Energy * level * Mathf.SmoothStep(cutoff, cutoff * 0.8f, candidate.Distance);
+            light.LightEnergy = candidate.Lamp.Energy * level * RealWeight(candidate.Distance, cutoff);
             light.Visible = true;
         }
         for (var slot = 0; slot < _lights.Length; slot++)
@@ -198,6 +219,10 @@ public partial class LampLights : Node3D
         ShadowedLights = count == 0 ? 0 : _shadowSlots.Count(id => id >= 0);
     }
 
+    /// <summary>Complementary spatial blend; a Lamp leaving the real-light budget has zero real energy.</summary>
+    private static float RealWeight(float distance, float cutoff) =>
+        cutoff > 0.001f ? 1f - Mathf.SmoothStep(cutoff * 0.8f, cutoff, distance) : 0f;
+
     /// <summary>Whether a light's sphere reaches into the view frustum (Godot frustum planes face outwards).</summary>
     private bool Reaches(Vector3 centre, float radius)
     {
@@ -210,6 +235,7 @@ public partial class LampLights : Node3D
     private void Rebuild(WorldSnapshot snapshot)
     {
         _space = snapshot.Space;
+        _lastView = null;
         _lampsByChunk.Clear();
         Array.Fill(_shadowSlots, -1);
         foreach (var chunk in snapshot.Furniture

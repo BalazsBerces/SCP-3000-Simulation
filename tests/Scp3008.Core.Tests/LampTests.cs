@@ -4,6 +4,30 @@ namespace Scp3008.Core.Tests;
 
 public class LampTests
 {
+    [Fact]
+    public void Display_lamps_keep_their_light_radius_when_the_store_closes_and_reopens()
+    {
+        using var sim = Simulation.Create(new WorldConfig(Seed: 3008, RuntimeRngSeed: 1));
+        sim.Scenario.SetFogBankFormation(false);
+        sim.Scenario.ClearFogBanks();
+        var lamps = sim.Snapshot.Furniture.Where(p => FurnitureCatalog.Spec(p.Type).IsLamp).ToArray();
+        Assert.NotEmpty(lamps);
+        var events = new List<DomainEvent>();
+        using var subscription = sim.Subscribe(events.Add);
+
+        sim.AdvanceTo(TimeSpan.FromHours(23));
+        Assert.Equal(0.0, sim.Snapshot.StoreLightLevel);
+        Assert.Single(events.OfType<ClosingTimeBegan>());
+        Assert.Equal(lamps, sim.Snapshot.Furniture.Where(p => FurnitureCatalog.Spec(p.Type).IsLamp));
+        Assert.All(lamps, p => Assert.Equal(p.Type == FurnitureType.TableLamp ? 3f : 5f,
+            FurnitureCatalog.Spec(p.Type).LightRadius));
+
+        sim.AdvanceTo(TimeSpan.FromHours(8));
+        Assert.Equal(1.0, sim.Snapshot.StoreLightLevel);
+        Assert.Single(events.OfType<StoreReopened>());
+        Assert.Equal(lamps, sim.Snapshot.Furniture.Where(p => FurnitureCatalog.Spec(p.Type).IsLamp));
+    }
+
     private static readonly FurnitureType[] LampTypes = [FurnitureType.TableLamp, FurnitureType.FloorLamp];
 
     [Fact]

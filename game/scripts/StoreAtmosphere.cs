@@ -79,7 +79,7 @@ public partial class StoreAtmosphere : Node
     /// <summary>The Store light level shown this frame (0 out, 1 fully on), before flicker.</summary>
     public float LightLevel { get; private set; } = 1f;
 
-    /// <summary>The Store light level shown this frame, flicker included; Lamps on display follow it.</summary>
+    /// <summary>The fluorescent Store light level shown this frame, flicker included.</summary>
     public float ShownLightLevel { get; private set; } = 1f;
 
     /// <summary>How the Fog banks look this frame: albedo, glow, and the shader density of a bank of density 1.</summary>

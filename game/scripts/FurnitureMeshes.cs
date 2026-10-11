@@ -37,7 +37,7 @@ public static class FurnitureMeshes
     }
 
     // Emission of a lit lamp shade.
-    private const float LampShadeGlow = 0.6f;
+    private const float LampShadeGlow = 4f;
 
     // Coarse meshes leave out parts thinner than this (legs, handles, poles), in metres.
     private const float CoarseMinThickness = 0.06f;
