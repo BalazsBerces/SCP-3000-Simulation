@@ -71,11 +71,11 @@ function Get-NextTicket {
 
 function Get-ReviewRule($t) {
   if (-not $t.IsStageEnd) {
-    return "6. Skip the /code-review step for this ticket; the code is reviewed once at the end of each build stage."
+    return "6. Skip the /spec-review step for this ticket; the code is reviewed once at the end of each build stage."
   }
   $first = 1 + [int](@($StageEnds.Keys | Where-Object { $_ -lt $t.Ticket }) + 0 | Measure-Object -Maximum).Maximum
   $firstTitle = $first.ToString('D2')
-  "6. This ticket completes the build stage '$($StageEnds[$t.Ticket])' (tickets $first-$($t.Ticket)). Instead of reviewing only this ticket, run /code-review on the whole stage: the diff from the parent of ticket $first's commit (find it with git log --grep '^${firstTitle}: ') up to and including your uncommitted changes. Fix the real findings, rerun the tests, and include the fixes in this ticket's commit."
+  "6. This ticket completes the build stage '$($StageEnds[$t.Ticket])' (tickets $first-$($t.Ticket)). Instead of reviewing only this ticket, run /spec-review on the whole stage: the diff from the parent of ticket $first's commit (find it with git log --grep '^${firstTitle}: ') up to and including your uncommitted changes. Fix the real findings, rerun the tests, and include the fixes in this ticket's commit."
 }
 
 function Get-Prompt($t) {

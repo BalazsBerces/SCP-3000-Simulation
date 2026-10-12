@@ -92,7 +92,7 @@ public class PillarTests
             foreach (var piece in nearby)
             {
                 // Conservative axis-aligned bounds of each rotated Furniture footprint.
-                var spec = FurnitureCatalog.Spec(piece.Type);
+                var spec = FurnitureCatalog.Spec(piece);
                 var delta = snapshot.Space.Delta(pillar.Position, piece.Position);
                 var c = MathF.Abs(MathF.Cos(piece.Rotation));
                 var s = MathF.Abs(MathF.Sin(piece.Rotation));

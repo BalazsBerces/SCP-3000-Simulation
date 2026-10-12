@@ -175,7 +175,7 @@ public class StoreGenerationTests
 
         var supported = FootprintPairs(snapshot.Space, raised, snapshot.Furniture)
             .Where(pair => pair.B.Elevation < pair.A.Elevation
-                && pair.B.Elevation + FurnitureCatalog.Spec(pair.B.Type).Height >= pair.A.Elevation - 0.01f)
+                && pair.B.Elevation + FurnitureCatalog.Spec(pair.B).Height >= pair.A.Elevation - 0.01f)
             .Select(pair => pair.A.Id)
             .ToHashSet();
 
@@ -277,7 +277,7 @@ public class StoreGenerationTests
     /// <summary>Separating-axis test on the two rotated footprint rectangles, shrunk by 1 cm so touching is allowed.</summary>
     private static bool FootprintsOverlap(StoreSpace space, FurniturePiece a, FurniturePiece b)
     {
-        var (specA, specB) = (FurnitureCatalog.Spec(a.Type), FurnitureCatalog.Spec(b.Type));
+        var (specA, specB) = (FurnitureCatalog.Spec(a), FurnitureCatalog.Spec(b));
         var offset = space.Delta(a.Position, b.Position);
         var reach = (specA.Width + specA.Depth + specB.Width + specB.Depth) / 2f;
         if (offset.LengthSquared() > reach * reach)
@@ -310,7 +310,7 @@ public class StoreGenerationTests
 
     private static Vector2[] Corners(FurniturePiece piece, Vector2 centre)
     {
-        var spec = FurnitureCatalog.Spec(piece.Type);
+        var spec = FurnitureCatalog.Spec(piece);
         var along = new Vector2(MathF.Cos(piece.Rotation), MathF.Sin(piece.Rotation));
         var across = new Vector2(-along.Y, along.X);
         var halfWidth = along * (spec.Width / 2f - 0.01f);

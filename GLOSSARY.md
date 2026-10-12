@@ -49,6 +49,27 @@ _Avoid_: Prop, object, item
 A piece of Furniture that gives light (table lamp, floor lamp). Lamps on display stay lit at all times, including Closing time; a Lamp taken away from its display needs a Village power source (battery or generator).
 _Avoid_: Fixture, light (that is what a Lamp gives)
 
+**Display**:
+A room or free-standing set of Furniture generated from exactly one Theme, with one coordinated Palette. Every generated piece belongs to one Display.
+
+**Theme**:
+The strict catalogue entry for what a Display shows (bedroom, patio, kitchen, etc.). It lists allowed Furniture in Core, Common and Accent tiers and their Placement roles; each Department type allows only certain Themes, chosen by weight.
+
+**Layout archetype**:
+A parameterised way of laying out a 16 m Department cell as rooms, a hall, strips or free-standing Displays. Counts, spacing, groupings and optional pieces vary per cell.
+
+**Room partition**:
+How a room-set cell is divided: one large room, two rooms, three rooms, four rooms in two by two, or an open floor of separated sets.
+
+**Placement role**:
+A rule for where Furniture stands in its Display: at a wall, corner or centre, loose or in rows, or relative to another piece (around, beside, in front, underneath or on top).
+
+**Variant**:
+A version of a Furniture type with its own proportions, silhouette or materials and footprint. A matched set usually shares its Variant.
+
+**Palette**:
+Two or three related tint indices shared by the Furniture of a Display. Neighbouring rooms usually use different Palettes; wood and metal retain their textures.
+
 **Goods**:
 Small stock on shelves (food, batteries, bulbs, cables) taken as-is rather than placed in the world.
 _Avoid_: Loot, items

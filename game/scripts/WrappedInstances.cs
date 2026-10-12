@@ -8,7 +8,10 @@ namespace Scp3008.Game;
 /// Around the camera focus every chunk is shown at each wrapped image within
 /// <see cref="ViewReach"/>, so objects near a seam are drawn on both sides of it (ghost copies)
 /// and panning across a seam never reveals a gap. Placement is refreshed only when the focus
-/// moves into another chunk, and only moves nodes; the instance data is built once.
+/// moves into another chunk, and only moves instances; the instance data is built once. The
+/// images are rendering-server instances rather than nodes: a Store has tens of thousands of
+/// them, and nodes (with their script wrappers for the garbage collector to track) made chunk
+/// crossings and collections stall frames.
 /// With a <see cref="CoarseMesh"/>, chunks farther than <see cref="LodDistance"/> from the camera
 /// draw it instead (level of detail); with <see cref="OccluderQuads"/>, every chunk also hides
 /// what is behind those parts of its instances from rendering (occlusion culling).
@@ -49,10 +52,26 @@ public partial class WrappedInstances : Node3D
     // Switching meshes waits this far past LodDistance, so a chunk does not flip back and forth.
     private const float LodMargin = 6f;
 
+    // Images newly needed when the focus moves into another chunk lie at the far edge of the reach,
+    // beyond what is drawn; creating them is spread over frames so a crossing does not stall any.
+    // The budget is shared by every instance group, so it bounds the work of the whole frame.
+    private const double CreationMillisecondsPerFrame = 1.0;
+    // Placements stay valid while the focus moves within a chunk of padding, so when the focus
+    // steps into the next chunk the instance groups may re-place over a few frames rather than all
+    // in one. Shared by every group, like the creation budget.
+    private const double PlacementMillisecondsPerFrame = 1.0;
+    private static readonly System.Diagnostics.Stopwatch CreationTime = new();
+    private static readonly System.Diagnostics.Stopwatch PlacementTime = new();
+    private static ulong _creationFrame;
+
     private readonly Dictionary<ChunkCoord, ChunkImages> _chunks = new();
+    // Images in use per chunk during a placement; kept, so placing allocates nothing for the collector.
+    private readonly Dictionary<ChunkCoord, int> _used = new();
     private StoreSpace _space = StoreSpace.Standard;
     private (long X, long Y)? _placedAroundCell;
     private bool _placedOverview;
+    // Images the last placement had no budget to create; they are created in the next frames.
+    private readonly List<ChunkImage> _pending = [];
 
     /// <summary>Replaces all instances. Transform origins are Store positions in world space and may be unwrapped.</summary>
     public void SetInstances(StoreSpace space, IEnumerable<Transform3D> transforms) =>
@@ -67,13 +86,12 @@ public partial class WrappedInstances : Node3D
 
     private void SetInstances(StoreSpace space, IEnumerable<(Transform3D Transform, Color Color)> instances, bool useColors)
     {
-        foreach (var images in _chunks.Values)
-            foreach (var image in images.Images)
-                image.Root.QueueFree();
+        FreeImages();
         _chunks.Clear();
         _space = space;
         _placedAroundCell = null;
         _placedOverview = false;
+        _pending.Clear();
 
         var byChunk = instances
             .Select(i => i with { Transform = i.Transform with { Origin = space.Wrap(i.Transform.Origin.ToStore()).ToWorld(i.Transform.Origin.Y) } })
@@ -136,6 +154,26 @@ public partial class WrappedInstances : Node3D
 
     public override void _EnterTree() => StoreOverview.Changed += OnOverviewChanged;
 
+    public override void _Notification(int what)
+    {
+        if (what == NotificationVisibilityChanged)
+            foreach (var images in _chunks.Values)
+                foreach (var image in images.Images)
+                    image.SetTreeVisible(IsVisibleInTree());
+        else if (what == NotificationPredelete)
+            FreeImages();
+    }
+
+    private void FreeImages()
+    {
+        foreach (var images in _chunks.Values)
+        {
+            foreach (var image in images.Images)
+                image.Free();
+            images.Images.Clear();
+        }
+    }
+
     public override void _ExitTree() => StoreOverview.Changed -= OnOverviewChanged;
 
     private void OnOverviewChanged(bool enabled)
@@ -163,38 +201,86 @@ public partial class WrappedInstances : Node3D
         var focus = Rig.Focus.ToStore();
         var cell = ((long)Math.Floor(focus.X / _space.ChunkSize), (long)Math.Floor(focus.Y / _space.ChunkSize));
         if (cell == _placedAroundCell)
+        {
+            if (_pending.Count > 0)
+                CreatePending(focus);
+            return;
+        }
+        // The first placement after a rebuild, and a jump across a seam, place everything at once;
+        // a step into the next chunk is spread out.
+        var budgeted = _placedAroundCell is { } placed && Math.Abs(placed.X - cell.Item1) <= 1 && Math.Abs(placed.Y - cell.Item2) <= 1;
+        StartFrameBudgets();
+        if (budgeted && PlacementTime.Elapsed.TotalMilliseconds >= PlacementMillisecondsPerFrame)
             return;
         _placedAroundCell = cell;
-        PlaceImages(focus);
+        PlacementTime.Start();
+        PlaceImages(focus, budgeted);
+        PlacementTime.Stop();
     }
 
-    private void PlaceImages(System.Numerics.Vector2 focus)
+    private void PlaceImages(System.Numerics.Vector2 focus, bool budgeted)
     {
+        _pending.Clear();
         // Padded by one chunk so the placement stays valid while the focus moves within its chunk.
-        var used = new Dictionary<ChunkCoord, int>();
+        var used = _used;
+        used.Clear();
         foreach (var image in _space.ChunkImagesAround(focus, ViewReach + _space.ChunkSize))
         {
             if (!_chunks.TryGetValue(image.Chunk, out var images))
                 continue;
             var index = used.GetValueOrDefault(image.Chunk);
-            used[image.Chunk] = index + 1;
             if (index == images.Images.Count)
-                images.Images.Add(NewImage(images));
-            var placed = images.Images[index];
-            // Unmoved images keep their transform, so occlusion culling need not rebuild them.
-            var position = image.Offset.ToWorld();
-            if (placed.Root.Position != position)
-                placed.Root.Position = position;
-            placed.Root.Visible = true;
-            if (placed.Occluder is not null)
             {
-                var centre = _space.ChunkOrigin(image.Chunk) + image.Offset + new System.Numerics.Vector2(_space.ChunkSize / 2f);
-                placed.Occluder.Visible = System.Numerics.Vector2.Distance(centre, focus) <= OccluderReach;
+                if (budgeted && CreationTime.Elapsed.TotalMilliseconds >= CreationMillisecondsPerFrame)
+                {
+                    _pending.Add(image);
+                    continue;
+                }
+                CreationTime.Start();
+                images.Images.Add(NewImage(images));
+                CreationTime.Stop();
             }
+            used[image.Chunk] = index + 1;
+            Place(images.Images[index], image, focus);
         }
         foreach (var (chunk, images) in _chunks)
             for (var i = used.GetValueOrDefault(chunk); i < images.Images.Count; i++)
-                images.Images[i].Root.Visible = false;
+                images.Images[i].Show(false);
+    }
+
+    /// <summary>Creates and places, within this frame's budget, images the last placement had to leave out.</summary>
+    private void CreatePending(System.Numerics.Vector2 focus)
+    {
+        StartFrameBudgets();
+        var created = 0;
+        while (created < _pending.Count && CreationTime.Elapsed.TotalMilliseconds < CreationMillisecondsPerFrame)
+        {
+            var image = _pending[created++];
+            var images = _chunks[image.Chunk];
+            CreationTime.Start();
+            images.Images.Add(NewImage(images));
+            CreationTime.Stop();
+            Place(images.Images[^1], image, focus);
+        }
+        _pending.RemoveRange(0, created);
+    }
+
+    private static void StartFrameBudgets()
+    {
+        if (_creationFrame == Engine.GetProcessFrames())
+            return;
+        _creationFrame = Engine.GetProcessFrames();
+        CreationTime.Reset();
+        PlacementTime.Reset();
+    }
+
+    private void Place(Image placed, ChunkImage image, System.Numerics.Vector2 focus)
+    {
+        // Unmoved images keep their transform, so occlusion culling need not rebuild them.
+        placed.MoveTo(image.Offset.ToWorld());
+        placed.Show(true);
+        var centre = _space.ChunkOrigin(image.Chunk) + image.Offset + new System.Numerics.Vector2(_space.ChunkSize / 2f);
+        placed.ShowOccluder(System.Numerics.Vector2.Distance(centre, focus) <= OccluderReach);
     }
 
     /// <summary>The <see cref="StoreOverview"/>: every chunk once, at its own place, with no ghost copies.</summary>
@@ -208,10 +294,9 @@ public partial class WrappedInstances : Node3D
             for (var i = 0; i < images.Images.Count; i++)
             {
                 var image = images.Images[i];
-                image.Root.Position = Vector3.Zero;
-                image.Root.Visible = i == 0;
-                if (image.Occluder is not null)
-                    image.Occluder.Visible = false;
+                image.MoveTo(Vector3.Zero);
+                image.Show(i == 0);
+                image.ShowOccluder(false);
             }
         }
     }
@@ -219,17 +304,18 @@ public partial class WrappedInstances : Node3D
     /// <summary>One wrapped image of a chunk: its detailed and coarse instances and its occluder.</summary>
     private Image NewImage(ChunkImages images)
     {
-        var root = new Node3D();
-        AddChild(root);
-        var detail = new MultiMeshInstance3D { Multimesh = images.Detail };
-        root.AddChild(detail);
-        MultiMeshInstance3D? coarse = null;
-        if (images.Coarse is not null)
-            root.AddChild(coarse = new MultiMeshInstance3D { Multimesh = images.Coarse });
-        OccluderInstance3D? occluder = null;
-        if (images.Occluder is not null)
-            root.AddChild(occluder = new OccluderInstance3D { Occluder = images.Occluder });
-        var image = new Image(root, detail, coarse, occluder);
+        var scenario = GetWorld3D().Scenario;
+        Rid Instance(Rid resource)
+        {
+            var instance = RenderingServer.InstanceCreate();
+            RenderingServer.InstanceSetBase(instance, resource);
+            RenderingServer.InstanceSetScenario(instance, scenario);
+            return instance;
+        }
+        var image = new Image(Instance(images.Detail.GetRid()),
+            images.Coarse is null ? null : Instance(images.Coarse.GetRid()),
+            images.Occluder is null ? null : Instance(images.Occluder.GetRid()),
+            GlobalTransform, IsVisibleInTree());
         ShowRanges(image, StoreOverview.Enabled);
         return image;
     }
@@ -241,27 +327,105 @@ public partial class WrappedInstances : Node3D
     /// </summary>
     private void ShowRanges(Image image, bool overview)
     {
+        static void Range(Rid instance, float begin, float end, float beginMargin, float endMargin) =>
+            RenderingServer.InstanceGeometrySetVisibilityRange(instance, begin, end, beginMargin, endMargin,
+                RenderingServer.VisibilityRangeFadeMode.Disabled);
         var (detail, coarse) = (image.Detail, image.Coarse);
         if (overview)
         {
-            detail.Visible = coarse is null;
-            detail.VisibilityRangeEnd = 0f;
-            if (coarse is not null)
-                coarse.VisibilityRangeBegin = coarse.VisibilityRangeEnd = 0f;
+            image.ShowDetail(coarse is null);
+            Range(detail, 0f, 0f, 0f, 0f);
+            if (coarse is { } overviewCoarse)
+                Range(overviewCoarse, 0f, 0f, 0f, 0f);
             return;
         }
-        detail.Visible = true;
-        detail.VisibilityRangeEnd = coarse is null ? FarDistance : LodDistance;
-        detail.VisibilityRangeEndMargin = coarse is null ? 0f : LodMargin;
-        if (coarse is not null)
-        {
-            coarse.VisibilityRangeBegin = LodDistance;
-            coarse.VisibilityRangeBeginMargin = LodMargin;
-            coarse.VisibilityRangeEnd = FarDistance;
-        }
+        image.ShowDetail(true);
+        Range(detail, 0f, coarse is null ? FarDistance : LodDistance, 0f, coarse is null ? 0f : LodMargin);
+        if (coarse is { } distant)
+            Range(distant, LodDistance, FarDistance, LodMargin, 0f);
     }
 
-    private sealed record Image(Node3D Root, MultiMeshInstance3D Detail, MultiMeshInstance3D? Coarse, OccluderInstance3D? Occluder);
+    /// <summary>
+    /// One placed image: rendering-server instances of a chunk's detailed and coarse MultiMeshes and
+    /// of its occluder. It remembers its position and visibility, so re-placing reaches the engine
+    /// only for what changed: tens of thousands of unchanged images cost no engine calls.
+    /// </summary>
+    private sealed class Image
+    {
+        private readonly Rid? _occluder;
+        private readonly Transform3D _parent;
+        private Vector3 _position;
+        private bool _placedVisible = true;
+        private bool _occluderWanted = true;
+        private bool _detailWanted = true;
+        private bool _treeVisible;
+        private (bool Detail, bool Coarse, bool Occluder)? _applied;
+
+        public Image(Rid detail, Rid? coarse, Rid? occluder, Transform3D parent, bool treeVisible)
+        {
+            Detail = detail;
+            Coarse = coarse;
+            _occluder = occluder;
+            _parent = parent;
+            _treeVisible = treeVisible;
+            SetTransform();
+            Apply();
+        }
+
+        public Rid Detail { get; }
+        public Rid? Coarse { get; }
+
+        public void MoveTo(Vector3 position)
+        {
+            if (position == _position)
+                return;
+            _position = position;
+            SetTransform();
+        }
+
+        public void Show(bool visible) => Apply(_placedVisible = visible);
+
+        public void ShowOccluder(bool visible) => Apply(_occluderWanted = visible);
+
+        public void ShowDetail(bool visible) => Apply(_detailWanted = visible);
+
+        public void SetTreeVisible(bool visible) => Apply(_treeVisible = visible);
+
+        public void Free()
+        {
+            RenderingServer.FreeRid(Detail);
+            if (Coarse is { } coarse)
+                RenderingServer.FreeRid(coarse);
+            if (_occluder is { } occluder)
+                RenderingServer.FreeRid(occluder);
+        }
+
+        private void SetTransform()
+        {
+            var transform = _parent * new Transform3D(Basis.Identity, _position);
+            RenderingServer.InstanceSetTransform(Detail, transform);
+            if (Coarse is { } coarse)
+                RenderingServer.InstanceSetTransform(coarse, transform);
+            if (_occluder is { } occluder)
+                RenderingServer.InstanceSetTransform(occluder, transform);
+        }
+
+        private void Apply(bool _ = false)
+        {
+            var shown = _placedVisible && _treeVisible;
+            var wanted = (Detail: shown && _detailWanted, Coarse: shown, Occluder: shown && _occluderWanted);
+            var applied = _applied;
+            if (applied == wanted)
+                return;
+            _applied = wanted;
+            if (applied?.Detail != wanted.Detail)
+                RenderingServer.InstanceSetVisible(Detail, wanted.Detail);
+            if (Coarse is { } coarse && applied?.Coarse != wanted.Coarse)
+                RenderingServer.InstanceSetVisible(coarse, wanted.Coarse);
+            if (_occluder is { } occluder && applied?.Occluder != wanted.Occluder)
+                RenderingServer.InstanceSetVisible(occluder, wanted.Occluder);
+        }
+    }
 
     private sealed class ChunkImages(MultiMesh detail, MultiMesh? coarse, ArrayOccluder3D? occluder)
     {

@@ -331,7 +331,7 @@ public class PillarLayoutTests
             Assert.NotEmpty(nearby);
             foreach (var piece in nearby)
             {
-                var spec = FurnitureCatalog.Spec(piece.Type);
+                var spec = FurnitureCatalog.Spec(piece);
                 var delta = snapshot.Space.Delta(pillar.Position, piece.Position);
                 var c = MathF.Abs(MathF.Cos(piece.Rotation));
                 var s = MathF.Abs(MathF.Sin(piece.Rotation));

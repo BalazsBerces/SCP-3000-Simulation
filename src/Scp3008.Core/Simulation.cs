@@ -29,7 +29,7 @@ public sealed class Simulation : IDisposable
     private readonly WorldConfig _config;
     private readonly StoreSpace _space;
     private readonly DepartmentMap _departments;
-    private readonly IReadOnlyList<FurniturePiece> _furniture;
+    private readonly FurnitureLayout _furniture;
     private readonly IReadOnlyList<Pillar> _pillars;
     private readonly IReadOnlyList<Sector> _sectors;
     private readonly Weather _weather;
@@ -277,7 +277,7 @@ public sealed class Simulation : IDisposable
     }
 
     private WorldSnapshot BuildSnapshot() =>
-        new(_config.Seed, _config.PillarLayout, new StoreClock(_tick), _space, _speed, _departments, _furniture, Array.AsReadOnly(_weather.Snapshot()), _weather.Wind, _pillars, _sectors);
+        new(_config.Seed, _config.PillarLayout, new StoreClock(_tick), _space, _speed, _departments, _furniture.Pieces, _furniture.Displays, _furniture.Cells, Array.AsReadOnly(_weather.Snapshot()), _weather.Wind, _pillars, _sectors);
 
     private sealed class Subscription(Simulation owner, Action<DomainEvent> handler) : IDisposable
     {

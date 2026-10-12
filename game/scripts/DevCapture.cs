@@ -25,7 +25,9 @@ namespace Scp3008.Game;
 ///                          restarts once the new Store is shown;
 ///   --choose-pillars=name  after one second, choose this Pillar layout in the top-right panel;
 ///                          the capture timer restarts once the new Store is shown.
-///   --furniture-tour=dir  capture all second-wave Furniture and the four new Departments, then quit.
+///   --furniture-tour=dir  save 1080p JPG captures into dir, then quit: every Department type
+///                          (Department-*), every layout archetype (Archetype-*) and every
+///                          Furniture variant (Variant-*-n).
 /// Does nothing in normal runs.
 /// </summary>
 public partial class DevCapture : Node
@@ -177,27 +179,48 @@ public partial class DevCapture : Node
             Host.HoldClearWeather();
             DirAccess.MakeDirRecursiveAbsolute(_tourDirectory);
             var snapshot = Host.Snapshot;
+            GD.Print($"Tour Store {snapshot.Seed}: {snapshot.Furniture.Count} Furniture, " +
+                     $"{snapshot.Furniture.Count(p => FurnitureCatalog.Spec(p).IsLamp)} Lamps, {snapshot.Displays.Count} Displays.");
             var centre = new System.Numerics.Vector2(snapshot.Space.Size / 2f);
             var captures = new List<(string Name, System.Numerics.Vector2 Focus, float Distance, float Yaw)>();
-            foreach (var type in Enum.GetValues<FurnitureType>().Where(t => t >= FurnitureType.Desk))
+            foreach (var type in Enum.GetValues<DepartmentType>())
             {
-                var piece = snapshot.Furniture.Where(p => p.Type == type)
-                    .MinBy(p => snapshot.Space.Distance(p.Position, centre));
-                captures.Add((type.ToString(), piece.Position, 8f, -piece.Rotation + Mathf.DegToRad(30f)));
-                var full = FurnitureMeshes.For(type);
-                var coarse = FurnitureMeshes.CoarseFor(type);
-                if (full.GetSurfaceCount() == 0 || coarse.GetSurfaceCount() == 0)
-                    throw new InvalidOperationException($"Missing full/coarse mesh for {type}.");
-                GD.Print($"Tour {type}: {snapshot.Departments.At(piece.Position).Type}, {piece.Position}, " +
-                         $"full/coarse surfaces {full.GetSurfaceCount()}/{coarse.GetSurfaceCount()}, " +
-                         $"occluder vertices {FurnitureMeshes.OccluderQuads(type).Length}.");
-            }
-            foreach (var type in new[] { DepartmentType.Workspaces, DepartmentType.TextilesAndDecor,
-                         DepartmentType.Outdoor, DepartmentType.DiningAndHallway })
-            {
-                var department = snapshot.Departments.All.Where(d => d.Type == type).MaxBy(d => d.Area)!;
+                var department = snapshot.Departments.All.Where(d => d.Type == type).MaxBy(d => d.Area)
+                    ?? throw new InvalidOperationException($"No Department of type {type}.");
                 captures.Add(($"Department-{type}", department.Anchor, 45f, Mathf.DegToRad(30f)));
             }
+            var cellSize = snapshot.Departments.CellSize;
+            var side = snapshot.Departments.CellsPerSide;
+            var piecesPerCell = new int[side * side];
+            foreach (var piece in snapshot.Furniture)
+                piecesPerCell[Math.Clamp((int)(piece.Position.Y / cellSize), 0, side - 1) * side
+                              + Math.Clamp((int)(piece.Position.X / cellSize), 0, side - 1)]++;
+            foreach (var archetype in Enum.GetValues<LayoutArchetype>())
+            {
+                var layout = snapshot.CellLayouts
+                    .Where(c => c.Archetype == archetype && piecesPerCell[c.Y * side + c.X] >= 10)
+                    .OrderBy(c => snapshot.Space.Distance(new((c.X + 0.5f) * cellSize, (c.Y + 0.5f) * cellSize), centre))
+                    .Cast<CellLayout?>().FirstOrDefault()
+                    ?? throw new InvalidOperationException($"No cell with archetype {archetype} and at least 10 pieces of Furniture.");
+                captures.Add(($"Archetype-{archetype}", new((layout.X + 0.5f) * cellSize, (layout.Y + 0.5f) * cellSize), 24f, Mathf.DegToRad(30f)));
+                GD.Print($"Tour {archetype}: {snapshot.Departments.AtCell(layout.X, layout.Y).Type}, {layout.Partition}, " +
+                         $"cell ({layout.X}, {layout.Y}), {piecesPerCell[layout.Y * side + layout.X]} pieces.");
+            }
+            foreach (var type in Enum.GetValues<FurnitureType>().Where(t => FurnitureCatalog.VariantCount(t) > 1))
+                for (var variant = 0; variant < FurnitureCatalog.VariantCount(type); variant++)
+                {
+                    var piece = snapshot.Furniture.Where(p => p.Type == type && p.Variant == variant)
+                        .OrderBy(p => snapshot.Space.Distance(p.Position, centre)).Cast<FurniturePiece?>().FirstOrDefault()
+                        ?? throw new InvalidOperationException($"No piece of {type} variant {variant}.");
+                    captures.Add(($"Variant-{type}-{variant}", piece.Position, 6f, -piece.Rotation + Mathf.DegToRad(30f)));
+                    var full = FurnitureMeshes.For(type, variant);
+                    var coarse = FurnitureMeshes.CoarseFor(type, variant);
+                    if (full.GetSurfaceCount() == 0 || coarse.GetSurfaceCount() == 0)
+                        throw new InvalidOperationException($"Missing full/coarse mesh for {type} variant {variant}.");
+                    GD.Print($"Tour {type} variant {variant}: {snapshot.Departments.At(piece.Position).Type}, {piece.Position}, " +
+                             $"full/coarse surfaces {full.GetSurfaceCount()}/{coarse.GetSurfaceCount()}, " +
+                             $"occluder vertices {FurnitureMeshes.OccluderQuads(type, variant).Length}.");
+                }
             foreach (var capture in captures)
             {
                 Rig.JumpTo(capture.Focus.ToWorld());
@@ -205,8 +228,8 @@ public partial class DevCapture : Node
                 Rig.JumpToYaw(capture.Yaw);
                 for (var frame = 0; frame < 45; frame++)
                     await ToSignal(RenderingServer.Singleton, RenderingServer.SignalName.FramePostDraw);
-                var path = System.IO.Path.Combine(_tourDirectory!, capture.Name + ".png");
-                var error = GetViewport().GetTexture().GetImage().SavePng(path);
+                var path = System.IO.Path.Combine(_tourDirectory!, capture.Name + ".jpg");
+                var error = GetViewport().GetTexture().GetImage().SaveJpg(path, 0.9f);
                 if (error != Error.Ok)
                     throw new System.IO.IOException($"Capture {capture.Name}: {error}");
                 GD.Print($"Screenshot saved to {path}");

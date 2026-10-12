@@ -11,6 +11,10 @@ An observer-only simulation of survivor communities inside an endless furniture 
 
 ## Build and test
 
+Furniture generation exposes `Displays` and `CellLayouts` alongside the individual pieces in the facade snapshot. Every Display has one strict `Theme`, a coordinated Palette and a Layout archetype for its Department cell. The Theme catalogue defines Core, Common and Accent slots with Placement roles; rooms vary their partitions and size. The ten most repeated Furniture types have three Variants each, with variant-specific specs, full/coarse meshes and solid occluders. Verification and matching before/after captures are in [ticket 03b verification](docs/ticket-03b-verification.md).
+
+For an unattended visual tour, run `godot --path game -- --pillars=3x3 --pause --furniture-tour=<absolute directory>`: it saves every Department at the same 45 m camera convention used for 03a, every Layout archetype at 24 m and all Variants at 6 m, with paused noon lighting and clear Weather.
+
 Requires the .NET 8+ SDK and Godot 4.7 .NET.
 
 ```sh

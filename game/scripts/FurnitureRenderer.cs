@@ -5,7 +5,7 @@ namespace Scp3008.Game;
 
 /// <summary>
 /// Draws every piece of Furniture in the snapshot with instancing: one <see cref="WrappedInstances"/>
-/// per Furniture type, which groups the pieces into one MultiMesh per chunk and shows each chunk
+/// per Furniture type and variant, which groups the pieces into one MultiMesh per chunk and shows each chunk
 /// at its wrapped images around the camera, so Furniture near a seam is drawn on both sides of it.
 /// Distant chunks draw coarse meshes (level of detail), and solid, tall Furniture hides what stands
 /// behind it (occlusion culling, switched on in the project settings).
@@ -30,17 +30,17 @@ public partial class FurnitureRenderer : Node3D
         var started = Time.GetTicksMsec();
         foreach (var child in GetChildren())
             child.QueueFree();
-        foreach (var group in snapshot.Furniture.GroupBy(p => p.Type))
+        foreach (var group in snapshot.Furniture.GroupBy(p => (p.Type, p.Variant)))
         {
             var instances = new WrappedInstances
             {
-                Name = group.Key.ToString(),
+                Name = group.Key.Variant == 0 ? group.Key.Type.ToString() : $"{group.Key.Type}-{group.Key.Variant}",
                 Rig = Rig,
                 FarDistance = Visibility.FurnitureDistance,
                 ViewReach = Visibility.PlacementReach(Rig, snapshot.Space.ChunkSize),
-                Mesh = FurnitureMeshes.For(group.Key),
-                CoarseMesh = FurnitureMeshes.CoarseFor(group.Key),
-                OccluderQuads = FurnitureMeshes.OccluderQuads(group.Key),
+                Mesh = FurnitureMeshes.For(group.Key.Type, group.Key.Variant),
+                CoarseMesh = FurnitureMeshes.CoarseFor(group.Key.Type, group.Key.Variant),
+                OccluderQuads = FurnitureMeshes.OccluderQuads(group.Key.Type, group.Key.Variant),
             };
             AddChild(instances);
             instances.SetInstances(snapshot.Space, group.Select(p => (Placement(p), FurnitureMeshes.TintFor(p))));

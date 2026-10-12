@@ -4,11 +4,11 @@ using Scp3008.Core;
 namespace Scp3008.Game;
 
 /// <summary>
-/// Builds one mesh per Furniture type from simple parts (boxes and cylinders) sized from the
+/// Builds one mesh per Furniture type and variant from simple parts (boxes and cylinders) sized from the
 /// core's Furniture specs, with CC0 PBR materials (see assets/textures/CREDITS.md). Mesh space:
 /// origin at the centre of the footprint on its base, X along the width, Z along the depth with
 /// the front facing +Z, Y up. Materials marked as tinted take their colour from the instance.
-/// Each type also has a coarse mesh for the distance (level of detail): parts too thin to show
+/// Each mesh also has a coarse version for the distance (level of detail): parts too thin to show
 /// from far away are left out, round parts have fewer sides and materials skip their normal maps.
 /// </summary>
 public static class FurnitureMeshes
@@ -51,20 +51,23 @@ public static class FurnitureMeshes
     // face: they are drawn only far below the Observer camera, which never sees an underside there.
     private const float CoarseMinSheetThickness = 0.01f;
 
-    private static readonly Dictionary<(FurnitureType, bool Coarse), ArrayMesh> Cache = new();
+    private static readonly Dictionary<(FurnitureType, int Variant, bool Coarse), ArrayMesh> Cache = new();
     private static Dictionary<Part, ShaderMaterial>? _materials;
-    private static Dictionary<Part, ShaderMaterial>? _coarseMaterials;
+    private static ShaderMaterial? _coarseMaterial;
+
+    // Size of the part tables in the furniture shader; at least the number of parts.
+    private const int PartSlots = 32;
 
     /// <summary>How brightly every lamp shade glows, from 0 (off) to 1 (lit).</summary>
     public static void SetLampGlow(float level)
     {
         var energy = LampShadeGlow * Mathf.Max(level, 0f);
         Materials()[Part.LampShade].SetShaderParameter("emission_energy", energy);
-        CoarseMaterials()[Part.LampShade].SetShaderParameter("emission_energy", energy);
+        CoarseMaterial().SetShaderParameter("emission_energy", energy);
     }
 
-    /// <summary>The coarse mesh for a Furniture type, drawn in the distance; built once and shared.</summary>
-    public static ArrayMesh CoarseFor(FurnitureType type) => Get(type, coarse: true);
+    /// <summary>The coarse mesh for a Furniture type and variant, drawn in the distance; built once and shared.</summary>
+    public static ArrayMesh CoarseFor(FurnitureType type, int variant = 0) => Get(type, variant, coarse: true);
 
     /// <summary>
     /// Upright rectangles in mesh space, four corners each, inside the solid, full-height parts of
@@ -72,9 +75,9 @@ public static class FurnitureMeshes
     /// behind them; used as occluders for occlusion culling. Flat panels rather than boxes keep the
     /// occluders cheap. Empty for Furniture that is open, low or small.
     /// </summary>
-    public static Vector3[] OccluderQuads(FurnitureType type)
+    public static Vector3[] OccluderQuads(FurnitureType type, int variant = 0)
     {
-        var spec = FurnitureCatalog.Spec(type);
+        var spec = FurnitureCatalog.Spec(type, variant);
         var (hw, hd, h) = (spec.Width / 2f, spec.Depth / 2f, spec.Height);
         Vector3[] Across(float z, float bottom) => [new(-hw, bottom, z), new(hw, bottom, z), new(hw, h, z), new(-hw, h, z)];
         Vector3[] Along(float x) => [new(x, 0f, -hd), new(x, 0f, hd), new(x, h, hd), new(x, h, -hd)];
@@ -83,6 +86,13 @@ public static class FurnitureMeshes
             // Solid bodies: two panels crossing at the centre.
             FurnitureType.Wardrobe or FurnitureType.Fridge or FurnitureType.FilingCabinet or FurnitureType.Dresser
                 or FurnitureType.ShoeCabinet or FurnitureType.WashingMachine or FurnitureType.Stove => [.. Across(0f, 0f), .. Along(0f)],
+            // The tall pantry hides what is behind it with one panel along its width: crossing
+            // panels on the many pantries in kitchen lines stalled the render startup on the
+            // reference machine, as the thin mirror panels did in ticket 03a. The other kitchen
+            // cabinets are low.
+            FurnitureType.KitchenCabinet when variant == 2 => Across(0f, 0f),
+            // The low, wide glass cabinet is too short to hide anything.
+            FurnitureType.DisplayCabinet when variant == 1 => [],
             FurnitureType.DisplayCabinet => Across(-hd + 0.015f, 0.1f),
             FurnitureType.Bookcase => Across(-hd + 0.005f, 0f),
             FurnitureType.ShelfUnit => Across(-hd + 0.0075f, 0.1f),
@@ -106,19 +116,20 @@ public static class FurnitureMeshes
         new(type == FurnitureType.ArcLamp ? FurnitureCatalog.Spec(type).Width / 2f - 0.25f : 0f,
             BulbHeight(type), 0f);
 
-    /// <summary>The mesh for a Furniture type; built once and shared.</summary>
-    public static ArrayMesh For(FurnitureType type) => Get(type, coarse: false);
+    /// <summary>The mesh for a Furniture type and variant; built once and shared.</summary>
+    public static ArrayMesh For(FurnitureType type, int variant = 0) => Get(type, variant, coarse: false);
 
-    private static ArrayMesh Get(FurnitureType type, bool coarse)
+    private static ArrayMesh Get(FurnitureType type, int variant, bool coarse)
     {
-        if (!Cache.TryGetValue((type, coarse), out var mesh))
-            Cache[(type, coarse)] = mesh = Build(type, coarse);
+        if (!Cache.TryGetValue((type, variant, coarse), out var mesh))
+            Cache[(type, variant, coarse)] = mesh = Build(type, variant, coarse);
         return mesh;
     }
 
     /// <summary>
-    /// A colour for one piece: tinted materials vary per piece (fabric, plastic, leaves, cardboard),
-    /// picked from a palette by the piece id so a piece keeps its colour. Visual only.
+    /// A colour for one piece: tinted materials take the piece's tint index (see
+    /// <see cref="FurniturePalettes"/>) into a colour table of their material family (fabric,
+    /// plastic, leaves, cardboard), so every piece of a Display shares its palette. Visual only.
     /// </summary>
     public static Color TintFor(FurniturePiece piece)
     {
@@ -126,48 +137,60 @@ public static class FurnitureMeshes
         {
             FurnitureType.Sofa or FurnitureType.Armchair or FurnitureType.Rug or FurnitureType.Bed
                 or FurnitureType.CushionBin or FurnitureType.BlanketStack or FurnitureType.CurtainRack
-                or FurnitureType.OfficeChair or FurnitureType.Parasol => FabricColors,
+                or FurnitureType.OfficeChair or FurnitureType.Parasol or FurnitureType.FrameDisplay => FabricColors,
             FurnitureType.BunkBed or FurnitureType.KidsTable or FurnitureType.KidsChair or FurnitureType.PlayCube or FurnitureType.ToyShelf => PlasticColors,
             FurnitureType.PottedPlant or FurnitureType.LargePlant or FurnitureType.PlanterBox => LeafColors,
             FurnitureType.FlatPackBox => CardboardColors,
             _ => null,
         };
-        if (palette is null)
-            return Colors.White;
-        var hash = (uint)piece.Id * 2654435761u;
-        return palette[(int)(hash >> 16) % palette.Length];
+        return palette is null ? Colors.White : palette[Math.Clamp(piece.Tint, 0, palette.Length - 1)];
     }
 
+    // The colour tables below are indexed by tint: cream, sand, warm grey, charcoal, navy, slate blue,
+    // sage, forest green, mustard, terracotta, rose, off-white.
     private static readonly Color[] FabricColors =
     [
-        new(0.62f, 0.62f, 0.6f), new(0.78f, 0.72f, 0.6f), new(0.25f, 0.3f, 0.42f), new(0.72f, 0.56f, 0.24f),
-        new(0.36f, 0.45f, 0.36f), new(0.62f, 0.36f, 0.28f), new(0.42f, 0.42f, 0.44f), new(0.85f, 0.83f, 0.78f),
+        new(0.85f, 0.81f, 0.7f), new(0.76f, 0.67f, 0.5f), new(0.55f, 0.52f, 0.5f), new(0.22f, 0.22f, 0.24f),
+        new(0.15f, 0.2f, 0.38f), new(0.35f, 0.45f, 0.58f), new(0.55f, 0.62f, 0.5f), new(0.2f, 0.36f, 0.24f),
+        new(0.78f, 0.58f, 0.15f), new(0.65f, 0.34f, 0.24f), new(0.78f, 0.5f, 0.52f), new(0.92f, 0.91f, 0.88f),
     ];
 
     private static readonly Color[] PlasticColors =
     [
-        new(0.85f, 0.25f, 0.2f), new(0.95f, 0.75f, 0.2f), new(0.25f, 0.55f, 0.85f), new(0.3f, 0.7f, 0.4f),
-        new(0.9f, 0.5f, 0.7f), new(0.95f, 0.55f, 0.2f), new(0.95f, 0.95f, 0.92f),
+        new(0.98f, 0.92f, 0.72f), new(0.95f, 0.78f, 0.5f), new(0.7f, 0.7f, 0.7f), new(0.3f, 0.3f, 0.34f),
+        new(0.15f, 0.3f, 0.75f), new(0.4f, 0.6f, 0.9f), new(0.55f, 0.82f, 0.55f), new(0.1f, 0.6f, 0.3f),
+        new(1f, 0.8f, 0.1f), new(0.95f, 0.4f, 0.2f), new(1f, 0.5f, 0.7f), new(0.97f, 0.97f, 0.95f),
     ];
 
+    // From yellow-green through mid greens to dark and blue-green.
     private static readonly Color[] LeafColors =
     [
-        new(0.25f, 0.45f, 0.2f), new(0.32f, 0.5f, 0.22f), new(0.2f, 0.38f, 0.22f), new(0.4f, 0.52f, 0.25f),
+        new(0.5f, 0.6f, 0.2f), new(0.42f, 0.56f, 0.2f), new(0.34f, 0.5f, 0.2f), new(0.28f, 0.46f, 0.2f),
+        new(0.22f, 0.42f, 0.2f), new(0.2f, 0.38f, 0.22f), new(0.14f, 0.3f, 0.16f), new(0.18f, 0.4f, 0.3f),
+        new(0.2f, 0.45f, 0.38f), new(0.25f, 0.5f, 0.28f), new(0.38f, 0.52f, 0.25f), new(0.3f, 0.42f, 0.34f),
     ];
 
+    // Subtle off-white to kraft shades.
     private static readonly Color[] CardboardColors =
     [
-        new(1f, 1f, 1f), new(0.92f, 0.9f, 0.86f), new(0.85f, 0.8f, 0.72f), new(0.96f, 0.93f, 0.9f),
+        new(1f, 1f, 1f), new(0.97f, 0.95f, 0.91f), new(0.94f, 0.91f, 0.86f), new(0.92f, 0.9f, 0.86f),
+        new(0.9f, 0.86f, 0.8f), new(0.88f, 0.83f, 0.74f), new(0.85f, 0.8f, 0.72f), new(0.96f, 0.93f, 0.9f),
+        new(0.93f, 0.88f, 0.8f), new(0.82f, 0.76f, 0.66f), new(0.9f, 0.89f, 0.86f), new(0.86f, 0.82f, 0.75f),
     ];
 
-    private static ArrayMesh Build(FurnitureType type, bool coarse)
+    private static ArrayMesh Build(FurnitureType type, int variant, bool coarse)
     {
-        var spec = FurnitureCatalog.Spec(type);
+        var spec = FurnitureCatalog.Spec(type, variant);
         var (w, d, h) = (spec.Width, spec.Depth, spec.Height);
         var (hw, hd) = (w / 2f, d / 2f);
         // Wave-two legs and arms use 7 cm sections; omit them at distance just as the
         // narrower first-wave legs are omitted, retaining the main silhouette.
         var b = new Builder(coarse, type >= FurnitureType.Desk ? 0.09f : CoarseMinThickness, type >= FurnitureType.Desk ? 5 : 0);
+        if (variant > 0)
+        {
+            BuildVariant(b, type, variant, w, d, h);
+            return b.Commit();
+        }
         switch (type)
         {
             case FurnitureType.PalletRack:
@@ -539,7 +562,214 @@ public static class FurnitureMeshes
                 b.Box(Part.Maple, new Vector3(-hw, 0f, -hd), new Vector3(hw, h, hd));
                 break;
         }
-        return b.Commit(coarse ? CoarseMaterials() : Materials());
+        return b.Commit();
+    }
+
+    /// <summary>
+    /// The parts of a variant (1 or 2) of the types that have several; each has its own silhouette,
+    /// sized from the variant's spec.
+    /// </summary>
+    private static void BuildVariant(Builder b, FurnitureType type, int variant, float w, float d, float h)
+    {
+        var (hw, hd) = (w / 2f, d / 2f);
+        switch (type, variant)
+        {
+            case (FurnitureType.Chair, 1):
+                // High ladder back: tall rear posts joined by four slats.
+                b.Box(Part.Oak, new Vector3(-hw, 0.43f, -hd), new Vector3(hw, 0.47f, hd));
+                Legs(b, Part.Oak, hw - 0.03f, hd - 0.03f, 0.43f, 0.018f);
+                foreach (var x in new[] { -hw, hw - 0.035f })
+                    b.Box(Part.Oak, new Vector3(x, 0.47f, -hd), new Vector3(x + 0.035f, h, -hd + 0.035f));
+                foreach (var y in b.Coarse ? new[] { 0.94f } : new[] { 0.58f, 0.7f, 0.82f, 0.94f })
+                    b.Box(Part.Oak, new Vector3(-hw, y, -hd), new Vector3(hw, y + 0.06f, -hd + 0.02f));
+                break;
+            case (FurnitureType.Chair, 2):
+                // Carver: solid splat back, top rail and two armrests on short posts.
+                b.Box(Part.Walnut, new Vector3(-hw, 0.43f, -hd), new Vector3(hw, 0.48f, hd));
+                Legs(b, Part.Walnut, hw - 0.03f, hd - 0.03f, 0.43f, 0.025f);
+                foreach (var x in new[] { -hw, hw - 0.04f })
+                    b.Box(Part.Walnut, new Vector3(x, 0.48f, -hd), new Vector3(x + 0.04f, h, -hd + 0.04f));
+                b.Box(Part.Walnut, new Vector3(-hw, h - 0.08f, -hd), new Vector3(hw, h, -hd + 0.04f));
+                b.Box(Part.Walnut, new Vector3(-hw + 0.1f, 0.48f, -hd), new Vector3(hw - 0.1f, h - 0.08f, -hd + 0.03f));
+                foreach (var x in new[] { -hw, hw - 0.04f })
+                {
+                    b.Box(Part.Walnut, new Vector3(x, 0.62f, -hd), new Vector3(x + 0.04f, 0.66f, hd));
+                    b.Box(Part.Walnut, new Vector3(x, 0.48f, hd - 0.04f), new Vector3(x + 0.04f, 0.62f, hd));
+                }
+                break;
+            case (FurnitureType.OfficeChair, 1):
+                // Low-back task chair: thin pad seat, small floating backrest.
+                b.Cylinder(Part.PaintedMetal, Vector3.Zero, 0.28f, 0.28f, 0.06f);
+                b.Cylinder(Part.Chrome, new(0, 0.06f, 0), 0.035f, 0.035f, 0.33f);
+                b.Box(Part.Linen, new(-hw, 0.39f, -hd), new(hw, 0.46f, hd));
+                b.Box(Part.PaintedMetal, new(-0.03f, 0.46f, -hd + 0.02f), new(0.03f, 0.55f, -hd + 0.08f));
+                b.Box(Part.Linen, new(-hw + 0.06f, 0.55f, -hd), new(hw - 0.06f, h, -hd + 0.08f));
+                break;
+            case (FurnitureType.OfficeChair, 2):
+                // High-back executive chair: thick seat, tall back with headrest, armrests.
+                b.Cylinder(Part.DarkSteel, Vector3.Zero, 0.35f, 0.35f, 0.08f);
+                b.Cylinder(Part.Chrome, new(0, 0.08f, 0), 0.045f, 0.045f, 0.37f);
+                b.Box(Part.Linen, new(-hw, 0.45f, -hd), new(hw, 0.58f, hd));
+                b.Box(Part.Linen, new(-hw, 0.58f, -hd), new(hw, h - 0.2f, -hd + 0.16f));
+                b.Box(Part.Linen, new(-hw + 0.1f, h - 0.2f, -hd + 0.02f), new(hw - 0.1f, h, -hd + 0.14f));
+                foreach (var x in new[] { -hw, hw - 0.05f })
+                {
+                    b.Box(Part.DarkSteel, new(x, 0.58f, -0.1f), new(x + 0.05f, 0.7f, -0.05f));
+                    b.Box(Part.Linen, new(x - 0.01f, 0.7f, -hd + 0.1f), new(x + 0.06f, 0.75f, hd - 0.05f));
+                }
+                break;
+            case (FurnitureType.Desk, 1):
+                // Compact trestle desk: two side panels braced by a stretcher, no pedestal.
+                b.Box(Part.Pine, new(-hw, h - 0.04f, -hd), new(hw, h, hd));
+                foreach (var x in new[] { -hw + 0.06f, hw - 0.1f })
+                    b.Box(Part.PaintedMetal, new(x, 0f, -hd + 0.05f), new(x + 0.04f, h - 0.04f, hd - 0.05f));
+                b.Box(Part.PaintedMetal, new(-hw + 0.1f, h - 0.2f, -0.02f), new(hw - 0.1f, h - 0.14f, 0.02f));
+                break;
+            case (FurnitureType.Desk, 2):
+                // Large desk: thick top on two drawer pedestals and a back panel.
+                b.Box(Part.Walnut, new(-hw, h - 0.06f, -hd), new(hw, h, hd));
+                foreach (var side in new[] { -1f, 1f })
+                {
+                    var (x0, x1) = side < 0 ? (-hw + 0.03f, -hw + 0.5f) : (hw - 0.5f, hw - 0.03f);
+                    b.Box(Part.Pine, new(x0, 0.05f, -hd + 0.03f), new(x1, h - 0.06f, hd - 0.03f));
+                    b.Box(Part.Rubber, new(x0 + 0.02f, 0f, -hd + 0.06f), new(x1 - 0.02f, 0.05f, hd - 0.06f));
+                    for (var drawer = 0; drawer < 3; drawer++)
+                        b.Box(Part.Chrome, new(x0 + 0.15f, 0.2f + drawer * 0.18f, hd - 0.03f), new(x1 - 0.15f, 0.22f + drawer * 0.18f, hd));
+                }
+                b.Box(Part.Pine, new(-hw + 0.5f, 0.25f, -hd + 0.03f), new(hw - 0.5f, h - 0.06f, -hd + 0.05f));
+                break;
+            case (FurnitureType.DiningTable, 1):
+                // Round table: a disc top on a single column and a flared foot.
+                b.Cylinder(Part.Oak, new(0, h - 0.05f, 0), hw, hw, 0.05f, segments: 20);
+                b.Cylinder(Part.Oak, new(0, 0.05f, 0), 0.09f, 0.07f, h - 0.1f);
+                b.Cylinder(Part.Oak, Vector3.Zero, 0.32f, 0.12f, 0.05f);
+                break;
+            case (FurnitureType.DiningTable, 2):
+                // Refectory table: a thick plank top on heavy legs joined by a low stretcher.
+                b.Box(Part.Walnut, new(-hw, h - 0.09f, -hd), new(hw, h, hd));
+                Legs(b, Part.Walnut, hw - 0.15f, hd - 0.12f, h - 0.09f, 0.06f);
+                b.Box(Part.Walnut, new(-hw + 0.15f, 0.18f, -0.03f), new(hw - 0.15f, 0.25f, 0.03f));
+                break;
+            case (FurnitureType.GardenChair, 1):
+                // Metal bistro chair: slim steel frame, thin seat, rail back.
+                b.Box(Part.PaintedMetal, new(-hw, 0.42f, -hd), new(hw, 0.45f, hd));
+                Legs(b, Part.DarkSteel, hw - 0.025f, hd - 0.025f, 0.42f, 0.012f);
+                foreach (var x in new[] { -hw + 0.015f, hw - 0.015f })
+                    b.Box(Part.DarkSteel, new(x - 0.012f, 0.45f, -hd + 0.015f), new(x + 0.012f, h, -hd + 0.04f));
+                b.Box(Part.DarkSteel, new(-hw + 0.015f, h - 0.06f, -hd + 0.015f), new(hw - 0.015f, h, -hd + 0.04f));
+                b.Box(Part.DarkSteel, new(-hw + 0.015f, 0.65f, -hd + 0.015f), new(hw - 0.015f, 0.68f, -hd + 0.035f));
+                break;
+            case (FurnitureType.GardenChair, 2):
+                // Low lounge chair: wide teak frame with arms, deep cushion and a reclined back.
+                b.Box(Part.Teak, new(-hw, 0.18f, -hd), new(hw, 0.24f, hd));
+                Legs(b, Part.Teak, hw - 0.04f, hd - 0.04f, 0.18f, 0.035f);
+                foreach (var x in new[] { -hw, hw - 0.07f })
+                    b.Box(Part.Teak, new(x, 0.24f, -hd), new(x + 0.07f, 0.5f, hd));
+                b.Box(Part.Wool, new(-hw + 0.07f, 0.24f, -hd + 0.2f), new(hw - 0.07f, 0.34f, hd));
+                b.Box(Part.Wool, new(-hw + 0.07f, 0.34f, -hd), new(hw - 0.07f, h, -hd + 0.2f));
+                break;
+            case (FurnitureType.GardenTable, 1):
+                // Round bistro table: small disc top on a steel column and base.
+                b.Cylinder(Part.Teak, new(0, h - 0.04f, 0), hw, hw, 0.04f, segments: 16);
+                b.Cylinder(Part.DarkSteel, new(0, 0.04f, 0), 0.025f, 0.025f, h - 0.08f);
+                b.Cylinder(Part.DarkSteel, Vector3.Zero, 0.25f, 0.1f, 0.04f);
+                break;
+            case (FurnitureType.GardenTable, 2):
+                // Picnic table: planked top on two trestle end panels and a centre beam.
+                b.Box(Part.Teak, new(-hw, h - 0.05f, -hd), new(hw, h, hd));
+                foreach (var x in new[] { -hw + 0.25f, hw - 0.3f })
+                    b.Box(Part.Teak, new(x, 0f, -hd + 0.08f), new(x + 0.05f, h - 0.05f, hd - 0.08f));
+                b.Box(Part.Teak, new(-hw + 0.25f, 0.3f, -0.04f), new(hw - 0.25f, 0.38f, 0.04f));
+                break;
+            case (FurnitureType.Sofa, 1) or (FurnitureType.Sofa, 2):
+            {
+                // Two-seat loveseat with low arms, or large three-seat sofa with tall arms and loose back cushions.
+                var large = variant == 2;
+                var arm = large ? 0.24f : 0.15f;
+                var back = large ? 0.26f : 0.2f;
+                var armTop = large ? 0.68f : 0.58f;
+                b.Box(Part.Fabric, new Vector3(-hw, 0.1f, -hd), new Vector3(hw, 0.42f, hd));
+                b.Box(Part.Fabric, new Vector3(-hw, 0.42f, -hd), new Vector3(hw, h, -hd + back));
+                b.Box(Part.Fabric, new Vector3(-hw, 0.42f, -hd), new Vector3(-hw + arm, armTop, hd));
+                b.Box(Part.Fabric, new Vector3(hw - arm, 0.42f, -hd), new Vector3(hw, armTop, hd));
+                // The body already covers the cushion bases: keep one seat top at distance
+                // instead of overlapping cushion boxes and back pads that occupy subpixels.
+                var cushions = b.Coarse ? 1 : large ? 3 : 2;
+                var span = (w - 2f * arm) / cushions;
+                for (var i = 0; i < cushions; i++)
+                {
+                    var x0 = -hw + arm + i * span;
+                    b.Box(Part.Fabric, new Vector3(x0 + 0.01f, 0.42f, -hd + back), new Vector3(x0 + span - 0.01f, 0.54f, hd - 0.02f));
+                    if (large && !b.Coarse)
+                        b.Box(Part.Fabric, new Vector3(x0 + 0.04f, 0.54f, -hd + back), new Vector3(x0 + span - 0.04f, h - 0.1f, -hd + back + 0.12f));
+                }
+                Legs(b, large ? Part.DarkSteel : Part.Oak, hw - 0.06f, hd - 0.06f, 0.1f, large ? 0.03f : 0.022f);
+                break;
+            }
+            case (FurnitureType.Wardrobe, 1):
+                // Double wardrobe: two doors above a drawer bank, with a cornice on top.
+                b.Box(Part.Oak, new Vector3(-hw, 0.05f, -hd), new Vector3(hw, h - 0.06f, hd));
+                b.Box(Part.Oak, new Vector3(-hw - 0.02f, h - 0.06f, -hd - 0.02f), new Vector3(hw + 0.02f, h, hd + 0.02f));
+                b.Box(Part.Rubber, new Vector3(-hw + 0.03f, 0f, -hd + 0.03f), new Vector3(hw - 0.03f, 0.05f, hd - 0.03f));
+                b.Box(Part.Walnut, new Vector3(-0.004f, 0.6f, hd), new Vector3(0.004f, h - 0.08f, hd + 0.004f));
+                b.Box(Part.Walnut, new Vector3(-hw + 0.02f, 0.58f, hd), new Vector3(hw - 0.02f, 0.6f, hd + 0.004f));
+                b.Box(Part.Chrome, new Vector3(-0.07f, 1.1f, hd), new Vector3(-0.05f, 1.4f, hd + 0.03f));
+                b.Box(Part.Chrome, new Vector3(0.05f, 1.1f, hd), new Vector3(0.07f, 1.4f, hd + 0.03f));
+                foreach (var x in new[] { -hw / 2f, hw / 2f })
+                    b.Box(Part.Chrome, new Vector3(x - 0.1f, 0.3f, hd), new Vector3(x + 0.1f, 0.32f, hd + 0.015f));
+                break;
+            case (FurnitureType.Wardrobe, 2):
+                // Narrow tall wardrobe: one door with a mirror strip and a single long handle.
+                b.Box(Part.Walnut, new Vector3(-hw, 0.05f, -hd), new Vector3(hw, h, hd));
+                b.Box(Part.Rubber, new Vector3(-hw + 0.03f, 0f, -hd + 0.03f), new Vector3(hw - 0.03f, 0.05f, hd - 0.03f));
+                b.Box(Part.Chrome, new Vector3(-hw + 0.08f, 0.35f, hd), new Vector3(hw - 0.08f, h - 0.2f, hd + 0.008f));
+                b.Box(Part.Chrome, new Vector3(hw - 0.07f, 0.9f, hd + 0.008f), new Vector3(hw - 0.05f, 1.4f, hd + 0.035f));
+                break;
+            case (FurnitureType.KitchenCabinet, 1):
+                // Wide drawer cabinet: plinth, three drawer fronts with long handles, worktop.
+                b.Box(Part.Rubber, new Vector3(-hw, 0f, -hd), new Vector3(hw, 0.1f, hd - 0.06f));
+                b.Box(Part.Maple, new Vector3(-hw + 0.005f, 0.1f, -hd), new Vector3(hw - 0.005f, h - 0.04f, hd - 0.02f));
+                b.Box(Part.Walnut, new Vector3(-hw, h - 0.04f, -hd), new Vector3(hw, h, hd));
+                for (var drawer = 0; !b.Coarse && drawer < 3; drawer++)
+                {
+                    var y = 0.1f + drawer * (h - 0.14f) / 3f;
+                    b.Box(Part.Pine, new Vector3(-hw + 0.01f, y + 0.01f, hd - 0.02f), new Vector3(hw - 0.01f, y + (h - 0.14f) / 3f - 0.01f, hd));
+                    b.Box(Part.Chrome, new Vector3(-0.2f, y + 0.2f, hd), new Vector3(0.2f, y + 0.22f, hd + 0.02f));
+                }
+                break;
+            case (FurnitureType.KitchenCabinet, 2):
+                // Tall pantry: floor-to-ceiling cupboard with two doors and tall handles.
+                b.Box(Part.Rubber, new Vector3(-hw, 0f, -hd), new Vector3(hw, 0.1f, hd - 0.06f));
+                b.Box(Part.Maple, new Vector3(-hw, 0.1f, -hd), new Vector3(hw, h, hd));
+                b.Box(Part.Walnut, new Vector3(-hw + 0.01f, 1.0f, hd), new Vector3(hw - 0.01f, 1.015f, hd + 0.004f));
+                b.Box(Part.Chrome, new Vector3(hw - 0.08f, 0.5f, hd), new Vector3(hw - 0.06f, 0.85f, hd + 0.03f));
+                b.Box(Part.Chrome, new Vector3(hw - 0.08f, 1.15f, hd), new Vector3(hw - 0.06f, 1.5f, hd + 0.03f));
+                break;
+            case (FurnitureType.DisplayCabinet, 1):
+                // Low, wide glass cabinet: two glass panes over a single shelf, on short legs.
+                b.Box(Part.Pine, new(-hw, 0.1f, -hd), new(-hw + 0.04f, h, hd));
+                b.Box(Part.Pine, new(hw - 0.04f, 0.1f, -hd), new(hw, h, hd));
+                b.Box(Part.Pine, new(-hw, 0.1f, -hd), new(hw, h, -hd + 0.03f));
+                foreach (var y in new[] { 0.1f, h * 0.5f, h - 0.04f })
+                    b.Box(Part.Pine, new(-hw, y, -hd), new(hw, y + 0.04f, hd));
+                foreach (var x in new[] { -hw / 2f, hw / 2f })
+                    b.Box(Part.Glass, new(x - hw / 2f + 0.03f, 0.14f, hd - 0.02f), new(x + hw / 2f - 0.03f, h - 0.04f, hd));
+                b.Box(Part.Pine, new(-0.015f, 0.14f, hd - 0.025f), new(0.015f, h - 0.04f, hd + 0.005f));
+                Legs(b, Part.Pine, hw - 0.05f, hd - 0.05f, 0.1f, 0.03f);
+                break;
+            case (FurnitureType.DisplayCabinet, 2):
+                // Narrow glass tower: tall frame with four shelves behind a full-height glass door.
+                b.Box(Part.Walnut, new(-hw, 0.1f, -hd), new(-hw + 0.04f, h, hd));
+                b.Box(Part.Walnut, new(hw - 0.04f, 0.1f, -hd), new(hw, h, hd));
+                b.Box(Part.Walnut, new(-hw, 0.1f, -hd), new(hw, h, -hd + 0.03f));
+                foreach (var y in new[] { 0.1f, 0.6f, 1.05f, 1.45f, h - 0.04f })
+                    b.Box(Part.Walnut, new(-hw, y, -hd), new(hw, y + 0.04f, hd));
+                b.Box(Part.Glass, new(-hw + 0.04f, 0.14f, hd - 0.02f), new(hw - 0.04f, h - 0.04f, hd));
+                b.Box(Part.Rubber, new(-hw + 0.02f, 0f, -hd + 0.02f), new(hw - 0.02f, 0.1f, hd - 0.02f));
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(variant), variant, $"{type} has no variant {variant}.");
+        }
     }
 
     /// <summary>Four legs of square section reaching from the floor to <paramref name="top"/>.</summary>
@@ -614,27 +844,72 @@ public static class FurnitureMeshes
         return _materials;
     }
 
-    /// <summary>The materials of the coarse meshes: the same looks without normal maps.</summary>
-    private static Dictionary<Part, ShaderMaterial> CoarseMaterials()
+    /// <summary>
+    /// The one material of every coarse mesh. A coarse mesh draws all its parts in one surface, so
+    /// a chunk costs one draw call per Furniture type and variant however many materials it uses:
+    /// each vertex carries its part in UV2, and the part's look (the average colour and roughness of
+    /// its textures, its metallic, whether the instance colour tints it, its glow) comes from tables
+    /// in the shader. At the distances coarse meshes are drawn from, textures blur to that average.
+    /// </summary>
+    private static ShaderMaterial CoarseMaterial()
     {
-        if (_coarseMaterials is not null)
-            return _coarseMaterials;
-        _coarseMaterials = Materials().ToDictionary(m => m.Key, m =>
+        if (_coarseMaterial is not null)
+            return _coarseMaterial;
+        var albedo = new Color[PartSlots];
+        var surface = new Vector2[PartSlots];
+        foreach (var (part, material) in Materials())
         {
-            var material = (ShaderMaterial)m.Value.Duplicate();
-            material.SetShaderParameter("normal_enabled", false);
-            return material;
-        });
-        return _coarseMaterials;
+            var color = (Color)material.GetShaderParameter("albedo_color");
+            var roughness = (float)material.GetShaderParameter("roughness");
+            if ((bool)material.GetShaderParameter("textured"))
+            {
+                color *= Average((Texture2D)material.GetShaderParameter("albedo_texture"));
+                roughness *= Average((Texture2D)material.GetShaderParameter("roughness_texture")).R;
+            }
+            var linear = color.SrgbToLinear();
+            albedo[(int)part] = new Color(linear.R, linear.G, linear.B, (bool)material.GetShaderParameter("tinted") ? 1f : 0f);
+            surface[(int)part] = new Vector2(roughness, (float)material.GetShaderParameter("metallic"));
+        }
+        var shade = Materials()[Part.LampShade];
+        _coarseMaterial = new ShaderMaterial { Shader = shade.Shader };
+        _coarseMaterial.SetShaderParameter("coarse_parts", true);
+        _coarseMaterial.SetShaderParameter("part_albedo", albedo);
+        _coarseMaterial.SetShaderParameter("part_surface", surface);
+        _coarseMaterial.SetShaderParameter("emissive_part", (int)Part.LampShade);
+        _coarseMaterial.SetShaderParameter("emission_color", shade.GetShaderParameter("emission_color"));
+        _coarseMaterial.SetShaderParameter("emission_energy", shade.GetShaderParameter("emission_energy"));
+        return _coarseMaterial;
+    }
+
+    /// <summary>The average colour of a texture, sampled on a sparse grid.</summary>
+    private static Color Average(Texture2D texture)
+    {
+        var image = texture.GetImage();
+        if (image.IsCompressed())
+            image.Decompress();
+        if (image.IsCompressed())
+            return Colors.White;
+        var (sum, count) = (new Color(0f, 0f, 0f, 0f), 0);
+        var step = Math.Max(1, image.GetWidth() / 64);
+        for (var y = 0; y < image.GetHeight(); y += step)
+            for (var x = 0; x < image.GetWidth(); x += step)
+            {
+                sum += image.GetPixel(x, y);
+                count++;
+            }
+        return sum / count;
     }
 
     /// <summary>
     /// Accumulates parts into one surface per material, with UVs in metres and tangents for normal maps.
-    /// A coarse builder leaves out thin parts and gives round parts fewer sides.
+    /// A coarse builder leaves out thin parts, gives round parts fewer sides and puts every part in
+    /// one surface, marking each vertex with its part.
     /// </summary>
     private sealed class Builder(bool coarse, float minThickness, int coarseSegments)
     {
+        public bool Coarse => coarse;
         private readonly Dictionary<Part, SurfaceTool> _surfaces = new();
+        private Part _part;
 
         public void Box(Part part, Vector3 min, Vector3 max)
         {
@@ -694,20 +969,24 @@ public static class FurnitureMeshes
             }
         }
 
-        public ArrayMesh Commit(Dictionary<Part, ShaderMaterial> materials)
+        public ArrayMesh Commit()
         {
             var mesh = new ArrayMesh();
             foreach (var (part, tool) in _surfaces)
             {
-                tool.GenerateTangents();
+                if (!coarse)
+                    tool.GenerateTangents();
                 tool.Commit(mesh);
-                mesh.SurfaceSetMaterial(mesh.GetSurfaceCount() - 1, materials[part]);
+                mesh.SurfaceSetMaterial(mesh.GetSurfaceCount() - 1, coarse ? CoarseMaterial() : Materials()[part]);
             }
             return mesh;
         }
 
         private SurfaceTool Surface(Part part)
         {
+            _part = part;
+            if (coarse)
+                part = Part.Pine;
             if (!_surfaces.TryGetValue(part, out var tool))
             {
                 tool = new SurfaceTool();
@@ -718,7 +997,7 @@ public static class FurnitureMeshes
         }
 
         /// <summary>A quad from <paramref name="corner"/> spanning <paramref name="u"/> and <paramref name="v"/>, wound to face <paramref name="normal"/>.</summary>
-        private static void Face(SurfaceTool tool, Vector3 corner, Vector3 u, Vector3 v, Vector3 normal)
+        private void Face(SurfaceTool tool, Vector3 corner, Vector3 u, Vector3 v, Vector3 normal)
         {
             var (lu, lv) = (u.Length(), v.Length());
             var p00 = corner;
@@ -735,10 +1014,12 @@ public static class FurnitureMeshes
                 Vertex(tool, quad[i], normal, uvs[i]);
         }
 
-        private static void Vertex(SurfaceTool tool, Vector3 position, Vector3 normal, Vector2 uv)
+        private void Vertex(SurfaceTool tool, Vector3 position, Vector3 normal, Vector2 uv)
         {
             tool.SetNormal(normal);
             tool.SetUV(uv);
+            if (coarse)
+                tool.SetUV2(new Vector2((int)_part, 0f));
             tool.AddVertex(position);
         }
     }

@@ -176,7 +176,7 @@ public partial class Benchmark : Node
     private async Task Reproduce(Lighting lighting)
     {
         _progress = null;
-        var tracked = Host.Snapshot.Furniture.Where(p => Scp3008.Core.FurnitureCatalog.Spec(p.Type).IsLamp)
+        var tracked = Host.Snapshot.Furniture.Where(p => Scp3008.Core.FurnitureCatalog.Spec(p).IsLamp)
             .MinBy(p => Host.Snapshot.Space.Distance(p.Position, new System.Numerics.Vector2(Start.X, Start.Y))).Id;
         DirAccess.MakeDirRecursiveAbsolute(_reproductionDirectory);
         for (var frame = -30; frame <= 240; frame++)

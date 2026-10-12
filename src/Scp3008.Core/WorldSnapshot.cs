@@ -12,6 +12,8 @@ namespace Scp3008.Core;
 /// <param name="Speed">The speed the simulation clock is running at.</param>
 /// <param name="Departments">Which Department covers each part of the Store.</param>
 /// <param name="Furniture">Every piece of Furniture in the Store, each an individual object.</param>
+/// <param name="Displays">Every Display (room or set) the Furniture stands in, indexed by <see cref="Display.Id"/>.</param>
+/// <param name="CellLayouts">How each department cell is laid out, row by row from the north-west.</param>
 /// <param name="FogBanks">The Fog banks drifting through the Store.</param>
 /// <param name="Wind">The wind the Fog banks drift with, in metres per Store hour (X east, Y south).</param>
 /// <param name="Pillars">The identical concrete Pillars on the layout's grid (9 or 4), marked by grid coordinate; never light or power sources.</param>
@@ -24,11 +26,20 @@ public sealed record WorldSnapshot(
     SimulationSpeed Speed,
     DepartmentMap Departments,
     IReadOnlyList<FurniturePiece> Furniture,
+    IReadOnlyList<Display> Displays,
+    IReadOnlyList<CellLayout> CellLayouts,
     IReadOnlyList<FogBank> FogBanks,
     Vector2 Wind,
     IReadOnlyList<Pillar> Pillars,
     IReadOnlyList<Sector> Sectors)
 {
+    /// <summary>How a department cell is laid out; coordinates wrap.</summary>
+    public CellLayout CellLayoutAt(int x, int y)
+    {
+        var side = Departments.CellsPerSide;
+        return CellLayouts[(((y % side) + side) % side) * side + (((x % side) + side) % side)];
+    }
+
     /// <summary>Whether the Store is open or in Closing time.</summary>
     public DayPhase Phase => Clock.Phase;
 

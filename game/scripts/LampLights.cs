@@ -294,7 +294,7 @@ public partial class LampLights : Node3D
         _lastView = null;
         _lampsByChunk.Clear();
         Array.Fill(_shadowSlots, -1);
-        var lamps = snapshot.Furniture.Where(p => FurnitureCatalog.Spec(p.Type).IsLamp).Select(ToLamp).ToList();
+        var lamps = snapshot.Furniture.Where(p => FurnitureCatalog.Spec(p).IsLamp).Select(ToLamp).ToList();
         foreach (var chunk in lamps.GroupBy(l => _space.ChunkOf(l.Bulb.ToStore())))
             _lampsByChunk[chunk.Key] = chunk.ToArray();
         _pools.Build(_space, lamps.Select(l => (l.Bulb, l.Range, l.Energy)).ToList());
@@ -302,7 +302,7 @@ public partial class LampLights : Node3D
 
     private Lamp ToLamp(FurniturePiece piece, int index)
     {
-        var spec = FurnitureCatalog.Spec(piece.Type);
+        var spec = FurnitureCatalog.Spec(piece);
         var offset = FurnitureMeshes.BulbOffset(piece.Type);
         var horizontal = new System.Numerics.Vector2(offset.X * MathF.Cos(piece.Rotation), offset.X * MathF.Sin(piece.Rotation));
         var bulb = _space.Wrap(piece.Position + horizontal).ToWorld(piece.Elevation + offset.Y);

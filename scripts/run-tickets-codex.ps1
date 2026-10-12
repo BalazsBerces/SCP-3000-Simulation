@@ -71,17 +71,17 @@ function Get-NextTicket {
 
 function Get-ReviewRule($t) {
   if (-not $t.IsStageEnd) {
-    return "6. Skip the /code-review step for this ticket; the code is reviewed once at the end of each build stage."
+    return "6. Skip the /spec-review step for this ticket; the code is reviewed once at the end of each build stage."
   }
   $first = 1 + [int](@($StageEnds.Keys | Where-Object { $_ -lt $t.Ticket }) + 0 | Measure-Object -Maximum).Maximum
   $firstTitle = $first.ToString('D2')
-  "6. This ticket completes the build stage '$($StageEnds[$t.Ticket])' (tickets $first-$($t.Ticket)). Instead of reviewing only this ticket, run /code-review on the whole stage: the diff from the parent of ticket $first's commit (find it with git log --grep '^${firstTitle}: ') up to and including your uncommitted changes. Fix the real findings, rerun the tests, and include the fixes in this ticket's commit."
+  "6. This ticket completes the build stage '$($StageEnds[$t.Ticket])' (tickets $first-$($t.Ticket)). Instead of reviewing only this ticket, run /spec-review on the whole stage: the diff from the parent of ticket $first's commit (find it with git log --grep '^${firstTitle}: ') up to and including your uncommitted changes. Fix the real findings, rerun the tests, and include the fixes in this ticket's commit."
 }
 
 function Get-Prompt($t) {
 @"
 Use the implement skill to implement ticket $($t.Label) of the SCP-3008 simulation: GitHub issue #$($t.Issue) in $Repo.
-Read the implement skill's SKILL.md under your Codex skills directory (CODEX_HOME/skills, or ~/.codex/skills by default). References to /tdd and /code-review mean read and follow those skills; references to the Claude Skill tool mean read the named skill's SKILL.md.
+Read the implement skill's SKILL.md under your Codex skills directory (CODEX_HOME/skills, or ~/.codex/skills by default). References to /tdd and /spec-review mean read and follow those skills; references to the Claude Skill tool mean read the named skill's SKILL.md.
 The spec is issue #1. Read the ticket (gh issue view $($t.Issue) --comments), GLOSSARY.md, every ADR in docs/adr/, and the existing code.
 
 Project rules for this run:
@@ -119,7 +119,6 @@ function Invoke-Agent($t, $log) {
       $final = $ev.item.text
       if ($final.Trim()) {
         $summary = ($final.Trim() -split '\r?\n')[0]
-        if ($summary.Length -gt 180) { $summary = $summary.Substring(0, 177) + '...' }
         Write-Host ("  > " + $summary) -ForegroundColor Gray
       }
     } elseif ($ev.type -eq 'item.started') {
