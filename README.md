@@ -15,6 +15,8 @@ Furniture generation exposes `Displays` and `CellLayouts` alongside the individu
 
 For an unattended visual tour, run `godot --path game -- --pillars=3x3 --pause --furniture-tour=<absolute directory>`: it saves every Department at the same 45 m camera convention used for 03a, every Layout archetype at 24 m and all Variants at 6 m, with paused noon lighting and clear Weather.
 
+Lighting & electrical occupies about 2.5% of the Store floor in a few smaller seeded regions. Lamps remain occasional in other themed Displays, targeting 3–4% of all Furniture pieces, while Armchairs, Sofas and tables receive more display space. Counts across five seeds and all Pillar layouts, matching captures and benchmark results are in [ticket 03c verification](docs/ticket-03c-verification.md). Add `--clear-weather` to a paused dev capture to remove Fog banks while retaining the thin haze.
+
 Requires the .NET 8+ SDK and Godot 4.7 .NET.
 
 ```sh

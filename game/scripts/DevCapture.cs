@@ -14,6 +14,7 @@ namespace Scp3008.Game;
 ///                          3x3L-corners or 3x3L-diamond (the default);
 ///   --pillar=coordinate    focus beside a Pillar, by its grid coordinate (e.g. B-2), if the layout has it;
 ///   --pause                freeze Store time for comparable captures;
+///   --clear-weather        hold clear Weather for comparable captures (thin haze remains);
 ///   --pan=vx,vy            pan the camera focus at (vx, vy) metres per second, then report how
 ///                          often it crossed a seam and its largest per-frame step, overall
 ///                          and on the crossing frames (a jump would show as a big step there);
@@ -92,6 +93,8 @@ public partial class DevCapture : Node
                 Rig.WrapFocus = false;
             else if (arg == "--eye-level")
                 AddEyeLevelCamera();
+            else if (arg == "--clear-weather")
+                Host.HoldClearWeather();
             else if (arg.StartsWith("--enter-seed="))
                 _seedToEnter = arg["--enter-seed=".Length..];
             else if (arg.StartsWith("--choose-pillars="))

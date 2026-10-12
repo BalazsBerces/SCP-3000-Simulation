@@ -332,10 +332,10 @@ public class FurnitureLayoutTests(BenchmarkStore store) : IClassFixture<Benchmar
     }
 
     [Fact]
-    public void The_benchmark_store_keeps_the_furniture_and_lamp_counts_of_ticket_03a()
+    public void The_benchmark_store_keeps_furnished_density_with_the_reduced_lamp_share()
     {
-        // Seed 3008 on the 3 × 3 layout after ticket 03a: 428,928 pieces of Furniture, 30,411 Lamps.
-        Assert.InRange(Snapshot.Furniture.Count, 428_928 * 0.9, 428_928 * 1.1);
-        Assert.InRange(Snapshot.Furniture.Count(p => FurnitureCatalog.Spec(p).IsLamp), 30_411 * 0.9, 30_411 * 1.1);
+        // Ticket 03c supersedes the old Lamp-count budget, retaining the 03b furnished density.
+        Assert.InRange(Snapshot.Furniture.Count, 410_806 * 0.9, 410_806 * 1.1);
+        Assert.InRange(Snapshot.Furniture.Count(p => FurnitureCatalog.Spec(p).IsLamp) / (double)Snapshot.Furniture.Count, 0.03, 0.04);
     }
 }

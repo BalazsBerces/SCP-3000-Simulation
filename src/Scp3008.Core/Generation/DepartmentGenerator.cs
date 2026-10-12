@@ -25,8 +25,8 @@ internal static class DepartmentGenerator
     private static readonly Dictionary<DepartmentType, (float Weight, float Size)> TypeOdds = new()
     {
         [DepartmentType.RestaurantAndFoodMarket] = (0.8f, 0.75f),
-        [DepartmentType.Showrooms] = (3.0f, 1.15f),
-        [DepartmentType.LightingAndElectrical] = (1.5f, 1.0f),
+        [DepartmentType.Showrooms] = (4.0f, 1.15f),
+        [DepartmentType.LightingAndElectrical] = (0.6f, 1.0f),
         [DepartmentType.SelfServeWarehouse] = (2.5f, 1.25f),
         [DepartmentType.BathroomsAndKitchens] = (2.0f, 1.0f),
         [DepartmentType.PlantSection] = (0.8f, 0.8f),
@@ -34,7 +34,7 @@ internal static class DepartmentGenerator
         [DepartmentType.Workspaces] = (1.0f, 1.1f),
         [DepartmentType.TextilesAndDecor] = (1.0f, 1.1f),
         [DepartmentType.Outdoor] = (1.0f, 1.1f),
-        [DepartmentType.DiningAndHallway] = (1.0f, 1.1f),
+        [DepartmentType.DiningAndHallway] = (1.6f, 1.1f),
     };
 
     public static DepartmentMap Generate(int seed, StoreSpace space)
@@ -44,9 +44,27 @@ internal static class DepartmentGenerator
         var sites = PlaceSites(random, space, cellsPerSide);
 
         var typeOfCell = new DepartmentType[cellsPerSide * cellsPerSide];
+        var ordinarySites = sites.Where(s => s.Type != DepartmentType.LightingAndElectrical).ToList();
+        var electricalSites = sites.Where(s => s.Type == DepartmentType.LightingAndElectrical).ToList();
+        var electricalClaims = new List<(int Cell, float RelativeDistance)>();
         for (var y = 0; y < cellsPerSide; y++)
             for (var x = 0; x < cellsPerSide; x++)
-                typeOfCell[y * cellsPerSide + x] = ClosestSite(sites, space, CellCentre(x, y)).Type;
+            {
+                var position = CellCentre(x, y);
+                var ordinary = ClosestSite(ordinarySites, space, position);
+                var electrical = ClosestSite(electricalSites, space, position);
+                var cell = y * cellsPerSide + x;
+                typeOfCell[cell] = ordinary.Type;
+                electricalClaims.Add((cell, Score(electrical, space, position) / Score(ordinary, space, position)));
+            }
+
+        // Reserve 2.5% for a few small electrical regions. Ranking the distance ratios is
+        // equivalent to tuning one shared Voronoi size multiplier for the electrical sites:
+        // seeded positions and relative sizes still shape the regions, without seed-dependent
+        // swings in the scarce floor share. Cell index resolves ties deterministically.
+        foreach (var claim in electricalClaims.OrderBy(c => c.RelativeDistance).ThenBy(c => c.Cell)
+                     .Take((int)Math.Round(typeOfCell.Length * 0.025)))
+            typeOfCell[claim.Cell] = DepartmentType.LightingAndElectrical;
 
         AbsorbSlivers(typeOfCell, cellsPerSide);
         return BuildMap(typeOfCell, cellsPerSide, sites);
@@ -85,7 +103,8 @@ internal static class DepartmentGenerator
                 var position = CellCentre(cell.X, cell.Y);
                 // Spacing relaxes slowly if the floor gets crowded, so every site finds a place.
                 var spacing = MinSiteSpacing * (1f - attempt / 250f);
-                if (sites.All(s => space.Distance(s.Position, position) >= spacing))
+                if (sites.All(s => space.Distance(s.Position, position) >=
+                        (type == DepartmentType.LightingAndElectrical && s.Type == type ? 240f : spacing)))
                 {
                     sites.Add(new Site(type, position, TypeOdds[type].Size * random.Range(0.85f, 1.15f)));
                     break;
@@ -101,7 +120,7 @@ internal static class DepartmentGenerator
         var bestScore = float.MaxValue;
         foreach (var site in sites)
         {
-            var score = space.Distance(site.Position, position) / site.Size;
+            var score = Score(site, space, position);
             if (score < bestScore)
             {
                 bestScore = score;
@@ -110,6 +129,9 @@ internal static class DepartmentGenerator
         }
         return best;
     }
+
+    private static float Score(Site site, StoreSpace space, Vector2 position) =>
+        space.Distance(site.Position, position) / site.Size;
 
     /// <summary>Gives tiny regions (weighted Voronoi diagrams can leave islands) to their most common neighbour type.</summary>
     private static void AbsorbSlivers(DepartmentType[] typeOfCell, int cellsPerSide)

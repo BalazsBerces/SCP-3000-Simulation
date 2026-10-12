@@ -1,0 +1,120 @@
+Godot Engine v4.7.2.stable.mono.official.ed1daf0bf - https://godotengine.org
+Vulkan 1.4.329 - Forward+ - Using Device #0: NVIDIA - NVIDIA GeForce RTX 2070 SUPER
+
+Furniture: 395175 pieces placed in 918 ms.
+Pillars: 3x3 layout, 9 solid concrete Landmarks 1200 m tall, 9 Sectors, no emission or lights, reach 1200 m.
+Store time: day 1 12:00, Open. Store light 1,00, ambient 0,600, fog 0,0045, haze 0,0040 (volumetric True, reach 177 m), Fog bank density 0,220
+Ambient audio: hum -6,9 dB, drone -80,0 dB, playing True, next footsteps now (heaviness 0,00)
+Lamps: 256 lamp lights (4 shadowed, budget 256 lights, 4 shadows; shadow opacity 0,00/0,00/0,00/0,00), 1228 visible Lamps with halos, 14617 Lamps in the Store (at most 37 per pool cell)
+Weather: 0 Fog banks, wind 38 m per Store hour, fog density at the focus 0,00
+Screenshot saved to C:\INBOX\Projects\SCP_3000_SIMULATION\docs\screenshots\03c\after\3x3-LightingAndElectrical-open.png
+Godot Engine v4.7.2.stable.mono.official.ed1daf0bf - https://godotengine.org
+Vulkan 1.4.329 - Forward+ - Using Device #0: NVIDIA - NVIDIA GeForce RTX 2070 SUPER
+
+Furniture: 395175 pieces placed in 922 ms.
+Pillars: 3x3 layout, 9 solid concrete Landmarks 1200 m tall, 9 Sectors, no emission or lights, reach 1200 m.
+Store time: day 1 23:00, ClosingTime. Store light 0,00, ambient 0,045, fog 0,0080, haze 0,0060 (volumetric True, reach 177 m), Fog bank density 0,250
+Ambient audio: hum -80,0 dB, drone -5,2 dB, playing True, next footsteps now (heaviness 1,00)
+Lamps: 256 lamp lights (4 shadowed, budget 256 lights, 4 shadows; shadow opacity 0,00/0,00/0,00/0,00), 1228 visible Lamps with halos, 14617 Lamps in the Store (at most 37 per pool cell)
+Weather: 0 Fog banks, wind 55 m per Store hour, fog density at the focus 0,00
+Screenshot saved to C:\INBOX\Projects\SCP_3000_SIMULATION\docs\screenshots\03c\after\3x3-LightingAndElectrical-closing.png
+Godot Engine v4.7.2.stable.mono.official.ed1daf0bf - https://godotengine.org
+Vulkan 1.4.329 - Forward+ - Using Device #0: NVIDIA - NVIDIA GeForce RTX 2070 SUPER
+
+Furniture: 395175 pieces placed in 880 ms.
+Pillars: 3x3 layout, 9 solid concrete Landmarks 1200 m tall, 9 Sectors, no emission or lights, reach 1200 m.
+Store time: day 1 12:00, Open. Store light 1,00, ambient 0,600, fog 0,0045, haze 0,0040 (volumetric True, reach 177 m), Fog bank density 0,220
+Ambient audio: hum -6,9 dB, drone -80,0 dB, playing True, next footsteps now (heaviness 0,00)
+Lamps: 116 lamp lights (4 shadowed, budget 256 lights, 4 shadows; shadow opacity 0,00/0,00/0,00/0,00), 116 visible Lamps with halos, 14617 Lamps in the Store (at most 37 per pool cell)
+Weather: 0 Fog banks, wind 35 m per Store hour, fog density at the focus 0,00
+Screenshot saved to C:\INBOX\Projects\SCP_3000_SIMULATION\docs\screenshots\03c\after\3x3-Showrooms-open.png
+Godot Engine v4.7.2.stable.mono.official.ed1daf0bf - https://godotengine.org
+Vulkan 1.4.329 - Forward+ - Using Device #0: NVIDIA - NVIDIA GeForce RTX 2070 SUPER
+
+Furniture: 395175 pieces placed in 862 ms.
+Pillars: 3x3 layout, 9 solid concrete Landmarks 1200 m tall, 9 Sectors, no emission or lights, reach 1200 m.
+Store time: day 1 23:00, ClosingTime. Store light 0,00, ambient 0,045, fog 0,0080, haze 0,0060 (volumetric True, reach 177 m), Fog bank density 0,250
+Ambient audio: hum -80,0 dB, drone -5,2 dB, playing True, next footsteps now (heaviness 1,00)
+Lamps: 116 lamp lights (4 shadowed, budget 256 lights, 4 shadows; shadow opacity 0,00/0,00/0,00/0,00), 116 visible Lamps with halos, 14617 Lamps in the Store (at most 37 per pool cell)
+Weather: 0 Fog banks, wind 42 m per Store hour, fog density at the focus 0,00
+Screenshot saved to C:\INBOX\Projects\SCP_3000_SIMULATION\docs\screenshots\03c\after\3x3-Showrooms-closing.png
+Godot Engine v4.7.2.stable.mono.official.ed1daf0bf - https://godotengine.org
+Vulkan 1.4.329 - Forward+ - Using Device #0: NVIDIA - NVIDIA GeForce RTX 2070 SUPER
+
+Furniture: 395175 pieces placed in 861 ms.
+Pillars: 3x3 layout, 9 solid concrete Landmarks 1200 m tall, 9 Sectors, no emission or lights, reach 1200 m.
+Store time: day 1 12:00, Open. Store light 1,00, ambient 0,600, fog 0,0045, haze 0,0040 (volumetric True, reach 177 m), Fog bank density 0,220
+Ambient audio: hum -6,9 dB, drone -80,0 dB, playing True, next footsteps now (heaviness 0,00)
+Lamps: 214 lamp lights (4 shadowed, budget 256 lights, 4 shadows; shadow opacity 0,00/0,00/0,00/0,00), 214 visible Lamps with halos, 14617 Lamps in the Store (at most 37 per pool cell)
+Weather: 0 Fog banks, wind 42 m per Store hour, fog density at the focus 0,00
+Screenshot saved to C:\INBOX\Projects\SCP_3000_SIMULATION\docs\screenshots\03c\after\3x3-Workspaces-open.png
+Godot Engine v4.7.2.stable.mono.official.ed1daf0bf - https://godotengine.org
+Vulkan 1.4.329 - Forward+ - Using Device #0: NVIDIA - NVIDIA GeForce RTX 2070 SUPER
+
+Furniture: 395175 pieces placed in 873 ms.
+Pillars: 3x3 layout, 9 solid concrete Landmarks 1200 m tall, 9 Sectors, no emission or lights, reach 1200 m.
+Store time: day 1 23:00, ClosingTime. Store light 0,00, ambient 0,045, fog 0,0080, haze 0,0060 (volumetric True, reach 177 m), Fog bank density 0,250
+Ambient audio: hum -80,0 dB, drone -5,2 dB, playing True, next footsteps now (heaviness 1,00)
+Lamps: 214 lamp lights (4 shadowed, budget 256 lights, 4 shadows; shadow opacity 0,00/0,00/0,00/0,00), 214 visible Lamps with halos, 14617 Lamps in the Store (at most 37 per pool cell)
+Weather: 0 Fog banks, wind 60 m per Store hour, fog density at the focus 0,00
+Screenshot saved to C:\INBOX\Projects\SCP_3000_SIMULATION\docs\screenshots\03c\after\3x3-Workspaces-closing.png
+Godot Engine v4.7.2.stable.mono.official.ed1daf0bf - https://godotengine.org
+Vulkan 1.4.329 - Forward+ - Using Device #0: NVIDIA - NVIDIA GeForce RTX 2070 SUPER
+
+Furniture: 823083 pieces placed in 1549 ms.
+Pillars: 3x3L-diamond layout, 4 solid concrete Landmarks 1200 m tall, 9 Sectors, no emission or lights, reach 1200 m.
+Store time: day 1 12:00, Open. Store light 1,00, ambient 0,600, fog 0,0045, haze 0,0040 (volumetric True, reach 177 m), Fog bank density 0,220
+Ambient audio: hum -6,9 dB, drone -80,0 dB, playing True, next footsteps now (heaviness 0,00)
+Lamps: 256 lamp lights (4 shadowed, budget 256 lights, 4 shadows; shadow opacity 0,00/0,00/0,00/0,00), 1015 visible Lamps with halos, 27995 Lamps in the Store (at most 37 per pool cell)
+Weather: 0 Fog banks, wind 64 m per Store hour, fog density at the focus 0,00
+Screenshot saved to C:\INBOX\Projects\SCP_3000_SIMULATION\docs\screenshots\03c\after\3x3L-diamond-LightingAndElectrical-open.png
+Godot Engine v4.7.2.stable.mono.official.ed1daf0bf - https://godotengine.org
+Vulkan 1.4.329 - Forward+ - Using Device #0: NVIDIA - NVIDIA GeForce RTX 2070 SUPER
+
+Furniture: 823083 pieces placed in 1586 ms.
+Pillars: 3x3L-diamond layout, 4 solid concrete Landmarks 1200 m tall, 9 Sectors, no emission or lights, reach 1200 m.
+Store time: day 1 23:00, ClosingTime. Store light 0,00, ambient 0,045, fog 0,0080, haze 0,0060 (volumetric True, reach 177 m), Fog bank density 0,250
+Ambient audio: hum -80,0 dB, drone -5,2 dB, playing True, next footsteps now (heaviness 1,00)
+Lamps: 256 lamp lights (4 shadowed, budget 256 lights, 4 shadows; shadow opacity 0,00/0,00/0,00/0,00), 1015 visible Lamps with halos, 27995 Lamps in the Store (at most 37 per pool cell)
+Weather: 0 Fog banks, wind 35 m per Store hour, fog density at the focus 0,00
+Screenshot saved to C:\INBOX\Projects\SCP_3000_SIMULATION\docs\screenshots\03c\after\3x3L-diamond-LightingAndElectrical-closing.png
+Godot Engine v4.7.2.stable.mono.official.ed1daf0bf - https://godotengine.org
+Vulkan 1.4.329 - Forward+ - Using Device #0: NVIDIA - NVIDIA GeForce RTX 2070 SUPER
+
+Furniture: 823083 pieces placed in 1589 ms.
+Pillars: 3x3L-diamond layout, 4 solid concrete Landmarks 1200 m tall, 9 Sectors, no emission or lights, reach 1200 m.
+Store time: day 1 12:00, Open. Store light 1,00, ambient 0,600, fog 0,0045, haze 0,0040 (volumetric True, reach 177 m), Fog bank density 0,220
+Ambient audio: hum -6,9 dB, drone -80,0 dB, playing True, next footsteps now (heaviness 0,00)
+Lamps: 149 lamp lights (4 shadowed, budget 256 lights, 4 shadows; shadow opacity 0,00/0,00/0,00/0,00), 149 visible Lamps with halos, 27995 Lamps in the Store (at most 37 per pool cell)
+Weather: 0 Fog banks, wind 61 m per Store hour, fog density at the focus 0,00
+Screenshot saved to C:\INBOX\Projects\SCP_3000_SIMULATION\docs\screenshots\03c\after\3x3L-diamond-Showrooms-open.png
+Godot Engine v4.7.2.stable.mono.official.ed1daf0bf - https://godotengine.org
+Vulkan 1.4.329 - Forward+ - Using Device #0: NVIDIA - NVIDIA GeForce RTX 2070 SUPER
+
+Furniture: 823083 pieces placed in 1535 ms.
+Pillars: 3x3L-diamond layout, 4 solid concrete Landmarks 1200 m tall, 9 Sectors, no emission or lights, reach 1200 m.
+Store time: day 1 23:00, ClosingTime. Store light 0,00, ambient 0,045, fog 0,0080, haze 0,0060 (volumetric True, reach 177 m), Fog bank density 0,250
+Ambient audio: hum -80,0 dB, drone -5,2 dB, playing True, next footsteps now (heaviness 1,00)
+Lamps: 149 lamp lights (4 shadowed, budget 256 lights, 4 shadows; shadow opacity 0,00/0,00/0,00/0,00), 149 visible Lamps with halos, 27995 Lamps in the Store (at most 37 per pool cell)
+Weather: 0 Fog banks, wind 69 m per Store hour, fog density at the focus 0,00
+Screenshot saved to C:\INBOX\Projects\SCP_3000_SIMULATION\docs\screenshots\03c\after\3x3L-diamond-Showrooms-closing.png
+Godot Engine v4.7.2.stable.mono.official.ed1daf0bf - https://godotengine.org
+Vulkan 1.4.329 - Forward+ - Using Device #0: NVIDIA - NVIDIA GeForce RTX 2070 SUPER
+
+Furniture: 823083 pieces placed in 1540 ms.
+Pillars: 3x3L-diamond layout, 4 solid concrete Landmarks 1200 m tall, 9 Sectors, no emission or lights, reach 1200 m.
+Store time: day 1 12:00, Open. Store light 1,00, ambient 0,600, fog 0,0045, haze 0,0040 (volumetric True, reach 177 m), Fog bank density 0,220
+Ambient audio: hum -6,9 dB, drone -80,0 dB, playing True, next footsteps now (heaviness 0,00)
+Lamps: 237 lamp lights (4 shadowed, budget 256 lights, 4 shadows; shadow opacity 0,00/0,00/0,00/0,00), 237 visible Lamps with halos, 27995 Lamps in the Store (at most 37 per pool cell)
+Weather: 0 Fog banks, wind 36 m per Store hour, fog density at the focus 0,00
+Screenshot saved to C:\INBOX\Projects\SCP_3000_SIMULATION\docs\screenshots\03c\after\3x3L-diamond-Workspaces-open.png
+Godot Engine v4.7.2.stable.mono.official.ed1daf0bf - https://godotengine.org
+Vulkan 1.4.329 - Forward+ - Using Device #0: NVIDIA - NVIDIA GeForce RTX 2070 SUPER
+
+Furniture: 823083 pieces placed in 1533 ms.
+Pillars: 3x3L-diamond layout, 4 solid concrete Landmarks 1200 m tall, 9 Sectors, no emission or lights, reach 1200 m.
+Store time: day 1 23:00, ClosingTime. Store light 0,00, ambient 0,045, fog 0,0080, haze 0,0060 (volumetric True, reach 177 m), Fog bank density 0,250
+Ambient audio: hum -80,0 dB, drone -5,2 dB, playing True, next footsteps now (heaviness 1,00)
+Lamps: 237 lamp lights (4 shadowed, budget 256 lights, 4 shadows; shadow opacity 0,00/0,00/0,00/0,00), 237 visible Lamps with halos, 27995 Lamps in the Store (at most 37 per pool cell)
+Weather: 0 Fog banks, wind 37 m per Store hour, fog density at the focus 0,00
+Screenshot saved to C:\INBOX\Projects\SCP_3000_SIMULATION\docs\screenshots\03c\after\3x3L-diamond-Workspaces-closing.png

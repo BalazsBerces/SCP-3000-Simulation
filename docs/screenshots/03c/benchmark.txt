@@ -1,0 +1,21 @@
+Godot Engine v4.7.2.stable.mono.official.ed1daf0bf - https://godotengine.org
+Vulkan 1.4.329 - Forward+ - Using Device #0: NVIDIA - NVIDIA GeForce RTX 2070 SUPER
+
+Furniture: 395175 pieces placed in 890 ms.
+Pillars: 3x3 layout, 9 solid concrete Landmarks 1200 m tall, 9 Sectors, no emission or lights, reach 1200 m.
+Fog bank 1 dissipated at (337, 920).
+Fog bank 3 dissipated at (438, 346).
+Fog bank 4 dissipated at (824, 1072).
+Fog bank 12 formed at (513, 240).
+Fog bank 5 dissipated at (156, 678).
+Fog bank 13 formed at (806, 1054).
+Fog bank 14 formed at (726, 730).
+Fog bank 14 dissipated at (560, 560).
+Closing time began on Store day 1.
+Fog bank 15 formed at (726, 730).
+Benchmark: Store 3008, 1920x1080, NVIDIA GeForce RTX 2070 SUPER, 20 s per lighting, target 120 fps average, 75 fps 1% low
+  Weather: fixed Fog bank, radius 160 m; MSAA Msaa4X, TAA True
+  Open         average  199,3 fps, 1% low   82,2 fps (3987 frames in 20,0 s; up to 256 lamp lights, 4 shadowed, 2322 visible Lamps with halos)
+  Closing time average  196,1 fps, 1% low   83,0 fps (3923 frames in 20,0 s; up to 256 lamp lights, 4 shadowed, 2322 visible Lamps with halos)
+  Closing time far average  137,7 fps, 1% low   97,4 fps (2754 frames in 20,0 s; up to 256 lamp lights, 4 shadowed, 1598 visible Lamps with halos)
+Benchmark PASSED

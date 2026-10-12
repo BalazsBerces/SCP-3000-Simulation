@@ -226,12 +226,12 @@ public class StoreGenerationTests
     }
 
     [Fact]
-    public void Second_wave_preserves_the_benchmark_furniture_and_lamp_budget()
+    public void The_benchmark_store_preserves_furniture_density_with_occasional_lamps()
     {
         var snapshot = Generate(3008);
-        // Measured on main before ticket 03a, with the unchanged 3x3 benchmark layout.
-        Assert.InRange(snapshot.Furniture.Count, 365_682, 446_944);
-        Assert.InRange(snapshot.Furniture.Count(p => FurnitureCatalog.Spec(p.Type).IsLamp), 28_581, 34_933);
+        // Ticket 03c replaces Lamp-count preservation with a piece-share target.
+        Assert.InRange(snapshot.Furniture.Count, 410_806 * 0.9, 410_806 * 1.1);
+        Assert.InRange(snapshot.Furniture.Count(p => FurnitureCatalog.Spec(p).IsLamp) / (double)snapshot.Furniture.Count, 0.03, 0.04);
     }
 
     [Fact]

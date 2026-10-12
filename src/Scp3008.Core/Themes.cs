@@ -158,14 +158,14 @@ public static class ThemeCatalog
 
     private static readonly Dictionary<DepartmentType, (Theme Theme, float Weight)[]> Weights = new()
     {
-        [DepartmentType.Showrooms] = [(Theme.LivingRoom, 3), (Theme.Bedroom, 3), (Theme.DiningRoom, 1), (Theme.HomeOffice, 1), (Theme.Entry, 1), (Theme.StorageShowroom, 1)],
+        [DepartmentType.Showrooms] = [(Theme.LivingRoom, 7), (Theme.Bedroom, 2), (Theme.DiningRoom, 2), (Theme.HomeOffice, 1), (Theme.Entry, 1), (Theme.StorageShowroom, 1)],
         [DepartmentType.BathroomsAndKitchens] = [(Theme.Kitchen, 3), (Theme.Bathroom, 3), (Theme.ApplianceDisplay, 1)],
         [DepartmentType.RestaurantAndFoodMarket] = [(Theme.Cafe, 3), (Theme.FoodMarket, 2)],
         [DepartmentType.PlantSection] = [(Theme.Greenhouse, 3), (Theme.PlantHall, 1), (Theme.Patio, 1)],
         [DepartmentType.KidsArea] = [(Theme.KidsBedroom, 2), (Theme.Playroom, 2), (Theme.ShelvingRows, 1)],
         [DepartmentType.LightingAndElectrical] = [(Theme.LampDisplay, 4), (Theme.ShelvingRows, 1)],
         [DepartmentType.SelfServeWarehouse] = [(Theme.WarehouseRacks, 5), (Theme.BulkStacks, 1)],
-        [DepartmentType.Workspaces] = [(Theme.OpenPlanOffice, 3), (Theme.HomeOffice, 1), (Theme.MeetingRoom, 1), (Theme.OfficeLounge, 1)],
+        [DepartmentType.Workspaces] = [(Theme.OpenPlanOffice, 3), (Theme.HomeOffice, 1), (Theme.MeetingRoom, 2), (Theme.OfficeLounge, 2)],
         [DepartmentType.TextilesAndDecor] = [(Theme.TextileBoutique, 3), (Theme.GalleryWall, 1), (Theme.Bedroom, 1), (Theme.LivingRoom, 1)],
         [DepartmentType.Outdoor] = [(Theme.Patio, 3), (Theme.PoolDeck, 1), (Theme.BbqCorner, 1), (Theme.GardenStock, 1)],
         [DepartmentType.DiningAndHallway] = [(Theme.DiningRoom, 3), (Theme.Entry, 2), (Theme.StorageShowroom, 1)],
@@ -214,13 +214,16 @@ public static class ThemeCatalog
     {
         yield return new(Theme.LivingRoom,
         [
-            Core(Centre, 1, 1, CoffeeTable, TvBench) with { Pitch = new(6f, 6f), Jitter = 0.3f },
-            Core(Around, 1, 1, Sofa).On(CoffeeTable, TvBench) with { Sides = AroundSides.Back, Gap = 0.45f },
-            Core(Under, 1, 1, Rug).On(CoffeeTable, TvBench),
-            Common(0.7f, Around, 1, 2, Armchair).On(CoffeeTable, TvBench) with { Sides = AroundSides.Ends, Gap = 0.35f },
+            Core(Centre, 1, 1, CoffeeTable) with { Pitch = new(5.5f, 5.5f), Jitter = 0.3f },
+            Core(Around, 1, 1, Sofa).On(CoffeeTable) with { Sides = AroundSides.Back, Gap = 0.45f, AnchorRole = Centre },
+            Core(Under, 1, 1, Rug).On(CoffeeTable) with { AnchorRole = Centre },
+            Common(0.85f, Around, 2, 2, Armchair).On(CoffeeTable) with { Sides = AroundSides.Ends, Gap = 0.35f, AnchorRole = Centre },
+            // A second table beside a reading seat uses floor space released by optional Lamps.
+            Common(0.6f, Beside, 1, 1, CoffeeTable).On(Armchair) with { Gap = 0.2f },
             Common(0.6f, Wall, 2, 4, Bookcase) with { Run = true },
-            Common(0.75f, Corner, 1, 2, FloorLamp, ArcLamp),
+            Common(0.35f, Corner, 1, 1, FloorLamp, ArcLamp),
             Common(0.5f, Wall, 1, 1, Sideboard),
+            Common(0.6f, Wall, 1, 1, TvBench),
             Accent(0.25f, Corner, 1, 2, PottedPlant),
             Accent(0.2f, Corner, 1, 1, LargePlant),
             Accent(0.15f, Wall, 1, 2, FrameDisplay),
@@ -235,8 +238,8 @@ public static class ThemeCatalog
             Core(Beside, 1, 2, Nightstand).On(Bed),
             Common(0.7f, Wall, 1, 4, Wardrobe, Dresser) with { Run = true },
             Common(0.6f, InFront, 1, 1, Rug).On(Bed) with { Gap = -0.7f },
-            Common(0.7f, OnTop, 1, 1, TableLamp, DeskLamp).On(Nightstand),
-            Common(0.5f, Corner, 1, 1, FloorLamp),
+            Common(0.35f, OnTop, 1, 1, TableLamp, DeskLamp).On(Nightstand),
+            Common(0.25f, Corner, 1, 1, FloorLamp),
             Accent(0.2f, Wall, 1, 1, FloorMirror),
             Accent(0.2f, OnTop, 1, 1, BlanketStack).On(Bed),
             Accent(0.15f, Loose, 1, 1, CushionBin),
@@ -268,7 +271,7 @@ public static class ThemeCatalog
             Common(0.5f, Wall, 1, 1, Sideboard),
             Common(0.4f, Wall, 1, 2, DisplayCabinet),
             Common(0.5f, Under, 1, 1, Rug).On(DiningTable),
-            Common(0.5f, Corner, 1, 1, ArcLamp, FloorLamp),
+            Common(0.25f, Corner, 1, 1, ArcLamp, FloorLamp),
             Accent(0.15f, Loose, 1, 2, BarStool),
             Accent(0.2f, Corner, 1, 2, PottedPlant),
             Accent(0.15f, Corner, 1, 1, LargePlant),
@@ -294,7 +297,7 @@ public static class ThemeCatalog
         [
             Core(Wall, 1, 2, Desk) with { WallMargin = 0.3f },
             Core(InFront, 1, 1, OfficeChair).On(Desk) with { Facing = true },
-            Common(0.7f, OnTop, 1, 1, DeskLamp).On(Desk),
+            Common(0.45f, OnTop, 1, 1, DeskLamp).On(Desk),
             Common(0.5f, Wall, 1, 3, Bookcase) with { Run = true },
             Common(0.4f, Wall, 1, 3, FilingCabinet) with { Run = true },
             Accent(0.2f, Corner, 1, 1, Armchair),
@@ -307,7 +310,7 @@ public static class ThemeCatalog
         [
             Core(Centre, 1, 1, Desk) with { Pitch = new(4.8f, 3.6f), Cluster = (4, 6), Jitter = 0.15f },
             Core(InFront, 1, 1, OfficeChair).On(Desk) with { Facing = true },
-            Common(0.75f, OnTop, 1, 1, DeskLamp).On(Desk),
+            Common(0.45f, OnTop, 1, 1, DeskLamp).On(Desk),
             Common(0.6f, Wall, 1, 4, FilingCabinet) with { Run = true },
             Common(0.5f, Corner, 1, 2, LargePlant),
             Accent(0.2f, Wall, 1, 2, ShelfUnit) with { Run = true },
@@ -332,7 +335,7 @@ public static class ThemeCatalog
             Core(Around, 2, 4, Sofa, Armchair).On(CoffeeTable) with { Gap = 0.4f, MixTypes = true },
             Common(0.5f, Under, 1, 1, Rug).On(CoffeeTable),
             Common(0.5f, Corner, 1, 2, LargePlant),
-            Common(0.6f, Corner, 1, 1, FloorLamp, ArcLamp),
+            Common(0.25f, Corner, 1, 1, FloorLamp, ArcLamp),
             Accent(0.2f, Wall, 1, 2, Bookcase) with { Run = true },
             Accent(0.2f, Corner, 1, 1, PottedPlant),
             Accent(0.2f, Loose, 1, 1, CushionBin),
@@ -465,7 +468,7 @@ public static class ThemeCatalog
         [
             Core(Row, 1, 1, GardenChair, GardenTable, SunLounger, Parasol, Grill, PlanterBox) with { MixTypes = true, Gap = 0.25f, Pitch = new(0f, 1.6f) },
             Common(0.5f, Loose, 1, 2, BoxCart),
-            Accent(0.2f, Loose, 1, 3, PottedPlant),
+            Accent(0.15f, Loose, 1, 3, PottedPlant),
         ]);
         yield return new(Theme.Greenhouse,
         [
