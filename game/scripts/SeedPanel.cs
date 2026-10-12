@@ -5,8 +5,9 @@ namespace Scp3008.Game;
 
 /// <summary>
 /// Observer seed input: type a seed (a number, or any text, which is hashed to one) and press
-/// Generate or Enter for a newly generated Store; Random picks a seed. Also names the
-/// Department under the camera focus.
+/// Generate or Enter for a newly generated Store; Random picks a seed. Below, the Pillar layout
+/// row (Pillars: 3×3 | 2×2) marks the active layout; choosing the other regenerates the Store
+/// with the same seed and that layout, like Generate. Also names the Department under the camera focus.
 /// </summary>
 public partial class SeedPanel : CanvasLayer
 {
@@ -17,6 +18,7 @@ public partial class SeedPanel : CanvasLayer
     private Button _generate = null!;
     private Button _random = null!;
     private Label _status = null!;
+    private readonly Dictionary<PillarLayout, Button> _layoutButtons = new();
 
     public override void _Ready()
     {
@@ -50,6 +52,24 @@ public partial class SeedPanel : CanvasLayer
         };
         row.AddChild(_random);
 
+        var layoutRow = new HBoxContainer { Name = "PillarLayout" };
+        column.AddChild(layoutRow);
+        layoutRow.AddChild(new Label { Text = "Pillars:" });
+        var layoutGroup = new ButtonGroup();
+        foreach (var layout in PillarLayouts.All)
+        {
+            var perSide = layout.PillarsPerSide();
+            var button = new Button
+            {
+                Name = layout.Name(), Text = $"{perSide}×{perSide}", ToggleMode = true, ButtonGroup = layoutGroup,
+                ButtonPressed = layout == Host.Layout, FocusMode = Control.FocusModeEnum.None,
+                TooltipText = $"{perSide * perSide} Pillars, {perSide * perSide} Sectors",
+            };
+            button.Pressed += () => ChooseLayout(layout);
+            layoutRow.AddChild(button);
+            _layoutButtons[layout] = button;
+        }
+
         _status = new Label { Name = "Department" };
         column.AddChild(_status);
         Host.WorldCreated += OnWorldCreated;
@@ -61,7 +81,7 @@ public partial class SeedPanel : CanvasLayer
     {
         if (Host.IsGenerating)
         {
-            _status.Text = $"Generating Store {Host.Seed}…";
+            _status.Text = $"Generating Store {Host.Seed} ({Host.Layout.Name()} Pillars)…";
             return;
         }
         var department = Host.Snapshot.Departments.At(Rig.Focus.ToStore());
@@ -87,6 +107,27 @@ public partial class SeedPanel : CanvasLayer
         Generate();
     }
 
+    /// <summary>
+    /// Regenerates the Store with the current seed and another Pillar layout, as the layout row
+    /// does (also used by unattended dev checks). Choosing the active layout does nothing.
+    /// </summary>
+    public void ChooseLayout(PillarLayout layout)
+    {
+        if (Host.IsGenerating || layout == Host.Snapshot.PillarLayout)
+        {
+            MarkLayout(Host.IsGenerating ? Host.Layout : Host.Snapshot.PillarLayout);
+            return;
+        }
+        Host.CreateWorld(Host.Snapshot.Seed, layout);
+        MarkLayout(layout);
+    }
+
+    private void MarkLayout(PillarLayout active)
+    {
+        foreach (var (layout, button) in _layoutButtons)
+            button.SetPressedNoSignal(layout == active);
+    }
+
     private void Generate()
     {
         _seedInput.ReleaseFocus();
@@ -97,6 +138,7 @@ public partial class SeedPanel : CanvasLayer
     {
         if (!_seedInput.HasFocus())
             _seedInput.Text = snapshot.Seed.ToString();
+        MarkLayout(snapshot.PillarLayout);
     }
 }
 

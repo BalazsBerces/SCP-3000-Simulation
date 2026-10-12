@@ -25,24 +25,38 @@ Unattended check: `godot --path game -- --capture=shot.png --capture-after=5 --f
 
 ## Pillars and Sectors
 
-`Pillars` on the facade snapshot lists the nine identical concrete Pillars: 32 × 32 m blocks,
-1200 m tall (beyond any camera, so their tops are never seen), on a regular 3 × 3 grid 448 m apart
-with B-2 at the Store centre. Each is marked with its grid coordinate, column letter A–C along x
-and row number 1–3 along y. The layout is the same for every Store seed. Furniture generation keeps
-each footprint and a 3 m (one-aisle) walkway ring around it clear. `Sectors` lists the nine equal
-448 × 448 m Sectors centred on and named after the Pillars, and `SectorAt(position)` (on the
-snapshot and the facade) answers which Sector a wrapped position is in; a position on a boundary
-belongs to the Sector east or south of it.
+The world config's **Pillar layout** (`WorldConfig.PillarLayout`, also on the snapshot) chooses
+the grid: `3x3` (default) or `2x2`. It is part of the world state and never comes from the seed.
+`Pillars` on the facade snapshot lists the identical concrete Pillars: 32 × 32 m blocks, 1200 m
+tall (beyond any camera, so their tops are never seen), each marked with its grid coordinate,
+column letter along x and row number along y.
 
-`PillarRenderer` draws the Pillars and their Ghost copies out to 1200 m with no emission or lights.
-The coordinate is painted on all four sides at 2, 28, 60 and 100 m; the shaft darkens upwards into
-the haze, and where it stands between the camera and the followed point a dithered disc around
-that point turns see-through. In the F4 Store overview the Pillars are cut to 16 m bases and the
-floor shows the Sector boundaries and labels; the normal view shows no boundaries.
+- `3x3`: nine Pillars A-1 … C-3 at 224, 672 and 1120 m on each axis, 448 m apart, B-2 at the Store
+  centre; nine 448 × 448 m Sectors whose boundaries run on Chunk boundaries.
+- `2x2`: four Pillars A-1, B-1, A-2, B-2 at 336 and 1008 m on each axis, 672 m apart; four
+  672 × 672 m Sectors with boundaries at 0 m (the Seam) and 672 m, on the 16 m aisle grid but
+  mid-Chunk. Because the Store wraps, a Pillar's east and west neighbour is the same Pillar.
+
+Furniture generation keeps each footprint and a 3 m (one-aisle) walkway ring around it clear.
+`Sectors` lists the Sectors centred on and named after the Pillars, and `SectorAt(position)` (on
+the snapshot and the facade) answers which Sector a wrapped position is in; a position on a
+boundary belongs to the Sector east or south of it. `NearestPillar(position)` uses the shortest
+wrapped distance (never more than ~317 m in `3x3`, ~475 m in `2x2`), and `OutsidePillars(position)`
+moves a position that lies inside a Pillar onto its walkway.
+
+`PillarRenderer` draws the Pillars and every Ghost copy of them within 1200 m, with no emission or lights.
+Pillars are always solid. The coordinate is painted on all four sides at 2, 28, 60 and 100 m, and
+the shaft darkens upwards into the haze. In the F4 Store overview the Pillars are cut to 16 m bases
+and the floor shows the active layout's Sector boundaries and labels; the normal view shows no
+boundaries. The top-right panel's **Pillars: 3×3 | 2×2** row marks the active layout; choosing the
+other one regenerates the Store with the same seed (the Store clock restarts, the camera stays, and
+a focus that would end up inside a Pillar moves onto its walkway).
 
 For fixed visual checks, add `--pause --pillar=B-2 --distance=60 --clear-weather` to a dev capture;
-`--pillar` takes a grid coordinate and focuses just south of that Pillar's walkway. Evidence and
-remaining human checks are in [ticket 06a verification](docs/ticket-06a-verification.md).
+`--pillars=3x3|2x2` picks the start-up layout, `--pillar` takes a grid coordinate and focuses just
+south of that Pillar's walkway, and `--choose-pillars=2x2` presses the panel button after a second.
+Evidence and remaining human checks are in [ticket 06a verification](docs/ticket-06a-verification.md)
+and [ticket 06b verification](docs/ticket-06b-verification.md).
 
 ## Weather
 

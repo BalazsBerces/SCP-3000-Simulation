@@ -6,6 +6,7 @@ namespace Scp3008.Core;
 /// An immutable, read-only view of the world at one moment. Safe to read from any thread.
 /// </summary>
 /// <param name="Seed">The seed the Store was generated from.</param>
+/// <param name="PillarLayout">The world's Pillar layout, which fixes its Pillars and Sectors.</param>
 /// <param name="Clock">The Store clock.</param>
 /// <param name="Space">The geometry of the wrapping Store floor and its chunks.</param>
 /// <param name="Speed">The speed the simulation clock is running at.</param>
@@ -13,10 +14,11 @@ namespace Scp3008.Core;
 /// <param name="Furniture">Every piece of Furniture in the Store, each an individual object.</param>
 /// <param name="FogBanks">The Fog banks drifting through the Store.</param>
 /// <param name="Wind">The wind the Fog banks drift with, in metres per Store hour (X east, Y south).</param>
-/// <param name="Pillars">The nine identical concrete Pillars on the 3 × 3 grid, marked by grid coordinate; never light or power sources.</param>
-/// <param name="Sectors">The nine equal Sectors the Pillars divide the Store into, in the same order as the Pillars.</param>
+/// <param name="Pillars">The identical concrete Pillars on the layout's grid (9 or 4), marked by grid coordinate; never light or power sources.</param>
+/// <param name="Sectors">The equal Sectors the Pillars divide the Store into, in the same order as the Pillars.</param>
 public sealed record WorldSnapshot(
     int Seed,
+    PillarLayout PillarLayout,
     StoreClock Clock,
     StoreSpace Space,
     SimulationSpeed Speed,
@@ -43,5 +45,41 @@ public sealed record WorldSnapshot(
     /// The Sector a Store position is in. Positions may be unwrapped; a position on a Sector
     /// boundary belongs to the Sector east or south of it.
     /// </summary>
-    public Sector SectorAt(Vector2 position) => Sectors[Generation.PillarGenerator.SectorIndexAt(Space, position)];
+    public Sector SectorAt(Vector2 position) => Sectors[Generation.PillarGenerator.SectorIndexAt(Space, PillarLayout, position)];
+
+    /// <summary>
+    /// The Pillar nearest to a Store position by the shortest wrapped distance. Positions may be
+    /// unwrapped. In 2 × 2 the Pillar to the east and the one to the west are the same Pillar.
+    /// </summary>
+    public Pillar NearestPillar(Vector2 position)
+    {
+        var nearest = Pillars[0];
+        var nearestDistance = float.MaxValue;
+        foreach (var pillar in Pillars)
+        {
+            var distance = Space.Delta(position, pillar.Position).LengthSquared();
+            if (distance < nearestDistance)
+                (nearest, nearestDistance) = (pillar, distance);
+        }
+        return nearest;
+    }
+
+    /// <summary>
+    /// The position itself, or, if it lies inside a Pillar's footprint, the point straight out
+    /// through the nearest face onto the middle of the walkway ring. Positions may be unwrapped and
+    /// keep their image of the Store.
+    /// </summary>
+    public Vector2 OutsidePillars(Vector2 position)
+    {
+        var pillar = NearestPillar(position);
+        var delta = Space.Delta(pillar.Position, position);
+        var half = pillar.Width / 2f;
+        if (MathF.Abs(delta.X) >= half || MathF.Abs(delta.Y) >= half)
+            return position;
+        var outside = half + Pillar.WalkwayWidth / 2f;
+        var moved = MathF.Abs(delta.X) > MathF.Abs(delta.Y)
+            ? delta with { X = delta.X < 0f ? -outside : outside }
+            : delta with { Y = delta.Y < 0f ? -outside : outside };
+        return position + moved - delta;
+    }
 }

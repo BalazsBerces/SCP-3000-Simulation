@@ -1,5 +1,6 @@
 using System.Globalization;
 using Godot;
+using Scp3008.Core;
 
 namespace Scp3008.Game;
 
@@ -9,7 +10,8 @@ namespace Scp3008.Game;
 ///   --fps-report           print the average frame rate over the capture window;
 ///   --focus=x,y            start the camera focused on Store position (x, y);
 ///   --distance=metres      start the camera at this zoom distance;
-///   --pillar=coordinate    focus beside a Pillar, by its grid coordinate (e.g. B-2);
+///   --pillars=3x3|2x2      (read by SimulationHost) start with this Pillar layout;
+///   --pillar=coordinate    focus beside a Pillar, by its grid coordinate (e.g. B-2), in either layout;
 ///   --pause                freeze Store time for comparable captures;
 ///   --pan=vx,vy            pan the camera focus at (vx, vy) metres per second, then report how
 ///                          often it crossed a seam and its largest per-frame step, overall
@@ -19,7 +21,9 @@ namespace Scp3008.Game;
 ///   --eye-level            look from a Villager's eye height (1.7 m) along the floor instead of
 ///                          from the Observer camera, to check the ground-level haze;
 ///   --enter-seed=text      after one second, enter this seed in the seed input; the capture timer
-///                          restarts once the new Store is shown.
+///                          restarts once the new Store is shown;
+///   --choose-pillars=3x3|2x2  after one second, choose this Pillar layout in the top-right panel;
+///                          the capture timer restarts once the new Store is shown.
 /// Does nothing in normal runs.
 /// </summary>
 public partial class DevCapture : Node
@@ -43,6 +47,7 @@ public partial class DevCapture : Node
     private bool _crossedThisFrame;
     private Vector3 _lastFocus;
     private string? _seedToEnter;
+    private PillarLayout? _layoutToChoose;
 
     public override void _Ready()
     {
@@ -75,6 +80,8 @@ public partial class DevCapture : Node
                 AddEyeLevelCamera();
             else if (arg.StartsWith("--enter-seed="))
                 _seedToEnter = arg["--enter-seed=".Length..];
+            else if (arg.StartsWith("--choose-pillars="))
+                _layoutToChoose = PillarLayouts.Parse(arg["--choose-pillars=".Length..]);
         }
         _lastFocus = Rig.Focus;
         // Keep the step measurement continuous across the rig's whole-Store shifts.
@@ -86,11 +93,13 @@ public partial class DevCapture : Node
         };
         Host.WorldCreated += snapshot =>
         {
-            GD.Print($"New Store shown: seed {snapshot.Seed}, {snapshot.Departments.All.Count} Departments, {snapshot.Furniture.Count} pieces of Furniture.");
+            GD.Print($"New Store shown: seed {snapshot.Seed}, {snapshot.PillarLayout.Name()} Pillars, {snapshot.Departments.All.Count} Departments, " +
+                     $"{snapshot.Furniture.Count} pieces of Furniture, Store clock {snapshot.Clock.TimeOfDay:hh\\:mm}, " +
+                     $"focus ({Rig.Focus.X:0.0}, {Rig.Focus.Z:0.0}) in Sector {snapshot.SectorAt(Rig.Focus.ToStore()).Name}.");
             _elapsed = 0.0;
             _frames = 0;
         };
-        SetProcess(_capturePath is not null || _fpsReport || _panVelocity != Vector3.Zero || _seedToEnter is not null);
+        SetProcess(_capturePath is not null || _fpsReport || _panVelocity != Vector3.Zero || _seedToEnter is not null || _layoutToChoose is not null);
     }
 
     public override void _Process(double delta)
@@ -112,7 +121,13 @@ public partial class DevCapture : Node
             Seeds.Submit(_seedToEnter);
             _seedToEnter = null;
         }
-        if (_seedToEnter is not null || Host.IsGenerating)
+        // Waits for a seed entered in the same run, which must be shown first.
+        if (_layoutToChoose is { } chosen && _elapsed >= 1.0 && _seedToEnter is null && !Host.IsGenerating)
+        {
+            Seeds.ChooseLayout(chosen);
+            _layoutToChoose = null;
+        }
+        if (_seedToEnter is not null || _layoutToChoose is not null || Host.IsGenerating)
             return;
         if (_elapsed < _captureAfter || (_capturePath is null && !_fpsReport))
             return;

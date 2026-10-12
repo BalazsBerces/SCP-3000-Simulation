@@ -3,23 +3,25 @@ using System.Numerics;
 namespace Scp3008.Core.Generation;
 
 /// <summary>
-/// The fixed 3 × 3 grid of Pillars and the Sectors they divide the Store into. The layout comes
-/// from the Store geometry alone, never from the seed: Sector boundaries run on Chunk boundaries
-/// (0 m, 448 m and 896 m in the standard Store) and each Pillar stands at its Sector's centre.
+/// The fixed grid of Pillars of a <see cref="PillarLayout"/> and the Sectors they divide the Store
+/// into. The grid comes from the layout and the Store geometry alone, never from the seed: Sector
+/// boundaries start at the Seam and repeat every Store length / Pillars per side (448 m in 3 × 3,
+/// on Chunk boundaries; 672 m in 2 × 2, on the 16 m aisle grid but mid-Chunk), and each Pillar
+/// stands at its Sector's centre.
 /// </summary>
 internal static class PillarGenerator
 {
-    public const int PerSide = 3;
     public const float Width = 32f;
     // Far above any camera: the Pillars have no visible top and the Store no ceiling.
     public const float Height = 1200f;
 
-    public static IReadOnlyList<Sector> Sectors(StoreSpace space)
+    public static IReadOnlyList<Sector> Sectors(StoreSpace space, PillarLayout layout)
     {
-        var size = SectorSize(space);
+        var perSide = layout.PillarsPerSide();
+        var size = space.Size / perSide;
         var sectors = new List<Sector>();
-        for (var row = 0; row < PerSide; row++)
-            for (var column = 0; column < PerSide; column++)
+        for (var row = 0; row < perSide; row++)
+            for (var column = 0; column < perSide; column++)
                 sectors.Add(new Sector(sectors.Count, Coordinate(column, row), new Vector2(column, row) * size, size));
         return sectors.AsReadOnly();
     }
@@ -28,20 +30,14 @@ internal static class PillarGenerator
         sectors.Select(s => new Pillar(s.Id, s.Name, s.Centre, Width, Height)).ToList().AsReadOnly();
 
     /// <summary>Index of the Sector containing a position, which may be unwrapped.</summary>
-    public static int SectorIndexAt(StoreSpace space, Vector2 position)
+    public static int SectorIndexAt(StoreSpace space, PillarLayout layout, Vector2 position)
     {
+        var perSide = layout.PillarsPerSide();
         var wrapped = space.Wrap(position);
-        var size = SectorSize(space);
-        var column = Math.Min((int)(wrapped.X / size), PerSide - 1);
-        var row = Math.Min((int)(wrapped.Y / size), PerSide - 1);
-        return row * PerSide + column;
-    }
-
-    private static float SectorSize(StoreSpace space)
-    {
-        if (space.ChunksPerSide % PerSide != 0)
-            throw new ArgumentException($"Sectors need a Store a multiple of {PerSide} Chunks across.", nameof(space));
-        return space.Size / PerSide;
+        var size = space.Size / perSide;
+        var column = Math.Min((int)(wrapped.X / size), perSide - 1);
+        var row = Math.Min((int)(wrapped.Y / size), perSide - 1);
+        return row * perSide + column;
     }
 
     private static string Coordinate(int column, int row) => $"{(char)('A' + column)}-{row + 1}";

@@ -42,6 +42,10 @@ public static class FurnitureMeshes
     // Coarse meshes leave out parts thinner than this (legs, handles, poles), in metres.
     private const float CoarseMinThickness = 0.06f;
 
+    // Coarse meshes also leave out paper-thin parts (tape strips), in metres, and every downward
+    // face: they are drawn only far below the Observer camera, which never sees an underside there.
+    private const float CoarseMinSheetThickness = 0.01f;
+
     private static readonly Dictionary<(FurnitureType, bool Coarse), ArrayMesh> Cache = new();
     private static Dictionary<Part, Material>? _materials;
     private static Dictionary<Part, Material>? _coarseMaterials;
@@ -466,7 +470,7 @@ public static class FurnitureMeshes
             var size = max - min;
             float[] extents = [size.X, size.Y, size.Z];
             Array.Sort(extents);
-            if (coarse && extents[1] < CoarseMinThickness)
+            if (coarse && (extents[1] < CoarseMinThickness || extents[0] < CoarseMinSheetThickness))
                 return;
             var tool = Surface(part);
             // Each face: normal, the two in-face axes (scaled by size) and its corner.
@@ -475,7 +479,8 @@ public static class FurnitureMeshes
             Face(tool, min, new Vector3(0, 0, size.Z), new Vector3(0, size.Y, 0), Vector3.Left);
             Face(tool, max with { Y = min.Y }, new Vector3(0, 0, -size.Z), new Vector3(0, size.Y, 0), Vector3.Right);
             Face(tool, min with { Y = max.Y, Z = max.Z }, new Vector3(size.X, 0, 0), new Vector3(0, 0, -size.Z), Vector3.Up);
-            Face(tool, min, new Vector3(size.X, 0, 0), new Vector3(0, 0, size.Z), Vector3.Down);
+            if (!coarse)
+                Face(tool, min, new Vector3(size.X, 0, 0), new Vector3(0, 0, size.Z), Vector3.Down);
         }
 
         /// <summary>A capped cylinder (or cone frustum) standing on <paramref name="baseCentre"/>.</summary>
@@ -510,6 +515,8 @@ public static class FurnitureMeshes
                 Vertex(tool, top, Vector3.Up, new Vector2(0, 0));
                 Vertex(tool, t0, Vector3.Up, new Vector2(d0.X, d0.Z) * topRadius);
                 Vertex(tool, t1, Vector3.Up, new Vector2(d1.X, d1.Z) * topRadius);
+                if (coarse)
+                    continue;
                 Vertex(tool, baseCentre, Vector3.Down, new Vector2(0, 0));
                 Vertex(tool, b1, Vector3.Down, new Vector2(d1.X, d1.Z) * bottomRadius);
                 Vertex(tool, b0, Vector3.Down, new Vector2(d0.X, d0.Z) * bottomRadius);

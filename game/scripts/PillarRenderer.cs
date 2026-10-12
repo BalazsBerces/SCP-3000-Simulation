@@ -4,9 +4,11 @@ using Scp3008.Core;
 namespace Scp3008.Game;
 
 /// <summary>
-/// The nine far-visible Pillars and their Ghost copies, plus the Sector labels of the
-/// <see cref="StoreOverview"/>. Reads the snapshot only. In the overview the Pillars are cut
-/// down to their bases, so the whole Store stays readable from above.
+/// The far-visible Pillars of the active Pillar layout and all their Ghost copies within reach
+/// (the same Pillar may show in two directions), plus the Sector labels of the <see cref="StoreOverview"/>. Reads the snapshot only.
+/// Pillars are always solid. In the overview they are cut down to their bases, so the whole Store
+/// stays readable from above. When a new world puts a Pillar where the camera focus is, the focus
+/// is moved just outside it.
 /// </summary>
 public partial class PillarRenderer : Node3D
 {
@@ -36,20 +38,30 @@ public partial class PillarRenderer : Node3D
         };
         AddChild(_instances);
         AddChild(_sectorLabels = new Node3D { Name = "SectorLabels" });
-        Host.WorldCreated += Rebuild;
+        Host.WorldCreated += OnWorldCreated;
         StoreOverview.Changed += OnOverviewChanged;
         Rebuild(Host.Snapshot);
     }
 
     public override void _ExitTree()
     {
-        Host.WorldCreated -= Rebuild;
+        Host.WorldCreated -= OnWorldCreated;
         StoreOverview.Changed -= OnOverviewChanged;
     }
 
-    public override void _Process(double delta) => _material.SetShaderParameter("focus_position", Rig.Focus);
-
     private void OnOverviewChanged(bool _) => Rebuild(_shown);
+
+    private void OnWorldCreated(WorldSnapshot snapshot)
+    {
+        var focus = Rig.Focus.ToStore();
+        var outside = snapshot.OutsidePillars(focus);
+        if (outside != focus)
+        {
+            Rig.JumpTo(outside.ToWorld());
+            GD.Print($"Camera focus moved out of Pillar {snapshot.NearestPillar(focus).Coordinate} to ({outside.X:0.0}, {outside.Y:0.0}).");
+        }
+        Rebuild(snapshot);
+    }
 
     private void Rebuild(WorldSnapshot snapshot)
     {
@@ -58,7 +70,6 @@ public partial class PillarRenderer : Node3D
         var pillars = snapshot.Pillars;
         _material.SetShaderParameter("labels", LabelAtlas(pillars.Select(p => p.Coordinate).ToArray()));
         _material.SetShaderParameter("label_count", (float)pillars.Count);
-        _material.SetShaderParameter("see_through", !overview);
         _instances.SetInstances(snapshot.Space, pillars.Select(p =>
         {
             var height = overview ? OverviewBaseHeight : p.Height;
@@ -66,7 +77,7 @@ public partial class PillarRenderer : Node3D
                 new Color(pillars.Count > 1 ? p.Id / (pillars.Count - 1f) : 0f, 0f, 0f));
         }));
         ShowSectorLabels(snapshot, overview);
-        GD.Print($"Pillars: {pillars.Count} concrete Landmarks {(overview ? "cut to their bases" : $"{pillars[0].Height:0} m tall")}, " +
+        GD.Print($"Pillars: {snapshot.PillarLayout.Name()} layout, {pillars.Count} solid concrete Landmarks {(overview ? "cut to their bases" : $"{pillars[0].Height:0} m tall")}, " +
                  $"{snapshot.Sectors.Count} Sectors, no emission or lights, reach {FarDistance:0} m.");
     }
 

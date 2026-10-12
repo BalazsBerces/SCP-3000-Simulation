@@ -9,13 +9,17 @@ namespace Scp3008.Game;
 /// Owns the simulation core for the scene: creates the world, runs the core on its own thread,
 /// and hands snapshots and domain events to the presentation on the main thread. A new world
 /// (e.g. from a seed the Observer entered) is generated in the background and swapped in
-/// when ready. User arguments: <c>--seed=N</c> sets the first world's seed, and
-/// <c>--start-time=HH:MM</c> fast-forwards it to that Store time (dev tool, e.g. to see Closing time).
+/// when ready. User arguments: <c>--seed=N</c> sets the first world's seed, <c>--pillars=3x3|2x2</c>
+/// its Pillar layout, and <c>--start-time=HH:MM</c> fast-forwards it to that Store time (dev tool,
+/// e.g. to see Closing time).
 /// </summary>
 public partial class SimulationHost : Node
 {
     /// <summary>Store seed of the first world, unless given on the command line.</summary>
     [Export] public int Seed { get; set; } = 3008;
+
+    /// <summary>Pillar layout of the first world, unless given on the command line; then of the latest world asked for.</summary>
+    public PillarLayout Layout { get; private set; } = PillarLayout.ThreeByThree;
 
     private readonly ConcurrentQueue<DomainEvent> _pendingEvents = new();
     private SnapshotInterpolator _interpolator = new(Simulation.RealTimeStep);
@@ -58,12 +62,14 @@ public partial class SimulationHost : Node
         {
             if (arg.StartsWith("--seed="))
                 Seed = int.Parse(arg["--seed=".Length..], CultureInfo.InvariantCulture);
+            else if (arg.StartsWith("--pillars="))
+                Layout = PillarLayouts.Parse(arg["--pillars=".Length..]);
             else if (arg.StartsWith("--start-time="))
                 startTime = TimeSpan.ParseExact(arg["--start-time=".Length..], @"hh\:mm", CultureInfo.InvariantCulture);
             else if (arg == "--pause")
                 startPaused = true;
         }
-        var simulation = Simulation.Create(new WorldConfig(Seed));
+        var simulation = Simulation.Create(new WorldConfig(Seed, PillarLayout: Layout));
         if (startTime is { } target)
             simulation.AdvanceTo(target);
         Adopt(simulation, startPaused ? SimulationSpeed.Paused : SimulationSpeed.Normal);
@@ -88,13 +94,18 @@ public partial class SimulationHost : Node
         _simulation.Scenario.ClearFogBanks();
     }
 
-    /// <summary>Generates a new Store from <paramref name="seed"/> in the background, then replaces the current world.</summary>
-    public void CreateWorld(int seed)
+    /// <summary>
+    /// Generates a new Store from <paramref name="seed"/> in the background, with the given Pillar
+    /// layout or else the current one, then replaces the current world; its Store clock starts anew.
+    /// </summary>
+    public void CreateWorld(int seed, PillarLayout? layout = null)
     {
         if (_nextWorld is not null)
             return;
         Seed = seed;
-        _nextWorld = Task.Run(() => Simulation.Create(new WorldConfig(seed)));
+        Layout = layout ?? Layout;
+        var config = new WorldConfig(seed, PillarLayout: Layout);
+        _nextWorld = Task.Run(() => Simulation.Create(config));
     }
 
     public override void _Process(double delta)

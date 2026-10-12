@@ -18,8 +18,9 @@ public partial class CameraRig : Node3D
     [Export] public float StartDistance { get; set; } = 45f;
     [Export] public float WheelZoomFactor { get; set; } = 1.15f;
     /// <summary>
-    /// Where the focus starts, relative to the Store centre. Pillar B-2 stands at the centre, so the
-    /// Observer starts just south of its walkway, facing it.
+    /// Where the focus starts, relative to the Store centre. In the 3 × 3 Pillar layout Pillar B-2
+    /// stands at the centre, so the Observer starts just south of its walkway, facing it; in 2 × 2
+    /// the centre is the corner where four Sectors meet, with no Pillar.
     /// </summary>
     [Export] public Vector2 StartFocusOffset { get; set; } = new(0f, 48f);
     [Export] public float KeyZoomPerSecond { get; set; } = 2.2f;

@@ -1,10 +1,9 @@
 // Concrete Pillars with their grid coordinate painted on all four sides at several heights.
 // No emission: the paint only reflects light. The shaft darkens upwards, away from the Store
-// lights, so its top is never seen, and where it stands between the camera and the followed
-// point it dissolves, so it never hides what the Observer is watching.
+// lights, so its top is never seen. Pillars are always solid: nothing is cut out of them.
 shader_type spatial;
 
-// Coordinate labels ("A-1" ... "C-3"), one atlas cell per Pillar id.
+// Coordinate labels ("A-1" ... "C-3", or "A-1" ... "B-2"), one atlas cell per Pillar id.
 uniform sampler2D labels : filter_linear_mipmap, repeat_disable;
 uniform float label_count = 9.0;
 // Bottom of each painted label, in metres above the floor; the first is for close views,
@@ -16,11 +15,6 @@ uniform float label_width = 0.7;
 // The shaft fades into darkness between these heights (metres).
 uniform float fade_start = 45.0;
 uniform float fade_end = 300.0;
-
-// See-through cut-out around the followed point, as a fraction of the screen height.
-uniform bool see_through = true;
-uniform vec3 focus_position;
-uniform float see_through_radius = 0.2;
 
 varying vec3 local_position;
 varying vec3 local_normal;
@@ -36,29 +30,7 @@ void vertex() {
 	label_index = round(COLOR.r * (label_count - 1.0));
 }
 
-// 4 x 4 ordered dither, so the cut-out has a soft edge without blending (TAA smooths it).
-float bayer(vec2 p) {
-	ivec2 i = ivec2(mod(p, 4.0));
-	int m[16] = int[](0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5);
-	return (float(m[i.y * 4 + i.x]) + 0.5) / 16.0;
-}
-
 void fragment() {
-	// Shadows keep the whole Pillar: the cut-out is for the Observer's eye only.
-	if (see_through && !IN_SHADOW_PASS) {
-		vec4 focus_view = VIEW_MATRIX * vec4(focus_position, 1.0);
-		vec4 focus_clip = PROJECTION_MATRIX * focus_view;
-		// Only the part between the camera and the followed point, not the far side.
-		if (focus_clip.w > 0.0 && VERTEX.z > focus_view.z + 1.0) {
-			vec2 focus_uv = focus_clip.xy / focus_clip.w * 0.5 + 0.5;
-			vec2 offset = (SCREEN_UV - focus_uv) * VIEWPORT_SIZE / VIEWPORT_SIZE.y;
-			float inside = 1.0 - smoothstep(see_through_radius * 0.7, see_through_radius, length(offset));
-			if (inside > bayer(FRAGCOORD.xy)) {
-				discard;
-			}
-		}
-	}
-
 	float across = abs(local_normal.z) > 0.5 ? local_position.x + 0.5 : local_position.z + 0.5;
 	// Keep labels reading left to right on all four faces.
 	if (local_normal.z < -0.5 || local_normal.x > 0.5) { across = 1.0 - across; }

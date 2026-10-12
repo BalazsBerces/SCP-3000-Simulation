@@ -3,10 +3,10 @@ using System.Numerics;
 namespace Scp3008.Core;
 
 /// <summary>
-/// One of the nine equal squares the 3 × 3 grid of Pillars divides the Store into, centred on its
-/// Pillar and named after the Pillar's grid coordinate (e.g. <c>B-2</c>). It covers
-/// [Origin, Origin + Size) on each axis, so its boundaries coincide with Chunk boundaries and the
-/// Seams, and every wrapped position lies in exactly one Sector.
+/// One of the equal squares the grid of Pillars divides the Store into (nine 448 m squares on
+/// 3 × 3, four 672 m squares on 2 × 2), centred on its Pillar and named after the Pillar's grid
+/// coordinate (e.g. <c>B-2</c>). It covers [Origin, Origin + Size) on each axis; the boundaries
+/// include the Seams, and every wrapped position lies in exactly one Sector.
 /// </summary>
 public sealed record Sector(int Id, string Name, Vector2 Origin, float Size)
 {

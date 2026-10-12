@@ -45,7 +45,7 @@ public sealed class Simulation : IDisposable
     {
         _config = config;
         _departments = DepartmentGenerator.Generate(config.Seed, _space);
-        _sectors = PillarGenerator.Sectors(_space);
+        _sectors = PillarGenerator.Sectors(_space, config.PillarLayout);
         _pillars = PillarGenerator.Pillars(_sectors);
         _furniture = FurnitureGenerator.Generate(config.Seed, _space, _departments, _pillars);
         // Runtime randomness never comes from the Store seed (ADR 0003); it is unseeded unless a test fixes it.
@@ -73,6 +73,9 @@ public sealed class Simulation : IDisposable
 
     /// <inheritdoc cref="WorldSnapshot.SectorAt"/>
     public Sector SectorAt(Vector2 position) => _snapshot.SectorAt(position);
+
+    /// <inheritdoc cref="WorldSnapshot.NearestPillar"/>
+    public Pillar NearestPillar(Vector2 position) => _snapshot.NearestPillar(position);
 
     /// <summary>True while the simulation thread is running the clock.</summary>
     public bool IsRunning => _thread is { IsAlive: true } && !_stop.IsCancellationRequested;
@@ -273,7 +276,7 @@ public sealed class Simulation : IDisposable
     }
 
     private WorldSnapshot BuildSnapshot() =>
-        new(_config.Seed, new StoreClock(_tick), _space, _speed, _departments, _furniture, Array.AsReadOnly(_weather.Snapshot()), _weather.Wind, _pillars, _sectors);
+        new(_config.Seed, _config.PillarLayout, new StoreClock(_tick), _space, _speed, _departments, _furniture, Array.AsReadOnly(_weather.Snapshot()), _weather.Wind, _pillars, _sectors);
 
     private sealed class Subscription(Simulation owner, Action<DomainEvent> handler) : IDisposable
     {

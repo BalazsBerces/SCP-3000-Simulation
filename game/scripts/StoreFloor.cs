@@ -34,7 +34,6 @@ public partial class StoreFloor : MeshInstance3D
         var space = Host.Snapshot.Space;
         FloorMaterial.SetShaderParameter("store_size", space.Size);
         FloorMaterial.SetShaderParameter("chunk_size", space.ChunkSize);
-        FloorMaterial.SetShaderParameter("sector_size", Host.Snapshot.Sectors[0].Size);
         FloorMaterial.SetShaderParameter("floor_albedo", GD.Load<TextureLayered>("res://assets/textures/floor_albedo.jpg"));
         FloorMaterial.SetShaderParameter("floor_normal", GD.Load<TextureLayered>("res://assets/textures/floor_normal.jpg"));
         FloorMaterial.SetShaderParameter("floor_roughness", GD.Load<TextureLayered>("res://assets/textures/floor_roughness.jpg"));
@@ -77,6 +76,8 @@ public partial class StoreFloor : MeshInstance3D
 
     private void ShowDepartments(WorldSnapshot snapshot)
     {
+        // The overview's Sector boundaries follow the world's Pillar layout.
+        FloorMaterial.SetShaderParameter("sector_size", snapshot.Sectors[0].Size);
         var map = snapshot.Departments;
         var types = new byte[map.CellsPerSide * map.CellsPerSide];
         for (var y = 0; y < map.CellsPerSide; y++)
