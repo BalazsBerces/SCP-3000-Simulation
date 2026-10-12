@@ -6,8 +6,9 @@ namespace Scp3008.Core.Generation;
 /// The fixed grid of Pillars of a <see cref="PillarLayout"/> and the Sectors they divide the Store
 /// into. The grid comes from the layout and the Store geometry alone, never from the seed: Sector
 /// boundaries start at the Seam and repeat every Store length / Pillars per side (448 m in 3 × 3,
-/// on Chunk boundaries; 672 m in 2 × 2, on the 16 m aisle grid but mid-Chunk), and each Pillar
-/// stands at its Sector's centre.
+/// on Chunk boundaries; 672 m in 2 × 2, on the 16 m aisle grid but mid-Chunk; 640 m on the large
+/// Store, on Chunk boundaries), and each Pillar stands at the centre of a Sector; on the four-Pillar
+/// large layouts the other Sectors are empty.
 /// </summary>
 internal static class PillarGenerator
 {
@@ -17,7 +18,7 @@ internal static class PillarGenerator
 
     public static IReadOnlyList<Sector> Sectors(StoreSpace space, PillarLayout layout)
     {
-        var perSide = layout.PillarsPerSide();
+        var perSide = layout.SectorsPerSide();
         var size = space.Size / perSide;
         var sectors = new List<Sector>();
         for (var row = 0; row < perSide; row++)
@@ -26,13 +27,20 @@ internal static class PillarGenerator
         return sectors.AsReadOnly();
     }
 
-    public static IReadOnlyList<Pillar> Pillars(IReadOnlyList<Sector> sectors) =>
-        sectors.Select(s => new Pillar(s.Id, s.Name, s.Centre, Width, Height)).ToList().AsReadOnly();
+    /// <summary>The Pillars at the centres of the layout's Sectors that have one, numbered from 0 in Sector order.</summary>
+    public static IReadOnlyList<Pillar> Pillars(IReadOnlyList<Sector> sectors, PillarLayout layout)
+    {
+        var perSide = layout.SectorsPerSide();
+        return sectors
+            .Where(s => layout.HasPillar(s.Id % perSide, s.Id / perSide))
+            .Select((s, id) => new Pillar(id, s.Name, s.Centre, Width, Height))
+            .ToList().AsReadOnly();
+    }
 
     /// <summary>Index of the Sector containing a position, which may be unwrapped.</summary>
     public static int SectorIndexAt(StoreSpace space, PillarLayout layout, Vector2 position)
     {
-        var perSide = layout.PillarsPerSide();
+        var perSide = layout.SectorsPerSide();
         var wrapped = space.Wrap(position);
         var size = space.Size / perSide;
         var column = Math.Min((int)(wrapped.X / size), perSide - 1);

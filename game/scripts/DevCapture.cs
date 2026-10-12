@@ -10,8 +10,9 @@ namespace Scp3008.Game;
 ///   --fps-report           print the average frame rate over the capture window;
 ///   --focus=x,y            start the camera focused on Store position (x, y);
 ///   --distance=metres      start the camera at this zoom distance;
-///   --pillars=3x3|2x2      (read by SimulationHost) start with this Pillar layout;
-///   --pillar=coordinate    focus beside a Pillar, by its grid coordinate (e.g. B-2), in either layout;
+///   --pillars=name         (read by SimulationHost) start with this Pillar layout: 3x3, 2x2, 3x3L,
+///                          3x3L-corners or 3x3L-diamond (the default);
+///   --pillar=coordinate    focus beside a Pillar, by its grid coordinate (e.g. B-2), if the layout has it;
 ///   --pause                freeze Store time for comparable captures;
 ///   --pan=vx,vy            pan the camera focus at (vx, vy) metres per second, then report how
 ///                          often it crossed a seam and its largest per-frame step, overall
@@ -22,7 +23,7 @@ namespace Scp3008.Game;
 ///                          from the Observer camera, to check the ground-level haze;
 ///   --enter-seed=text      after one second, enter this seed in the seed input; the capture timer
 ///                          restarts once the new Store is shown;
-///   --choose-pillars=3x3|2x2  after one second, choose this Pillar layout in the top-right panel;
+///   --choose-pillars=name  after one second, choose this Pillar layout in the top-right panel;
 ///                          the capture timer restarts once the new Store is shown.
 /// Does nothing in normal runs.
 /// </summary>
@@ -65,7 +66,14 @@ public partial class DevCapture : Node
                 Rig.JumpToDistance(float.Parse(arg["--distance=".Length..], CultureInfo.InvariantCulture));
             else if (arg.StartsWith("--pillar="))
             {
-                var pillar = Host.Snapshot.Pillars.Single(p => p.Coordinate == arg["--pillar=".Length..]);
+                var coordinate = arg["--pillar=".Length..];
+                var pillar = Host.Snapshot.Pillars.SingleOrDefault(p => p.Coordinate == coordinate);
+                if (pillar is null)
+                {
+                    GD.PushError($"No Pillar {coordinate} in the {Host.Snapshot.PillarLayout.Name()} layout; " +
+                                 $"it has {string.Join(", ", Host.Snapshot.Pillars.Select(p => p.Coordinate))}.");
+                    continue;
+                }
                 // Just south of its walkway, so the Pillar stands in front of the camera's default heading.
                 var beside = pillar.Position + new System.Numerics.Vector2(0f, pillar.ClearHalfWidth + 12f);
                 Rig.JumpTo(beside.ToWorld());

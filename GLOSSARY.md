@@ -15,8 +15,8 @@ The line where the wrapping Store meets itself; crossing it brings you out on th
 _Avoid_: Edge, border (the Store has none)
 
 **Chunk**:
-A 64 m square of the Store's grid (the Store is 21 × 21 Chunks, 1344 × 1344 m); the unit of streaming, culling, navigation rebuilding and simulation level of detail.
-_Avoid_: Tile (floor tiles are visual), cell, Sector (a Sector is 7 × 7 Chunks on 3 × 3, 10.5 × 10.5 on 2 × 2)
+A 64 m square of the Store's grid (the Store is 21 × 21 Chunks, 1344 × 1344 m, or 30 × 30 Chunks, 1920 × 1920 m, on the large Pillar layouts); the unit of streaming, culling, navigation rebuilding and simulation level of detail.
+_Avoid_: Tile (floor tiles are visual), cell, Sector (a Sector is 7 × 7 Chunks on 3 × 3, 10.5 × 10.5 on 2 × 2, 10 × 10 on the large layouts)
 
 **Ghost copy**:
 An extra drawing of something near a Seam at its wrapped position on the other side, so it is visible from both sides; there is still only one object.
@@ -27,15 +27,15 @@ A connected region of the Store with its own look, Furniture and resources; acts
 _Avoid_: Biome, zone, area
 
 **Pillar**:
-One of the identical, monumental concrete blocks (32 × 32 m, rising out of sight) on the regular grid of the **Pillar layout**: nine on 3 × 3 (448 m apart) or four on 2 × 2 (672 m apart). Each stands at the centre of its Sector and is marked with its grid coordinate: column letter, then row number (e.g. B-2). A Furniture-free walkway ring surrounds each one. Because the Store wraps, a Pillar is seen again in every direction; in 2 × 2 its east and west neighbour is the same Pillar. Visible from far away; used for navigation and as a settlement anchor.
+One of the identical, monumental concrete blocks (32 × 32 m, rising out of sight) on the regular grid of the **Pillar layout**: nine on 3 × 3 (448 m apart), four on 2 × 2 (672 m apart), nine on 3 × 3 large (640 m apart), or four on the corners and diamond large layouts, which leave the other Sectors empty. Each stands at the centre of its Sector and is marked with its grid coordinate: column letter, then row number (e.g. B-2). A Furniture-free walkway ring surrounds each one. Because the Store wraps, a Pillar is seen again in every direction; in 2 × 2 its east and west neighbour is the same Pillar. Visible from far away; used for navigation and as a settlement anchor.
 _Avoid_: Column, monolith, tower
 
 **Pillar layout**:
-The world setting that chooses the Pillar grid and with it the Sectors: 3 × 3 (the default) or 2 × 2. It is part of the world state, not of the seed, so the same seed gives the same Departments and Furniture under either layout, apart from the Pillar footprints and walkway rings.
+The world setting that chooses the Sector grid, which Sectors have a Pillar, and the Store size: 3 × 3 (the default) or 2 × 2 on the 1344 m Store, or, on the larger 1920 m Store, 3 × 3 large (nine Pillars), corners (Pillars in the four corner Sectors) or diamond (Pillars in the four edge-middle Sectors). It is part of the world state, not of the seed, so the same seed gives the same Departments and Furniture under 3 × 3 and 2 × 2, apart from the Pillar footprints and walkway rings; on the larger Store it gives others.
 _Avoid_: Pillar mode, grid size, map type
 
 **Sector**:
-One of the equal squares the Pillars divide the Store into, centred on its Pillar and named after it (e.g. Sector B-2): nine 448 × 448 m squares on the 3 × 3 Pillar layout (boundaries on Chunk boundaries), four 672 × 672 m squares on 2 × 2 (boundaries on the 16 m aisle grid, mid-Chunk). Sector boundaries include the Seams; every place in the Store lies in exactly one Sector.
+One of the equal squares the Pillar layout divides the Store into, named by its grid coordinate like the Pillar at its centre (e.g. Sector B-2); on the corners and diamond layouts some Sectors are empty, with no Pillar. Nine 448 × 448 m squares on the 3 × 3 Pillar layout (boundaries on Chunk boundaries), four 672 × 672 m squares on 2 × 2 (boundaries on the 16 m aisle grid, mid-Chunk), nine 640 × 640 m squares on the large layouts (boundaries on Chunk boundaries). Sector boundaries include the Seams; every place in the Store lies in exactly one Sector.
 _Avoid_: Zone, region, quadrant, district
 
 **Landmark**:

@@ -6,8 +6,8 @@ namespace Scp3008.Game;
 /// <summary>
 /// Observer seed input: type a seed (a number, or any text, which is hashed to one) and press
 /// Generate or Enter for a newly generated Store; Random picks a seed. Below, the Pillar layout
-/// row (Pillars: 3×3 | 2×2) marks the active layout; choosing the other regenerates the Store
-/// with the same seed and that layout, like Generate. Also names the Department under the camera focus.
+/// row (Pillars: 3×3 | 2×2 | 3×3 large | Corners | Diamond) marks the active layout; choosing another regenerates the
+/// Store with the same seed and that layout, like Generate. Also names the Department under the camera focus.
 /// </summary>
 public partial class SeedPanel : CanvasLayer
 {
@@ -58,12 +58,12 @@ public partial class SeedPanel : CanvasLayer
         var layoutGroup = new ButtonGroup();
         foreach (var layout in PillarLayouts.All)
         {
-            var perSide = layout.PillarsPerSide();
+            var perSide = layout.SectorsPerSide();
             var button = new Button
             {
-                Name = layout.Name(), Text = $"{perSide}×{perSide}", ToggleMode = true, ButtonGroup = layoutGroup,
+                Name = layout.Name(), Text = LayoutLabel(layout), ToggleMode = true, ButtonGroup = layoutGroup,
                 ButtonPressed = layout == Host.Layout, FocusMode = Control.FocusModeEnum.None,
-                TooltipText = $"{perSide * perSide} Pillars, {perSide * perSide} Sectors",
+                TooltipText = $"{layout.PillarCount()} Pillars, {perSide * perSide} Sectors of {layout.SectorSize():0} m, {layout.Space().Size:0} m Store",
             };
             button.Pressed += () => ChooseLayout(layout);
             layoutRow.AddChild(button);
@@ -121,6 +121,14 @@ public partial class SeedPanel : CanvasLayer
         Host.CreateWorld(Host.Snapshot.Seed, layout);
         MarkLayout(layout);
     }
+
+    private static string LayoutLabel(PillarLayout layout) => layout switch
+    {
+        PillarLayout.ThreeByThreeLarge => "3×3 large",
+        PillarLayout.CornersLarge => "Corners",
+        PillarLayout.DiamondLarge => "Diamond",
+        _ => $"{layout.SectorsPerSide()}×{layout.SectorsPerSide()}",
+    };
 
     private void MarkLayout(PillarLayout active)
     {

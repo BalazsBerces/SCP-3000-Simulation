@@ -14,7 +14,7 @@ public partial class StoreFloor : MeshInstance3D
     [Export] public SimulationHost Host { get; set; } = null!;
     [Export] public CameraRig Rig { get; set; } = null!;
 
-    /// <summary>Metres per texture repeat, per Department type; each divides the 1344 m Store length.</summary>
+    /// <summary>Metres per texture repeat, per Department type; each divides every Store length (1344 and 1920 m).</summary>
     private static readonly float[] LayerMetres = [3.0f, 2.0f, 2.4f, 3.0f, 2.0f, 2.4f, 2.0f];
 
     /// <summary>Albedo balance per Department type (food market, showrooms, lighting, warehouse, bath/kitchen, plants, kids).</summary>
@@ -31,9 +31,6 @@ public partial class StoreFloor : MeshInstance3D
         var reach = Rig.Camera.Far;
         Mesh = _followingPlane = new PlaneMesh { Size = new Vector2(2f * reach, 2f * reach) };
         StoreOverview.Changed += OnOverviewChanged;
-        var space = Host.Snapshot.Space;
-        FloorMaterial.SetShaderParameter("store_size", space.Size);
-        FloorMaterial.SetShaderParameter("chunk_size", space.ChunkSize);
         FloorMaterial.SetShaderParameter("floor_albedo", GD.Load<TextureLayered>("res://assets/textures/floor_albedo.jpg"));
         FloorMaterial.SetShaderParameter("floor_normal", GD.Load<TextureLayered>("res://assets/textures/floor_normal.jpg"));
         FloorMaterial.SetShaderParameter("floor_roughness", GD.Load<TextureLayered>("res://assets/textures/floor_roughness.jpg"));
@@ -76,8 +73,12 @@ public partial class StoreFloor : MeshInstance3D
 
     private void ShowDepartments(WorldSnapshot snapshot)
     {
-        // The overview's Sector boundaries follow the world's Pillar layout.
+        // The Store size and the overview's Sector boundaries follow the world's Pillar layout.
+        FloorMaterial.SetShaderParameter("store_size", snapshot.Space.Size);
+        FloorMaterial.SetShaderParameter("chunk_size", snapshot.Space.ChunkSize);
         FloorMaterial.SetShaderParameter("sector_size", snapshot.Sectors[0].Size);
+        if (StoreOverview.Enabled)
+            OnOverviewChanged(true);
         var map = snapshot.Departments;
         var types = new byte[map.CellsPerSide * map.CellsPerSide];
         for (var y = 0; y < map.CellsPerSide; y++)

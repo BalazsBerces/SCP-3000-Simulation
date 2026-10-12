@@ -23,6 +23,7 @@ internal sealed class Weather
     private const float DissipatingSpread = 0.15f;
 
     // New banks per Store hour while there is room for them; faster while few banks are not yet thinning out.
+    // All three are for the standard Store and scale with the floor area, so a larger Store is as foggy.
     private const double FormationRate = 0.6;
     private const double FormationRateWhenThin = 3.0;
     private const int FewBanks = 4;
@@ -36,6 +37,7 @@ internal sealed class Weather
     private const float MaxWindShiftDegrees = 70f;
 
     private readonly StoreSpace _space;
+    private readonly double _areaScale;
     private readonly SeededRandom _random;
     private readonly List<Bank> _banks = [];
     private int _nextId = 1;
@@ -49,6 +51,7 @@ internal sealed class Weather
     public Weather(StoreSpace space, SeededRandom random)
     {
         _space = space;
+        _areaScale = (double)space.Size * space.Size / ((double)StoreSpace.Standard.Size * StoreSpace.Standard.Size);
         _random = random;
         _windHeading = _targetHeading = _random.Range(0f, MathF.Tau);
         _windSpeed = _targetSpeed = _random.Range(MinWindSpeed, MaxWindSpeed);
@@ -84,8 +87,8 @@ internal sealed class Weather
             emit?.Invoke(new FogBankDissipated(now, bank.Id, bank.Position));
         }
 
-        var rate = _banks.Count(b => !b.IsDissipating) < FewBanks ? FormationRateWhenThin : FormationRate;
-        if (_formation && _random.Chance((float)(rate * hours)))
+        var rate = _banks.Count(b => !b.IsDissipating) < FewBanks * _areaScale ? FormationRateWhenThin : FormationRate;
+        if (_formation && _random.Chance((float)(rate * _areaScale * hours)))
             TryForm(now, emit);
     }
 

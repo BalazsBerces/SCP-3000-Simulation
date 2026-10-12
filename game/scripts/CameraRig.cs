@@ -19,12 +19,16 @@ public partial class CameraRig : Node3D
     [Export] public float WheelZoomFactor { get; set; } = 1.15f;
     /// <summary>
     /// Where the focus starts, relative to the Store centre. In the 3 × 3 Pillar layout Pillar B-2
-    /// stands at the centre, so the Observer starts just south of its walkway, facing it; in 2 × 2
-    /// the centre is the corner where four Sectors meet, with no Pillar.
+    /// stands at the centre (also in 3 × 3 large), so the Observer starts just south of its walkway,
+    /// facing it; in 2 × 2 the centre is the corner where four Sectors meet, and in the corners and
+    /// diamond layouts it is the empty Sector B-2, both with no Pillar.
     /// </summary>
     [Export] public Vector2 StartFocusOffset { get; set; } = new(0f, 48f);
     [Export] public float KeyZoomPerSecond { get; set; } = 2.2f;
-    /// <summary>Farthest zoom in the <see cref="StoreOverview"/>: far enough to see the whole Store.</summary>
+    /// <summary>
+    /// Farthest zoom in the <see cref="StoreOverview"/> for the standard Store: far enough to see it
+    /// whole. It grows with the Store, so a larger Store still fits.
+    /// </summary>
     [Export] public float OverviewMaxDistance { get; set; } = 2600f;
     /// <summary>Tilt in the <see cref="StoreOverview"/>, steeper than the Observer's, for a map-like view.</summary>
     [Export] public float OverviewTilt { get; set; } = 75f;
@@ -84,10 +88,28 @@ public partial class CameraRig : Node3D
         _targetYaw = _yaw = Mathf.DegToRad(30f);
         _normalFar = Camera.Far;
         StoreOverview.Changed += OnOverviewChanged;
+        Host.WorldCreated += OnWorldCreated;
         ApplyTransform();
     }
 
-    public override void _ExitTree() => StoreOverview.Changed -= OnOverviewChanged;
+    public override void _ExitTree()
+    {
+        StoreOverview.Changed -= OnOverviewChanged;
+        Host.WorldCreated -= OnWorldCreated;
+    }
+
+    /// <summary>
+    /// A new world may be another size (the Pillar layout chooses it). The focus stays where it is;
+    /// on a smaller Store the next wrap brings it back onto the floor.
+    /// </summary>
+    private void OnWorldCreated(Scp3008.Core.WorldSnapshot snapshot)
+    {
+        if (snapshot.Space.Size == _storeSize)
+            return;
+        _storeSize = snapshot.Space.Size;
+        if (StoreOverview.Enabled)
+            OnOverviewChanged(true);
+    }
 
     private void OnOverviewChanged(bool enabled)
     {
@@ -96,7 +118,7 @@ public partial class CameraRig : Node3D
         {
             // Look at the whole Store from above its centre.
             _targetFocus = new Vector3(_storeSize / 2f, 0f, _storeSize / 2f);
-            _targetDistance = OverviewMaxDistance * 0.65f;
+            _targetDistance = OverviewDistanceLimit * 0.65f;
         }
         else
         {
@@ -222,7 +244,9 @@ public partial class CameraRig : Node3D
     }
 
     private float ClampDistance(float distance) =>
-        Mathf.Clamp(distance, MinDistance, StoreOverview.Enabled ? OverviewMaxDistance : MaxDistance);
+        Mathf.Clamp(distance, MinDistance, StoreOverview.Enabled ? OverviewDistanceLimit : MaxDistance);
+
+    private float OverviewDistanceLimit => OverviewMaxDistance * _storeSize / Scp3008.Core.StoreSpace.Standard.Size;
 
     private float Tilt(float distance)
     {

@@ -19,14 +19,16 @@ godot --headless --path game --build-solutions --quit   # build the Godot projec
 godot --path game                                        # run the game
 ```
 
-Benchmark (ADR 0004): `godot --path game res://Benchmark.tscn` flies a fixed camera path over Store 3008 with the clock paused, once in open lighting (12:00) and once at Closing time (23:00), with vsync off at 1920×1080. It prints the average and 1%-low fps (the mean rate over the slowest 1% of frames) for each lighting and also measures a fixed farthest-zoom Closing-time view over Lighting & electrical and exits with code 0 if all three averages reach 120 fps, 1 if not. Add `-- --benchmark-seconds=s` to change the measuring time per lighting (default 20) and `--benchmark-shots=dir` to save screenshots of the path's near, mid and far views in both lighting phases. Add `--lamp-reproduction=dir` to capture a continuous 240-frame pan/rotation (13 frames per phase) over the same displays at 45 m zoom, with a fixed bank and paused clock; the log tracks one stationary Lamp through the real-light/pool boundary.
+Benchmark (ADR 0004): `godot --path game res://Benchmark.tscn` flies a fixed camera path over Store 3008 (always on the `3x3` layout) with the clock paused, once in open lighting (12:00) and once at Closing time (23:00), with vsync off at 1920×1080. It prints the average and 1%-low fps (the mean rate over the slowest 1% of frames) for each lighting and also measures a fixed farthest-zoom Closing-time view over Lighting & electrical and exits with code 0 if all three averages reach 120 fps, 1 if not. Add `-- --benchmark-seconds=s` to change the measuring time per lighting (default 20) and `--benchmark-shots=dir` to save screenshots of the path's near, mid and far views in both lighting phases. Add `--lamp-reproduction=dir` to capture a continuous 240-frame pan/rotation (13 frames per phase) over the same displays at 45 m zoom, with a fixed bank and paused clock; the log tracks one stationary Lamp through the real-light/pool boundary.
 
 Unattended check: `godot --path game -- --capture=shot.png --capture-after=5 --fps-report` saves a screenshot, prints the average fps and quits. More dev arguments: `--focus=x,y` starts the camera at a Store position, `--pan=vx,vy` pans it (metres per second) and reports seam crossings and the largest per-frame step, `--distance=m` sets the zoom distance, `--wrap-debug` turns on the wrap overlay, `--no-focus-wrap` keeps the camera off-floor (to compare two images of the same place), `--seed=N` sets the first Store's seed, `--start-time=HH:MM` starts the Store clock at that time (e.g. `23:00` for Closing time), `--eye-level` captures from a Villager's eye height to check the ground-level haze, and `--enter-seed=text` types a seed into the seed input after a second (the capture timer restarts when the new Store is shown).
 
 ## Pillars and Sectors
 
 The world config's **Pillar layout** (`WorldConfig.PillarLayout`, also on the snapshot) chooses
-the grid: `3x3` (default) or `2x2`. It is part of the world state and never comes from the seed.
+the Sector grid, which Sectors have a Pillar, and the Store size: `3x3` (the `WorldConfig` default),
+`2x2`, `3x3L`, `3x3L-corners` or `3x3L-diamond` (what the game starts with). It is part of the
+world state and never comes from the seed.
 `Pillars` on the facade snapshot lists the identical concrete Pillars: 32 × 32 m blocks, 1200 m
 tall (beyond any camera, so their tops are never seen), each marked with its grid coordinate,
 column letter along x and row number along y.
@@ -36,25 +38,41 @@ column letter along x and row number along y.
 - `2x2`: four Pillars A-1, B-1, A-2, B-2 at 336 and 1008 m on each axis, 672 m apart; four
   672 × 672 m Sectors with boundaries at 0 m (the Seam) and 672 m, on the 16 m aisle grid but
   mid-Chunk. Because the Store wraps, a Pillar's east and west neighbour is the same Pillar.
+- `3x3L` (3 × 3 large): the larger 1920 m Store (30 × 30 Chunks, `StoreSpace.Large`); nine
+  Pillars at 320, 960 and 1600 m on each axis, 640 m apart (close to the 2 × 2 spacing), B-2 at
+  the Store centre; nine 640 × 640 m Sectors on Chunk boundaries. Department sites and Fog bank
+  formation scale with the floor area, so Departments keep their size and the Store is as foggy;
+  the same seed gives other Departments and Furniture than on the 1344 m Store.
+- `3x3L-corners`: the `3x3L` Store and Sectors with Pillars only in A-1, C-1, A-3 and C-3. Across
+  the Seams the four stand together as a 640 m square; the five empty Sectors form 640 m wide
+  corridors between such squares, and no place is more than ~905 m from a Pillar.
+- `3x3L-diamond`: the `3x3L` Store and Sectors with Pillars only in B-1, A-2, C-2 and B-3, around
+  the empty B-2; the four empty corner Sectors join across the Seams into one 1280 m empty square,
+  whose middle (the Seam corner) is ~1012 m from the nearest Pillar.
+
+Empty Sectors keep their grid name and are furnished like any other floor. Pillar ids count the
+Pillars, so on the four-Pillar layouts they are 0–3, in Sector order.
 
 Furniture generation keeps each footprint and a 3 m (one-aisle) walkway ring around it clear.
-`Sectors` lists the Sectors centred on and named after the Pillars, and `SectorAt(position)` (on
+`Sectors` lists the Sectors, named by grid coordinate like the Pillars at their centres, and `SectorAt(position)` (on
 the snapshot and the facade) answers which Sector a wrapped position is in; a position on a
 boundary belongs to the Sector east or south of it. `NearestPillar(position)` uses the shortest
-wrapped distance (never more than ~317 m in `3x3`, ~475 m in `2x2`), and `OutsidePillars(position)`
+wrapped distance (never more than ~317 m in `3x3`, ~475 m in `2x2`, ~453 m in `3x3L`, ~905 m in `3x3L-corners`, ~1012 m in `3x3L-diamond`), and `OutsidePillars(position)`
 moves a position that lies inside a Pillar onto its walkway.
 
 `PillarRenderer` draws the Pillars and every Ghost copy of them within 1200 m, with no emission or lights.
 Pillars are always solid. The coordinate is painted on all four sides at 2, 28, 60 and 100 m, and
 the shaft darkens upwards into the haze. In the F4 Store overview the Pillars are cut to 16 m bases
 and the floor shows the active layout's Sector boundaries and labels; the normal view shows no
-boundaries. The top-right panel's **Pillars: 3×3 | 2×2** row marks the active layout; choosing the
-other one regenerates the Store with the same seed (the Store clock restarts, the camera stays, and
-a focus that would end up inside a Pillar moves onto its walkway).
+boundaries. The top-right panel's **Pillars: 3×3 | 2×2 | 3×3 large | Corners | Diamond** row marks the active layout;
+choosing another one regenerates the Store with the same seed (the Store clock restarts, the camera
+stays, wrapping back onto a smaller Store, and a focus that would end up inside a Pillar moves onto
+its walkway).
 
 For fixed visual checks, add `--pause --pillar=B-2 --distance=60 --clear-weather` to a dev capture;
-`--pillars=3x3|2x2` picks the start-up layout, `--pillar` takes a grid coordinate and focuses just
-south of that Pillar's walkway, and `--choose-pillars=2x2` presses the panel button after a second.
+`--pillars=<short name>` picks the start-up layout, `--pillar` takes a grid coordinate and focuses
+just south of that Pillar's walkway (B-2 has none on the corners and diamond layouts), and `--choose-pillars=2x2` (or another layout) presses the
+panel button after a second.
 Evidence and remaining human checks are in [ticket 06a verification](docs/ticket-06a-verification.md)
 and [ticket 06b verification](docs/ticket-06b-verification.md).
 

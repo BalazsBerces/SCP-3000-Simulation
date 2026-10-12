@@ -7,6 +7,9 @@
 
 [node name="Main" parent="." instance=ExtResource("1_main")]
 
+[node name="SimulationHost" parent="Main"]
+StartLayout = 0
+
 [node name="Runner" type="Node" parent="." node_paths=PackedStringArray("Host", "Rig", "Atmosphere", "Lamps")]
 script = ExtResource("2_benchmark")
 Host = NodePath("../Main/SimulationHost")

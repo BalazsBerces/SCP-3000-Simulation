@@ -27,7 +27,7 @@ public sealed class Simulation : IDisposable
 
     private readonly object _stepLock = new();
     private readonly WorldConfig _config;
-    private readonly StoreSpace _space = StoreSpace.Standard;
+    private readonly StoreSpace _space;
     private readonly DepartmentMap _departments;
     private readonly IReadOnlyList<FurniturePiece> _furniture;
     private readonly IReadOnlyList<Pillar> _pillars;
@@ -44,9 +44,10 @@ public sealed class Simulation : IDisposable
     private Simulation(WorldConfig config)
     {
         _config = config;
+        _space = config.PillarLayout.Space();
         _departments = DepartmentGenerator.Generate(config.Seed, _space);
         _sectors = PillarGenerator.Sectors(_space, config.PillarLayout);
-        _pillars = PillarGenerator.Pillars(_sectors);
+        _pillars = PillarGenerator.Pillars(_sectors, config.PillarLayout);
         _furniture = FurnitureGenerator.Generate(config.Seed, _space, _departments, _pillars);
         // Runtime randomness never comes from the Store seed (ADR 0003); it is unseeded unless a test fixes it.
         var runtimeSeed = config.RuntimeRngSeed ?? Random.Shared.Next();

@@ -12,7 +12,9 @@ internal static class DepartmentGenerator
     /// <summary>Department cells are 16 m, a quarter of a chunk, so 4 × 4 cells make a chunk.</summary>
     public const float CellSize = 16f;
 
-    private const int SiteCount = 48;
+    // Sites on the standard Store; a larger Store gets more sites in proportion to its area, so
+    // Departments keep their size.
+    private const int SitesOnStandardStore = 48;
     private const float MinSiteSpacing = 110f;
     private const int MinDepartmentCells = 6;
 
@@ -55,7 +57,8 @@ internal static class DepartmentGenerator
         foreach (var type in Enum.GetValues<DepartmentType>())
             types.AddRange([type, type]);
         var totalWeight = TypeOdds.Values.Sum(o => o.Weight);
-        while (types.Count < SiteCount)
+        var siteCount = (int)Math.Round(SitesOnStandardStore * (space.Size / StoreSpace.Standard.Size) * (space.Size / StoreSpace.Standard.Size));
+        while (types.Count < siteCount)
         {
             var roll = random.NextFloat() * totalWeight;
             foreach (var (type, odds) in TypeOdds)

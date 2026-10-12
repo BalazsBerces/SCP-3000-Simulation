@@ -15,7 +15,7 @@ namespace Scp3008.Core;
 /// <param name="FogBanks">The Fog banks drifting through the Store.</param>
 /// <param name="Wind">The wind the Fog banks drift with, in metres per Store hour (X east, Y south).</param>
 /// <param name="Pillars">The identical concrete Pillars on the layout's grid (9 or 4), marked by grid coordinate; never light or power sources.</param>
-/// <param name="Sectors">The equal Sectors the Pillars divide the Store into, in the same order as the Pillars.</param>
+/// <param name="Sectors">The equal Sectors of the layout's grid, row by row from the north-west; a Pillar stands in each one or, on the four-Pillar large layouts, in some of them.</param>
 public sealed record WorldSnapshot(
     int Seed,
     PillarLayout PillarLayout,

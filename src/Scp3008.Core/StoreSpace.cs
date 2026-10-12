@@ -13,6 +13,9 @@ public sealed record StoreSpace
     /// <summary>The standard Store: 21 × 21 chunks of 64 m, 1344 × 1344 m (about 1.3 × 1.3 km).</summary>
     public static StoreSpace Standard { get; } = new(chunkSize: 64f, chunksPerSide: 21);
 
+    /// <summary>The large Store of the 3 × 3 large Pillar layout: 30 × 30 chunks of 64 m, 1920 × 1920 m.</summary>
+    public static StoreSpace Large { get; } = new(chunkSize: 64f, chunksPerSide: 30);
+
     public StoreSpace(float chunkSize, int chunksPerSide)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(chunkSize);

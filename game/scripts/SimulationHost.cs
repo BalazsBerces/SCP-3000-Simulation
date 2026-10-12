@@ -9,7 +9,7 @@ namespace Scp3008.Game;
 /// Owns the simulation core for the scene: creates the world, runs the core on its own thread,
 /// and hands snapshots and domain events to the presentation on the main thread. A new world
 /// (e.g. from a seed the Observer entered) is generated in the background and swapped in
-/// when ready. User arguments: <c>--seed=N</c> sets the first world's seed, <c>--pillars=3x3|2x2</c>
+/// when ready. User arguments: <c>--seed=N</c> sets the first world's seed, <c>--pillars=3x3|2x2|3x3L|3x3L-corners|3x3L-diamond</c>
 /// its Pillar layout, and <c>--start-time=HH:MM</c> fast-forwards it to that Store time (dev tool,
 /// e.g. to see Closing time).
 /// </summary>
@@ -18,8 +18,14 @@ public partial class SimulationHost : Node
     /// <summary>Store seed of the first world, unless given on the command line.</summary>
     [Export] public int Seed { get; set; } = 3008;
 
-    /// <summary>Pillar layout of the first world, unless given on the command line; then of the latest world asked for.</summary>
-    public PillarLayout Layout { get; private set; } = PillarLayout.ThreeByThree;
+    /// <summary>
+    /// Pillar layout of the first world unless given on the command line: the four diamond Pillars on
+    /// the large Store. The benchmark scene sets the 3 × 3 layout, so its camera path stays on the same Store.
+    /// </summary>
+    [Export] public PillarLayout StartLayout { get; set; } = PillarLayout.DiamondLarge;
+
+    /// <summary>Pillar layout of the first world; then of the latest world asked for.</summary>
+    public PillarLayout Layout { get; private set; }
 
     private readonly ConcurrentQueue<DomainEvent> _pendingEvents = new();
     private SnapshotInterpolator _interpolator = new(Simulation.RealTimeStep);
@@ -58,6 +64,7 @@ public partial class SimulationHost : Node
     {
         TimeSpan? startTime = null;
         var startPaused = false;
+        Layout = StartLayout;
         foreach (var arg in OS.GetCmdlineUserArgs())
         {
             if (arg.StartsWith("--seed="))

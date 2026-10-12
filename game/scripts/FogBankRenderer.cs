@@ -22,7 +22,7 @@ public partial class FogBankRenderer : Node3D
     /// <summary>Height of a bank's dome at its centre, in metres: well above the tallest Furniture.</summary>
     [Export] public float Top { get; set; } = 18f;
 
-    // The Store (1344 m) is exactly 7 noise tiles, so the noise is seamless at the wrap.
+    // Every Store is exactly 7 noise tiles long, so the noise is seamless at the wrap.
     private const float NoiseTilesPerStore = 7f;
 
     private readonly List<(FogVolume Volume, ShaderMaterial Material)> _volumes = [];
@@ -50,7 +50,13 @@ public partial class FogBankRenderer : Node3D
 
     public override void _ExitTree() => Host.WorldCreated -= ResetStoreTime;
 
-    private void ResetStoreTime(WorldSnapshot snapshot) => _lastStoreTime = null;
+    private void ResetStoreTime(WorldSnapshot snapshot)
+    {
+        _lastStoreTime = null;
+        // The new world may be another size, and the noise tile follows it.
+        foreach (var (_, material) in _volumes)
+            material.SetShaderParameter("noise_scale", snapshot.Space.Size / NoiseTilesPerStore);
+    }
 
     public void ApplyLampFog(ShaderMaterial material)
     {
