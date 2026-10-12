@@ -12,6 +12,10 @@ public enum DepartmentType
     BathroomsAndKitchens,
     PlantSection,
     KidsArea,
+    Workspaces,
+    TextilesAndDecor,
+    Outdoor,
+    DiningAndHallway,
 }
 
 /// <summary>

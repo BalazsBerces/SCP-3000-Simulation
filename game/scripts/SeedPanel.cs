@@ -161,6 +161,10 @@ public static class DepartmentNames
         DepartmentType.SelfServeWarehouse => "Self-serve warehouse",
         DepartmentType.BathroomsAndKitchens => "Bathrooms & kitchens",
         DepartmentType.PlantSection => "Plant section",
+        DepartmentType.Workspaces => "Workspaces",
+        DepartmentType.TextilesAndDecor => "Textiles & Decor",
+        DepartmentType.Outdoor => "Outdoor",
+        DepartmentType.DiningAndHallway => "Dining & Hallway",
         DepartmentType.KidsArea => "Kids' area",
         _ => type.ToString(),
     };

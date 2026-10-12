@@ -139,6 +139,7 @@ function Invoke-Agent($t, $log) {
       Write-Host ("  tokens: {0:N1}M total, {1:N0}k output" -f ($total / 1e6), ((& $sum outputTokens) / 1e3)) -ForegroundColor DarkCyan
     }
   }
+  if ($LASTEXITCODE -ne 0) { throw "Claude exited with code $LASTEXITCODE. Log: $log" }
   return $final
 }
 

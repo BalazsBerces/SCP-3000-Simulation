@@ -9,11 +9,11 @@ uniform sampler2DArray floor_albedo : source_color, filter_linear_mipmap_anisotr
 uniform sampler2DArray floor_normal : hint_normal, filter_linear_mipmap_anisotropic, repeat_enable;
 uniform sampler2DArray floor_roughness : hint_default_white, filter_linear_mipmap_anisotropic, repeat_enable;
 // Metres covered by one repeat of each layer; each must divide store_size exactly.
-uniform float layer_metres[7];
+uniform float layer_metres[11];
 // Albedo multiplier per layer, to balance the textures against each other.
-uniform vec3 layer_tint[7];
+uniform vec3 layer_tint[11];
 
-// Department type index (0-6) per department cell, as R8 (value / 255).
+// Department type index (0-10) per department cell, as R8 (value / 255).
 uniform sampler2D department_map : filter_nearest, repeat_enable;
 uniform float department_cell_size = 16.0;
 uniform float store_size = 1344.0;

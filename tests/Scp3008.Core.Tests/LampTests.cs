@@ -19,7 +19,7 @@ public class LampTests
         Assert.Equal(0.0, sim.Snapshot.StoreLightLevel);
         Assert.Single(events.OfType<ClosingTimeBegan>());
         Assert.Equal(lamps, sim.Snapshot.Furniture.Where(p => FurnitureCatalog.Spec(p.Type).IsLamp));
-        Assert.All(lamps, p => Assert.Equal(p.Type == FurnitureType.TableLamp ? 3f : 5f,
+        Assert.All(lamps, p => Assert.Equal(p.Type is FurnitureType.TableLamp or FurnitureType.DeskLamp ? 3f : 5f,
             FurnitureCatalog.Spec(p.Type).LightRadius));
 
         sim.AdvanceTo(TimeSpan.FromHours(8));
@@ -28,7 +28,7 @@ public class LampTests
         Assert.Equal(lamps, sim.Snapshot.Furniture.Where(p => FurnitureCatalog.Spec(p.Type).IsLamp));
     }
 
-    private static readonly FurnitureType[] LampTypes = [FurnitureType.TableLamp, FurnitureType.FloorLamp];
+    private static readonly FurnitureType[] LampTypes = [FurnitureType.TableLamp, FurnitureType.FloorLamp, FurnitureType.DeskLamp, FurnitureType.ArcLamp];
 
     [Fact]
     public void Lamps_give_light_and_other_furniture_does_not()
@@ -56,6 +56,11 @@ public class LampTests
         var lightingArea = snapshot.Departments.All.Where(d => d.Type == DepartmentType.LightingAndElectrical).Sum(d => d.Area);
         Assert.True(lampsByDepartment[DepartmentType.LightingAndElectrical] / lightingArea > 0.01f,
             "expected more than one Lamp per 100 m² in Lighting & electrical");
-        Assert.Equal(lampsByDepartment.Keys.Max(k => lampsByDepartment[k]), lampsByDepartment[DepartmentType.LightingAndElectrical]);
+        foreach (var type in lampsByDepartment.Keys)
+        {
+            var area = snapshot.Departments.All.Where(d => d.Type == type).Sum(d => d.Area);
+            Assert.True(lampsByDepartment[type] / area <= lampsByDepartment[DepartmentType.LightingAndElectrical] / lightingArea,
+                $"{type} has a higher Lamp density than Lighting & electrical.");
+        }
     }
 }

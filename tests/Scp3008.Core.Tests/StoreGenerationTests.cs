@@ -21,12 +21,12 @@ public class StoreGenerationTests
     }
 
     [Fact]
-    public void The_store_is_split_into_departments_of_all_seven_types()
+    public void The_store_is_split_into_departments_of_all_eleven_types()
     {
         var departments = Generate(3008).Departments;
 
         Assert.Equal(Enum.GetValues<DepartmentType>().ToHashSet(), departments.All.Select(d => d.Type).ToHashSet());
-        Assert.Equal(7, Enum.GetValues<DepartmentType>().Length);
+        Assert.Equal(11, Enum.GetValues<DepartmentType>().Length);
     }
 
     [Fact]
@@ -127,11 +127,11 @@ public class StoreGenerationTests
         var sets = byDepartmentType.ToDictionary(g => g.Key, g => g.Select(p => p.Type).ToHashSet());
         var mostCommon = byDepartmentType.ToDictionary(g => g.Key, g => g.GroupBy(p => p.Type).MaxBy(t => t.Count())!.Key);
 
-        Assert.Equal(7, sets.Count);
+        Assert.Equal(11, sets.Count);
         foreach (var (type, set) in sets)
             foreach (var (otherType, otherSet) in sets.Where(o => o.Key != type))
                 Assert.False(set.SetEquals(otherSet), $"{type} and {otherType} have the same Furniture set.");
-        Assert.Equal(7, mostCommon.Values.Distinct().Count());
+        Assert.Equal(11, mostCommon.Values.Distinct().Count());
     }
 
     [Fact]
@@ -153,10 +153,13 @@ public class StoreGenerationTests
         Assert.DoesNotContain(FurnitureType.Bathtub, typesIn[DepartmentType.PlantSection]);
     }
 
-    [Fact]
-    public void Furniture_on_the_floor_never_overlaps()
+    [Theory]
+    [InlineData(3008)]
+    [InlineData(42)]
+    [InlineData(-1)]
+    public void Furniture_on_the_floor_never_overlaps(int seed)
     {
-        var snapshot = Generate(3008);
+        var snapshot = Generate(seed);
         var onFloor = snapshot.Furniture.Where(p => p.Elevation == 0f && !FurnitureCatalog.Spec(p.Type).IsFloorCovering).ToList();
 
         var overlaps = FootprintPairs(snapshot.Space, onFloor, onFloor).Take(5).ToList();
@@ -197,6 +200,52 @@ public class StoreGenerationTests
 
         var shared = first.Count(second.Contains);
         Assert.True(shared < first.Count / 2, $"{shared} of {first.Count} pieces are identical.");
+    }
+
+    [Theory]
+    [InlineData(DepartmentType.Workspaces, "Desk,OfficeChair,FilingCabinet,MeetingTable,DeskLamp")]
+    [InlineData(DepartmentType.TextilesAndDecor, "CushionBin,BlanketStack,CurtainRack,FloorMirror,FrameDisplay")]
+    [InlineData(DepartmentType.Outdoor, "GardenTable,GardenChair,SunLounger,Parasol,Grill")]
+    [InlineData(DepartmentType.DiningAndHallway, "DisplayCabinet,Sideboard,ShoeCabinet,CoatRack,HallBench")]
+    [InlineData(DepartmentType.Showrooms, "ArcLamp,TvBench,Dresser,Nightstand")]
+    [InlineData(DepartmentType.BathroomsAndKitchens, "WashingMachine,Stove")]
+    [InlineData(DepartmentType.SelfServeWarehouse, "BoxCart")]
+    [InlineData(DepartmentType.RestaurantAndFoodMarket, "BarStool")]
+    [InlineData(DepartmentType.PlantSection, "PlanterBox")]
+    [InlineData(DepartmentType.KidsArea, "ToyChest")]
+    [InlineData(DepartmentType.LightingAndElectrical, "DeskLamp,ArcLamp")]
+    public void Second_wave_furniture_is_generated_in_its_department(DepartmentType department, string names)
+    {
+        using var sim = Simulation.Create(new WorldConfig(Seed: 3008, RuntimeRngSeed: 1));
+        sim.Advance(TimeSpan.FromSeconds(1));
+        var snapshot = sim.Snapshot;
+        var generated = snapshot.Furniture.Where(p => snapshot.Departments.At(p.Position).Type == department)
+            .Select(p => p.Type.ToString()).ToHashSet();
+        foreach (var name in names.Split(','))
+            Assert.Contains(name, generated);
+    }
+
+    [Fact]
+    public void Second_wave_preserves_the_benchmark_furniture_and_lamp_budget()
+    {
+        var snapshot = Generate(3008);
+        // Measured on main before ticket 03a, with the unchanged 3x3 benchmark layout.
+        Assert.InRange(snapshot.Furniture.Count, 365_682, 446_944);
+        Assert.InRange(snapshot.Furniture.Count(p => FurnitureCatalog.Spec(p.Type).IsLamp), 28_581, 34_933);
+    }
+
+    [Fact]
+    public void New_departments_cover_roughly_a_quarter_of_the_store()
+    {
+        var shares = new List<float>();
+        foreach (var seed in new[] { 3008, 42, -1, 17, 2026 })
+        {
+            var snapshot = Generate(seed);
+            var area = snapshot.Departments.All.Where(d => d.Type is DepartmentType.Workspaces
+                or DepartmentType.TextilesAndDecor or DepartmentType.Outdoor or DepartmentType.DiningAndHallway).Sum(d => d.Area);
+            shares.Add(area / (snapshot.Space.Size * snapshot.Space.Size));
+        }
+        Assert.InRange(shares.Average(), 0.20f, 0.32f);
     }
 
     /// <summary>Pairs of different pieces, one from each list, whose footprints overlap.</summary>

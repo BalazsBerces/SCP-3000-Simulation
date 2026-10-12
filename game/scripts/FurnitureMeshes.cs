@@ -15,6 +15,11 @@ public static class FurnitureMeshes
 {
     private enum Part
     {
+        Pine,
+        Teak,
+        Linen,
+        PaintedMetal,
+        Wool,
         Oak,
         Walnut,
         Maple,
@@ -76,7 +81,9 @@ public static class FurnitureMeshes
         return type switch
         {
             // Solid bodies: two panels crossing at the centre.
-            FurnitureType.Wardrobe or FurnitureType.Fridge => [.. Across(0f, 0f), .. Along(0f)],
+            FurnitureType.Wardrobe or FurnitureType.Fridge or FurnitureType.FilingCabinet or FurnitureType.Dresser
+                or FurnitureType.ShoeCabinet or FurnitureType.WashingMachine or FurnitureType.Stove => [.. Across(0f, 0f), .. Along(0f)],
+            FurnitureType.DisplayCabinet => Across(-hd + 0.015f, 0.1f),
             FurnitureType.Bookcase => Across(-hd + 0.005f, 0f),
             FurnitureType.ShelfUnit => Across(-hd + 0.0075f, 0.1f),
             FurnitureType.GroceryShelf => Across(0f, 0f),
@@ -87,10 +94,17 @@ public static class FurnitureMeshes
     /// <summary>Height of a Lamp's bulb above its base, inside the shade.</summary>
     public static float BulbHeight(FurnitureType type) => type switch
     {
+        FurnitureType.DeskLamp => 0.47f,
+        FurnitureType.ArcLamp => 1.95f,
         FurnitureType.TableLamp => 0.4f,
         FurnitureType.FloorLamp => 1.55f,
         _ => throw new ArgumentOutOfRangeException(nameof(type), type, "Not a Lamp."),
     };
+
+    /// <summary>The bulb in mesh space; ArcLamp's shade hangs away from its upright.</summary>
+    public static Vector3 BulbOffset(FurnitureType type) =>
+        new(type == FurnitureType.ArcLamp ? FurnitureCatalog.Spec(type).Width / 2f - 0.25f : 0f,
+            BulbHeight(type), 0f);
 
     /// <summary>The mesh for a Furniture type; built once and shared.</summary>
     public static ArrayMesh For(FurnitureType type) => Get(type, coarse: false);
@@ -110,9 +124,11 @@ public static class FurnitureMeshes
     {
         var palette = piece.Type switch
         {
-            FurnitureType.Sofa or FurnitureType.Armchair or FurnitureType.Rug or FurnitureType.Bed => FabricColors,
+            FurnitureType.Sofa or FurnitureType.Armchair or FurnitureType.Rug or FurnitureType.Bed
+                or FurnitureType.CushionBin or FurnitureType.BlanketStack or FurnitureType.CurtainRack
+                or FurnitureType.OfficeChair or FurnitureType.Parasol => FabricColors,
             FurnitureType.BunkBed or FurnitureType.KidsTable or FurnitureType.KidsChair or FurnitureType.PlayCube or FurnitureType.ToyShelf => PlasticColors,
-            FurnitureType.PottedPlant or FurnitureType.LargePlant => LeafColors,
+            FurnitureType.PottedPlant or FurnitureType.LargePlant or FurnitureType.PlanterBox => LeafColors,
             FurnitureType.FlatPackBox => CardboardColors,
             _ => null,
         };
@@ -149,7 +165,9 @@ public static class FurnitureMeshes
         var spec = FurnitureCatalog.Spec(type);
         var (w, d, h) = (spec.Width, spec.Depth, spec.Height);
         var (hw, hd) = (w / 2f, d / 2f);
-        var b = new Builder(coarse);
+        // Wave-two legs and arms use 7 cm sections; omit them at distance just as the
+        // narrower first-wave legs are omitted, retaining the main silhouette.
+        var b = new Builder(coarse, type >= FurnitureType.Desk ? 0.09f : CoarseMinThickness, type >= FurnitureType.Desk ? 5 : 0);
         switch (type)
         {
             case FurnitureType.PalletRack:
@@ -367,6 +385,156 @@ public static class FurnitureMeshes
             case FurnitureType.PlayCube:
                 b.Box(Part.Plastic, new Vector3(-hw + 0.01f, 0f, -hd + 0.01f), new Vector3(hw - 0.01f, h, hd - 0.01f));
                 break;
+            case FurnitureType.Desk:
+            case FurnitureType.MeetingTable:
+            case FurnitureType.GardenTable:
+                var tablePart = type == FurnitureType.GardenTable ? Part.Teak : Part.Pine;
+                b.Box(tablePart, new(-hw, h - 0.05f, -hd), new(hw, h, hd));
+                Legs(b, type == FurnitureType.Desk ? Part.PaintedMetal : tablePart, hw - 0.06f, hd - 0.06f, h - 0.05f, 0.035f);
+                if (type == FurnitureType.Desk)
+                    b.Box(Part.Pine, new(hw - 0.4f, 0.3f, -hd), new(hw - 0.04f, h - 0.05f, hd));
+                break;
+            case FurnitureType.OfficeChair:
+                b.Cylinder(Part.PaintedMetal, Vector3.Zero, 0.3f, 0.3f, 0.08f);
+                b.Cylinder(Part.Chrome, new(0, 0.08f, 0), 0.04f, 0.04f, 0.36f);
+                b.Box(Part.Linen, new(-hw, 0.44f, -hd), new(hw, 0.52f, hd));
+                b.Box(Part.Linen, new(-hw, 0.52f, -hd), new(hw, h, -hd + 0.12f));
+                break;
+            case FurnitureType.GardenChair:
+                b.Box(Part.Wool, new(-hw, 0.42f, -hd), new(hw, 0.5f, hd));
+                b.Box(Part.Wool, new(-hw, 0.5f, -hd), new(hw, h, -hd + 0.06f));
+                Legs(b, Part.Teak, hw - 0.04f, hd - 0.04f, 0.42f, 0.035f);
+                break;
+            case FurnitureType.FilingCabinet:
+            case FurnitureType.Sideboard:
+            case FurnitureType.ShoeCabinet:
+            case FurnitureType.Dresser:
+            case FurnitureType.Nightstand:
+            case FurnitureType.ToyChest:
+                var cabinetPart = type == FurnitureType.FilingCabinet ? Part.PaintedMetal : Part.Pine;
+                b.Box(cabinetPart, new(-hw, 0.08f, -hd), new(hw, h, hd - 0.025f));
+                var drawers = type == FurnitureType.ToyChest ? 1 : 3;
+                for (var drawer = 0; drawer < drawers; drawer++)
+                {
+                    var y = 0.08f + drawer * (h - 0.08f) / drawers;
+                    b.Box(cabinetPart, new(-hw + 0.015f, y + 0.01f, hd - 0.025f), new(hw - 0.015f, y + (h - 0.08f) / drawers - 0.01f, hd));
+                    b.Box(Part.Chrome, new(-0.07f, y + 0.1f, hd), new(0.07f, y + 0.12f, hd + 0.015f));
+                }
+                Legs(b, cabinetPart, hw - 0.04f, hd - 0.04f, 0.08f, 0.025f);
+                break;
+            case FurnitureType.DisplayCabinet:
+            case FurnitureType.TvBench:
+                b.Box(Part.Pine, new(-hw, 0.1f, -hd), new(-hw + 0.04f, h, hd));
+                b.Box(Part.Pine, new(hw - 0.04f, 0.1f, -hd), new(hw, h, hd));
+                b.Box(Part.Pine, new(-hw, 0.1f, -hd), new(hw, h, -hd + 0.03f));
+                foreach (var y in new[] { 0.1f, h * 0.5f, h - 0.04f })
+                    b.Box(Part.Pine, new(-hw, y, -hd), new(hw, y + 0.04f, hd));
+                if (type == FurnitureType.DisplayCabinet)
+                    b.Box(Part.Glass, new(-hw + 0.04f, 0.14f, hd - 0.02f), new(hw - 0.04f, h - 0.04f, hd));
+                break;
+            case FurnitureType.CushionBin:
+                b.Box(Part.Wool, new(-hw, 0, -hd), new(hw, h * 0.55f, hd));
+                foreach (var x in new[] { -hw / 2f, hw / 2f })
+                    b.Box(Part.Linen, new(x - w * 0.22f, h * 0.55f, -hd + 0.03f), new(x + w * 0.22f, h, hd - 0.03f));
+                break;
+            case FurnitureType.BlanketStack:
+                for (var layer = 0; layer < 5; layer++)
+                    b.Box(layer % 2 == 0 ? Part.Linen : Part.Bedding,
+                        new(-hw + layer * 0.008f, layer * h / 5f, -hd), new(hw, (layer + 1) * h / 5f - 0.006f, hd));
+                break;
+            case FurnitureType.CurtainRack:
+                Posts(b, Part.PaintedMetal, hw, hd, h, 0.035f);
+                b.Box(Part.PaintedMetal, new(-hw, h - 0.06f, -hd), new(hw, h, hd));
+                for (var fold = 0; fold < 8; fold++)
+                {
+                    var x = -hw + fold * w / 8f;
+                    b.Box(Part.Linen, new(x, 0.15f, -0.06f), new(x + w / 8f - 0.008f, h - 0.06f, 0.06f));
+                }
+                break;
+            case FurnitureType.FloorMirror:
+            case FurnitureType.FrameDisplay:
+                b.Box(Part.Pine, new(-hw, 0.15f, -0.05f), new(hw, h, 0.05f));
+                b.Box(type == FurnitureType.FloorMirror ? Part.Chrome : Part.Linen,
+                    new(-hw + 0.045f, 0.2f, 0.05f), new(hw - 0.045f, h - 0.045f, 0.065f));
+                Legs(b, Part.Pine, hw - 0.05f, hd - 0.05f, 0.15f, 0.035f);
+                break;
+            case FurnitureType.SunLounger:
+                b.Box(Part.Teak, new(-hw, 0.23f, -hd), new(hw, 0.3f, hd));
+                b.Box(Part.Wool, new(-hw + 0.035f, 0.3f, -hd + 0.03f), new(hw - 0.035f, 0.36f, hd - 0.03f));
+                b.Box(Part.Wool, new(-hw, 0.36f, -hd), new(hw, h, -hd + 0.45f));
+                Legs(b, Part.Teak, hw - 0.05f, hd - 0.08f, 0.23f, 0.035f);
+                break;
+            case FurnitureType.Parasol:
+                b.Cylinder(Part.PaintedMetal, Vector3.Zero, 0.22f, 0.22f, 0.08f);
+                b.Cylinder(Part.Teak, new(0, 0.08f, 0), 0.035f, 0.035f, h - 0.35f);
+                b.Cylinder(Part.Linen, new(0, h - 0.27f, 0), hw, 0.06f, 0.27f);
+                break;
+            case FurnitureType.Grill:
+                b.Box(Part.PaintedMetal, new(-hw, 0.6f, -hd), new(hw, 0.85f, hd));
+                b.Cylinder(Part.DarkSteel, new(0, 0.85f, 0), hd, hd * 0.7f, h - 0.85f);
+                Legs(b, Part.PaintedMetal, hw - 0.07f, hd - 0.07f, 0.6f, 0.035f);
+                break;
+            case FurnitureType.CoatRack:
+                b.Cylinder(Part.Pine, Vector3.Zero, 0.3f, 0.3f, 0.08f);
+                b.Cylinder(Part.Pine, new(0, 0.08f, 0), 0.06f, 0.045f, h - 0.08f);
+                b.Box(Part.Pine, new(-hw, h - 0.25f, -0.035f), new(hw, h - 0.18f, 0.035f));
+                b.Box(Part.Pine, new(-0.035f, h - 0.4f, -hd), new(0.035f, h - 0.33f, hd));
+                break;
+            case FurnitureType.HallBench:
+            case FurnitureType.BarStool:
+                b.Box(Part.Pine, new(-hw, h - 0.07f, -hd), new(hw, h, hd));
+                Legs(b, Part.Pine, hw - 0.05f, hd - 0.05f, h - 0.07f, 0.035f);
+                break;
+            case FurnitureType.WashingMachine:
+            case FurnitureType.Stove:
+                b.Box(Part.Ceramic, new(-hw, 0, -hd), new(hw, h, hd));
+                b.Box(Part.PaintedMetal, new(-hw + 0.02f, h - 0.14f, hd), new(hw - 0.02f, h - 0.02f, hd + 0.01f));
+                if (type == FurnitureType.WashingMachine)
+                {
+                    // Cylinders stand vertically in the mesh builder; a squared porthole keeps
+                    // the front readable with the same box/cylinder construction as wave one.
+                    b.Box(Part.DarkSteel, new(-0.22f, 0.18f, hd), new(0.22f, 0.62f, hd + 0.015f));
+                    b.Box(Part.Glass, new(-0.17f, 0.23f, hd + 0.015f), new(0.17f, 0.57f, hd + 0.025f));
+                }
+                else
+                {
+                    b.Box(Part.DarkSteel, new(-hw + 0.04f, 0.15f, hd), new(hw - 0.04f, 0.6f, hd + 0.015f));
+                    foreach (var x in new[] { -0.15f, 0.15f })
+                        foreach (var z in new[] { -0.15f, 0.15f })
+                            b.Cylinder(Part.DarkSteel, new(x, h, z), 0.08f, 0.08f, 0.01f);
+                }
+                break;
+            case FurnitureType.BoxCart:
+                b.Box(Part.PaintedMetal, new(-hw, 0.15f, -hd), new(hw, 0.22f, hd));
+                foreach (var x in new[] { -hw + 0.08f, hw - 0.08f })
+                    foreach (var z in new[] { -hd + 0.08f, hd - 0.08f })
+                        b.Cylinder(Part.Rubber, new(x, 0, z), 0.08f, 0.08f, 0.15f);
+                b.Box(Part.PaintedMetal, new(-hw, 0.22f, -hd), new(-hw + 0.07f, h, hd));
+                b.Box(Part.Cardboard, new(-hw + 0.1f, 0.22f, -hd + 0.04f), new(hw - 0.04f, 0.65f, hd - 0.04f));
+                break;
+            case FurnitureType.PlanterBox:
+                b.Box(Part.Teak, new(-hw, 0, -hd), new(hw, 0.4f, hd));
+                b.Box(Part.Soil, new(-hw + 0.035f, 0.4f, -hd + 0.035f), new(hw - 0.035f, 0.42f, hd - 0.035f));
+                foreach (var x in new[] { -0.4f, 0f, 0.4f })
+                    b.Cylinder(Part.Leaf, new(x, 0.42f, 0), 0.15f, 0.03f, h - 0.42f);
+                break;
+            case FurnitureType.DeskLamp:
+                b.Cylinder(Part.PaintedMetal, Vector3.Zero, 0.14f, 0.14f, 0.04f);
+                b.Cylinder(Part.Chrome, new(-0.06f, 0.04f, 0), 0.025f, 0.025f, 0.4f);
+                b.Cylinder(Part.LampShade, new(0, 0.42f, 0), 0.14f, 0.08f, 0.13f);
+                break;
+            case FurnitureType.ArcLamp:
+                b.Cylinder(Part.DarkSteel, new(-hw + 0.25f, 0, 0), 0.25f, 0.25f, 0.08f);
+                b.Cylinder(Part.Chrome, new(-hw + 0.25f, 0.08f, 0), 0.04f, 0.035f, h - 0.12f);
+                // Stepped slender arm approximates an arc without a separate asset pipeline.
+                for (var segment = 0; segment < 6; segment++)
+                {
+                    var x = -hw + 0.25f + segment * (w - 0.5f) / 6f;
+                    var y = h - 0.06f - 0.012f * segment * segment;
+                    b.Box(Part.Chrome, new(x, y, -0.035f), new(x + (w - 0.5f) / 6f + 0.01f, y + 0.04f, 0.035f));
+                }
+                b.Cylinder(Part.LampShade, new(hw - 0.25f, 1.8f, 0), 0.24f, 0.13f, 0.3f);
+                break;
             default:
                 b.Box(Part.Maple, new Vector3(-hw, 0f, -hd), new Vector3(hw, h, hd));
                 break;
@@ -418,6 +586,11 @@ public static class FurnitureMeshes
 
         _materials = new Dictionary<Part, ShaderMaterial>
         {
+            [Part.Pine] = Textured("pine", 1.2f, Colors.White),
+            [Part.Teak] = Textured("teak", 1.2f, Colors.White),
+            [Part.Linen] = Textured("linen", 0.8f, Colors.White, tinted: true),
+            [Part.PaintedMetal] = Textured("painted_metal", 1f, Colors.White),
+            [Part.Wool] = Textured("wool", 0.6f, Colors.White),
             [Part.Oak] = Textured("oak", 1.2f, Colors.White),
             [Part.Walnut] = Textured("walnut", 1.2f, Colors.White),
             [Part.Maple] = Textured("maple", 1.2f, Colors.White),
@@ -459,7 +632,7 @@ public static class FurnitureMeshes
     /// Accumulates parts into one surface per material, with UVs in metres and tangents for normal maps.
     /// A coarse builder leaves out thin parts and gives round parts fewer sides.
     /// </summary>
-    private sealed class Builder(bool coarse)
+    private sealed class Builder(bool coarse, float minThickness, int coarseSegments)
     {
         private readonly Dictionary<Part, SurfaceTool> _surfaces = new();
 
@@ -468,7 +641,7 @@ public static class FurnitureMeshes
             var size = max - min;
             float[] extents = [size.X, size.Y, size.Z];
             Array.Sort(extents);
-            if (coarse && (extents[1] < CoarseMinThickness || extents[0] < CoarseMinSheetThickness))
+            if (coarse && (extents[1] < minThickness || extents[0] < CoarseMinSheetThickness))
                 return;
             var tool = Surface(part);
             // Each face: normal, the two in-face axes (scaled by size) and its corner.
@@ -484,10 +657,10 @@ public static class FurnitureMeshes
         /// <summary>A capped cylinder (or cone frustum) standing on <paramref name="baseCentre"/>.</summary>
         public void Cylinder(Part part, Vector3 baseCentre, float bottomRadius, float topRadius, float height, int segments = 12)
         {
-            if (coarse && 2f * Mathf.Max(bottomRadius, topRadius) < CoarseMinThickness)
+            if (coarse && 2f * Mathf.Max(bottomRadius, topRadius) < minThickness)
                 return;
             if (coarse)
-                segments = Math.Max(5, segments / 2);
+                segments = coarseSegments > 0 ? coarseSegments : Math.Max(5, segments / 2);
             var tool = Surface(part);
             var top = baseCentre + new Vector3(0, height, 0);
             var slope = (bottomRadius - topRadius) / height;

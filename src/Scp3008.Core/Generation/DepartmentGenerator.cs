@@ -31,6 +31,10 @@ internal static class DepartmentGenerator
         [DepartmentType.BathroomsAndKitchens] = (2.0f, 1.0f),
         [DepartmentType.PlantSection] = (0.8f, 0.8f),
         [DepartmentType.KidsArea] = (1.0f, 0.85f),
+        [DepartmentType.Workspaces] = (1.0f, 1.1f),
+        [DepartmentType.TextilesAndDecor] = (1.0f, 1.1f),
+        [DepartmentType.Outdoor] = (1.0f, 1.1f),
+        [DepartmentType.DiningAndHallway] = (1.0f, 1.1f),
     };
 
     public static DepartmentMap Generate(int seed, StoreSpace space)
@@ -52,26 +56,19 @@ internal static class DepartmentGenerator
 
     private static List<Site> PlaceSites(SeededRandom random, StoreSpace space, int cellsPerSide)
     {
-        // Every type appears at least twice; the rest are drawn by weight.
+        // Every type appears at least twice; the remaining sites follow weighted quotas.
         var types = new List<DepartmentType>();
         foreach (var type in Enum.GetValues<DepartmentType>())
             types.AddRange([type, type]);
         var totalWeight = TypeOdds.Values.Sum(o => o.Weight);
         var siteCount = (int)Math.Round(SitesOnStandardStore * (space.Size / StoreSpace.Standard.Size) * (space.Size / StoreSpace.Standard.Size));
+        // Weighted quotas avoid a new content wave accidentally doubling a dense Department's
+        // share. Seed randomness still chooses site positions, sizes and the shuffled type order.
         while (types.Count < siteCount)
         {
-            var roll = random.NextFloat() * totalWeight;
-            foreach (var (type, odds) in TypeOdds)
-            {
-                roll -= odds.Weight;
-                if (roll < 0f)
-                {
-                    types.Add(type);
-                    break;
-                }
-            }
-            if (roll >= 0f)
-                types.Add(DepartmentType.Showrooms);
+            var next = TypeOdds.MaxBy(entry =>
+                siteCount * entry.Value.Weight / totalWeight - types.Count(t => t == entry.Key)).Key;
+            types.Add(next);
         }
         for (var i = types.Count - 1; i > 0; i--)
         {

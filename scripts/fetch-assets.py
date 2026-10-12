@@ -30,6 +30,10 @@ FLOORS = [
     ("BathroomsAndKitchens", "polyhaven", "marble_tiles"),
     ("PlantSection", "polyhaven", "patio_tiles"),
     ("KidsArea", "polyhaven", "old_linoleum_flooring_01"),
+    ("Workspaces", "polyhaven", "dirty_carpet"),
+    ("TextilesAndDecor", "polyhaven", "rectangular_parquet"),
+    ("Outdoor", "polyhaven", "rectangular_paving"),
+    ("DiningAndHallway", "polyhaven", "herringbone_parquet"),
 ]
 
 # Furniture materials: (name used by the game, source, asset id).
@@ -39,6 +43,11 @@ MATERIALS = [
     ("maple", "polyhaven", "white_maple_veneer"),
     ("fabric", "polyhaven", "leather_white"),
     ("cardboard", "ambientcg", "Cardboard001"),
+    ("pine", "polyhaven", "coated_pine"),
+    ("teak", "polyhaven", "teak_veneer"),
+    ("linen", "polyhaven", "rough_linen"),
+    ("painted_metal", "polyhaven", "painted_metal_shutter"),
+    ("wool", "polyhaven", "poly_wool_herringbone"),
 ]
 
 
@@ -92,7 +101,7 @@ def main():
         save(albedo, OUT / f"{name}_albedo.jpg")
         save(normal, OUT / f"{name}_normal.jpg")
         save(roughness, OUT / f"{name}_roughness.jpg")
-        credits.append(f"- `{name}_*`: {asset} from {'Poly Haven' if source == 'polyhaven' else 'ambientCG'}")
+        credits.append(f"- `{name}_*`: {asset} from [{'Poly Haven' if source == 'polyhaven' else 'ambientCG'}]({'https://polyhaven.com/a/' if source == 'polyhaven' else 'https://ambientcg.com/view?id='}{asset})")
 
     layers = {"albedo": [], "normal": [], "roughness": []}
     for department, source, asset in FLOORS:
@@ -101,7 +110,7 @@ def main():
         layers["albedo"].append(albedo)
         layers["normal"].append(normal)
         layers["roughness"].append(roughness)
-        credits.append(f"- floor layer {department}: {asset} from Poly Haven")
+        credits.append(f"- floor layer {department}: {asset} from [Poly Haven](https://polyhaven.com/a/{asset})")
     for kind, images in layers.items():
         atlas = Image.new(images[0].mode, (SIZE, SIZE * len(images)))
         for i, image in enumerate(images):

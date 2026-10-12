@@ -15,13 +15,14 @@ public partial class StoreFloor : MeshInstance3D
     [Export] public CameraRig Rig { get; set; } = null!;
 
     /// <summary>Metres per texture repeat, per Department type; each divides every Store length (1344 and 1920 m).</summary>
-    private static readonly float[] LayerMetres = [3.0f, 2.0f, 2.4f, 3.0f, 2.0f, 2.4f, 2.0f];
+    private static readonly float[] LayerMetres = [3.0f, 2.0f, 2.4f, 3.0f, 2.0f, 2.4f, 2.0f, 2.0f, 2.4f, 3f, 2f];
 
     /// <summary>Albedo balance per Department type (food market, showrooms, lighting, warehouse, bath/kitchen, plants, kids).</summary>
     private static readonly Color[] LayerTints =
     [
         new(1f, 1f, 1f), new(1f, 1f, 1f), new(0.8f, 0.8f, 0.85f), new(1.05f, 1.05f, 1.05f),
         new(1f, 1f, 1f), new(1f, 1f, 1f), new(1f, 1f, 1f),
+        new(1f, 1f, 1f), new(1f, 1f, 1f), new(1f, 1f, 1f), new(1f, 1f, 1f),
     ];
 
     private PlaneMesh _followingPlane = null!;

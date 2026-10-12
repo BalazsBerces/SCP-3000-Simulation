@@ -303,7 +303,9 @@ public partial class LampLights : Node3D
     private Lamp ToLamp(FurniturePiece piece, int index)
     {
         var spec = FurnitureCatalog.Spec(piece.Type);
-        var bulb = _space.Wrap(piece.Position).ToWorld(piece.Elevation + FurnitureMeshes.BulbHeight(piece.Type));
+        var offset = FurnitureMeshes.BulbOffset(piece.Type);
+        var horizontal = new System.Numerics.Vector2(offset.X * MathF.Cos(piece.Rotation), offset.X * MathF.Sin(piece.Rotation));
+        var bulb = _space.Wrap(piece.Position + horizontal).ToWorld(piece.Elevation + offset.Y);
         // Bigger Lamps carry brighter bulbs.
         return new Lamp(piece.Id, index, bulb, spec.LightRadius, 0.35f * spec.LightRadius);
     }

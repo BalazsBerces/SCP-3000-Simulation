@@ -25,6 +25,7 @@ namespace Scp3008.Game;
 ///                          restarts once the new Store is shown;
 ///   --choose-pillars=name  after one second, choose this Pillar layout in the top-right panel;
 ///                          the capture timer restarts once the new Store is shown.
+///   --furniture-tour=dir  capture all second-wave Furniture and the four new Departments, then quit.
 /// Does nothing in normal runs.
 /// </summary>
 public partial class DevCapture : Node
@@ -36,6 +37,7 @@ public partial class DevCapture : Node
     [Export] public AmbientAudio Audio { get; set; } = null!;
     [Export] public LampLights Lamps { get; set; } = null!;
 
+    private string? _tourDirectory;
     private string? _capturePath;
     private double _captureAfter = 3.0;
     private bool _fpsReport;
@@ -54,7 +56,9 @@ public partial class DevCapture : Node
     {
         foreach (var arg in OS.GetCmdlineUserArgs())
         {
-            if (arg.StartsWith("--capture="))
+            if (arg.StartsWith("--furniture-tour="))
+                _tourDirectory = arg["--furniture-tour=".Length..];
+            else if (arg.StartsWith("--capture="))
                 _capturePath = arg["--capture=".Length..];
             else if (arg.StartsWith("--capture-after="))
                 _captureAfter = double.Parse(arg["--capture-after=".Length..], CultureInfo.InvariantCulture);
@@ -91,6 +95,8 @@ public partial class DevCapture : Node
             else if (arg.StartsWith("--choose-pillars="))
                 _layoutToChoose = PillarLayouts.Parse(arg["--choose-pillars=".Length..]);
         }
+        if (_tourDirectory is not null)
+            CaptureFurnitureTour();
         _lastFocus = Rig.Focus;
         // Keep the step measurement continuous across the rig's whole-Store shifts.
         Rig.Recentred += shift =>
@@ -160,6 +166,58 @@ public partial class DevCapture : Node
             GD.Print(error == Error.Ok ? $"Screenshot saved to {_capturePath}" : $"Screenshot failed: {error}");
         }
         GetTree().Quit();
+    }
+
+    private async void CaptureFurnitureTour()
+    {
+        try
+        {
+            Host.Speed = SimulationSpeed.Paused;
+            Host.AdvanceTo(TimeSpan.FromHours(12));
+            Host.HoldClearWeather();
+            DirAccess.MakeDirRecursiveAbsolute(_tourDirectory);
+            var snapshot = Host.Snapshot;
+            var centre = new System.Numerics.Vector2(snapshot.Space.Size / 2f);
+            var captures = new List<(string Name, System.Numerics.Vector2 Focus, float Distance, float Yaw)>();
+            foreach (var type in Enum.GetValues<FurnitureType>().Where(t => t >= FurnitureType.Desk))
+            {
+                var piece = snapshot.Furniture.Where(p => p.Type == type)
+                    .MinBy(p => snapshot.Space.Distance(p.Position, centre));
+                captures.Add((type.ToString(), piece.Position, 8f, -piece.Rotation + Mathf.DegToRad(30f)));
+                var full = FurnitureMeshes.For(type);
+                var coarse = FurnitureMeshes.CoarseFor(type);
+                if (full.GetSurfaceCount() == 0 || coarse.GetSurfaceCount() == 0)
+                    throw new InvalidOperationException($"Missing full/coarse mesh for {type}.");
+                GD.Print($"Tour {type}: {snapshot.Departments.At(piece.Position).Type}, {piece.Position}, " +
+                         $"full/coarse surfaces {full.GetSurfaceCount()}/{coarse.GetSurfaceCount()}, " +
+                         $"occluder vertices {FurnitureMeshes.OccluderQuads(type).Length}.");
+            }
+            foreach (var type in new[] { DepartmentType.Workspaces, DepartmentType.TextilesAndDecor,
+                         DepartmentType.Outdoor, DepartmentType.DiningAndHallway })
+            {
+                var department = snapshot.Departments.All.Where(d => d.Type == type).MaxBy(d => d.Area)!;
+                captures.Add(($"Department-{type}", department.Anchor, 45f, Mathf.DegToRad(30f)));
+            }
+            foreach (var capture in captures)
+            {
+                Rig.JumpTo(capture.Focus.ToWorld());
+                Rig.JumpToDistance(capture.Distance);
+                Rig.JumpToYaw(capture.Yaw);
+                for (var frame = 0; frame < 45; frame++)
+                    await ToSignal(RenderingServer.Singleton, RenderingServer.SignalName.FramePostDraw);
+                var path = System.IO.Path.Combine(_tourDirectory!, capture.Name + ".png");
+                var error = GetViewport().GetTexture().GetImage().SavePng(path);
+                if (error != Error.Ok)
+                    throw new System.IO.IOException($"Capture {capture.Name}: {error}");
+                GD.Print($"Screenshot saved to {path}");
+            }
+            GetTree().Quit();
+        }
+        catch (Exception error)
+        {
+            GD.PushError($"Furniture tour failed: {error}");
+            GetTree().Quit(2);
+        }
     }
 
     private void AddEyeLevelCamera()

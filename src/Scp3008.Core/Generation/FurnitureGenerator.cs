@@ -46,6 +46,10 @@ internal static class FurnitureGenerator
             case DepartmentType.RestaurantAndFoodMarket: Restaurant(cell, frame); break;
             case DepartmentType.PlantSection: Plants(cell, frame); break;
             case DepartmentType.KidsArea: Kids(cell, frame); break;
+            case DepartmentType.Workspaces: Rooms(cell, frame, Workspace); break;
+            case DepartmentType.TextilesAndDecor: Decor(cell, frame); break;
+            case DepartmentType.Outdoor: Rooms(cell, frame, Outdoor); break;
+            case DepartmentType.DiningAndHallway: Rooms(cell, frame, Hallway); break;
         }
     }
 
@@ -59,7 +63,10 @@ internal static class FurnitureGenerator
             for (var j = 0; j < 6; j++)
                 for (var i = 0; i < 7; i++)
                     if (random.Chance(0.85f))
-                        Stack(cell, frame, 2.3f + i * 1.8f, 2.2f + j * 2.0f, random.Range(-0.05f, 0.05f), 1 + random.Next(3));
+                        if (i == 0 && j % 2 == 0)
+                            cell.Place(frame, FurnitureType.BoxCart, 2.3f + i * 1.8f, 2.2f + j * 2.0f, 0f);
+                        else
+                            Stack(cell, frame, 2.3f + i * 1.8f, 2.2f + j * 2.0f, random.Range(-0.05f, 0.05f), 1 + random.Next(3));
             return;
         }
 
@@ -96,7 +103,7 @@ internal static class FurnitureGenerator
     private static void Lighting(Cell cell, Frame frame)
     {
         var random = cell.Random;
-        if (random.Chance(0.65f))
+        if (random.Chance(0.15f))
         {
             ShelvingRows(cell, frame, FurnitureType.ShelfUnit, pairs: 4, pairPitch: 3.6f, count: 6, firstU: 3f);
             return;
@@ -114,10 +121,10 @@ internal static class FurnitureGenerator
                 for (var i = 0; i < lamps; i++)
                 {
                     var offset = along * (-0.5f + i * 1f / (lamps - 1));
-                    cell.Place(frame, FurnitureType.TableLamp, u + offset.X, v + offset.Y, random.Range(-HalfTurn, HalfTurn), tableHeight);
+                    cell.Place(frame, random.Chance(0.35f) ? FurnitureType.DeskLamp : FurnitureType.TableLamp, u + offset.X, v + offset.Y, random.Range(-HalfTurn, HalfTurn), tableHeight);
                 }
             }
-        cell.Scatter(frame, FurnitureType.FloorLamp, attempts: 10, min: 2f, max: 14f);
+        cell.Scatter(frame, random.Chance(0.4f) ? FurnitureType.ArcLamp : FurnitureType.FloorLamp, attempts: 10, min: 2f, max: 14f);
     }
 
     /// <summary>Back-to-back pairs of shelving rows along the cell, with aisles between the pairs.</summary>
@@ -149,12 +156,12 @@ internal static class FurnitureGenerator
         {
             // Living room around a rug.
             cell.Place(room, FurnitureType.Rug, 3.25f, 3.3f, 0f);
-            cell.Place(room, FurnitureType.CoffeeTable, 3.25f, 3.3f, random.Range(-0.1f, 0.1f));
+            cell.Place(room, random.Chance(0.3f) ? FurnitureType.TvBench : FurnitureType.CoffeeTable, 3.25f, 3.3f, random.Range(-0.1f, 0.1f));
             cell.Place(room, FurnitureType.Sofa, 3.25f, 5.2f, HalfTurn + random.Range(-0.08f, 0.08f));
             cell.Place(room, FurnitureType.Armchair, 1.2f, 3.3f, -QuarterTurn + random.Range(-0.4f, 0.4f));
             if (random.Chance(0.7f))
                 cell.Place(room, FurnitureType.Armchair, 5.3f, 3.3f, QuarterTurn + random.Range(-0.4f, 0.4f));
-            cell.Place(room, FurnitureType.FloorLamp, 0.7f, 5.6f, random.Range(-HalfTurn, HalfTurn));
+            cell.Place(room, random.Chance(0.4f) ? FurnitureType.ArcLamp : FurnitureType.FloorLamp, 0.7f, 5.6f, random.Range(-HalfTurn, HalfTurn));
             foreach (var u in new[] { 2.3f, 3.25f, 4.2f })
                 if (random.Chance(0.6f))
                     cell.Place(room, FurnitureType.Bookcase, u, 0.45f, 0f);
@@ -164,8 +171,8 @@ internal static class FurnitureGenerator
             // Bedroom.
             cell.Place(room, FurnitureType.Bed, 3.25f, 1.45f, 0f);
             cell.Place(room, FurnitureType.Rug, 3.25f, 3.6f, 0f);
-            cell.Place(room, FurnitureType.Wardrobe, 0.4f, 3.2f, -QuarterTurn);
-            cell.Place(room, FurnitureType.Wardrobe, 0.4f, 4.3f, -QuarterTurn);
+            cell.Place(room, random.Chance(0.35f) ? FurnitureType.Dresser : FurnitureType.Wardrobe, 0.4f, 3.2f, -QuarterTurn);
+            cell.Place(room, random.Chance(0.35f) ? FurnitureType.Dresser : FurnitureType.Wardrobe, 0.4f, 4.3f, -QuarterTurn);
             cell.Place(room, FurnitureType.FloorLamp, 1.6f, 0.6f, random.Range(-HalfTurn, HalfTurn));
             cell.Place(room, FurnitureType.FloorLamp, 4.9f, 0.6f, random.Range(-HalfTurn, HalfTurn));
             cell.Place(room, FurnitureType.Armchair, 5.4f, 5.3f, QuarterTurn + random.Range(0.2f, 0.8f));
@@ -175,12 +182,12 @@ internal static class FurnitureGenerator
         {
             // Storage wall with loose seating in front.
             for (var i = 0; i < 3; i++)
-                cell.Place(room, FurnitureType.Wardrobe, 1.0f + i * 1.05f, 0.4f, 0f);
+                cell.Place(room, random.Chance(0.35f) ? FurnitureType.Dresser : FurnitureType.Wardrobe, 1.0f + i * 1.05f, 0.4f, 0f);
             cell.Place(room, FurnitureType.Bookcase, 4.3f, 0.25f, 0f);
             cell.Place(room, FurnitureType.Bookcase, 5.15f, 0.25f, 0f);
             cell.Place(room, FurnitureType.Sofa, 3.25f, 3.4f, random.Range(-0.3f, 0.3f));
             cell.Place(room, FurnitureType.Armchair, 1.3f, 4.9f, random.Range(-HalfTurn, HalfTurn));
-            cell.Place(room, FurnitureType.CoffeeTable, 4.8f, 5.0f, random.Range(-0.6f, 0.6f));
+            cell.Place(room, FurnitureType.Nightstand, 4.8f, 5.0f, random.Range(-0.6f, 0.6f));
         }
     }
 
@@ -191,7 +198,7 @@ internal static class FurnitureGenerator
         {
             // L-shaped kitchen run with a fridge, and an island.
             for (var i = 0; i < 8; i++)
-                cell.Place(room, FurnitureType.KitchenCabinet, 0.9f + i * 0.6f, 0.4f, 0f);
+                cell.Place(room, i == 3 ? FurnitureType.Stove : FurnitureType.KitchenCabinet, 0.9f + i * 0.6f, 0.4f, 0f);
             cell.Place(room, FurnitureType.Fridge, 5.8f, 0.45f, 0f);
             for (var j = 0; j < 5; j++)
                 cell.Place(room, FurnitureType.KitchenCabinet, 0.4f, 1.3f + j * 0.6f, -QuarterTurn);
@@ -209,7 +216,7 @@ internal static class FurnitureGenerator
             cell.Place(room, FurnitureType.Bathtub, 1.25f, 0.475f, 0f);
             cell.Place(room, FurnitureType.Toilet, 2.8f, 0.425f, 0f);
             cell.Place(room, FurnitureType.VanityUnit, 6.15f, 2.0f, QuarterTurn);
-            cell.Place(room, FurnitureType.VanityUnit, 6.15f, 3.0f, QuarterTurn);
+            cell.Place(room, FurnitureType.WashingMachine, 6.1f, 3.0f, QuarterTurn);
             cell.Place(room, FurnitureType.Toilet, 1.0f, 5.9f, HalfTurn);
             cell.Place(room, FurnitureType.Toilet, 1.8f, 5.9f, HalfTurn);
             if (random.Chance(0.6f))
@@ -248,9 +255,9 @@ internal static class FurnitureGenerator
                 foreach (var side in new[] { -0.4f, 0.4f })
                 {
                     if (random.Chance(0.9f))
-                        cell.Place(frame, FurnitureType.Chair, u + side, v - 0.85f, random.Range(-0.3f, 0.3f));
+                        cell.Place(frame, roll < 0.7f ? FurnitureType.BarStool : FurnitureType.Chair, u + side, v - 0.85f, random.Range(-0.3f, 0.3f));
                     if (random.Chance(0.9f))
-                        cell.Place(frame, FurnitureType.Chair, u + side, v + 0.85f, HalfTurn + random.Range(-0.3f, 0.3f));
+                        cell.Place(frame, roll < 0.7f ? FurnitureType.BarStool : FurnitureType.Chair, u + side, v + 0.85f, HalfTurn + random.Range(-0.3f, 0.3f));
                 }
             }
     }
@@ -265,7 +272,7 @@ internal static class FurnitureGenerator
             for (var j = 0; j < 8; j++)
                 for (var i = 0; i < 8; i++)
                     if (random.Chance(0.75f))
-                        cell.Place(frame, FurnitureType.LargePlant,
+                        cell.Place(frame, (i + j) % 4 == 0 ? FurnitureType.PlanterBox : FurnitureType.LargePlant,
                             2.5f + i * 1.6f + random.Range(-0.35f, 0.35f), 2.5f + j * 1.6f + random.Range(-0.35f, 0.35f),
                             random.Range(-HalfTurn, HalfTurn));
             return;
@@ -311,7 +318,7 @@ internal static class FurnitureGenerator
             cell.Place(room, FurnitureType.ToyShelf, 6.2f, 3.5f, QuarterTurn);
             cell.Place(room, FurnitureType.Rug, 3.0f, 3.6f, 0f);
             KidsTable(cell, room, 3.0f, 3.6f);
-            cell.Scatter(room, FurnitureType.PlayCube, attempts: 4, min: 0.4f, max: 6.1f);
+            cell.Scatter(room, FurnitureType.ToyChest, attempts: 4, min: 0.4f, max: 6.1f);
         }
         else
         {
@@ -332,6 +339,74 @@ internal static class FurnitureGenerator
         foreach (var (du, dv, facing) in new[] { (0f, -0.75f, 0f), (0f, 0.75f, HalfTurn), (-0.75f, 0f, -QuarterTurn), (0.75f, 0f, QuarterTurn) })
             if (random.Chance(0.8f))
                 cell.Place(room, FurnitureType.KidsChair, u + du, v + dv, facing + random.Range(-0.3f, 0.3f));
+    }
+
+    // New Departments replace a share of the existing Department sites and layout rolls.
+    private static void Workspace(Cell cell, Frame room)
+    {
+        if (cell.Random.Chance(0.3f))
+        {
+            cell.Place(room, FurnitureType.MeetingTable, 3.25f, 3.25f, 0f);
+            foreach (var u in new[] { 2.4f, 3.3f, 4.2f })
+                foreach (var v in new[] { 2.2f, 4.3f })
+                    cell.Place(room, FurnitureType.OfficeChair, u, v, v < 3f ? 0f : HalfTurn);
+        }
+        else
+        {
+            foreach (var u in new[] { 1.2f, 3.1f, 5.0f })
+                foreach (var v in new[] { 1.0f, 4.0f })
+                {
+                    if (cell.Place(room, FurnitureType.Desk, u, v, 0f))
+                        cell.Place(room, FurnitureType.DeskLamp, u - 0.4f, v, 0f, 0.75f);
+                    cell.Place(room, FurnitureType.OfficeChair, u, v + 0.85f, 0f);
+                }
+        }
+        foreach (var u in new[] { 1f, 2f, 3f, 4f, 5f })
+            cell.Place(room, FurnitureType.FilingCabinet, u, 5.6f, HalfTurn);
+    }
+
+    private static void Decor(Cell cell, Frame frame)
+    {
+        // Alternating racks and low textile bins, with a mirror/frame aisle.
+        foreach (var v in new[] { 2.2f, 5.2f, 8.2f, 11.2f })
+            foreach (var u in new[] { 2.8f, 4.6f, 6.4f, 8.2f, 10f, 11.8f, 13.6f })
+            {
+                var type = cell.Random.Pick(new[] { FurnitureType.CushionBin, FurnitureType.BlanketStack, FurnitureType.CurtainRack });
+                cell.Place(frame, type, u, v, 0f);
+                cell.Place(frame, FurnitureType.BlanketStack, u, v + 1.0f, 0f);
+            }
+        foreach (var u in new[] { 2.8f, 4.6f, 6.4f, 8.2f, 10f, 11.8f, 13.6f })
+            cell.Place(frame, cell.Random.Chance(0.5f) ? FurnitureType.FloorMirror : FurnitureType.FrameDisplay, u, 13.8f, 0f);
+    }
+
+    private static void Outdoor(Cell cell, Frame room)
+    {
+        cell.Place(room, FurnitureType.GardenTable, 2f, 2f, 0f);
+        foreach (var u in new[] { 1.5f, 2.5f })
+            foreach (var v in new[] { 1.1f, 2.9f })
+                cell.Place(room, FurnitureType.GardenChair, u, v, v < 2f ? 0f : HalfTurn);
+        cell.Place(room, FurnitureType.Parasol, 4.8f, 1.8f, 0f);
+        cell.Place(room, FurnitureType.SunLounger, 4.8f, 4.2f, 0f);
+        cell.Place(room, FurnitureType.Grill, 1f, 5.7f, 0f);
+        cell.Place(room, FurnitureType.GardenTable, 2.8f, 5.1f, 0f);
+        cell.Place(room, FurnitureType.GardenChair, 2.8f, 4.1f, 0f);
+        cell.Place(room, FurnitureType.PottedPlant, 3.5f, 3.5f, 0f);
+    }
+
+    private static void Hallway(Cell cell, Frame room)
+    {
+        foreach (var u in new[] { 1f, 2.5f, 4f, 5.5f })
+            cell.Place(room, FurnitureType.DisplayCabinet, u, 0.6f, 0f);
+        foreach (var v in new[] { 2f, 3.4f, 4.8f })
+        {
+            cell.Place(room, FurnitureType.ShoeCabinet, 0.6f, v, -QuarterTurn);
+            cell.Place(room, FurnitureType.CoatRack, 5.6f, v, 0f);
+        }
+        cell.Place(room, FurnitureType.Sideboard, 2.4f, 5.8f, HalfTurn);
+        cell.Place(room, FurnitureType.HallBench, 4.2f, 5.8f, 0f);
+        cell.Place(room, FurnitureType.DiningTable, 3f, 3f, 0f);
+        cell.Place(room, FurnitureType.Chair, 3f, 2.1f, 0f);
+        cell.Place(room, FurnitureType.Chair, 3f, 3.9f, HalfTurn);
     }
 
     /// <summary>

@@ -1,0 +1,9 @@
+  Scp3008.Core -> C:\INBOX\Projects\SCP_3000_SIMULATION\src\Scp3008.Core\bin\Debug\net8.0\Scp3008.Core.dll
+  Scp3008.Core.Tests -> C:\INBOX\Projects\SCP_3000_SIMULATION\tests\Scp3008.Core.Tests\bin\Debug\net8.0\Scp3008.Core.Tests.dll
+Test run for C:\INBOX\Projects\SCP_3000_SIMULATION\tests\Scp3008.Core.Tests\bin\Debug\net8.0\Scp3008.Core.Tests.dll (.NETCoreApp,Version=v8.0)
+VSTest version 17.14.1 (x64)
+
+Starting test execution, please wait...
+A total of 1 test files matched the specified pattern.
+
+Passed!  - Failed:     0, Passed:   178, Skipped:     0, Total:   178, Duration: 1 m 40 s - Scp3008.Core.Tests.dll (net8.0)
