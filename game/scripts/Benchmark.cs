@@ -10,9 +10,11 @@ namespace Scp3008.Game;
 /// Department (the shadow budget at work), pulls out to the farthest zoom, and pans and turns
 /// there (the most Furniture in view). Vsync is off. For each lighting it prints the average and
 /// 1%-low frame rate (the mean rate over the slowest 1% of frames) and quits with exit code 0 if
-/// every average meets <see cref="TargetFps"/>, 1 if not. User arguments after "--":
+/// every average meets <see cref="TargetFps"/> and every 1% low meets <see cref="TargetOnePercentLowFps"/>,
+/// 1 if not. User arguments after "--":
 ///   --benchmark-seconds=s  measuring time per lighting (default 20);
-///   --benchmark-shots=dir  save near, mid and far screenshots in each lighting.
+///   --benchmark-shots=dir  save near, mid and far screenshots in each lighting;
+///   --lamp-reproduction=dir  capture a continuous pan, rotation and zoom over the Lamp displays.
 /// </summary>
 public partial class Benchmark : Node
 {
@@ -22,6 +24,7 @@ public partial class Benchmark : Node
     [Export] public LampLights Lamps { get; set; } = null!;
 
     [Export] public int TargetFps { get; set; } = 120;
+    [Export] public int TargetOnePercentLowFps { get; set; } = 75;
     [Export] public double WarmUpSeconds { get; set; } = 3.0;
     [Export] public double MeasureSeconds { get; set; } = 20.0;
 
@@ -103,15 +106,17 @@ public partial class Benchmark : Node
         results.Add(await Measure(new Lighting("Closing time far", TimeSpan.FromHours(23), HoldFar: true)));
         var size = GetViewport().GetVisibleRect().Size;
         GD.Print($"Benchmark: Store {Host.Snapshot.Seed}, {size.X}x{size.Y}, {RenderingServer.GetVideoAdapterName()}, " +
-                 $"{MeasureSeconds:0} s per lighting, target {TargetFps} fps average");
+                 $"{MeasureSeconds:0} s per lighting, target {TargetFps} fps average, {TargetOnePercentLowFps} fps 1% low");
         GD.Print($"  Weather: fixed Fog bank, radius 160 m; MSAA {GetViewport().Msaa3D}, TAA {GetViewport().UseTaa}");
         foreach (var r in results)
             GD.Print($"  {r.Lighting.Name,-12} average {r.AverageFps,6:0.0} fps, 1% low {r.OnePercentLowFps,6:0.0} fps " +
-                     $"({r.Frames} frames in {r.Seconds:0.0} s; up to {r.MostLights} lamp lights, {r.MostShadowed} shadowed, {r.MostVisibleLamps} visible Lamps with pools/halos)");
+                     $"({r.Frames} frames in {r.Seconds:0.0} s; up to {r.MostLights} lamp lights, {r.MostShadowed} shadowed, {r.MostVisibleLamps} visible Lamps with halos)");
         var atResolution = (Vector2I)size == Resolution;
-        var passed = atResolution && results.All(r => r.AverageFps >= TargetFps);
+        var antialiasingEnabled = GetViewport().Msaa3D == Viewport.Msaa.Msaa4X && GetViewport().UseTaa;
+        var passed = atResolution && antialiasingEnabled && results.All(r => r.AverageFps >= TargetFps && r.OnePercentLowFps >= TargetOnePercentLowFps);
         GD.Print(passed ? "Benchmark PASSED" :
-            atResolution ? "Benchmark FAILED: below target" : $"Benchmark FAILED: not rendered at {Resolution.X}x{Resolution.Y}");
+            !atResolution ? $"Benchmark FAILED: not rendered at {Resolution.X}x{Resolution.Y}" :
+            !antialiasingEnabled ? "Benchmark FAILED: MSAA 4x and TAA are required" : "Benchmark FAILED: below target");
         GetTree().Quit(passed ? 0 : 1);
     }
 
@@ -165,8 +170,9 @@ public partial class Benchmark : Node
         }
     }
 
-    // A paused, fixed bank and a continuous pan/rotation across the same Lamp displays.
-    // Capture after rendering, so evidence corresponds to the camera and light selection logged.
+    // A paused, fixed bank and a continuous pan, rotation and zoom (near to farthest) across the
+    // same Lamp displays. Capture after rendering, so evidence corresponds to the camera and light
+    // selection logged.
     private async Task Reproduce(Lighting lighting)
     {
         _progress = null;
@@ -177,12 +183,12 @@ public partial class Benchmark : Node
         {
             var t = Math.Max(0, frame) / 240f;
             Rig.JumpTo(new Vector3(Start.X - 24f + 48f * t, 0f, Start.Y));
-            Rig.JumpToDistance(45f);
+            Rig.JumpToDistance(Rig.MinDistance * Mathf.Pow(Rig.MaxDistance / Rig.MinDistance, t));
             Rig.JumpToYaw(Mathf.DegToRad(10f + 40f * t));
             await ToSignal(RenderingServer.Singleton, RenderingServer.SignalName.FramePostDraw);
-            if (frame < 0 || frame % 20 != 0)
+            if (frame < 0 || frame % 10 != 0)
                 continue;
-            var path = Path.Combine(_reproductionDirectory!, $"{lighting.Name.Replace(' ', '-').ToLowerInvariant()}-{frame / 20:00}.png");
+            var path = Path.Combine(_reproductionDirectory!, $"{lighting.Name.Replace(' ', '-').ToLowerInvariant()}-{frame / 10:00}.png");
             var error = GetViewport().GetTexture().GetImage().SavePng(path);
             if (error != Error.Ok)
                 throw new IOException($"Reproduction capture failed: {error}");

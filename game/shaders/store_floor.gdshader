@@ -2,6 +2,7 @@
 // a map of Department types, with a dark strip where two Departments meet. Every texture repeats a
 // whole number of times per Store length, so the floor is seamless across the wrap.
 shader_type spatial;
+#include "res://shaders/lamp_pools.gdshaderinc"
 
 // One layer per Department type, in DepartmentType order.
 uniform sampler2DArray floor_albedo : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
@@ -65,7 +66,8 @@ void fragment() {
 	vec3 coord = vec3(uv, float(layer));
 	vec3 color = textureGrad(floor_albedo, coord, dx, dy).rgb * layer_tint[layer];
 	float roughness = textureGrad(floor_roughness, coord, dx, dy).r;
-	NORMAL_MAP = textureGrad(floor_normal, coord, dx, dy).rgb;
+	vec3 normal_map = textureGrad(floor_normal, coord, dx, dy).rgb;
+	NORMAL_MAP = normal_map;
 
 	// A strip along cell edges that face another Department.
 	float border = 0.0;
@@ -85,4 +87,6 @@ void fragment() {
 	ALBEDO = color;
 	ROUGHNESS = mix(roughness, 0.9, border);
 	SPECULAR = 0.35;
+	EMISSION = lamp_pools(VERTEX, lamp_mapped_normal(NORMAL, TANGENT, BINORMAL, normal_map, 1.0), INV_VIEW_MATRIX,
+			ALBEDO, ROUGHNESS, 0.0, SPECULAR);
 }

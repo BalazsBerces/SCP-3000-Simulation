@@ -1,7 +1,8 @@
 // Concrete Pillars with their grid coordinate painted on all four sides at several heights.
-// No emission: the paint only reflects light. The shaft darkens upwards, away from the Store
-// lights, so its top is never seen. Pillars are always solid: nothing is cut out of them.
+// No glow: the paint only reflects light (the only emission is the Lamp pools' light). The shaft
+// darkens upwards, away from the Store lights, so its top is never seen. Pillars are always solid: nothing is cut out of them.
 shader_type spatial;
+#include "res://shaders/lamp_pools.gdshaderinc"
 
 // Coordinate labels ("A-1" ... "C-3", or "A-1" ... "B-2"), one atlas cell per Pillar id.
 uniform sampler2D labels : filter_linear_mipmap, repeat_disable;
@@ -59,4 +60,5 @@ void fragment() {
 	ALBEDO = albedo * mix(1.0, 0.02, fade);
 	ROUGHNESS = 0.94;
 	SPECULAR = 0.5 * (1.0 - fade);
+	EMISSION = lamp_pools(VERTEX, NORMAL, INV_VIEW_MATRIX, ALBEDO, ROUGHNESS, 0.0, SPECULAR);
 }

@@ -47,15 +47,15 @@ public static class FurnitureMeshes
     private const float CoarseMinSheetThickness = 0.01f;
 
     private static readonly Dictionary<(FurnitureType, bool Coarse), ArrayMesh> Cache = new();
-    private static Dictionary<Part, Material>? _materials;
-    private static Dictionary<Part, Material>? _coarseMaterials;
+    private static Dictionary<Part, ShaderMaterial>? _materials;
+    private static Dictionary<Part, ShaderMaterial>? _coarseMaterials;
 
     /// <summary>How brightly every lamp shade glows, from 0 (off) to 1 (lit).</summary>
     public static void SetLampGlow(float level)
     {
         var energy = LampShadeGlow * Mathf.Max(level, 0f);
-        ((StandardMaterial3D)Materials()[Part.LampShade]).EmissionEnergyMultiplier = energy;
-        ((StandardMaterial3D)CoarseMaterials()[Part.LampShade]).EmissionEnergyMultiplier = energy;
+        Materials()[Part.LampShade].SetShaderParameter("emission_energy", energy);
+        CoarseMaterials()[Part.LampShade].SetShaderParameter("emission_energy", energy);
     }
 
     /// <summary>The coarse mesh for a Furniture type, drawn in the distance; built once and shared.</summary>
@@ -386,39 +386,37 @@ public static class FurnitureMeshes
     private static void Posts(Builder b, Part part, float hw, float hd, float h, float half) =>
         Legs(b, part, hw - half, hd - half, h, half);
 
-    private static Dictionary<Part, Material> Materials()
+    private static Dictionary<Part, ShaderMaterial> Materials()
     {
         if (_materials is not null)
             return _materials;
-        StandardMaterial3D Textured(string name, float metres, Color tint, bool tinted = false)
+        // One shader for every part, so all Furniture receives the Lamp pools' light.
+        var shader = GD.Load<Shader>("res://shaders/furniture.gdshader");
+        ShaderMaterial Plain(Color color, float roughness, float metallic = 0f, bool tinted = false)
         {
-            var material = new StandardMaterial3D
-            {
-                AlbedoTexture = GD.Load<Texture2D>($"res://assets/textures/{name}_albedo.jpg"),
-                AlbedoColor = tint,
-                NormalEnabled = true,
-                NormalTexture = GD.Load<Texture2D>($"res://assets/textures/{name}_normal.jpg"),
-                RoughnessTexture = GD.Load<Texture2D>($"res://assets/textures/{name}_roughness.jpg"),
-                Roughness = 1f,
-                Uv1Scale = new Vector3(1f / metres, 1f / metres, 1f),
-                VertexColorUseAsAlbedo = tinted,
-            };
+            var material = new ShaderMaterial { Shader = shader };
+            material.SetShaderParameter("albedo_color", color);
+            material.SetShaderParameter("roughness", roughness);
+            material.SetShaderParameter("metallic", metallic);
+            material.SetShaderParameter("tinted", tinted);
             return material;
         }
-        StandardMaterial3D Plain(Color color, float roughness, float metallic = 0f, bool tinted = false) => new()
+        ShaderMaterial Textured(string name, float metres, Color tint, bool tinted = false)
         {
-            AlbedoColor = color,
-            Roughness = roughness,
-            Metallic = metallic,
-            VertexColorUseAsAlbedo = tinted,
-        };
-
+            var material = Plain(tint, 1f, tinted: tinted);
+            material.SetShaderParameter("textured", true);
+            material.SetShaderParameter("normal_enabled", true);
+            material.SetShaderParameter("albedo_texture", GD.Load<Texture2D>($"res://assets/textures/{name}_albedo.jpg"));
+            material.SetShaderParameter("normal_texture", GD.Load<Texture2D>($"res://assets/textures/{name}_normal.jpg"));
+            material.SetShaderParameter("roughness_texture", GD.Load<Texture2D>($"res://assets/textures/{name}_roughness.jpg"));
+            material.SetShaderParameter("uv_scale", new Vector2(1f / metres, 1f / metres));
+            return material;
+        }
         var shade = Plain(new Color(0.95f, 0.9f, 0.78f), 0.8f);
-        shade.EmissionEnabled = true;
-        shade.Emission = new Color(1f, 0.85f, 0.6f);
-        shade.EmissionEnergyMultiplier = LampShadeGlow;
+        shade.SetShaderParameter("emission_color", new Color(1f, 0.85f, 0.6f));
+        shade.SetShaderParameter("emission_energy", LampShadeGlow);
 
-        _materials = new Dictionary<Part, Material>
+        _materials = new Dictionary<Part, ShaderMaterial>
         {
             [Part.Oak] = Textured("oak", 1.2f, Colors.White),
             [Part.Walnut] = Textured("walnut", 1.2f, Colors.White),
@@ -444,15 +442,15 @@ public static class FurnitureMeshes
     }
 
     /// <summary>The materials of the coarse meshes: the same looks without normal maps.</summary>
-    private static Dictionary<Part, Material> CoarseMaterials()
+    private static Dictionary<Part, ShaderMaterial> CoarseMaterials()
     {
         if (_coarseMaterials is not null)
             return _coarseMaterials;
         _coarseMaterials = Materials().ToDictionary(m => m.Key, m =>
         {
-            var material = (StandardMaterial3D)m.Value.Duplicate();
-            material.NormalEnabled = false;
-            return (Material)material;
+            var material = (ShaderMaterial)m.Value.Duplicate();
+            material.SetShaderParameter("normal_enabled", false);
+            return material;
         });
         return _coarseMaterials;
     }
@@ -523,7 +521,7 @@ public static class FurnitureMeshes
             }
         }
 
-        public ArrayMesh Commit(Dictionary<Part, Material> materials)
+        public ArrayMesh Commit(Dictionary<Part, ShaderMaterial> materials)
         {
             var mesh = new ArrayMesh();
             foreach (var (part, tool) in _surfaces)

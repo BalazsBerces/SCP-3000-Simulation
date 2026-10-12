@@ -4,9 +4,10 @@ using Scp3008.Core;
 namespace Scp3008.Game;
 
 /// <summary>
-/// Display Lamps stay lit independently of the fluorescent Store lights. A bounded set of real
-/// lights around the visible floor blends into depth-projected pools on the remaining Lamps.
-/// All visible Lamps also have a soft halo. View only; snapshots are never changed.
+/// Display Lamps stay lit independently of the fluorescent Store lights. The Lamps nearest the
+/// camera within the render budget get real lights; every Lamp's remaining light is a pool in the
+/// opaque materials (<see cref="LampPools"/>), shaded the same way, so the two blend without a
+/// visible boundary. All visible Lamps also have a soft halo. View only; snapshots are never changed.
 /// </summary>
 public partial class LampLights : Node3D
 {
@@ -16,13 +17,13 @@ public partial class LampLights : Node3D
     [Export] public FogBankRenderer FogBanks { get; set; } = null!;
     [Export] public StoreVisibility Visibility { get; set; } = null!;
 
-    /// <summary>Most Lamps lit by real lights at once; the rest use light pools. Read once, when the lights are made.</summary>
-    [Export] public int MaxLights { get; set; } = 48;
+    /// <summary>Most Lamps lit by real lights at once (ADR 0004); the rest are pools only. Read once, when the lights are made.</summary>
+    [Export] public int MaxLights { get; set; } = 256;
 
     /// <summary>Most lights casting shadows at once: the nearest of the lit Lamps. Read once, when the lights are made.</summary>
     [Export] public int ShadowBudget { get; set; } = 4;
 
-    /// <summary>Radius around the visible floor focus in which real lights are considered.</summary>
+    /// <summary>Distance from the camera within which real lights are considered.</summary>
     [Export] public float MaxDistance { get; set; } = 320f;
 
     /// <summary>Shadow-casting Lamps keep their shadows unless another Lamp is this much nearer (no flapping).</summary>
@@ -34,7 +35,6 @@ public partial class LampLights : Node3D
     // The nearest candidates, farthest first out; holds one more than there are lights, for the fade cutoff.
     private readonly PriorityQueue<Candidate, float> _nearest = new();
     private readonly List<Candidate> _lit = [];
-    private readonly HashSet<Candidate> _real = [];
     private readonly List<Candidate> _shadowCasters = [];
     private readonly Plane[] _frustum = new Plane[6];
     private OmniLight3D[] _lights = [];
@@ -43,7 +43,9 @@ public partial class LampLights : Node3D
     private readonly Comparison<Candidate> _byShadowRank;
     private StoreSpace _space = StoreSpace.Standard;
     private readonly List<Candidate> _visible = [];
-    private LampImpostors _impostors = null!;
+    private readonly List<Vector3> _bulbs = [];
+    private readonly LampPools _pools = new();
+    private LampHalos _halos = null!;
     private (Transform3D Transform, float Fov, float Near, float Far, bool Overview, Vector2 Viewport, float FurnitureDistance)? _lastView;
     private float _lastCutoff;
     public int VisibleLamps => _visible.Count;
@@ -56,12 +58,18 @@ public partial class LampLights : Node3D
     /// <summary>Lights casting shadows this frame; never more than <see cref="ShadowBudget"/>.</summary>
     public int ShadowedLights { get; private set; }
 
-    private readonly record struct Lamp(int Id, Vector3 Bulb, float Range, float Energy);
+    private readonly record struct Lamp(int Id, int Index, Vector3 Bulb, float Range, float Energy);
 
     private readonly record struct Candidate(Lamp Lamp, Vector3 Position, float Distance);
 
     public override void _Ready()
     {
+        // Dev captures compare real lights with pools by turning the real lights off.
+        foreach (var arg in OS.GetCmdlineUserArgs())
+            if (arg.StartsWith("--lamp-lights="))
+                MaxLights = int.Parse(arg["--lamp-lights=".Length..]);
+            else if (arg.StartsWith("--lamp-shadows="))
+                ShadowBudget = int.Parse(arg["--lamp-shadows=".Length..]);
         var shadowed = Math.Clamp(ShadowBudget, 0, MaxLights);
         _lights = new OmniLight3D[MaxLights];
         _shadowSlots = Enumerable.Repeat(-1, shadowed).ToArray();
@@ -83,8 +91,9 @@ public partial class LampLights : Node3D
             AddChild(_lights[i]);
         }
         FurnitureMeshes.SetLampGlow(1f);
-        _impostors = new LampImpostors();
-        AddChild(_impostors);
+        LampPools.SetColor(Warm);
+        _halos = new LampHalos();
+        AddChild(_halos);
         Host.WorldCreated += Rebuild;
         Rebuild(Host.Snapshot);
     }
@@ -95,7 +104,7 @@ public partial class LampLights : Node3D
     {
         // The camera that renders: the Observer camera, or a dev camera such as the eye-level one.
         var camera = GetViewport().GetCamera3D() ?? Rig.Camera;
-        _impostors.ApplyFog(material =>
+        _halos.ApplyFog(material =>
         {
             Atmosphere.ApplyLampFog(material);
             FogBanks.ApplyLampFog(material);
@@ -110,11 +119,7 @@ public partial class LampLights : Node3D
         var planes = camera.GetFrustum();
         for (var i = 0; i < _frustum.Length; i++)
             _frustum[i] = planes[i];
-        var eye = camera.GlobalPosition;
-        var forward = -camera.GlobalBasis.Z;
-        // Intersect the centre ray with the floor; eye-level dev cameras fall back to the rig.
-        var focus = forward.Y < -0.01f ? eye + forward * (-eye.Y / forward.Y) : Rig.Focus;
-        GatherNearest(focus, eye);
+        GatherNearest(camera.GlobalPosition);
 
         _lit.Clear();
         while (_nearest.Count > 0)
@@ -129,17 +134,19 @@ public partial class LampLights : Node3D
         }
         ChooseShadowCasters();
         _lastCutoff = cutoff;
-        ShowLit(_lit.Count, 1f, cutoff);
-        _real.Clear();
-        _real.UnionWith(_lit);
-        _impostors.Show(_visible.Select(c => (c.Position, c.Lamp.Range,
-            _real.Contains(c) ? 1f - RealWeight(c.Distance, cutoff) : 1f)));
+        ShowLit(cutoff);
+        _pools.ShareWithRealLights(_lit.Select(c => (c.Lamp.Index, RealWeight(c.Distance, cutoff))));
+        _bulbs.Clear();
+        _bulbs.AddRange(_visible.Select(c => c.Position));
+        _halos.Show(_bulbs);
     }
 
     /// <summary>A one-line summary for dev reports.</summary>
     public string Describe() =>
-        $"{ActiveLights} lamp lights ({ShadowedLights} shadowed, budget {_shadowSlots.Length}), " +
-        $"{VisibleLamps} visible Lamps with pools/halos, {_lampsByChunk.Values.Sum(l => l.Length)} Lamps in the Store";
+        $"{ActiveLights} lamp lights ({ShadowedLights} shadowed, budget {_lights.Length} lights, {_shadowSlots.Length} shadows; " +
+        $"shadow opacity {string.Join("/", _shadowSlots.Select((id, slot) => id >= 0 ? $"{_lights[slot].ShadowOpacity:0.00}" : "-"))}), " +
+        $"{VisibleLamps} visible Lamps with halos, {_lampsByChunk.Values.Sum(l => l.Length)} Lamps in the Store " +
+        $"(at most {_pools.MostLampsPerCell} per pool cell)";
 
     /// <summary>Dev evidence: identifies one stationary Lamp's contribution during camera motion.</summary>
     public string DescribeLamp(int id)
@@ -148,15 +155,18 @@ public partial class LampLights : Node3D
         if (index < 0)
             return $"Lamp {id} outside view";
         var candidate = _visible[index];
-        var real = _real.Contains(candidate) ? RealWeight(candidate.Distance, _lastCutoff) : 0f;
-        return $"Lamp {id} at {candidate.Position}: real {real:0.000}, pool {1f - real:0.000}";
+        var lit = _lit.FindIndex(c => c.Lamp.Id == id);
+        var real = lit >= 0 ? RealWeight(_lit[lit].Distance, _lastCutoff) : 0f;
+        var slot = Array.IndexOf(_shadowSlots, id);
+        var shadow = slot >= 0 ? $", shadow opacity {_lights[slot].ShadowOpacity:0.000}" : "";
+        return $"Lamp {id} at {candidate.Position}, {candidate.Distance:0.0} m from the camera: real {real:0.000}, pool {1f - real:0.000}{shadow}";
     }
 
     /// <summary>
-    /// Rank around the visible floor focus, including just-offscreen Lamps so crossing a frustum
-    /// plane cannot abruptly change the budget cutoff. Pools cover every sphere reaching the view.
+    /// Collects every Lamp whose light reaches the view (for halos) and ranks them by distance from
+    /// the camera, so the real-light boundary runs in depth, where fog and distance hide it.
     /// </summary>
-    private void GatherNearest(Vector3 focus, Vector3 eye)
+    private void GatherNearest(Vector3 eye)
     {
         _nearest.Clear();
         _visible.Clear();
@@ -178,9 +188,10 @@ public partial class LampLights : Node3D
             foreach (var lamp in lamps)
             {
                 var position = lamp.Bulb + offset;
-                var distance = new Vector2(position.X - focus.X, position.Z - focus.Z).Length();
-                if (Reaches(position, lamp.Range))
-                    _visible.Add(new Candidate(lamp, position, distance));
+                if (!Reaches(position, lamp.Range))
+                    continue;
+                var distance = position.DistanceTo(eye);
+                _visible.Add(new Candidate(lamp, position, distance));
                 if (distance >= MaxDistance)
                     continue;
                 // Priorities are negated distances, so the farthest kept Lamp is dequeued first.
@@ -217,8 +228,10 @@ public partial class LampLights : Node3D
         Array.IndexOf(_shadowSlots, candidate.Lamp.Id) >= 0 ? candidate.Distance * ShadowHysteresis : candidate.Distance;
 
     /// <summary>Puts the lit Lamps on lights: shadow casters on their shadowed slots, the rest on the others.</summary>
-    private void ShowLit(int count, float level, float cutoff)
+    private void ShowLit(float cutoff)
     {
+        var count = _lit.Count;
+        var shadowCutoff = ShadowCutoff();
         var next = _shadowSlots.Length;
         for (var i = 0; i < count; i++)
         {
@@ -227,8 +240,10 @@ public partial class LampLights : Node3D
             var light = _lights[shadowSlot >= 0 ? shadowSlot : next++];
             light.Position = candidate.Position;
             light.OmniRange = candidate.Lamp.Range;
-            // Lights near the edge of the budget fade out, so Lamps slip in and out of it smoothly.
-            light.LightEnergy = candidate.Lamp.Energy * level * RealWeight(candidate.Distance, cutoff);
+            // Lights near the edge of the budget fade out, and their pools take over the rest.
+            light.LightEnergy = candidate.Lamp.Energy * RealWeight(candidate.Distance, cutoff);
+            if (shadowSlot >= 0)
+                light.ShadowOpacity = ShadowWeight(candidate.Distance, shadowCutoff);
             light.Visible = true;
         }
         for (var slot = 0; slot < _lights.Length; slot++)
@@ -242,6 +257,23 @@ public partial class LampLights : Node3D
         ActiveLights = count;
         ShadowedLights = count == 0 ? 0 : _shadowSlots.Count(id => id >= 0);
     }
+
+    /// <summary>The distance of the nearest lit Lamp without a shadow, or the reach if every lit Lamp has one.</summary>
+    private float ShadowCutoff()
+    {
+        var cutoff = MaxDistance;
+        foreach (var candidate in _lit)
+            if (Array.IndexOf(_shadowSlots, candidate.Lamp.Id) < 0)
+                cutoff = Math.Min(cutoff, candidate.Distance);
+        return cutoff;
+    }
+
+    /// <summary>
+    /// Shadows fade out towards the nearest Lamp without one, and are gone before a Lamp could take
+    /// over the shadow (at the hysteresis distance), so no shadow ever appears or vanishes at once.
+    /// </summary>
+    private float ShadowWeight(float distance, float cutoff) =>
+        1f - Mathf.SmoothStep(cutoff * 0.5f, cutoff * ShadowHysteresis, distance);
 
     /// <summary>Complementary spatial blend; a Lamp leaving the real-light budget has zero real energy.</summary>
     private static float RealWeight(float distance, float cutoff) =>
@@ -262,17 +294,17 @@ public partial class LampLights : Node3D
         _lastView = null;
         _lampsByChunk.Clear();
         Array.Fill(_shadowSlots, -1);
-        foreach (var chunk in snapshot.Furniture
-                     .Where(p => FurnitureCatalog.Spec(p.Type).IsLamp)
-                     .GroupBy(p => _space.ChunkOf(p.Position)))
-            _lampsByChunk[chunk.Key] = chunk.Select(ToLamp).ToArray();
+        var lamps = snapshot.Furniture.Where(p => FurnitureCatalog.Spec(p.Type).IsLamp).Select(ToLamp).ToList();
+        foreach (var chunk in lamps.GroupBy(l => _space.ChunkOf(l.Bulb.ToStore())))
+            _lampsByChunk[chunk.Key] = chunk.ToArray();
+        _pools.Build(_space, lamps.Select(l => (l.Bulb, l.Range, l.Energy)).ToList());
     }
 
-    private Lamp ToLamp(FurniturePiece piece)
+    private Lamp ToLamp(FurniturePiece piece, int index)
     {
         var spec = FurnitureCatalog.Spec(piece.Type);
         var bulb = _space.Wrap(piece.Position).ToWorld(piece.Elevation + FurnitureMeshes.BulbHeight(piece.Type));
         // Bigger Lamps carry brighter bulbs.
-        return new Lamp(piece.Id, bulb, spec.LightRadius, 0.35f * spec.LightRadius);
+        return new Lamp(piece.Id, index, bulb, spec.LightRadius, 0.35f * spec.LightRadius);
     }
 }

@@ -30,3 +30,34 @@ anti_aliasing/quality/use_taa=true
 environment/volumetric_fog/volume_size=48
 environment/volumetric_fog/volume_depth=48
 occlusion_culling/use_occlusion_culling=true
+
+[shader_globals]
+
+lamp_cells={
+"type": "sampler2D",
+"value": ""
+}
+lamp_indices={
+"type": "sampler2D",
+"value": ""
+}
+lamp_bulbs={
+"type": "sampler2D",
+"value": ""
+}
+lamp_pool_energy={
+"type": "sampler2D",
+"value": ""
+}
+lamp_cell_size={
+"type": "float",
+"value": 4.0
+}
+lamp_store_size={
+"type": "float",
+"value": 0.0
+}
+lamp_light_color={
+"type": "vec3",
+"value": Vector3(0, 0, 0)
+}
