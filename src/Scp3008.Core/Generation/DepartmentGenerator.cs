@@ -14,9 +14,16 @@ internal static class DepartmentGenerator
 
     // Sites on the standard Store; a larger Store gets more sites in proportion to its area, so
     // Departments keep their size.
-    private const int SitesOnStandardStore = 48;
-    private const float MinSiteSpacing = 110f;
-    private const int MinDepartmentCells = 6;
+    private const int SitesOnStandardStore = 144;
+    private const float MinSiteSpacing = 55f;
+    // Sites of one type keep this distance where the floor allows it, so same-type Departments
+    // rarely end up neighbours and merge into one big region.
+    private const float SameTypeSpacing = 190f;
+    private const int MinDepartmentCells = 4;
+    // Roughly one site in twenty becomes a large Department (variety, room for Landmarks);
+    // the scarce food and electrical types never do.
+    private const float LargeSiteChance = 0.05f;
+    private const float LargeSiteSizeFactor = 2.4f;
 
     /// <summary>
     /// How large Departments of each type grow relative to others. The Restaurant/food market and
@@ -103,10 +110,17 @@ internal static class DepartmentGenerator
                 var position = CellCentre(cell.X, cell.Y);
                 // Spacing relaxes slowly if the floor gets crowded, so every site finds a place.
                 var spacing = MinSiteSpacing * (1f - attempt / 250f);
+                var sameTypeSpacing = SameTypeSpacing * (1f - attempt / 250f);
                 if (sites.All(s => space.Distance(s.Position, position) >=
-                        (type == DepartmentType.LightingAndElectrical && s.Type == type ? 240f : spacing)))
+                        (type == DepartmentType.LightingAndElectrical && s.Type == type ? 240f
+                            : s.Type == type ? Math.Max(spacing, sameTypeSpacing) : spacing)))
                 {
-                    sites.Add(new Site(type, position, TypeOdds[type].Size * random.Range(0.85f, 1.15f)));
+                    var size = TypeOdds[type].Size * random.Range(0.85f, 1.15f);
+                    var large = random.Range(0f, 1f) < LargeSiteChance;
+                    if (large && type is not (DepartmentType.RestaurantAndFoodMarket or DepartmentType.PlantSection
+                            or DepartmentType.LightingAndElectrical))
+                        size *= LargeSiteSizeFactor;
+                    sites.Add(new Site(type, position, size));
                     break;
                 }
             }

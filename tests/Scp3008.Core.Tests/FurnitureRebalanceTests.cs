@@ -57,7 +57,7 @@ public class FurnitureRebalanceTests(ITestOutputHelper output)
         var share = electrical.Sum(d => (double)d.Area) / (snapshot.Space.Size * snapshot.Space.Size);
         output.WriteLine($"{seed} / {layout.Name()}: {share:P4} electrical floor, {electrical.Count} regions");
         Assert.InRange(share, 0.02, 0.03);
-        Assert.InRange(electrical.Count, 2, layout.Space() == StoreSpace.Standard ? 3 : 6);
-        Assert.All(electrical, d => Assert.InRange(d.Area / (double)(snapshot.Space.Size * snapshot.Space.Size), 0.0005, 0.025));
+        Assert.InRange(electrical.Count, 2, layout.Space() == StoreSpace.Standard ? 8 : 16);
+        Assert.All(electrical, d => Assert.InRange(d.Area / (double)(snapshot.Space.Size * snapshot.Space.Size), 0.0002, 0.025));
     }
 }
