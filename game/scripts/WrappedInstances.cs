@@ -24,8 +24,15 @@ public partial class WrappedInstances : Node3D
     /// <summary>A simpler mesh drawn instead of <see cref="Mesh"/> for chunks far from the camera.</summary>
     [Export] public Mesh? CoarseMesh { get; set; }
 
-    /// <summary>Distance from the camera to a chunk's centre beyond which <see cref="CoarseMesh"/> is drawn.</summary>
-    [Export] public float LodDistance { get; set; } = 110f;
+    /// <summary>
+    /// Distance from the camera to a chunk's centre beyond which <see cref="CoarseMesh"/> is drawn.
+    /// The largest distance that keeps the 120 fps benchmark passing (ticket 06d): the floor under
+    /// the focus stays detailed up to a zoom of about 165 m, and at the farthest zoom (camera about
+    /// 180 m above the floor) only the nearest chunks are. Farther switches (220, 240, 265 and
+    /// 525 m were measured) cost the far view too much; the coarse meshes keep the silhouettes, so
+    /// the switch shows mostly as a change of material.
+    /// </summary>
+    [Export] public float LodDistance { get; set; } = 210f;
 
     /// <summary>
     /// Distance from the camera to a chunk's centre beyond which it is not drawn at all: the Edge fade

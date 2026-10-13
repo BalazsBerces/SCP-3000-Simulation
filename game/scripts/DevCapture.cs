@@ -29,6 +29,9 @@ namespace Scp3008.Game;
 ///   --furniture-tour=dir  save 1080p JPG captures into dir, then quit: every Department type
 ///                          (Department-*), every layout archetype (Archetype-*) and every
 ///                          Furniture variant (Variant-*-n).
+///   --silhouette-check=file  compare every Furniture type's full and coarse silhouette
+///                          (<see cref="SilhouetteCheck"/>), write the report to file and quit
+///                          with exit code 0 if every type passes, 3 if not.
 /// Does nothing in normal runs.
 /// </summary>
 public partial class DevCapture : Node
@@ -59,6 +62,11 @@ public partial class DevCapture : Node
     {
         foreach (var arg in OS.GetCmdlineUserArgs())
         {
+            if (arg.StartsWith("--silhouette-check="))
+            {
+                RunSilhouetteCheck(arg["--silhouette-check=".Length..]);
+                return;
+            }
             if (arg.StartsWith("--furniture-tour="))
                 _tourDirectory = arg["--furniture-tour=".Length..];
             else if (arg.StartsWith("--capture="))
@@ -244,6 +252,23 @@ public partial class DevCapture : Node
             GD.PushError($"Furniture tour failed: {error}");
             GetTree().Quit(2);
         }
+    }
+
+    private void RunSilhouetteCheck(string reportPath)
+    {
+        var results = SilhouetteCheck.All().ToList();
+        var failed = results.Count(r => !r.Passed);
+        var pieces = Host.Snapshot.Furniture.GroupBy(p => (p.Type, p.Variant)).ToDictionary(g => g.Key, g => g.Count());
+        int Count(SilhouetteCheck.Result r) => pieces.GetValueOrDefault((r.Type, r.Variant));
+        var lines = results.Select(r => $"{r}, {Count(r)} pieces in Store {Host.Snapshot.Seed}")
+            .Append($"Store {Host.Snapshot.Seed}: {results.Sum(r => (long)r.FullTriangles * Count(r))} full and " +
+                    $"{results.Sum(r => (long)r.CoarseTriangles * Count(r))} coarse triangles over every piece.")
+            .Append($"{results.Count} Furniture types and variants, {failed} failed.").ToList();
+        System.IO.File.WriteAllLines(reportPath, lines);
+        GD.Print(lines[^1]);
+        foreach (var line in lines.Where(l => l.StartsWith("FAIL")))
+            GD.Print(line);
+        GetTree().Quit(failed == 0 ? 0 : 3);
     }
 
     private void AddEyeLevelCamera()

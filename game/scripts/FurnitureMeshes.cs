@@ -8,8 +8,10 @@ namespace Scp3008.Game;
 /// core's Furniture specs, with CC0 PBR materials (see assets/textures/CREDITS.md). Mesh space:
 /// origin at the centre of the footprint on its base, X along the width, Z along the depth with
 /// the front facing +Z, Y up. Materials marked as tinted take their colour from the instance.
-/// Each mesh also has a coarse version for the distance (level of detail): parts too thin to show
-/// from far away are left out, round parts have fewer sides and materials skip their normal maps.
+/// Each mesh also has a coarse version for the distance (level of detail) that keeps the silhouette:
+/// legs, poles and frames stay (thin round ones as plain four-sided posts), only small details
+/// (handles, trim, tape strips) are left out, round parts have fewer sides and materials skip
+/// their normal maps. <see cref="SilhouetteCheck"/> compares the two.
 /// </summary>
 public static class FurnitureMeshes
 {
@@ -44,12 +46,22 @@ public static class FurnitureMeshes
     // Emission of a lit lamp shade.
     private const float LampShadeGlow = 4f;
 
-    // Coarse meshes leave out parts thinner than this (legs, handles, poles), in metres.
+    // A part thinner than this (in its two smaller extents) counts as thin, in metres. Coarse meshes
+    // draw thin round parts as plain box posts and may leave out thin parts that are small details.
     private const float CoarseMinThickness = 0.06f;
 
-    // Coarse meshes also leave out paper-thin parts (tape strips), in metres, and every downward
-    // face: they are drawn only far below the Observer camera, which never sees an underside there.
+    // A thin part shorter than this that does not stand on the floor is a detail (a handle, a knob,
+    // a trim piece) and is left out of coarse meshes, in metres. Longer thin parts (legs, poles,
+    // frames, lamp arms) and anything standing on the floor carry the silhouette and stay.
+    private const float CoarseDetailLength = 0.15f;
+
+    // Coarse meshes also leave out sheets thinner than this that are narrower than
+    // CoarseMaxStripWidth (tape, trim lines, labels), in metres; larger thin panels (glass, mirrors,
+    // back panels) stay. They also leave out every downward face: coarse meshes are drawn only far
+    // below the Observer camera, which never sees an underside there. Full and coarse meshes both
+    // leave out faces hidden against another part of the piece.
     private const float CoarseMinSheetThickness = 0.01f;
+    private const float CoarseMaxStripWidth = 0.3f;
 
     private static readonly Dictionary<(FurnitureType, int Variant, bool Coarse), ArrayMesh> Cache = new();
     private static Dictionary<Part, ShaderMaterial>? _materials;
@@ -183,8 +195,7 @@ public static class FurnitureMeshes
         var spec = FurnitureCatalog.Spec(type, variant);
         var (w, d, h) = (spec.Width, spec.Depth, spec.Height);
         var (hw, hd) = (w / 2f, d / 2f);
-        // Wave-two legs and arms use 7 cm sections; omit them at distance just as the
-        // narrower first-wave legs are omitted, retaining the main silhouette.
+        // Wave-two legs and arms use 7 cm sections; they count as thin like the narrower first-wave legs.
         var b = new Builder(coarse, type >= FurnitureType.Desk ? 0.09f : CoarseMinThickness, type >= FurnitureType.Desk ? 5 : 0);
         if (variant > 0)
         {
@@ -580,7 +591,7 @@ public static class FurnitureMeshes
                 Legs(b, Part.Oak, hw - 0.03f, hd - 0.03f, 0.43f, 0.018f);
                 foreach (var x in new[] { -hw, hw - 0.035f })
                     b.Box(Part.Oak, new Vector3(x, 0.47f, -hd), new Vector3(x + 0.035f, h, -hd + 0.035f));
-                foreach (var y in b.Coarse ? new[] { 0.94f } : new[] { 0.58f, 0.7f, 0.82f, 0.94f })
+                foreach (var y in new[] { 0.58f, 0.7f, 0.82f, 0.94f })
                     b.Box(Part.Oak, new Vector3(-hw, y, -hd), new Vector3(hw, y + 0.06f, -hd + 0.02f));
                 break;
             case (FurnitureType.Chair, 2):
@@ -902,13 +913,14 @@ public static class FurnitureMeshes
 
     /// <summary>
     /// Accumulates parts into one surface per material, with UVs in metres and tangents for normal maps.
-    /// A coarse builder leaves out thin parts, gives round parts fewer sides and puts every part in
-    /// one surface, marking each vertex with its part.
+    /// A coarse builder leaves out small details, draws thin round parts as four-sided posts, gives
+    /// other round parts fewer sides and puts every part in one surface, marking each vertex with its part.
     /// </summary>
     private sealed class Builder(bool coarse, float minThickness, int coarseSegments)
     {
         public bool Coarse => coarse;
         private readonly Dictionary<Part, SurfaceTool> _surfaces = new();
+        private readonly List<(Part Part, Vector3 Min, Vector3 Max)> _boxes = new();
         private Part _part;
 
         public void Box(Part part, Vector3 min, Vector3 max)
@@ -916,26 +928,82 @@ public static class FurnitureMeshes
             var size = max - min;
             float[] extents = [size.X, size.Y, size.Z];
             Array.Sort(extents);
-            if (coarse && (extents[1] < minThickness || extents[0] < CoarseMinSheetThickness))
-                return;
+            // Boxes wait for the whole piece, so faces hidden against other parts can go.
+            if (!coarse || !IsDetail(extents, min.Y))
+                _boxes.Add((part, min, max));
+        }
+
+        private void EmitBox(Part part, Vector3 min, Vector3 max, Func<int, bool, bool> hidden)
+        {
+            var size = max - min;
             var tool = Surface(part);
             // Each face: normal, the two in-face axes (scaled by size) and its corner.
-            Face(tool, min with { Z = max.Z }, new Vector3(size.X, 0, 0), new Vector3(0, size.Y, 0), Vector3.Back);
-            Face(tool, max with { Y = min.Y, Z = min.Z }, new Vector3(-size.X, 0, 0), new Vector3(0, size.Y, 0), Vector3.Forward);
-            Face(tool, min, new Vector3(0, 0, size.Z), new Vector3(0, size.Y, 0), Vector3.Left);
-            Face(tool, max with { Y = min.Y }, new Vector3(0, 0, -size.Z), new Vector3(0, size.Y, 0), Vector3.Right);
-            Face(tool, min with { Y = max.Y, Z = max.Z }, new Vector3(size.X, 0, 0), new Vector3(0, 0, -size.Z), Vector3.Up);
-            if (!coarse)
+            if (!hidden(2, true))
+                Face(tool, min with { Z = max.Z }, new Vector3(size.X, 0, 0), new Vector3(0, size.Y, 0), Vector3.Back);
+            if (!hidden(2, false))
+                Face(tool, max with { Y = min.Y, Z = min.Z }, new Vector3(-size.X, 0, 0), new Vector3(0, size.Y, 0), Vector3.Forward);
+            if (!hidden(0, false))
+                Face(tool, min, new Vector3(0, 0, size.Z), new Vector3(0, size.Y, 0), Vector3.Left);
+            if (!hidden(0, true))
+                Face(tool, max with { Y = min.Y }, new Vector3(0, 0, -size.Z), new Vector3(0, size.Y, 0), Vector3.Right);
+            if (!hidden(1, true))
+                Face(tool, min with { Y = max.Y, Z = max.Z }, new Vector3(size.X, 0, 0), new Vector3(0, 0, -size.Z), Vector3.Up);
+            if (!coarse && !hidden(1, false))
                 Face(tool, min, new Vector3(size.X, 0, 0), new Vector3(0, 0, size.Z), Vector3.Down);
+        }
+
+        /// <summary>
+        /// Whether the face of box <paramref name="index"/> on <paramref name="axis"/> (its
+        /// upper face if <paramref name="upper"/>) lies inside or against another box that covers
+        /// all of it and continues beyond it, so it can never be seen.
+        /// </summary>
+        private bool FaceHidden(int index, int axis, bool upper)
+        {
+            const float Tolerance = 1e-4f;
+            var (_, min, max) = _boxes[index];
+            var plane = upper ? max[axis] : min[axis];
+            for (var other = 0; other < _boxes.Count; other++)
+            {
+                if (other == index)
+                    continue;
+                var (_, oMin, oMax) = _boxes[other];
+                if (plane < oMin[axis] - Tolerance || plane > oMax[axis] + Tolerance)
+                    continue;
+                if (upper ? oMax[axis] <= plane + Tolerance : oMin[axis] >= plane - Tolerance)
+                    continue;
+                var covers = true;
+                for (var a = 0; a < 3 && covers; a++)
+                    if (a != axis)
+                        covers = oMin[a] <= min[a] + Tolerance && oMax[a] >= max[a] - Tolerance;
+                if (covers)
+                    return true;
+            }
+            return false;
         }
 
         /// <summary>A capped cylinder (or cone frustum) standing on <paramref name="baseCentre"/>.</summary>
         public void Cylinder(Part part, Vector3 baseCentre, float bottomRadius, float topRadius, float height, int segments = 12)
         {
-            if (coarse && 2f * Mathf.Max(bottomRadius, topRadius) < minThickness)
-                return;
             if (coarse)
+            {
+                var diameter = 2f * Mathf.Max(bottomRadius, topRadius);
+                float[] extents = [diameter, diameter, height];
+                Array.Sort(extents);
+                if (IsDetail(extents, baseCentre.Y))
+                    return;
+                if (diameter < minThickness)
+                {
+                    // A plain post as wide as the pole.
+                    var half = diameter / 2f;
+                    Box(part, baseCentre - new Vector3(half, 0f, half), baseCentre + new Vector3(half, height, half));
+                    return;
+                }
                 segments = coarseSegments > 0 ? coarseSegments : Math.Max(5, segments / 2);
+                // Fewer sides around the circle rather than inside it, so the part keeps its width.
+                var circumscribe = 1f / Mathf.Cos(Mathf.Pi / segments);
+                bottomRadius *= circumscribe;
+                topRadius *= circumscribe;
+            }
             var tool = Surface(part);
             var top = baseCentre + new Vector3(0, height, 0);
             var slope = (bottomRadius - topRadius) / height;
@@ -957,20 +1025,41 @@ public static class FurnitureMeshes
                 Vertex(tool, b0, n0, new Vector2(u0, 0));
                 Vertex(tool, b1, n1, new Vector2(u1, 0));
                 Vertex(tool, t1, n1, new Vector2(u1, height));
-                // Caps.
+                // Caps; a coarse cap fans out from its first rim corner, two triangles fewer.
+                if (coarse)
+                {
+                    if (i > 0 && i < segments - 1)
+                    {
+                        Vertex(tool, top + new Vector3(topRadius, 0, 0), Vector3.Up, new Vector2(topRadius, 0));
+                        Vertex(tool, t0, Vector3.Up, new Vector2(d0.X, d0.Z) * topRadius);
+                        Vertex(tool, t1, Vector3.Up, new Vector2(d1.X, d1.Z) * topRadius);
+                    }
+                    continue;
+                }
                 Vertex(tool, top, Vector3.Up, new Vector2(0, 0));
                 Vertex(tool, t0, Vector3.Up, new Vector2(d0.X, d0.Z) * topRadius);
                 Vertex(tool, t1, Vector3.Up, new Vector2(d1.X, d1.Z) * topRadius);
-                if (coarse)
-                    continue;
                 Vertex(tool, baseCentre, Vector3.Down, new Vector2(0, 0));
                 Vertex(tool, b1, Vector3.Down, new Vector2(d1.X, d1.Z) * bottomRadius);
                 Vertex(tool, b0, Vector3.Down, new Vector2(d0.X, d0.Z) * bottomRadius);
             }
         }
 
+        /// <summary>
+        /// Whether a part with these extents (sorted, smallest first) and bottom is a small detail
+        /// that a coarse mesh leaves out: a narrow paper-thin strip, or a short thin part off the floor.
+        /// </summary>
+        private bool IsDetail(float[] extents, float bottom) =>
+            (extents[0] < CoarseMinSheetThickness && extents[1] < CoarseMaxStripWidth)
+            || (extents[1] < minThickness && extents[2] < CoarseDetailLength && bottom > 0.001f);
+
         public ArrayMesh Commit()
         {
+            for (var i = 0; i < _boxes.Count; i++)
+            {
+                var index = i;
+                EmitBox(_boxes[i].Part, _boxes[i].Min, _boxes[i].Max, (axis, upper) => FaceHidden(index, axis, upper));
+            }
             var mesh = new ArrayMesh();
             foreach (var (part, tool) in _surfaces)
             {

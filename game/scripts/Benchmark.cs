@@ -9,7 +9,8 @@ namespace Scp3008.Game;
 /// Closing time. The path starts close over the lamp displays of a Lighting &amp; electrical
 /// Department (the shadow budget at work), pulls out to the farthest zoom, and pans and turns
 /// there (the most Furniture in view). Vsync is off. For each lighting it prints the average and
-/// 1%-low frame rate (the mean rate over the slowest 1% of frames) and quits with exit code 0 if
+/// 1%-low frame rate (the mean rate over the slowest 1% of frames), with the average GPU and CPU
+/// render time, draw calls and primitives per frame, and quits with exit code 0 if
 /// every average meets <see cref="TargetFps"/> and every 1% low meets <see cref="TargetOnePercentLowFps"/>,
 /// 1 if not. User arguments after "--":
 ///   --benchmark-seconds=s  measuring time per lighting (default 20);
@@ -39,7 +40,8 @@ public partial class Benchmark : Node
 
     private sealed record Lighting(string Name, TimeSpan TimeOfDay, bool HoldFar = false);
 
-    private sealed record Result(Lighting Lighting, int Frames, double Seconds, double AverageFps, double OnePercentLowFps, int MostLights, int MostShadowed, int MostVisibleLamps);
+    private sealed record Result(Lighting Lighting, int Frames, double Seconds, double AverageFps, double OnePercentLowFps, int MostLights, int MostShadowed, int MostVisibleLamps,
+        double GpuMilliseconds, double CpuMilliseconds, double DrawCalls, double Primitives);
 
     public override void _EnterTree()
     {
@@ -110,7 +112,8 @@ public partial class Benchmark : Node
         GD.Print($"  Weather: fixed Fog bank, radius 160 m; MSAA {GetViewport().Msaa3D}, TAA {GetViewport().UseTaa}");
         foreach (var r in results)
             GD.Print($"  {r.Lighting.Name,-12} average {r.AverageFps,6:0.0} fps, 1% low {r.OnePercentLowFps,6:0.0} fps " +
-                     $"({r.Frames} frames in {r.Seconds:0.0} s; up to {r.MostLights} lamp lights, {r.MostShadowed} shadowed, {r.MostVisibleLamps} visible Lamps with halos)");
+                     $"({r.Frames} frames in {r.Seconds:0.0} s; up to {r.MostLights} lamp lights, {r.MostShadowed} shadowed, {r.MostVisibleLamps} visible Lamps with halos; " +
+                     $"average GPU {r.GpuMilliseconds:0.00} ms, CPU render {r.CpuMilliseconds:0.00} ms, {r.DrawCalls:0} draw calls, {r.Primitives / 1e6:0.0} M primitives)");
         var atResolution = (Vector2I)size == Resolution;
         var antialiasingEnabled = GetViewport().Msaa3D == Viewport.Msaa.Msaa4X && GetViewport().UseTaa;
         var passed = atResolution && antialiasingEnabled && results.All(r => r.AverageFps >= TargetFps && r.OnePercentLowFps >= TargetOnePercentLowFps);
@@ -132,6 +135,9 @@ public partial class Benchmark : Node
 
         var frameSeconds = new List<double>();
         var (mostLights, mostShadowed, mostVisible) = (0, 0, 0);
+        var viewport = GetViewport();
+        RenderingServer.ViewportSetMeasureRenderTime(viewport.GetViewportRid(), true);
+        var (gpu, cpu, drawCalls, primitives) = (0.0, 0.0, 0.0, 0.0);
         var start = Now;
         var last = start;
         while (last - start < MeasureSeconds)
@@ -144,6 +150,12 @@ public partial class Benchmark : Node
             mostLights = Math.Max(mostLights, Lamps.ActiveLights);
             mostShadowed = Math.Max(mostShadowed, Lamps.ShadowedLights);
             mostVisible = Math.Max(mostVisible, Lamps.VisibleLamps);
+            gpu += RenderingServer.ViewportGetMeasuredRenderTimeGpu(viewport.GetViewportRid());
+            cpu += RenderingServer.ViewportGetMeasuredRenderTimeCpu(viewport.GetViewportRid());
+            drawCalls += viewport.GetRenderInfo(Viewport.RenderInfoType.Visible, Viewport.RenderInfo.DrawCallsInFrame)
+                         + viewport.GetRenderInfo(Viewport.RenderInfoType.Shadow, Viewport.RenderInfo.DrawCallsInFrame);
+            primitives += viewport.GetRenderInfo(Viewport.RenderInfoType.Visible, Viewport.RenderInfo.PrimitivesInFrame)
+                          + viewport.GetRenderInfo(Viewport.RenderInfoType.Shadow, Viewport.RenderInfo.PrimitivesInFrame);
             if (Lamps.ActiveLights > Lamps.MaxLights || Lamps.ShadowedLights > Lamps.ShadowBudget)
                 throw new InvalidOperationException("Lamp lights exceeded the ADR 0004 budget.");
         }
@@ -151,7 +163,8 @@ public partial class Benchmark : Node
         var seconds = last - start;
         var slowest = frameSeconds.OrderByDescending(s => s).Take(Math.Max(1, frameSeconds.Count / 100)).ToList();
         return new Result(lighting, frameSeconds.Count, seconds, frameSeconds.Count / seconds,
-            slowest.Count / slowest.Sum(), mostLights, mostShadowed, mostVisible);
+            slowest.Count / slowest.Sum(), mostLights, mostShadowed, mostVisible,
+            gpu / frameSeconds.Count, cpu / frameSeconds.Count, drawCalls / frameSeconds.Count, primitives / frameSeconds.Count);
     }
 
     private async Task Screenshots(Lighting lighting)
