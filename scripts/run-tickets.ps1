@@ -30,12 +30,17 @@ param(
   [string]$EasyModel = 'sonnet',
   [ValidateSet('low', 'medium', 'high', 'xhigh', 'max')] [string]$Effort = 'medium',
   # Stage-end tickets also review the whole stage, so they get more effort.
-  [ValidateSet('low', 'medium', 'high', 'xhigh', 'max')] [string]$StageEffort = 'high'
+  [ValidateSet('low', 'medium', 'high', 'xhigh', 'max')] [string]$StageEffort = 'high',
+  # Context size (tokens) at which a ticket session compacts itself; 'auto' keeps the model default.
+  # 300k leaves normal tickets alone (they peak below 250k) and only catches runaway sessions.
+  [string]$CompactWindow = '300k'
 )
 
 $ErrorActionPreference = 'Stop'
 [Console]::OutputEncoding = [Text.Encoding]::UTF8
 $OutputEncoding = [Text.Encoding]::UTF8
+# Inherited by every claude child process, so it affects only the ticket runs.
+$env:CLAUDE_CODE_AUTO_COMPACT_WINDOW = $CompactWindow
 
 # Last ticket number of each build stage, including inserted suffix tickets (e.g. 05b).
 $StageEnds = @{ 5 = 'Atmosphere'; 8 = 'Landmarks'; 16 = 'Villagers'; 22 = 'Fortifications'; 28 = 'Staff'; 33 = 'Relations'; 36 = 'Observer tools and Knowledge' }
@@ -118,6 +123,8 @@ function Get-TicketModel($t) {
 
 function Invoke-Claude($t, $log, $prompt, $resumeId) {
   $cliArgs = @('-p', '--dangerously-skip-permissions', '--output-format', 'stream-json', '--verbose')
+  # Plugins and claude.ai connectors the ticket runs never use stay off; only this process is affected.
+  $cliArgs += @('--settings', (Join-Path $PSScriptRoot 'ticket-settings.json'))
   $cliArgs += @('--model', (Get-TicketModel $t))
   $cliArgs += @('--effort', $(if ($t.IsStageEnd) { $StageEffort } else { $Effort }))
   if ($resumeId) { $cliArgs += @('--resume', $resumeId) }

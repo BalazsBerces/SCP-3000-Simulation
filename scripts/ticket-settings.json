@@ -1,0 +1,8 @@
+{
+  "disableClaudeAiConnectors": true,
+  "enabledPlugins": {
+    "superpowers@claude-plugins-official": false,
+    "agent-tree@agent-tree": false,
+    "context-mode@context-mode": false
+  }
+}
