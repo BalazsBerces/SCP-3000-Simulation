@@ -8,7 +8,8 @@ namespace Scp3008.Game;
 /// paused, and the camera flying the same path twice: once at noon in open lighting and once at
 /// Closing time. The path starts close over the lamp displays of a Lighting &amp; electrical
 /// Department (the shadow budget at work), pulls out to the farthest zoom, and pans and turns
-/// there (the most Furniture in view). Vsync is off. For each lighting it prints the average and
+/// there (the most Furniture in view). The far view is also held at the farthest zoom and, if
+/// Furniture turns coarse within the zoom range, at the switch zoom with every piece full. Vsync is off. For each lighting it prints the average and
 /// 1%-low frame rate (the mean rate over the slowest 1% of frames), with the average GPU and CPU
 /// render time, draw calls and primitives per frame, and quits with exit code 0 if
 /// every average meets <see cref="TargetFps"/> and every 1% low meets <see cref="TargetOnePercentLowFps"/>,
@@ -37,8 +38,10 @@ public partial class Benchmark : Node
     private string? _shotsDirectory;
     private string? _reproductionDirectory;
     private double? _progress;
+    private float? _holdZoom;
 
-    private sealed record Lighting(string Name, TimeSpan TimeOfDay, bool HoldFar = false);
+    // HoldZoom: hold the far point of the path at this zoom, approached from closer, as zooming out.
+    private sealed record Lighting(string Name, TimeSpan TimeOfDay, bool HoldFar = false, float? HoldZoom = null);
 
     private sealed record Result(Lighting Lighting, int Frames, double Seconds, double AverageFps, double OnePercentLowFps, int MostLights, int MostShadowed, int MostVisibleLamps,
         double GpuMilliseconds, double CpuMilliseconds, double DrawCalls, double Primitives);
@@ -106,12 +109,17 @@ public partial class Benchmark : Node
 
         // A path average alone can hide an expensive far view behind faster close frames.
         results.Add(await Measure(new Lighting("Closing time far", TimeSpan.FromHours(23), HoldFar: true)));
+        // The farthest zoom with full Furniture: every visible piece full (ticket 06f).
+        if (FurnitureDetail.SwitchZoom < Rig.MaxDistance)
+            results.Add(await Measure(new Lighting("Closing time at LOD switch", TimeSpan.FromHours(23), HoldFar: true,
+                HoldZoom: FurnitureDetail.SwitchZoom)));
         var size = GetViewport().GetVisibleRect().Size;
         GD.Print($"Benchmark: Store {Host.Snapshot.Seed}, {size.X}x{size.Y}, {RenderingServer.GetVideoAdapterName()}, " +
                  $"{MeasureSeconds:0} s per lighting, target {TargetFps} fps average, {TargetOnePercentLowFps} fps 1% low");
-        GD.Print($"  Weather: fixed Fog bank, radius 160 m; MSAA {GetViewport().Msaa3D}, TAA {GetViewport().UseTaa}");
+        GD.Print($"  Weather: fixed Fog bank, radius 160 m; MSAA {GetViewport().Msaa3D}, TAA {GetViewport().UseTaa}; " +
+                 $"Furniture full up to a zoom of {FurnitureDetail.SwitchZoom:0} m");
         foreach (var r in results)
-            GD.Print($"  {r.Lighting.Name,-12} average {r.AverageFps,6:0.0} fps, 1% low {r.OnePercentLowFps,6:0.0} fps " +
+            GD.Print($"  {r.Lighting.Name,-26} average {r.AverageFps,6:0.0} fps, 1% low {r.OnePercentLowFps,6:0.0} fps " +
                      $"({r.Frames} frames in {r.Seconds:0.0} s; up to {r.MostLights} lamp lights, {r.MostShadowed} shadowed, {r.MostVisibleLamps} visible Lamps with halos; " +
                      $"average GPU {r.GpuMilliseconds:0.00} ms, CPU render {r.CpuMilliseconds:0.00} ms, {r.DrawCalls:0} draw calls, {r.Primitives / 1e6:0.0} M primitives)");
         var atResolution = (Vector2I)size == Resolution;
@@ -130,6 +138,7 @@ public partial class Benchmark : Node
         while (Now < warmUpEnds)
         {
             _progress = lighting.HoldFar ? 0.8 : 0.0;
+            _holdZoom = lighting.HoldZoom is not null && Now < warmUpEnds - WarmUpSeconds / 2 ? Rig.MinDistance : lighting.HoldZoom;
             await NextFrame();
         }
 
@@ -160,6 +169,9 @@ public partial class Benchmark : Node
                 throw new InvalidOperationException("Lamp lights exceeded the ADR 0004 budget.");
         }
 
+        _holdZoom = null;
+        if (lighting.HoldZoom is not null && FurnitureDetail.Coarse)
+            throw new InvalidOperationException("Furniture was coarse at the LOD switch zoom.");
         var seconds = last - start;
         var slowest = frameSeconds.OrderByDescending(s => s).Take(Math.Max(1, frameSeconds.Count / 100)).ToList();
         return new Result(lighting, frameSeconds.Count, seconds, frameSeconds.Count / seconds,
@@ -220,6 +232,8 @@ public partial class Benchmark : Node
         Rig.JumpTo(new Vector3(Start.X + 30f * Mathf.Sin(t * Mathf.Tau), 0f, Start.Y + 20f * Mathf.Sin(t * Mathf.Tau)));
         Rig.JumpToDistance(Mathf.Lerp(Rig.MinDistance, Rig.MaxDistance, pullOut));
         Rig.JumpToYaw(Mathf.DegToRad(30f + 90f * t));
+        if (_holdZoom is { } zoom)
+            Rig.JumpToDistance(zoom);
     }
 
     private async Task NextFrame() => await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);

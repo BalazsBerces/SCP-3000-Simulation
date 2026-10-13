@@ -7,8 +7,11 @@ namespace Scp3008.Game;
 /// Draws every piece of Furniture in the snapshot with instancing: one <see cref="WrappedInstances"/>
 /// per Furniture type and variant, which groups the pieces into one MultiMesh per chunk and shows each chunk
 /// at its wrapped images around the camera, so Furniture near a seam is drawn on both sides of it.
-/// Distant chunks draw coarse meshes (level of detail), and solid, tall Furniture hides what stands
-/// behind it (occlusion culling, switched on in the project settings).
+/// Beyond a zoom threshold every piece draws its coarse mesh (level of detail, see
+/// <see cref="FurnitureDetail"/>; this node keeps it in step with the camera), and solid, tall
+/// Furniture hides what stands behind it (occlusion culling, switched on in the project settings).
+/// User argument after "--": --lod-zoom=metres sets <see cref="FurnitureDetail.SwitchZoom"/>
+/// (to find the threshold with the benchmark).
 /// Rebuilt whenever a new world is created. View only: it never touches the simulation.
 /// </summary>
 public partial class FurnitureRenderer : Node3D
@@ -19,11 +22,26 @@ public partial class FurnitureRenderer : Node3D
 
     public override void _Ready()
     {
+        foreach (var arg in OS.GetCmdlineUserArgs())
+            if (arg.StartsWith("--lod-zoom="))
+                FurnitureDetail.SwitchZoom = float.Parse(arg["--lod-zoom=".Length..], System.Globalization.CultureInfo.InvariantCulture);
         Host.WorldCreated += Rebuild;
+        FurnitureDetail.Changed += ShowDetail;
+        FurnitureDetail.Update(Rig.Distance);
+        ShowDetail(FurnitureDetail.Coarse);
         Rebuild(Host.Snapshot);
     }
 
-    public override void _ExitTree() => Host.WorldCreated -= Rebuild;
+    public override void _ExitTree()
+    {
+        Host.WorldCreated -= Rebuild;
+        FurnitureDetail.Changed -= ShowDetail;
+    }
+
+    // Runs after the camera rig (CameraRig.ProcessPriority), so the level matches this frame's zoom.
+    public override void _Process(double delta) => FurnitureDetail.Update(Rig.Distance);
+
+    private void ShowDetail(bool coarse) => Rig.Camera.CullMask = FurnitureDetail.Mask(Rig.Camera.CullMask);
 
     private void Rebuild(WorldSnapshot snapshot)
     {
@@ -45,6 +63,7 @@ public partial class FurnitureRenderer : Node3D
             AddChild(instances);
             instances.SetInstances(snapshot.Space, group.Select(p => (Placement(p), FurnitureMeshes.TintFor(p))));
         }
+        FurnitureDetail.DrawBoth(3);
         GD.Print($"Furniture: {snapshot.Furniture.Count} pieces placed in {Time.GetTicksMsec() - started} ms.");
     }
 

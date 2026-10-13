@@ -143,9 +143,24 @@ public static class FurnitureMeshes
     /// <see cref="FurniturePalettes"/>) into a colour table of their material family (fabric,
     /// plastic, leaves, cardboard), so every piece of a Display shares its palette. Visual only.
     /// </summary>
-    public static Color TintFor(FurniturePiece piece)
+    public static Color TintFor(FurniturePiece piece) => TintFor(piece.Type, piece.Tint);
+
+    /// <summary>The colour of tint index <paramref name="tint"/> for a Furniture type; white if the type has no palette.</summary>
+    public static Color TintFor(FurnitureType type, int tint)
     {
-        var palette = piece.Type switch
+        var palette = Palette(type);
+        return palette is null ? Colors.White : palette[Math.Clamp(tint, 0, palette.Length - 1)];
+    }
+
+    /// <summary>Whether pieces of this type take a colour from a palette (their tinted materials vary).</summary>
+    public static bool IsTinted(FurnitureType type) => Palette(type) is not null;
+
+    /// <summary>The name of the part with this index: a full mesh's surface name, a coarse mesh's UV2.x.</summary>
+    public static string PartName(int part) => ((Part)part).ToString();
+
+    private static Color[]? Palette(FurnitureType type)
+    {
+        return type switch
         {
             FurnitureType.Sofa or FurnitureType.Armchair or FurnitureType.Rug or FurnitureType.Bed
                 or FurnitureType.CushionBin or FurnitureType.BlanketStack or FurnitureType.CurtainRack
@@ -155,7 +170,6 @@ public static class FurnitureMeshes
             FurnitureType.FlatPackBox => CardboardColors,
             _ => null,
         };
-        return palette is null ? Colors.White : palette[Math.Clamp(piece.Tint, 0, palette.Length - 1)];
     }
 
     // The colour tables below are indexed by tint: cream, sand, warm grey, charcoal, navy, slate blue,
@@ -522,7 +536,8 @@ public static class FurnitureMeshes
             case FurnitureType.WashingMachine:
             case FurnitureType.Stove:
                 b.Box(Part.Ceramic, new(-hw, 0, -hd), new(hw, h, hd));
-                b.Box(Part.PaintedMetal, new(-hw + 0.02f, h - 0.14f, hd), new(hw - 0.02f, h - 0.02f, hd + 0.01f));
+                // Control panel; deep enough not to count as a paper-thin strip, so coarse meshes keep its colour.
+                b.Box(Part.PaintedMetal, new(-hw + 0.02f, h - 0.14f, hd), new(hw - 0.02f, h - 0.02f, hd + 0.012f));
                 if (type == FurnitureType.WashingMachine)
                 {
                     // Cylinders stand vertically in the mesh builder; a squared porthole keeps
@@ -741,6 +756,9 @@ public static class FurnitureMeshes
                 b.Box(Part.Rubber, new Vector3(-hw, 0f, -hd), new Vector3(hw, 0.1f, hd - 0.06f));
                 b.Box(Part.Maple, new Vector3(-hw + 0.005f, 0.1f, -hd), new Vector3(hw - 0.005f, h - 0.04f, hd - 0.02f));
                 b.Box(Part.Walnut, new Vector3(-hw, h - 0.04f, -hd), new Vector3(hw, h, hd));
+                // The coarse mesh keeps the fronts' wood as one panel, so the front keeps its colour.
+                if (b.Coarse)
+                    b.Box(Part.Pine, new Vector3(-hw + 0.01f, 0.11f, hd - 0.02f), new Vector3(hw - 0.01f, h - 0.05f, hd));
                 for (var drawer = 0; !b.Coarse && drawer < 3; drawer++)
                 {
                     var y = 0.1f + drawer * (h - 0.14f) / 3f;
@@ -792,6 +810,9 @@ public static class FurnitureMeshes
     }
 
     /// <summary>Four corner posts flush with the footprint.</summary>
+    /// <summary>Dev aid: draws every coarse mesh magenta, to show which level of detail is drawn.</summary>
+    public static void ShowCoarseInMagenta(bool enabled) => CoarseMaterial().SetShaderParameter("lod_debug", enabled);
+
     private static void Posts(Builder b, Part part, float hw, float hd, float h, float half) =>
         Legs(b, part, hw - half, hd - half, h, half);
 
@@ -866,19 +887,21 @@ public static class FurnitureMeshes
     {
         if (_coarseMaterial is not null)
             return _coarseMaterial;
-        var albedo = new Color[PartSlots];
+        // Vector4 rather than Color: Godot converts a Color array from sRGB to linear on its own,
+        // which made every coarse part far too dark and too saturated (ticket 06f).
+        var albedo = new Vector4[PartSlots];
         var surface = new Vector2[PartSlots];
         foreach (var (part, material) in Materials())
         {
-            var color = (Color)material.GetShaderParameter("albedo_color");
+            // Linear, as the full material's shader sees it: its albedo_color and textures are sRGB.
+            var linear = ((Color)material.GetShaderParameter("albedo_color")).SrgbToLinear();
             var roughness = (float)material.GetShaderParameter("roughness");
             if ((bool)material.GetShaderParameter("textured"))
             {
-                color *= Average((Texture2D)material.GetShaderParameter("albedo_texture"));
-                roughness *= Average((Texture2D)material.GetShaderParameter("roughness_texture")).R;
+                linear *= Average((Texture2D)material.GetShaderParameter("albedo_texture"), srgb: true);
+                roughness *= Average((Texture2D)material.GetShaderParameter("roughness_texture"), srgb: false).R;
             }
-            var linear = color.SrgbToLinear();
-            albedo[(int)part] = new Color(linear.R, linear.G, linear.B, (bool)material.GetShaderParameter("tinted") ? 1f : 0f);
+            albedo[(int)part] = new Vector4(linear.R, linear.G, linear.B, (bool)material.GetShaderParameter("tinted") ? 1f : 0f);
             surface[(int)part] = new Vector2(roughness, (float)material.GetShaderParameter("metallic"));
         }
         var shade = Materials()[Part.LampShade];
@@ -892,8 +915,11 @@ public static class FurnitureMeshes
         return _coarseMaterial;
     }
 
-    /// <summary>The average colour of a texture, sampled on a sparse grid.</summary>
-    private static Color Average(Texture2D texture)
+    /// <summary>
+    /// The average colour of a texture, sampled on a sparse grid. For an <paramref name="srgb"/>
+    /// texture it is the linear average, as the texture's smallest mip level shows it.
+    /// </summary>
+    private static Color Average(Texture2D texture, bool srgb)
     {
         var image = texture.GetImage();
         if (image.IsCompressed())
@@ -905,7 +931,7 @@ public static class FurnitureMeshes
         for (var y = 0; y < image.GetHeight(); y += step)
             for (var x = 0; x < image.GetWidth(); x += step)
             {
-                sum += image.GetPixel(x, y);
+                sum += srgb ? image.GetPixel(x, y).SrgbToLinear() : image.GetPixel(x, y);
                 count++;
             }
         return sum / count;
@@ -1067,6 +1093,8 @@ public static class FurnitureMeshes
                     tool.GenerateTangents();
                 tool.Commit(mesh);
                 mesh.SurfaceSetMaterial(mesh.GetSurfaceCount() - 1, coarse ? CoarseMaterial() : Materials()[part]);
+                if (!coarse)
+                    mesh.SurfaceSetName(mesh.GetSurfaceCount() - 1, part.ToString());
             }
             return mesh;
         }

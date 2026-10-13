@@ -12,27 +12,19 @@ namespace Scp3008.Game;
 /// images are rendering-server instances rather than nodes: a Store has tens of thousands of
 /// them, and nodes (with their script wrappers for the garbage collector to track) made chunk
 /// crossings and collections stall frames.
-/// With a <see cref="CoarseMesh"/>, chunks farther than <see cref="LodDistance"/> from the camera
-/// draw it instead (level of detail); with <see cref="OccluderQuads"/>, every chunk also hides
-/// what is behind those parts of its instances from rendering (occlusion culling).
+/// With a <see cref="CoarseMesh"/>, every chunk is drawn twice, the detailed mesh on
+/// <see cref="FurnitureDetail.FullLayer"/> and the coarse one on <see cref="FurnitureDetail.CoarseLayer"/>,
+/// and <see cref="FurnitureDetail"/> picks which layer the camera sees (level of detail, one for
+/// the whole view); with <see cref="OccluderQuads"/>, every chunk also hides what is behind those
+/// parts of its instances from rendering (occlusion culling).
 /// </summary>
 public partial class WrappedInstances : Node3D
 {
     [Export] public CameraRig Rig { get; set; } = null!;
     [Export] public Mesh? Mesh { get; set; }
 
-    /// <summary>A simpler mesh drawn instead of <see cref="Mesh"/> for chunks far from the camera.</summary>
+    /// <summary>A simpler mesh drawn instead of <see cref="Mesh"/> when <see cref="FurnitureDetail.Coarse"/>.</summary>
     [Export] public Mesh? CoarseMesh { get; set; }
-
-    /// <summary>
-    /// Distance from the camera to a chunk's centre beyond which <see cref="CoarseMesh"/> is drawn.
-    /// The largest distance that keeps the 120 fps benchmark passing (ticket 06d): the floor under
-    /// the focus stays detailed up to a zoom of about 165 m, and at the farthest zoom (camera about
-    /// 180 m above the floor) only the nearest chunks are. Farther switches (220, 240, 265 and
-    /// 525 m were measured) cost the far view too much; the coarse meshes keep the silhouettes, so
-    /// the switch shows mostly as a change of material.
-    /// </summary>
-    [Export] public float LodDistance { get; set; } = 210f;
 
     /// <summary>
     /// Distance from the camera to a chunk's centre beyond which it is not drawn at all: the Edge fade
@@ -55,9 +47,6 @@ public partial class WrappedInstances : Node3D
     /// and every occluder makes the per-frame occlusion test dearer.
     /// </summary>
     [Export] public float OccluderReach { get; set; } = 160f;
-
-    // Switching meshes waits this far past LodDistance, so a chunk does not flip back and forth.
-    private const float LodMargin = 6f;
 
     // Images newly needed when the focus moves into another chunk lie at the far edge of the reach,
     // beyond what is drawn; creating them is spread over frames so a crossing does not stall any.
@@ -323,14 +312,19 @@ public partial class WrappedInstances : Node3D
             images.Coarse is null ? null : Instance(images.Coarse.GetRid()),
             images.Occluder is null ? null : Instance(images.Occluder.GetRid()),
             GlobalTransform, IsVisibleInTree());
+        if (image.Coarse is { } coarse)
+        {
+            RenderingServer.InstanceSetLayerMask(image.Detail, FurnitureDetail.FullLayer);
+            RenderingServer.InstanceSetLayerMask(coarse, FurnitureDetail.CoarseLayer);
+        }
         ShowRanges(image, StoreOverview.Enabled);
         return image;
     }
 
     /// <summary>
-    /// Normally: the detailed mesh near the camera, the coarse one farther out, nothing past
-    /// <see cref="FarDistance"/>. In the overview: the coarse mesh (or the detailed one if there is
-    /// none) at every distance, since the camera is far above the whole Store.
+    /// Normally: both meshes (the camera sees one of them, see <see cref="FurnitureDetail"/>) and
+    /// nothing past <see cref="FarDistance"/>. In the overview: the coarse mesh (or the detailed one
+    /// if there is none) at every distance, since the camera is far above the whole Store.
     /// </summary>
     private void ShowRanges(Image image, bool overview)
     {
@@ -347,9 +341,9 @@ public partial class WrappedInstances : Node3D
             return;
         }
         image.ShowDetail(true);
-        Range(detail, 0f, coarse is null ? FarDistance : LodDistance, 0f, coarse is null ? 0f : LodMargin);
-        if (coarse is { } distant)
-            Range(distant, LodDistance, FarDistance, LodMargin, 0f);
+        Range(detail, 0f, FarDistance, 0f, 0f);
+        if (coarse is { } coarseRange)
+            Range(coarseRange, 0f, FarDistance, 0f, 0f);
     }
 
     /// <summary>

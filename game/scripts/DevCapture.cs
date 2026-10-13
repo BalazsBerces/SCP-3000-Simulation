@@ -32,6 +32,13 @@ namespace Scp3008.Game;
 ///   --silhouette-check=file  compare every Furniture type's full and coarse silhouette
 ///                          (<see cref="SilhouetteCheck"/>), write the report to file and quit
 ///                          with exit code 0 if every type passes, 3 if not.
+///   --coarse-colour-check=dir  compare every Furniture type's full and coarse colour per part
+///                          (<see cref="CoarseColourCheck"/>), save side-by-side sheets and the
+///                          report into dir and quit with exit code 0 if every part matches, 3 if not.
+///   --lod-debug            draw coarse Furniture meshes magenta (see <see cref="FurnitureDetail"/>);
+///   --zoom-sweep=seconds   zoom slowly from 20 m inside the level-of-detail switch to 20 m beyond
+///                          it and back over this many seconds, wobbling by 1.5 m like an unsteady
+///                          hand, then report how often the level switched (2 means no flicker).
 /// Does nothing in normal runs.
 /// </summary>
 public partial class DevCapture : Node
@@ -57,6 +64,8 @@ public partial class DevCapture : Node
     private Vector3 _lastFocus;
     private string? _seedToEnter;
     private PillarLayout? _layoutToChoose;
+    private double _zoomSweepSeconds;
+    private int _detailSwitches;
 
     public override void _Ready()
     {
@@ -65,6 +74,11 @@ public partial class DevCapture : Node
             if (arg.StartsWith("--silhouette-check="))
             {
                 RunSilhouetteCheck(arg["--silhouette-check=".Length..]);
+                return;
+            }
+            if (arg.StartsWith("--coarse-colour-check="))
+            {
+                RunColourCheck(arg["--coarse-colour-check=".Length..]);
                 return;
             }
             if (arg.StartsWith("--furniture-tour="))
@@ -105,6 +119,10 @@ public partial class DevCapture : Node
                 Host.HoldClearWeather();
             else if (arg.StartsWith("--enter-seed="))
                 _seedToEnter = arg["--enter-seed=".Length..];
+            else if (arg == "--lod-debug")
+                FurnitureMeshes.ShowCoarseInMagenta(true);
+            else if (arg.StartsWith("--zoom-sweep="))
+                _zoomSweepSeconds = double.Parse(arg["--zoom-sweep=".Length..], CultureInfo.InvariantCulture);
             else if (arg.StartsWith("--choose-pillars="))
                 _layoutToChoose = PillarLayouts.Parse(arg["--choose-pillars=".Length..]);
         }
@@ -126,7 +144,17 @@ public partial class DevCapture : Node
             _elapsed = 0.0;
             _frames = 0;
         };
-        SetProcess(_capturePath is not null || _fpsReport || _panVelocity != Vector3.Zero || _seedToEnter is not null || _layoutToChoose is not null);
+        var level = FurnitureDetail.Coarse;
+        FurnitureDetail.Changed += coarse =>
+        {
+            // Also raised when the start-up frames that draw both levels end.
+            if (coarse != level)
+                _detailSwitches++;
+            level = coarse;
+        };
+        if (_zoomSweepSeconds > 0)
+            _captureAfter = Math.Max(_captureAfter, _zoomSweepSeconds);
+        SetProcess(_zoomSweepSeconds > 0 || _capturePath is not null || _fpsReport || _panVelocity != Vector3.Zero || _seedToEnter is not null || _layoutToChoose is not null);
     }
 
     public override void _Process(double delta)
@@ -140,6 +168,14 @@ public partial class DevCapture : Node
         _lastFocus = Rig.Focus;
         if (_panVelocity != Vector3.Zero)
             Rig.MoveTargetBy(_panVelocity * (float)delta);
+        if (_zoomSweepSeconds > 0 && _elapsed <= _zoomSweepSeconds)
+        {
+            // Out and back in, a triangle wave, with a wobble faster than the sweep.
+            var t = _elapsed / _zoomSweepSeconds;
+            var sweep = 1.0 - Math.Abs(2.0 * t - 1.0);
+            var zoom = FurnitureDetail.SwitchZoom - 20.0 + 40.0 * sweep + 1.5 * Math.Sin(_elapsed * 9.0);
+            Rig.JumpToDistance((float)zoom);
+        }
 
         _elapsed += delta;
         _frames++;
@@ -156,11 +192,14 @@ public partial class DevCapture : Node
         }
         if (_seedToEnter is not null || _layoutToChoose is not null || Host.IsGenerating)
             return;
-        if (_elapsed < _captureAfter || (_capturePath is null && !_fpsReport))
+        if (_elapsed < _captureAfter || (_capturePath is null && !_fpsReport && _zoomSweepSeconds == 0))
             return;
 
         if (_fpsReport)
             GD.Print($"FPS average over {_elapsed:0.0}s: {_frames / _elapsed:0.0}");
+        if (_zoomSweepSeconds > 0)
+            GD.Print($"Zoom sweep: {_frames} frames across the level-of-detail switch at {FurnitureDetail.SwitchZoom:0} m, " +
+                     $"{_detailSwitches} switches, now {(FurnitureDetail.Coarse ? "coarse" : "full")} at zoom {Rig.Distance:0.0} m");
         if (_panVelocity != Vector3.Zero)
             GD.Print($"Camera: {_seamCrossings} seam crossings, largest focus step {_largestFocusStep:0.000} m/frame " +
                      $"(on crossing frames {_largestCrossingStep:0.000} m), " +
@@ -271,9 +310,27 @@ public partial class DevCapture : Node
         GetTree().Quit(failed == 0 ? 0 : 3);
     }
 
+    private async void RunColourCheck(string directory)
+    {
+        try
+        {
+            // Only the check's own world is drawn.
+            GetViewport().Disable3D = true;
+            var check = new CoarseColourCheck();
+            AddChild(check);
+            GetTree().Quit(await check.Run(directory) ? 0 : 3);
+        }
+        catch (Exception error)
+        {
+            GD.PushError($"Coarse colour check failed: {error}");
+            GetTree().Quit(2);
+        }
+    }
+
     private void AddEyeLevelCamera()
     {
-        var camera = new Camera3D { Fov = 70f, Far = 2000f };
+        // At eye level Furniture is always full.
+        var camera = new Camera3D { Fov = 70f, Far = 2000f, CullMask = ~FurnitureDetail.CoarseLayer };
         Rig.AddChild(camera);
         camera.Position = new Vector3(0f, 1.7f, 0f);
         camera.Rotation = new Vector3(Mathf.DegToRad(-3f), 0f, 0f);

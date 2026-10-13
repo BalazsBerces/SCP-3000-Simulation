@@ -23,6 +23,8 @@ uniform bool coarse_parts = false;
 uniform vec4 part_albedo[32];
 uniform vec2 part_surface[32];
 uniform int emissive_part = -1;
+// Dev aid (DevCapture --lod-debug): draws coarse meshes magenta, to show which level is drawn.
+uniform bool lod_debug = false;
 
 varying flat int part;
 
@@ -45,6 +47,10 @@ void fragment() {
 		surface_metallic = part_surface[part].y;
 		if (part != emissive_part) {
 			emission = vec3(0.0);
+		}
+		if (lod_debug) {
+			albedo = vec3(0.8, 0.05, 0.8);
+			tint = false;
 		}
 	} else if (textured) {
 		albedo *= texture(albedo_texture, UV).rgb;

@@ -94,11 +94,27 @@ public partial class LampLights : Node3D
         LampPools.SetColor(Warm);
         _halos = new LampHalos();
         AddChild(_halos);
+        FurnitureDetail.Changed += ShowDetail;
+        ShowDetail(FurnitureDetail.Coarse);
         Host.WorldCreated += Rebuild;
         Rebuild(Host.Snapshot);
     }
 
-    public override void _ExitTree() => Host.WorldCreated -= Rebuild;
+    public override void _ExitTree()
+    {
+        Host.WorldCreated -= Rebuild;
+        FurnitureDetail.Changed -= ShowDetail;
+    }
+
+    /// <summary>The lights light, and shadows are cast by, the Furniture meshes the camera sees.</summary>
+    private void ShowDetail(bool coarse)
+    {
+        foreach (var light in _lights)
+        {
+            light.LightCullMask = FurnitureDetail.Mask(light.LightCullMask);
+            light.ShadowCasterMask = FurnitureDetail.Mask(light.ShadowCasterMask);
+        }
+    }
 
     public override void _Process(double delta)
     {
