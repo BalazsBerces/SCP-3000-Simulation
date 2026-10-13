@@ -4,8 +4,9 @@
 uniform sampler2D banks : filter_nearest, repeat_disable;
 uniform int bank_count = 0;
 uniform float store_size = 1344.0;
-uniform float distance_density = 0.0;
-uniform float haze_density = 0.0;
+// Edge fade: halos dissolve over the last stretch before the draw distance. No base fog or haze.
+uniform float edge_begin = 480.0;
+uniform float edge_end = 550.0;
 uniform float fog_length = 640.0;
 uniform vec3 lamp_color : source_color = vec3(1.0, 0.78, 0.52);
 
@@ -14,8 +15,7 @@ float lamp_transmittance(vec3 surface, vec3 eye, mat4 view_matrix) {
     float ray_length = length(ray);
     float view_depth = max(0.001, -(view_matrix * vec4(surface, 1.0)).z);
     float end = min(1.0, fog_length / view_depth);
-    // Godot integrates volumetric extinction along view Z, while distance fog uses ray length.
-    float optical_depth = distance_density * ray_length + haze_density * view_depth * end;
+    float optical_depth = 0.0;
     // Clip to the low fog layer before integration, retaining detail at the farthest zoom.
     float begin = 0.0;
     if (abs(ray.y) > 0.0001) {
@@ -45,5 +45,5 @@ float lamp_transmittance(vec3 surface, vec3 eye, mat4 view_matrix) {
             }
         }
     }
-    return exp(-optical_depth);
+    return exp(-optical_depth) * (1.0 - smoothstep(edge_begin, edge_end, ray_length));
 }

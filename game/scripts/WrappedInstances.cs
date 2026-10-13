@@ -28,7 +28,7 @@ public partial class WrappedInstances : Node3D
     [Export] public float LodDistance { get; set; } = 110f;
 
     /// <summary>
-    /// Distance from the camera to a chunk's centre beyond which it is not drawn at all: the haze
+    /// Distance from the camera to a chunk's centre beyond which it is not drawn at all: the Edge fade
     /// hides it. The Observer camera at its farthest zoom sees floor up to about 510 m away, so
     /// this leaves a chunk's half-diagonal to spare.
     /// </summary>

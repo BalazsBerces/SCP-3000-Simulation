@@ -2,7 +2,7 @@ namespace Scp3008.Game;
 
 /// <summary>
 /// Dev view of the whole Store at its true size: F4 (in <see cref="WrapDebugOverlay"/>) toggles it.
-/// While it is on, the Store is drawn once, with no wrapped ghost copies, haze or far cut-off, and
+/// While it is on, the Store is drawn once, with no wrapped ghost copies, Edge fade or far cut-off, and
 /// the camera can zoom out far enough to see all of it. View only: it never touches the simulation.
 /// </summary>
 public static class StoreOverview

@@ -76,7 +76,7 @@ public partial class WrapDebugOverlay : Node3D
             alongSeam.SelectMany(t => new[] { new Vector3(size - 3f, 0.75f, t), new Vector3(t, 0.75f, size - 3f) }));
         AddMarkers(new BoxMesh { Size = new Vector3(1.5f, 1.5f, 1.5f) }, new Color(0.55f, 0.25f, 0.85f),
             alongSeam.SelectMany(t => new[] { new Vector3(3f, 0.75f, t), new Vector3(t, 0.75f, 3f) }));
-        _overviewLabel.Text = $"Store overview: {size:0} m x {size:0} m, drawn once with no wrap, haze or far cut-off    F4 returns";
+        _overviewLabel.Text = $"Store overview: {size:0} m x {size:0} m, drawn once with no wrap, Edge fade or far cut-off    F4 returns";
     }
 
     private void ToggleOverview()

@@ -23,7 +23,11 @@ param(
   [string]$Repo = 'BalazsBerces/SCP-3000-Simulation',
   [int]$Max = 0,
   [switch]$NoStagePause,
+  # Overrides the per-ticket model choice when set.
   [string]$Model = '',
+  # Tickets labelled 'easy' run on $EasyModel; 'hard', unlabelled and stage-end tickets on $HardModel.
+  [string]$HardModel = 'opus',
+  [string]$EasyModel = 'sonnet',
   [ValidateSet('low', 'medium', 'high', 'xhigh', 'max')] [string]$Effort = 'medium',
   # Stage-end tickets also review the whole stage, so they get more effort.
   [ValidateSet('low', 'medium', 'high', 'xhigh', 'max')] [string]$StageEffort = 'high'
@@ -44,14 +48,15 @@ $exclude = Join-Path $root '.git\info\exclude'
 if (-not (Select-String -Path $exclude -Pattern '^\.ticket-logs/' -Quiet)) { Add-Content $exclude '.ticket-logs/' }
 
 function Get-NextTicket {
-  $open = gh issue list -R $Repo --state open --label ready-for-agent --limit 200 --json number,title | ConvertFrom-Json
+  $open = gh issue list -R $Repo --state open --label ready-for-agent --limit 200 --json number,title,labels | ConvertFrom-Json
   # Titles start with 'NN: ', or 'NNa: ' for a ticket inserted after NN (it runs after NN, before NN+1).
   $tickets = $open | ForEach-Object { $_ } | Where-Object { $_.title -match '^(\d\d)([a-z]?): ' } |
     ForEach-Object {
       $null = $_.title -match '^(\d\d)([a-z]?): '
       $n = [int]$Matches[1]; $suffix = $Matches[2]
+      $difficulty = @($_.labels | ForEach-Object { $_.name } | Where-Object { $_ -in 'hard', 'easy' })
       [pscustomobject]@{ Issue = $_.number; Ticket = $n; Label = $Matches[1] + $suffix; Title = $_.title
-        IsStageEnd = $false }
+        IsStageEnd = $false; Difficulty = ($difficulty | Select-Object -First 1) }
     } |
     Sort-Object Ticket, Label
   if (-not $tickets) { return $null }
@@ -92,29 +97,40 @@ Project rules for this run:
 $(Get-ReviewRule $t)
 7. On success:
    - stage everything except the .claude/ directory;
-   - commit to main with the message "$($t.Title)", a blank line, "Closes #$($t.Issue)", a blank line, and "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>";
+   - commit to main with the message "$($t.Title)", a blank line, "Closes #$($t.Issue)", a blank line, and "Co-Authored-By: Claude $(if ((Get-TicketModel $t) -match 'sonnet') { 'Sonnet' } else { 'Opus' }) 5.5 <noreply@anthropic.com>";
    - push to origin main;
    - make sure issue #$($t.Issue) is closed;
    - post a short closing comment: what was built, the test results, and what needs human visual review.
 8. If you cannot finish (an unresolvable ambiguity, or a failure you cannot fix), do NOT commit broken code and do NOT close the issue. Comment on issue #$($t.Issue) explaining the blocker and what is done so far.
+9. Keep the context small; everything in it is re-read on every later turn:
+   - write the full output of test runs, builds, Godot runs and benchmarks to a file under .ticket-logs/ and print only the summary and failures;
+   - capture screenshots at most 1280 px wide, look at each one once, and do not reread images you already judged.
 Never modify issue #1 or other tickets, never force-push, and never rewrite history.
 End your final message with exactly one line: TICKET_DONE or TICKET_BLOCKED: <reason>.
 "@
 }
 
-function Invoke-Agent($t, $log) {
+function Get-TicketModel($t) {
+  if ($Model) { return $Model }
+  if ($t.Difficulty -eq 'easy' -and -not $t.IsStageEnd) { return $EasyModel }
+  return $HardModel
+}
+
+function Invoke-Claude($t, $log, $prompt, $resumeId) {
   $cliArgs = @('-p', '--dangerously-skip-permissions', '--output-format', 'stream-json', '--verbose')
-  if ($Model) { $cliArgs += @('--model', $Model) }
+  $cliArgs += @('--model', (Get-TicketModel $t))
   $cliArgs += @('--effort', $(if ($t.IsStageEnd) { $StageEffort } else { $Effort }))
-  $final = ''
+  if ($resumeId) { $cliArgs += @('--resume', $resumeId) }
+  $final = ''; $sessionId = $resumeId; $resetsAt = $null
   $firstLimits = $null; $lastLimits = $null
   # The prompt goes in as an argument: piped stdin does not expand the /implement slash command.
   # PS 5.1 does not escape embedded double quotes in native arguments, so swap them for single quotes.
-  $prompt = (Get-Prompt $t).Replace('"', "'")
-  & claude @cliArgs $prompt | ForEach-Object {
+  & claude @cliArgs $prompt.Replace('"', "'") | ForEach-Object {
     $line = "$_"
     Add-Content -Path $log -Value $line -Encoding UTF8
     try { $ev = $line | ConvertFrom-Json } catch { return }
+    if ($ev.session_id) { $sessionId = $ev.session_id }
+    if ($ev.type -eq 'rate_limit_event' -and $ev.rate_limit_info.status -eq 'rejected') { $resetsAt = $ev.rate_limit_info.resetsAt }
     if ($ev.type -eq 'assistant') {
       foreach ($c in $ev.message.content) {
         if ($c.type -eq 'text' -and $c.text.Trim()) { Write-Host ("  > " + ($c.text.Trim() -split "`n")[0]) -ForegroundColor Gray }
@@ -139,8 +155,25 @@ function Invoke-Agent($t, $log) {
       Write-Host ("  tokens: {0:N1}M total, {1:N0}k output" -f ($total / 1e6), ((& $sum outputTokens) / 1e3)) -ForegroundColor DarkCyan
     }
   }
-  if ($LASTEXITCODE -ne 0) { throw "Claude exited with code $LASTEXITCODE. Log: $log" }
-  return $final
+  if ($LASTEXITCODE -ne 0 -and -not $resetsAt) { throw "Claude exited with code $LASTEXITCODE. Log: $log" }
+  [pscustomobject]@{ Final = $final; SessionId = $sessionId; ResetsAt = $resetsAt }
+}
+
+# Runs the ticket; when the subscription limit stops it, waits for the reset and resumes the same session.
+function Invoke-Agent($t, $log) {
+  $run = Invoke-Claude $t $log (Get-Prompt $t) $null
+  for ($i = 1; $run.ResetsAt -and $i -le $MaxLimitResumes; $i++) {
+    $resume = [DateTimeOffset]::FromUnixTimeSeconds([long]$run.ResetsAt).LocalDateTime.AddMinutes(2)
+    $wait = $resume - (Get-Date)
+    if ($wait.TotalHours -gt $MaxLimitWaitHours) {
+      Write-Host "  Usage limit resets at $resume, more than $MaxLimitWaitHours h away; not waiting." -ForegroundColor Yellow
+      break
+    }
+    Write-Host "  Usage limit hit. Waiting until $resume to resume session $($run.SessionId) ($i/$MaxLimitResumes)." -ForegroundColor Yellow
+    if ($wait.TotalSeconds -gt 0) { Start-Sleep -Seconds ([int]$wait.TotalSeconds) }
+    $run = Invoke-Claude $t $log 'The usage limit interrupted you. Continue this ticket from where you stopped, following the same rules.' $run.SessionId
+  }
+  return $run.Final
 }
 
 $done = 0
@@ -153,7 +186,8 @@ while ($true) {
 
   $log = Join-Path $logDir ('ticket-{0}-{1:yyyyMMdd-HHmmss}.jsonl' -f $t.Label, (Get-Date))
   $runEffort = if ($t.IsStageEnd) { "$StageEffort, stage end + review" } else { $Effort }
-  Write-Host "`n=== $($t.Title)  (#$($t.Issue), effort: $runEffort) ===" -ForegroundColor Cyan
+  $difficulty = if ($t.Difficulty) { $t.Difficulty } else { 'unlabelled' }
+  Write-Host "`n=== $($t.Title)  (#$($t.Issue), $difficulty, model: $(Get-TicketModel $t), effort: $runEffort) ===" -ForegroundColor Cyan
   $final = Invoke-Agent $t $log
 
   $state = gh issue view $t.Issue -R $Repo --json state --jq '.state'

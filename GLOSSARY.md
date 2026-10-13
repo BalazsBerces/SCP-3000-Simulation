@@ -83,8 +83,12 @@ The Store's slow replenishment of Goods and Furniture, which keeps the world fro
 _Avoid_: Respawn, regeneration
 
 **Fog bank**:
-A large, soft-edged region of thick fog that forms, grows, drifts with a slowly changing wind across the wrapping Store, then thins out and dissipates over Store hours. Clear stretches remain between Fog banks; a thin haze stays everywhere. Fog density affects sight and comes from Weather, independent of the Store seed.
+A large, soft-edged region of thick fog that forms, grows, drifts with a slowly changing wind across the wrapping Store, then thins out and dissipates over Store hours. Clear stretches remain between Fog banks; the air is otherwise perfectly clear, with no base fog or haze. Fog density affects sight and comes from Weather, independent of the Store seed.
 _Avoid_: Fog everywhere, cloud, weather cell
+
+**Edge fade**:
+The soft dissolve of content in the last stretch before the draw distance, so the Observer never sees where drawing stops. It is the only distance effect in clear air; nothing nearer than that stretch is fogged. Presentation only.
+_Avoid_: Haze, distance fog
 
 **Closing announcement**:
 The PA message ("The Store is now closing.") from the speaker towers that warns of Closing time.

@@ -14,14 +14,14 @@ namespace Scp3008.Game;
 ///                          3x3L-corners or 3x3L-diamond (the default);
 ///   --pillar=coordinate    focus beside a Pillar, by its grid coordinate (e.g. B-2), if the layout has it;
 ///   --pause                freeze Store time for comparable captures;
-///   --clear-weather        hold clear Weather for comparable captures (thin haze remains);
+///   --clear-weather        hold clear Weather for comparable captures (the air has no base fog);
 ///   --pan=vx,vy            pan the camera focus at (vx, vy) metres per second, then report how
 ///                          often it crossed a seam and its largest per-frame step, overall
 ///                          and on the crossing frames (a jump would show as a big step there);
 ///   --no-focus-wrap        never shift the camera back onto the floor (to compare images of the same place);
 ///   --start-time=HH:MM     (read by SimulationHost) start the Store clock at this Store time;
 ///   --eye-level            look from a Villager's eye height (1.7 m) along the floor instead of
-///                          from the Observer camera, to check the ground-level haze;
+///                          from the Observer camera, to check the ground-level view;
 ///   --enter-seed=text      after one second, enter this seed in the seed input; the capture timer
 ///                          restarts once the new Store is shown;
 ///   --choose-pillars=name  after one second, choose this Pillar layout in the top-right panel;
