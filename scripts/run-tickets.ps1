@@ -131,7 +131,7 @@ function Get-TicketModel($t) {
 }
 
 function Invoke-Claude {
-  # The ForEach-Object block below runs in this scope, so its assignments do reach $final, $sessionId and $resetsAt.
+  # The ForEach-Object block below runs in this scope, so its assignments do reach $final, $sessionId, $resetsAt and the stats.
   [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseDeclaredVarsMoreThanAssignments', '')]
   param($t, $log, $prompt, $resumeId)
   $cliArgs = @('-p', '--dangerously-skip-permissions', '--output-format', 'stream-json', '--verbose')
@@ -141,7 +141,7 @@ function Invoke-Claude {
   $cliArgs += @('--effort', $(if ($t.IsStageEnd) { $StageEffort } else { $Effort }))
   if ($resumeId) { $cliArgs += @('--resume', $resumeId) }
   $final = ''; $sessionId = $resumeId; $resetsAt = $null
-  $firstLimits = $null; $lastLimits = $null
+  $firstLimits = $null; $lastLimits = $null; $lastResult = $null; $turns = 0; $minutes = 0.0
   # The prompt goes in as an argument: piped stdin does not expand the /implement slash command.
   # PS 5.1 does not escape embedded double quotes in native arguments, so swap them for single quotes.
   & claude @cliArgs $prompt.Replace('"', "'") | ForEach-Object {
@@ -159,20 +159,25 @@ function Invoke-Claude {
       $lastLimits = $ev.rate_limit_info.unifiedWindows
       if (-not $firstLimits) { $firstLimits = $lastLimits }
     } elseif ($ev.type -eq 'result') {
-      $final = $ev.result
-      # On a subscription, total_cost_usd is only an estimate at API list prices; nothing is billed.
-      Write-Host ("  turns: {0}, {1:N0} min, API-price equivalent: `${2:N2}" -f $ev.num_turns, ($ev.duration_ms / 60000), $ev.total_cost_usd) -ForegroundColor DarkCyan
-      if ($lastLimits) {
-        Write-Host ("  subscription limits: 5-hour {0:P0} -> {1:P0}, weekly {2:P0} -> {3:P0}" -f `
-          $firstLimits.five_hour.utilization, $lastLimits.five_hour.utilization,
-          $firstLimits.seven_day.utilization, $lastLimits.seven_day.utilization) -ForegroundColor DarkCyan
-      }
-      # modelUsage covers every model in the run (subagents included); usage covers only the main model.
-      $models = @($ev.modelUsage.PSObject.Properties | ForEach-Object { $_.Value })
-      $sum = { param($name) ($models | Measure-Object -Property $name -Sum).Sum }
-      $total = (& $sum inputTokens) + (& $sum cacheCreationInputTokens) + (& $sum cacheReadInputTokens) + (& $sum outputTokens)
-      Write-Host ("  tokens: {0:N1}M total, {1:N0}k output" -f ($total / 1e6), ((& $sum outputTokens) / 1e3)) -ForegroundColor DarkCyan
+      # A session that waits for background agents emits a result each time it stops; turns and time
+      # add up over them, while cost and token usage are already totals for the whole session.
+      $final = $ev.result; $lastResult = $ev
+      $turns += $ev.num_turns; $minutes += $ev.duration_ms / 60000
     }
+  }
+  if ($lastResult) {
+    # On a subscription, total_cost_usd is only an estimate at API list prices; nothing is billed.
+    Write-Host ("  turns: {0}, {1:N0} min, API-price equivalent: `${2:N2}" -f $turns, $minutes, $lastResult.total_cost_usd) -ForegroundColor DarkCyan
+    if ($lastLimits) {
+      Write-Host ("  subscription limits: 5-hour {0:P0} -> {1:P0}, weekly {2:P0} -> {3:P0}" -f `
+        $firstLimits.five_hour.utilization, $lastLimits.five_hour.utilization,
+        $firstLimits.seven_day.utilization, $lastLimits.seven_day.utilization) -ForegroundColor DarkCyan
+    }
+    # modelUsage covers every model in the run (subagents included); usage covers only the main model.
+    $models = @($lastResult.modelUsage.PSObject.Properties | ForEach-Object { $_.Value })
+    $sum = { param($name) ($models | Measure-Object -Property $name -Sum).Sum }
+    $total = (& $sum inputTokens) + (& $sum cacheCreationInputTokens) + (& $sum cacheReadInputTokens) + (& $sum outputTokens)
+    Write-Host ("  tokens: {0:N1}M total, {1:N0}k output" -f ($total / 1e6), ((& $sum outputTokens) / 1e3)) -ForegroundColor DarkCyan
   }
   if ($LASTEXITCODE -ne 0 -and -not $resetsAt) { throw "Claude exited with code $LASTEXITCODE. Log: $log" }
   [pscustomobject]@{ Final = $final; SessionId = $sessionId; ResetsAt = $resetsAt }
