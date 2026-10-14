@@ -55,7 +55,7 @@ A single physical object in the Store (wardrobe, shelf unit, sofa, lamp…) that
 _Avoid_: Prop, object, item
 
 **Lamp**:
-A piece of Furniture that gives light (table lamp, floor lamp). Lamps on display stay lit at all times, including Closing time, except in the dead zone, where none is lit; a Lamp taken away from its display needs a Village power source (battery or generator).
+A piece of Furniture that gives light (table lamp, floor lamp). Lamps on display are off while the Store is open and come on one by one as the Store lights fade before Closing time, going out again as the Store lights return; none is ever lit in the dead zone. A Lamp on display draws power from the Store, so Villagers may switch it on while the Store is open; a Lamp taken away from its display needs a Village power source (battery or generator).
 _Avoid_: Fixture, light (that is what a Lamp gives)
 
 **Display**:

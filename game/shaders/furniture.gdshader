@@ -2,6 +2,7 @@
 // colour, normal and roughness maps, metallic, emission), plus the light of the Lamp pools.
 shader_type spatial;
 #include "res://shaders/lamp_pools.gdshaderinc"
+#include "res://shaders/lamp_levels.gdshaderinc"
 
 uniform vec4 albedo_color : source_color = vec4(1.0);
 uniform sampler2D albedo_texture : source_color, hint_default_white, filter_linear_mipmap, repeat_enable;
@@ -27,10 +28,16 @@ uniform int emissive_part = -1;
 uniform bool lod_debug = false;
 
 varying flat int part;
+// How far this piece's own Lamp has come on; read once per vertex, only for glowing shades.
+varying flat float shade_level;
 
 void vertex() {
 	UV = UV * uv_scale;
 	part = int(UV2.x + 0.5);
+	shade_level = 1.0;
+	if (coarse_parts ? part == emissive_part : emission_energy > 0.0) {
+		shade_level = lamp_level_near(MODEL_MATRIX[3].xyz);
+	}
 }
 
 void fragment() {
@@ -38,6 +45,8 @@ void fragment() {
 	float surface_roughness = roughness;
 	float surface_metallic = metallic;
 	vec3 emission = emission_color * emission_energy;
+	// A glowing shade (emission_energy is only set on lamp shades) glows as far as its own Lamp has come on.
+	emission *= shade_level;
 	bool tint = tinted;
 	vec3 normal = NORMAL;
 	if (coarse_parts) {

@@ -23,6 +23,10 @@ public sealed class LampPools
     private Image? _poolEnergyImage;
     private ImageTexture? _poolEnergyTexture;
     private readonly List<int> _shared = [];
+    private float[] _levels = [];
+    private byte[] _levelBytes = [];
+    private Image? _levelImage;
+    private ImageTexture? _levelTexture;
 
     /// <summary>Most Lamps listed in one grid cell: the most Lamps any pool pixel adds up.</summary>
     public int MostLampsPerCell { get; private set; }
@@ -72,12 +76,16 @@ public sealed class LampPools
         Buffer.BlockCopy(_poolEnergy, 0, _poolEnergyBytes, 0, _poolEnergyBytes.Length);
         _poolEnergyImage = Image.CreateFromData(LampsPerRow, _poolEnergy.Length / LampsPerRow, false, Image.Format.Rf, _poolEnergyBytes);
         _poolEnergyTexture = ImageTexture.CreateFromImage(_poolEnergyImage);
-        _shared.Clear();
+        _levels = new float[_poolEnergy.Length];
+        _levelBytes = new byte[_levels.Length * sizeof(float)];
+        _levelImage = Image.CreateFromData(LampsPerRow, _levels.Length / LampsPerRow, false, Image.Format.Rf, _levelBytes);
+        _levelTexture = ImageTexture.CreateFromImage(_levelImage);
 
         Set("lamp_cells", Texture(across, across, Image.Format.Rgf, entries));
         Set("lamp_indices", Texture(IndicesPerRow, indices.Count / IndicesPerRow, Image.Format.Rf, indices.ToArray()));
         Set("lamp_bulbs", Texture(LampsPerRow, bulbs.Length / 4 / LampsPerRow, Image.Format.Rgbaf, bulbs));
         Set("lamp_pool_energy", _poolEnergyTexture);
+        Set("lamp_levels", _levelTexture);
         Set("lamp_cell_size", CellSize);
         Set("lamp_store_size", lamps.Count > 0 ? space.Size : 0f);
     }
@@ -91,25 +99,45 @@ public sealed class LampPools
     }
 
     /// <summary>
-    /// Gives the listed Lamps that share of their light as real lights; every other Lamp's light
-    /// is all pool again. Uploads the pool energies.
+    /// Sets how far each Lamp has come on (indexed by Lamp number) and gives the listed Lamps that
+    /// share of their light as real lights; every other Lamp's light is all pool. A Lamp's pool is its
+    /// energy times its level, less the real share, so real light, pool and shade glow agree for a
+    /// partly lit Lamp. Uploads the pool energies, and the levels only when they changed.
     /// </summary>
-    public void ShareWithRealLights(IEnumerable<(int Lamp, float RealShare)> shares)
+    public void Update(float[] levels, bool levelsChanged, IEnumerable<(int Lamp, float RealShare)> shares)
     {
-        if (_poolEnergyImage is null)
+        if (_poolEnergyImage is null || _levelImage is null)
             return;
+        if (levelsChanged)
+        {
+            Array.Copy(levels, _levels, _energy.Length);
+            for (var i = 0; i < _energy.Length; i++)
+                _poolEnergy[i] = _energy[i] * levels[i];
+            _shared.Clear();
+        }
+        // Only the Lamps with a real light differ from their level's pool, so only they are redone.
         foreach (var lamp in _shared)
-            _poolEnergy[lamp] = _energy[lamp];
+            _poolEnergy[lamp] = _energy[lamp] * levels[lamp];
         _shared.Clear();
         foreach (var (lamp, share) in shares)
         {
-            _poolEnergy[lamp] = _energy[lamp] * (1f - share);
+            _poolEnergy[lamp] = _energy[lamp] * levels[lamp] * (1f - share);
             _shared.Add(lamp);
         }
-        Buffer.BlockCopy(_poolEnergy, 0, _poolEnergyBytes, 0, _poolEnergyBytes.Length);
-        _poolEnergyImage.SetData(LampsPerRow, _poolEnergy.Length / LampsPerRow, false, Image.Format.Rf, _poolEnergyBytes);
-        _poolEnergyTexture!.Update(_poolEnergyImage);
+        Upload(_poolEnergy, _poolEnergyBytes, _poolEnergyImage, _poolEnergyTexture!);
+        if (levelsChanged)
+            Upload(_levels, _levelBytes, _levelImage, _levelTexture!);
     }
+
+    private static void Upload(float[] values, byte[] bytes, Image image, ImageTexture texture)
+    {
+        Buffer.BlockCopy(values, 0, bytes, 0, bytes.Length);
+        image.SetData(LampsPerRow, values.Length / LampsPerRow, false, Image.Format.Rf, bytes);
+        texture.Update(image);
+    }
+
+    /// <summary>Tells the materials every Lamp's level while none is switching, so they skip the per-Lamp lookup; -1 while Lamps switch.</summary>
+    public static void SetSteadyLevel(float level) => Set("lamp_level_steady", level);
 
     private static int Rows(int count, int perRow) => Math.Max(1, (count + perRow - 1) / perRow);
 

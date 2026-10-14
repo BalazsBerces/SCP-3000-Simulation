@@ -49,6 +49,14 @@ lamp_pool_energy={
 "type": "sampler2D",
 "value": ""
 }
+lamp_levels={
+"type": "sampler2D",
+"value": ""
+}
+lamp_level_steady={
+"type": "float",
+"value": -1.0
+}
 lamp_cell_size={
 "type": "float",
 "value": 4.0

@@ -46,6 +46,9 @@ public sealed record WorldSnapshot(
     /// <summary>How bright the Store lights are, from 0 (out) to 1 (fully on).</summary>
     public double StoreLightLevel => Clock.StoreLightLevel;
 
+    /// <summary>How far a display Lamp has come on, from 0 (off) to 1 (fully lit); see <see cref="StoreHours.LampLevelAt"/>.</summary>
+    public float LampLevel(FurniturePiece lamp) => StoreHours.LampLevelAt(lamp.Id, Clock.TimeOfDay);
+
     /// <summary>
     /// The fog density at a Store position, from 0 (only the thin haze) to 1 (deep inside a thick
     /// Fog bank), using wrapped distances to the Fog banks.

@@ -33,6 +33,7 @@ vec3 lamp_mapped_normal(vec3 normal, vec3 tangent, vec3 binormal, vec3 normal_ma
 	return normalize(mix(normal, tangent * mapped.x + binormal * mapped.y + normal * mapped.z, depth));
 }
 
+
 // Light from every pool reaching this point; view-space inputs as in fragment(), result for EMISSION.
 vec3 lamp_pools(vec3 vertex, vec3 normal, mat4 inv_view, vec3 albedo, float roughness, float metallic, float specular) {
 	// Godot's screen-space roughness limiter with its default amount (0.25) and limit (0.18),

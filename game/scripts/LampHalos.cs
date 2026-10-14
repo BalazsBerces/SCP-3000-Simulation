@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using Godot;
 
 namespace Scp3008.Game;
@@ -25,19 +26,22 @@ public partial class LampHalos : Node3D
             CastShadow = GeometryInstance3D.ShadowCastingSetting.Off });
     }
 
-    public void Show(IReadOnlyList<Vector3> bulbs)
+    public void Show(List<Vector3> bulbList, List<float> levelList)
     {
-        if (bulbs.Count > _capacity)
+        var bulbs = CollectionsMarshal.AsSpan(bulbList);
+        var levels = CollectionsMarshal.AsSpan(levelList);
+        if (bulbs.Length > _capacity)
         {
-            _capacity = Math.Max(bulbs.Count, Math.Max(64, _capacity * 2));
+            _capacity = Math.Max(bulbs.Length, Math.Max(64, _capacity * 2));
             _halos.InstanceCount = _capacity;
             _buffer = new float[_capacity * 12];
         }
-        _halos.VisibleInstanceCount = bulbs.Count;
-        for (var i = 0; i < bulbs.Count; i++)
+        _halos.VisibleInstanceCount = bulbs.Length;
+        for (var i = 0; i < bulbs.Length; i++)
         {
             var o = i * 12;
-            _buffer[o] = _buffer[o + 5] = _buffer[o + 10] = 0.9f;
+            // The halo grows and brightens with the Lamp's level (lamp_halo.gdshader reads it from the scale).
+            _buffer[o] = _buffer[o + 5] = _buffer[o + 10] = 0.9f * levels[i];
             _buffer[o + 3] = bulbs[i].X;
             _buffer[o + 7] = bulbs[i].Y;
             _buffer[o + 11] = bulbs[i].Z;

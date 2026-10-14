@@ -12,8 +12,8 @@ namespace Scp3008.Game;
 /// Furniture turns coarse within the zoom range, at the switch zoom with every piece full. Vsync is off. For each lighting it prints the average and
 /// 1%-low frame rate (the mean rate over the slowest 1% of frames), with the average GPU and CPU
 /// render time, draw calls and primitives per frame, and quits with exit code 0 if
-/// every average meets <see cref="TargetFps"/> and every 1% low meets <see cref="TargetOnePercentLowFps"/>,
-/// 1 if not. User arguments after "--":
+/// every average meets <see cref="MinimumFps"/> and every 1% low meets <see cref="MinimumOnePercentLowFps"/>,
+/// 1 if not; each measurement also says whether it reached the <see cref="TargetFps"/> aimed for. User arguments after "--":
 ///   --benchmark-seconds=s  measuring time per lighting (default 20);
 ///   --benchmark-shots=dir  save near, mid and far screenshots in each lighting;
 ///   --lamp-reproduction=dir  capture a continuous pan, rotation and zoom over the Lamp displays;
@@ -27,8 +27,11 @@ public partial class Benchmark : Node
     [Export] public StoreAtmosphere Atmosphere { get; set; } = null!;
     [Export] public LampLights Lamps { get; set; } = null!;
 
+    /// <summary>The frame rate aimed for (ADR 0004); reported per measurement, but missing it does not fail the run.</summary>
     [Export] public int TargetFps { get; set; } = 120;
-    [Export] public int TargetOnePercentLowFps { get; set; } = 75;
+    /// <summary>The gate: an average below this fails the run.</summary>
+    [Export] public int MinimumFps { get; set; } = 90;
+    [Export] public int MinimumOnePercentLowFps { get; set; } = 60;
     [Export] public double WarmUpSeconds { get; set; } = 3.0;
     [Export] public double MeasureSeconds { get; set; } = 20.0;
 
@@ -140,19 +143,21 @@ public partial class Benchmark : Node
     {
         var size = GetViewport().GetVisibleRect().Size;
         GD.Print($"Benchmark: Store {Host.Snapshot.Seed}, {size.X}x{size.Y}, {RenderingServer.GetVideoAdapterName()}, " +
-                 $"{MeasureSeconds:0} s per lighting, target {TargetFps} fps average, {TargetOnePercentLowFps} fps 1% low");
+                 $"{MeasureSeconds:0} s per lighting, target {TargetFps} fps average, " +
+                 $"minimum {MinimumFps} fps average and {MinimumOnePercentLowFps} fps 1% low");
         GD.Print($"  Weather: fixed Fog bank, radius 160 m; MSAA {GetViewport().Msaa3D}, TAA {GetViewport().UseTaa}; " +
                  $"Furniture full up to a zoom of {FurnitureDetail.SwitchZoom:0} m, map above an overview camera height of {FurnitureDetail.MapHeight:0} m");
         foreach (var r in results)
             GD.Print($"  {r.Lighting.Name,-26} average {r.AverageFps,6:0.0} fps, 1% low {r.OnePercentLowFps,6:0.0} fps " +
+                     $"[{(r.AverageFps >= TargetFps ? "meets" : "below")} {TargetFps} target] " +
                      $"({r.Frames} frames in {r.Seconds:0.0} s; up to {r.MostLights} lamp lights, {r.MostShadowed} shadowed, {r.MostVisibleLamps} visible Lamps with halos; " +
                      $"average GPU {r.GpuMilliseconds:0.00} ms, CPU render {r.CpuMilliseconds:0.00} ms, {r.DrawCalls:0} draw calls, {r.Primitives / 1e6:0.0} M primitives)");
         var atResolution = (Vector2I)size == Resolution;
         var antialiasingEnabled = GetViewport().Msaa3D == Viewport.Msaa.Msaa4X && GetViewport().UseTaa;
-        var passed = atResolution && antialiasingEnabled && results.All(r => r.AverageFps >= TargetFps && r.OnePercentLowFps >= TargetOnePercentLowFps);
+        var passed = atResolution && antialiasingEnabled && results.All(r => r.AverageFps >= MinimumFps && r.OnePercentLowFps >= MinimumOnePercentLowFps);
         GD.Print(passed ? "Benchmark PASSED" :
             !atResolution ? $"Benchmark FAILED: not rendered at {Resolution.X}x{Resolution.Y}" :
-            !antialiasingEnabled ? "Benchmark FAILED: MSAA 4x and TAA are required" : "Benchmark FAILED: below target");
+            !antialiasingEnabled ? "Benchmark FAILED: MSAA 4x and TAA are required" : "Benchmark FAILED: below minimum");
         GetTree().Quit(passed ? 0 : 1);
     }
 

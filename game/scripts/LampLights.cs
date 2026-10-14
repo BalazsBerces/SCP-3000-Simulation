@@ -44,6 +44,12 @@ public partial class LampLights : Node3D
     private StoreSpace _space = StoreSpace.Standard;
     private readonly List<Candidate> _visible = [];
     private readonly List<Vector3> _bulbs = [];
+    private readonly List<float> _haloLevels = [];
+    // How far each Lamp has come on, by Lamp.Index; the simulation core decides it (StoreHours.LampLevelAt).
+    private float[] _levels = [];
+    private long _levelStamp = -1;
+    // Switching Lamps are refreshed every few Store seconds, a fraction of a Lamp's ramp.
+    private static readonly long LevelStep = TimeSpan.FromSeconds(5).Ticks;
     private readonly LampPools _pools = new();
     private LampHalos _halos = null!;
     private (Transform3D Transform, float Fov, float Near, float Far, bool Overview, Vector2 Viewport, float FurnitureDistance)? _lastView;
@@ -90,6 +96,7 @@ public partial class LampLights : Node3D
             };
             AddChild(_lights[i]);
         }
+        // Shade glow is at full energy; each Lamp scales it by its own level in the furniture shader.
         FurnitureMeshes.SetLampGlow(1f);
         LampPools.SetColor(Warm);
         _halos = new LampHalos();
@@ -128,8 +135,9 @@ public partial class LampLights : Node3D
         var view = (camera.GlobalTransform, camera.Fov, camera.Near, camera.Far,
             StoreOverview.Enabled, GetViewport().GetVisibleRect().Size, Visibility.FurnitureDistance);
         // Display Lamps are static between world rebuilds. A stationary view needs no ranking,
-        // uploads or light changes, even while the Store clock and Weather continue to advance.
-        if (_lastView == view)
+        // uploads or light changes, unless Lamps are switching or have just finished.
+        var levelsChanged = RefreshLevels();
+        if (!levelsChanged && _lastView == view)
             return;
         _lastView = view;
         var planes = camera.GetFrustum();
@@ -151,10 +159,35 @@ public partial class LampLights : Node3D
         ChooseShadowCasters();
         _lastCutoff = cutoff;
         ShowLit(cutoff);
-        _pools.ShareWithRealLights(_lit.Select(c => (c.Lamp.Index, RealWeight(c.Distance, cutoff))));
+        _pools.Update(_levels, levelsChanged, _lit.Select(c => (c.Lamp.Index, RealWeight(c.Distance, cutoff))));
         _bulbs.Clear();
-        _bulbs.AddRange(_visible.Select(c => c.Position));
-        _halos.Show(_bulbs);
+        _haloLevels.Clear();
+        foreach (var c in _visible)
+        {
+            _bulbs.Add(c.Position);
+            _haloLevels.Add(_levels[c.Lamp.Index]);
+        }
+        _halos.Show(_bulbs, _haloLevels);
+    }
+
+    /// <summary>
+    /// Reads every Lamp's level from the core for the Store time of day. While Lamps switch it
+    /// updates every few Store seconds; otherwise only when the Store opens or closes. Returns whether
+    /// any level changed.
+    /// </summary>
+    private bool RefreshLevels()
+    {
+        var timeOfDay = TimeSpan.FromTicks(Host.InterpolatedStoreTime.Ticks % TimeSpan.TicksPerDay);
+        var stamp = StoreHours.LampsSwitchingAt(timeOfDay) ? timeOfDay.Ticks / LevelStep :
+            StoreHours.LightLevelAt(timeOfDay) >= 1.0 ? -2 : -3;
+        if (stamp == _levelStamp)
+            return false;
+        _levelStamp = stamp;
+        LampPools.SetSteadyLevel(stamp == -2 ? 0f : stamp == -3 ? 1f : -1f);
+        foreach (var lamps in _lampsByChunk.Values)
+            foreach (var lamp in lamps)
+                _levels[lamp.Index] = StoreHours.LampLevelAt(lamp.Id, timeOfDay);
+        return true;
     }
 
     /// <summary>A one-line summary for dev reports.</summary>
@@ -208,7 +241,8 @@ public partial class LampLights : Node3D
                     continue;
                 var distance = position.DistanceTo(eye);
                 _visible.Add(new Candidate(lamp, position, distance));
-                if (distance >= MaxDistance)
+                // A Lamp that is off has no real light to rank.
+                if (distance >= MaxDistance || _levels[lamp.Index] <= 0f)
                     continue;
                 // Priorities are negated distances, so the farthest kept Lamp is dequeued first.
                 if (_nearest.Count < keep)
@@ -257,7 +291,7 @@ public partial class LampLights : Node3D
             light.Position = candidate.Position;
             light.OmniRange = candidate.Lamp.Range;
             // Lights near the edge of the budget fade out, and their pools take over the rest.
-            light.LightEnergy = candidate.Lamp.Energy * RealWeight(candidate.Distance, cutoff);
+            light.LightEnergy = candidate.Lamp.Energy * _levels[candidate.Lamp.Index] * RealWeight(candidate.Distance, cutoff);
             if (shadowSlot >= 0)
                 light.ShadowOpacity = ShadowWeight(candidate.Distance, shadowCutoff);
             light.Visible = true;
@@ -308,11 +342,13 @@ public partial class LampLights : Node3D
     {
         _space = snapshot.Space;
         _lastView = null;
+        _levelStamp = -1;
         _lampsByChunk.Clear();
         Array.Fill(_shadowSlots, -1);
         var lamps = snapshot.Furniture.Where(p => FurnitureCatalog.Spec(p).IsLamp).Select(ToLamp).ToList();
         foreach (var chunk in lamps.GroupBy(l => _space.ChunkOf(l.Bulb.ToStore())))
             _lampsByChunk[chunk.Key] = chunk.ToArray();
+        _levels = new float[lamps.Count];
         _pools.Build(_space, lamps.Select(l => (l.Bulb, l.Range, l.Energy)).ToList());
     }
 
