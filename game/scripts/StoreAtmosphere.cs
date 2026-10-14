@@ -12,6 +12,10 @@ namespace Scp3008.Game;
 /// The one other depth effect is the Edge fade: a distance fade applied only in the last stretch before
 /// the draw distance, so content dissolves softly where drawing stops. The volumetric fog (Fog banks only)
 /// reaches as far as the camera can see at its current zoom, so distant Fog banks show, while close views keep their detail.
+/// The Store light shines almost straight down (12 degrees from vertical) and casts soft, short shadows
+/// out to the far edge of the view at the current zoom, fading softly beyond it; they fade with the
+/// light and are gone at Closing time, and the overview has none. Screen-space ambient occlusion
+/// darkens contact areas while the lights are on, so the ambient light is lower than without shadows.
 /// </summary>
 public partial class StoreAtmosphere : Node
 {
@@ -25,6 +29,19 @@ public partial class StoreAtmosphere : Node
     [Export] public float VolumetricReachMargin { get; set; } = 60f;
     [Export] public float MinVolumetricReach { get; set; } = 150f;
     [Export] public float MaxVolumetricReach { get; set; } = 640f;
+
+    /// <summary>
+    /// How far Store-light shadows reach per metre of zoom distance, plus a margin: past the far edge
+    /// of the view (about 100 m at the default zoom), so they fade out beyond it.
+    /// </summary>
+    [Export] public float ShadowReachPerZoomMetre { get; set; } = 2.6f;
+    [Export] public float ShadowReachMargin { get; set; } = 20f;
+    [Export] public float MinShadowReach { get; set; } = 60f;
+    /// <summary>The farthest shadows reach at any zoom; far zooms see small, coarse Furniture whose shadows hardly show.</summary>
+    [Export] public float MaxShadowReach { get; set; } = 180f;
+
+    /// <summary>Screen-space ambient occlusion strength while the Store is open; it fades with the Store lights.</summary>
+    [Export] public float OpenSsaoIntensity { get; set; } = 2.5f;
 
     /// <summary>Distance from the camera where the Edge fade starts (the draw distance is about 600 m; the last chunks drop out from about 555 m).</summary>
     [Export] public float EdgeFadeBegin { get; set; } = 480f;
@@ -53,8 +70,8 @@ public partial class StoreAtmosphere : Node
     }
 
     private static readonly Look Open = new(
-        Ambient: new Color(0.86f, 0.89f, 0.92f), AmbientEnergy: 0.6f,
-        Light: new Color(0.95f, 0.97f, 1f), LightEnergy: 0.9f,
+        Ambient: new Color(0.86f, 0.89f, 0.92f), AmbientEnergy: 0.4f,
+        Light: new Color(0.95f, 0.97f, 1f), LightEnergy: 0.95f,
         Backdrop: new Color(0.6f, 0.62f, 0.63f),
         Bank: new Color(0.82f, 0.84f, 0.85f), BankDensity: 0.22f,
         BankGlow: new Color(0.5f, 0.51f, 0.52f));
@@ -105,15 +122,32 @@ public partial class StoreAtmosphere : Node
         _fogEnabled = _environment.FogEnabled;
         _volumetricFogEnabled = _environment.VolumetricFogEnabled;
         StoreOverview.Changed += OnOverviewChanged;
+        FurnitureDetail.Changed += ShowDetail;
+        ShowDetail(FurnitureDetail.Coarse);
     }
 
-    public override void _ExitTree() => StoreOverview.Changed -= OnOverviewChanged;
+    public override void _ExitTree()
+    {
+        StoreOverview.Changed -= OnOverviewChanged;
+        FurnitureDetail.Changed -= ShowDetail;
+    }
 
-    /// <summary>The overview shows the whole Store, so the Edge fade and the Fog banks are lifted while it is on.</summary>
+    /// <summary>
+    /// The overview shows the whole Store, so the Edge fade and the Fog banks are lifted while it is on,
+    /// and the Store light casts no shadows.
+    /// </summary>
     private void OnOverviewChanged(bool enabled)
     {
         _environment.FogEnabled = !enabled && _fogEnabled;
         _environment.VolumetricFogEnabled = !enabled && _volumetricFogEnabled;
+        StoreLight.ShadowEnabled = !enabled;
+    }
+
+    /// <summary>The Store light lights, and shadows are cast by, the Furniture meshes the camera sees (coarse ones at far zoom).</summary>
+    private void ShowDetail(bool coarse)
+    {
+        StoreLight.LightCullMask = FurnitureDetail.Mask(StoreLight.LightCullMask);
+        StoreLight.ShadowCasterMask = FurnitureDetail.Mask(StoreLight.ShadowCasterMask);
     }
 
     public override void _Process(double delta)
@@ -127,6 +161,8 @@ public partial class StoreAtmosphere : Node
 
         _environment.VolumetricFogLength = Mathf.Clamp(
             Rig.Distance * VolumetricReachPerZoomMetre + VolumetricReachMargin, MinVolumetricReach, MaxVolumetricReach);
+        StoreLight.DirectionalShadowMaxDistance = Mathf.Clamp(
+            Rig.Distance * ShadowReachPerZoomMetre + ShadowReachMargin, MinShadowReach, MaxShadowReach);
     }
 
     /// <summary>A one-line summary for dev reports.</summary>
@@ -135,7 +171,8 @@ public partial class StoreAtmosphere : Node
         $"base fog {_environment.FogDensity:0.0000}, haze {_environment.VolumetricFogDensity:0.0000}, " +
         $"Edge fade {EdgeFadeBegin:0}-{EdgeFadeEnd:0} m (on {_environment.FogEnabled}), " +
         $"volumetric {_environment.VolumetricFogEnabled}, reach {_environment.VolumetricFogLength:0} m, " +
-        $"Fog bank density {FogBankLook.Density:0.000}";
+        $"Fog bank density {FogBankLook.Density:0.000}, " +
+        $"shadows {StoreLight.ShadowEnabled && StoreLight.Visible} to {StoreLight.DirectionalShadowMaxDistance:0} m, SSAO {_environment.SsaoEnabled}";
 
     // While the lights are fading, tubes drop out for a moment now and then, most often halfway;
     // a paused Store stands still, so no new dropouts start then.
@@ -159,6 +196,10 @@ public partial class StoreAtmosphere : Node
         StoreLight.LightColor = look.Light;
         StoreLight.LightEnergy = look.LightEnergy;
         StoreLight.Visible = look.LightEnergy > 0.001f;
+        // Contact shading fades with the Store lights; at Closing time the Lamps light the Store and it is off.
+        var level = look.LightEnergy / Open.LightEnergy;
+        _environment.SsaoIntensity = OpenSsaoIntensity * level;
+        _environment.SsaoEnabled = level > 0.05f;
         // Content dissolves into the backdrop at the Edge fade.
         _environment.BackgroundColor = look.Backdrop;
         _environment.FogLightColor = look.Backdrop;

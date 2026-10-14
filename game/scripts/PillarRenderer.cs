@@ -21,7 +21,11 @@ public partial class PillarRenderer : Node3D
     /// <summary>Height of the truncated Pillar bases in the overview: enough for the lowest painted label.</summary>
     [Export] public float OverviewBaseHeight { get; set; } = 16f;
 
+    /// <summary>Height of the shadow-casting proxy at each Pillar's foot.</summary>
+    [Export] public float ShadowHeight { get; set; } = 6f;
+
     private WrappedInstances _instances = null!;
+    private WrappedInstances _shadows = null!;
     private ShaderMaterial _material = null!;
     private Node3D _sectorLabels = null!;
     private WorldSnapshot _shown = null!;
@@ -35,8 +39,20 @@ public partial class PillarRenderer : Node3D
             FarDistance = FarDistance,
             ViewReach = FarDistance + Rig.MaxDistance + Host.Snapshot.Space.ChunkSize,
             Mesh = new BoxMesh { Size = Vector3.One, Material = _material },
+            CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
         };
         AddChild(_instances);
+        // The Store lights hang far below a Pillar's top, so a Pillar's shadow is a short band at its
+        // foot, cast by a low proxy, not one as long as the 1200 m column would throw.
+        _shadows = new WrappedInstances
+        {
+            Rig = Rig,
+            FarDistance = FarDistance,
+            ViewReach = _instances.ViewReach,
+            Mesh = new BoxMesh { Size = Vector3.One },
+            CastShadow = GeometryInstance3D.ShadowCastingSetting.ShadowsOnly,
+        };
+        AddChild(_shadows);
         AddChild(_sectorLabels = new Node3D { Name = "SectorLabels" });
         Host.WorldCreated += OnWorldCreated;
         StoreOverview.Changed += OnOverviewChanged;
@@ -76,6 +92,8 @@ public partial class PillarRenderer : Node3D
             return (new Transform3D(Basis.Identity.Scaled(new Vector3(p.Width, height, p.Width)), p.Position.ToWorld(height / 2f)),
                 new Color(pillars.Count > 1 ? p.Id / (pillars.Count - 1f) : 0f, 0f, 0f));
         }));
+        _shadows.SetInstances(snapshot.Space, pillars.Select(p =>
+            new Transform3D(Basis.Identity.Scaled(new Vector3(p.Width, ShadowHeight, p.Width)), p.Position.ToWorld(ShadowHeight / 2f))));
         ShowSectorLabels(snapshot, overview);
         GD.Print($"Pillars: {snapshot.PillarLayout.Name()} layout, {pillars.Count} solid concrete Landmarks {(overview ? "cut to their bases" : $"{pillars[0].Height:0} m tall")}, " +
                  $"{snapshot.Sectors.Count} Sectors, no emission or lights, reach {FarDistance:0} m.");

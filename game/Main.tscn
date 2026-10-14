@@ -27,8 +27,13 @@ background_mode = 1
 background_color = Color(0.6, 0.62, 0.63, 1)
 ambient_light_source = 2
 ambient_light_color = Color(0.86, 0.89, 0.92, 1)
-ambient_light_energy = 0.6
+ambient_light_energy = 0.4
 tonemap_mode = 2
+ssao_enabled = true
+ssao_radius = 1.2
+ssao_intensity = 2.5
+ssao_power = 1.6
+ssao_light_affect = 0.25
 glow_enabled = true
 glow_intensity = 0.8
 fog_enabled = true
@@ -60,9 +65,20 @@ script = ExtResource("1_host")
 environment = SubResource("Environment_store")
 
 [node name="StoreLight" type="DirectionalLight3D" parent="."]
-transform = Transform3D(0.866025, -0.40558, 0.29237, 0, 0.584958, 0.811064, -0.5, -0.70248, 0.506402, 0, 50, 0)
+transform = Transform3D(0.866025, -0.489074, 0.103956, 0, 0.207912, 0.978148, -0.5, -0.847101, 0.180057, 0, 50, 0)
 light_color = Color(0.95, 0.97, 1, 1)
-light_energy = 0.9
+light_energy = 0.95
+light_angular_distance = 0.0
+shadow_enabled = true
+shadow_bias = 0.04
+shadow_normal_bias = 1.2
+shadow_blur = 2.0
+directional_shadow_split_1 = 0.08
+directional_shadow_split_2 = 0.2
+directional_shadow_split_3 = 0.45
+directional_shadow_blend_splits = true
+directional_shadow_fade_start = 0.75
+directional_shadow_max_distance = 140.0
 
 [node name="StoreAtmosphere" type="Node" parent="." node_paths=PackedStringArray("Host", "Rig", "World", "StoreLight")]
 script = ExtResource("10_atmosphere")
@@ -86,6 +102,7 @@ Rig = NodePath("../CameraRig")
 
 [node name="StoreFloor" type="MeshInstance3D" parent="." node_paths=PackedStringArray("Host", "Rig")]
 material_override = SubResource("ShaderMaterial_floor")
+cast_shadow = 0
 script = ExtResource("2_floor")
 Host = NodePath("../SimulationHost")
 Rig = NodePath("../CameraRig")

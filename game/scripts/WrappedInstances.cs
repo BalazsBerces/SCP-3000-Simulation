@@ -48,6 +48,9 @@ public partial class WrappedInstances : Node3D
     /// </summary>
     [Export] public float OccluderReach { get; set; } = 160f;
 
+    /// <summary>Whether the instances cast shadows from the Store light, and whether they are drawn at all (shadow-only proxies).</summary>
+    [Export] public GeometryInstance3D.ShadowCastingSetting CastShadow { get; set; } = GeometryInstance3D.ShadowCastingSetting.On;
+
     // Images newly needed when the focus moves into another chunk lie at the far edge of the reach,
     // beyond what is drawn; creating them is spread over frames so a crossing does not stall any.
     // The budget is shared by every instance group, so it bounds the work of the whole frame.
@@ -312,8 +315,10 @@ public partial class WrappedInstances : Node3D
             images.Coarse is null ? null : Instance(images.Coarse.GetRid()),
             images.Occluder is null ? null : Instance(images.Occluder.GetRid()),
             GlobalTransform, IsVisibleInTree());
+        RenderingServer.InstanceGeometrySetCastShadowsSetting(image.Detail, (RenderingServer.ShadowCastingSetting)CastShadow);
         if (image.Coarse is { } coarse)
         {
+            RenderingServer.InstanceGeometrySetCastShadowsSetting(coarse, (RenderingServer.ShadowCastingSetting)CastShadow);
             RenderingServer.InstanceSetLayerMask(image.Detail, FurnitureDetail.FullLayer);
             RenderingServer.InstanceSetLayerMask(coarse, FurnitureDetail.CoarseLayer);
         }
