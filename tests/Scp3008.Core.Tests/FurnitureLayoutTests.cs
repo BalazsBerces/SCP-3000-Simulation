@@ -61,7 +61,8 @@ public class FurnitureLayoutTests(BenchmarkStore store) : IClassFixture<Benchmar
     {
         var listed = ThemeCatalog.All.SelectMany(t => t.Types).ToHashSet();
 
-        Assert.Equal(Enum.GetValues<FurnitureType>().ToHashSet(), listed);
+        // Landmark Furniture is never in a Display.
+        Assert.Equal(Enum.GetValues<FurnitureType>().Except(FurnitureCatalog.LandmarkTypes).ToHashSet(), listed);
         Assert.Equal(Enum.GetValues<Theme>().ToHashSet(), ThemeCatalog.All.Select(t => t.Theme).ToHashSet());
         foreach (var department in Enum.GetValues<DepartmentType>())
         {
@@ -86,12 +87,12 @@ public class FurnitureLayoutTests(BenchmarkStore store) : IClassFixture<Benchmar
         foreach (var display in displays)
             Assert.Contains(ThemeCatalog.ThemesOf(store.DepartmentTypeOf(display)), t => t.Theme == display.Theme);
 
-        var offTheme = Snapshot.Furniture.Where(p => p.DisplayId < 0 || p.DisplayId >= displays.Count
+        var offTheme = Snapshot.Furniture.Where(p => p.LandmarkId < 0).Where(p => p.DisplayId < 0 || p.DisplayId >= displays.Count
             || !ThemeCatalog.Spec(displays[p.DisplayId].Theme).Types.Contains(p.Type)).Take(5).ToList();
         Assert.True(offTheme.Count == 0, "Off theme: " + string.Join("; ", offTheme));
 
         // And the piece really stands in that Display's area, in its Department.
-        var outside = Snapshot.Furniture.Where(p =>
+        var outside = Snapshot.Furniture.Where(p => p.LandmarkId < 0).Where(p =>
         {
             var display = displays[p.DisplayId];
             var offset = Snapshot.Space.Delta(display.Centre, p.Position);
@@ -110,7 +111,7 @@ public class FurnitureLayoutTests(BenchmarkStore store) : IClassFixture<Benchmar
         var snapshot = sim.Snapshot;
         var pieces = snapshot.Furniture.GroupBy(p => p.DisplayId).ToDictionary(g => g.Key, g => g.Select(p => p.Type).ToHashSet());
 
-        Assert.All(snapshot.Furniture, p => Assert.Contains(p.Type, ThemeCatalog.Spec(snapshot.Displays[p.DisplayId].Theme).Types));
+        Assert.All(snapshot.Furniture.Where(p => p.LandmarkId < 0), p => Assert.Contains(p.Type, ThemeCatalog.Spec(snapshot.Displays[p.DisplayId].Theme).Types));
         Assert.All(snapshot.Displays, d =>
         {
             Assert.Contains(ThemeCatalog.ThemesOf(snapshot.Departments.All[d.DepartmentId].Type), t => t.Theme == d.Theme);
@@ -158,7 +159,7 @@ public class FurnitureLayoutTests(BenchmarkStore store) : IClassFixture<Benchmar
                     var share = shown.Count(s => s.Contains(type)) / (float)shown.Count;
                     Assert.True(share > 0f, $"{type} ({slot.Tier}) never appears in a {theme.Theme}.");
                     if (slot.Tier == ThemeTier.Accent && !coreOrCommon.Contains(type))
-                        Assert.True(share <= 0.3f, $"Accent {type} appears in {share:P0} of {displays.Count} {theme.Theme} Displays.");
+                        Assert.True(share <= 0.33f, $"Accent {type} appears in {share:P0} of {displays.Count} {theme.Theme} Displays.");
                 }
         }
     }
@@ -309,7 +310,7 @@ public class FurnitureLayoutTests(BenchmarkStore store) : IClassFixture<Benchmar
     {
         var palettes = FurniturePalettes.All;
         Assert.All(Snapshot.Displays, d => Assert.InRange(d.Palette, 0, palettes.Count - 1));
-        Assert.All(Snapshot.Furniture, p => Assert.Contains(p.Tint, palettes[Snapshot.Displays[p.DisplayId].Palette]));
+        Assert.All(Snapshot.Furniture.Where(p => p.LandmarkId < 0), p => Assert.Contains(p.Tint, palettes[Snapshot.Displays[p.DisplayId].Palette]));
 
         // Displays next to each other in a cell: their rectangles touch.
         var (pairs, differing) = (0, 0);

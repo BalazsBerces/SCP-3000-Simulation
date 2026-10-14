@@ -74,6 +74,9 @@ public enum FurnitureType
     BarStool,
     PlanterBox,
     ToyChest,
+    // Landmark Furniture, found only in Landmarks
+    Mattress,
+    CardboardBox,
 
 }
 
@@ -92,13 +95,19 @@ public enum FurnitureType
 /// Which version of its type the piece is (e.g. a round or a long dining table), from 0 to
 /// <see cref="FurnitureCatalog.VariantCount"/> - 1; its size is <see cref="FurnitureCatalog.Spec(FurniturePiece)"/>.
 /// </param>
-/// <param name="DisplayId">The <see cref="Display"/> the piece belongs to, by <see cref="Display.Id"/>.</param>
+/// <param name="DisplayId">The <see cref="Display"/> the piece belongs to, by <see cref="Display.Id"/>; -1 for Landmark Furniture.</param>
 /// <param name="Tint">
 /// The colour of its fabric, plastic or leaves, as an index into the tints (0 to
-/// <see cref="FurniturePalettes.TintCount"/> - 1); always one of its Display's palette.
+/// <see cref="FurniturePalettes.TintCount"/> - 1); always one of its Display's palette, if it has one.
+/// </param>
+/// <param name="LandmarkId">The <see cref="Landmark"/> the piece is part of, by <see cref="Landmark.Id"/>; -1 for Display Furniture.</param>
+/// <param name="Tilt">
+/// How far the piece is tipped over, in radians, about its width axis through the centre of its base:
+/// positive tips its front down, a quarter turn lays it on its front. Zero (upright) for Display Furniture;
+/// its corners are <see cref="FurnitureCatalog.Corners"/>.
 /// </param>
 public readonly record struct FurniturePiece(int Id, FurnitureType Type, Vector2 Position, float Elevation, float Rotation,
-    int Variant = 0, int DisplayId = -1, int Tint = 0);
+    int Variant = 0, int DisplayId = -1, int Tint = 0, int LandmarkId = -1, float Tilt = 0f);
 
 /// <summary>The fixed properties of a Furniture type.</summary>
 /// <param name="Width">Size along the piece's width axis, in metres.</param>
@@ -148,6 +157,33 @@ public static class FurnitureCatalog
         FurnitureType.Sofa or FurnitureType.Armchair => 0.42f,
         _ => Spec(type, variant).Height,
     };
+
+    /// <summary>The Furniture types found only in Landmarks, never on display.</summary>
+    public static IReadOnlyList<FurnitureType> LandmarkTypes { get; } = [FurnitureType.Mattress, FurnitureType.CardboardBox];
+
+    /// <summary>
+    /// The eight corners of a piece's box, tilt and rotation included: X east and Y south around its
+    /// (wrapped) position, Z its height above the floor.
+    /// </summary>
+    public static Vector3[] Corners(FurniturePiece piece)
+    {
+        var spec = Spec(piece);
+        var across = new Vector2(MathF.Cos(piece.Rotation), MathF.Sin(piece.Rotation));
+        var front = new Vector2(-MathF.Sin(piece.Rotation), MathF.Cos(piece.Rotation));
+        var (sin, cos) = MathF.SinCos(piece.Tilt);
+        var corners = new Vector3[8];
+        var i = 0;
+        foreach (var x in new[] { -spec.Width / 2f, spec.Width / 2f })
+            foreach (var z in new[] { -spec.Depth / 2f, spec.Depth / 2f })
+                foreach (var y in new[] { 0f, spec.Height })
+                {
+                    var forward = z * cos + y * sin;
+                    var up = y * cos - z * sin;
+                    var floor = piece.Position + x * across + forward * front;
+                    corners[i++] = new Vector3(floor.X, floor.Y, piece.Elevation + up);
+                }
+        return corners;
+    }
 
     private static FurnitureSpec[][] BuildSpecs()
     {
@@ -214,6 +250,8 @@ public static class FurnitureCatalog
             new(FurnitureType.BarStool, 0.45f, 0.45f, 0.8f),
             new(FurnitureType.PlanterBox, 1.2f, 0.5f, 0.7f),
             new(FurnitureType.ToyChest, 0.8f, 0.45f, 0.5f),
+            new(FurnitureType.Mattress, 1.4f, 2.0f, 0.22f),
+            new(FurnitureType.CardboardBox, 0.8f, 0.8f, 0.8f),
 
             // Variants of the most repeated types: other proportions, backs, legs or materials.
             new(FurnitureType.Chair, 0.45f, 0.5f, 1.05f, Variant: 1),          // high ladder back

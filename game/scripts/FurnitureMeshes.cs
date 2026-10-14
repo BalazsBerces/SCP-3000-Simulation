@@ -164,10 +164,10 @@ public static class FurnitureMeshes
         {
             FurnitureType.Sofa or FurnitureType.Armchair or FurnitureType.Rug or FurnitureType.Bed
                 or FurnitureType.CushionBin or FurnitureType.BlanketStack or FurnitureType.CurtainRack
-                or FurnitureType.OfficeChair or FurnitureType.Parasol or FurnitureType.FrameDisplay => FabricColors,
+                or FurnitureType.OfficeChair or FurnitureType.Parasol or FurnitureType.FrameDisplay or FurnitureType.Mattress => FabricColors,
             FurnitureType.BunkBed or FurnitureType.KidsTable or FurnitureType.KidsChair or FurnitureType.PlayCube or FurnitureType.ToyShelf => PlasticColors,
             FurnitureType.PottedPlant or FurnitureType.LargePlant or FurnitureType.PlanterBox => LeafColors,
-            FurnitureType.FlatPackBox => CardboardColors,
+            FurnitureType.FlatPackBox or FurnitureType.CardboardBox => CardboardColors,
             _ => null,
         };
     }
@@ -243,6 +243,16 @@ public static class FurnitureMeshes
             case FurnitureType.FlatPackBox:
                 b.Box(Part.Cardboard, new Vector3(-hw, 0f, -hd), new Vector3(hw, h, hd));
                 b.Box(Part.LightSteel, new Vector3(-0.04f, h, -hd), new Vector3(0.04f, h + 0.003f, hd));
+                break;
+            case FurnitureType.CardboardBox:
+                // An empty, taped-up moving box: Landmark Furniture (the box fort).
+                b.Box(Part.Cardboard, new Vector3(-hw, 0f, -hd), new Vector3(hw, h, hd));
+                b.Box(Part.LightSteel, new Vector3(-0.05f, h, -hd), new Vector3(0.05f, h + 0.003f, hd));
+                break;
+            case FurnitureType.Mattress:
+                // A bare mattress with a coloured border: Landmark Furniture (the mattress mountain).
+                b.Box(Part.Fabric, new Vector3(-hw, 0f, -hd), new Vector3(hw, h - 0.02f, hd));
+                b.Box(Part.Bedding, new Vector3(-hw + 0.04f, h - 0.02f, -hd + 0.04f), new Vector3(hw - 0.04f, h, hd - 0.04f));
                 break;
             case FurnitureType.ShelfUnit:
                 Posts(b, Part.DarkSteel, hw, hd, h, 0.025f);

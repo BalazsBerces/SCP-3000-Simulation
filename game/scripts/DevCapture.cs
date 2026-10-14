@@ -23,6 +23,7 @@ namespace Scp3008.Game;
 ///                          often it crossed a seam and its largest per-frame step, overall
 ///                          and on the crossing frames (a jump would show as a big step there);
 ///   --rotate=degrees       turn the camera at this many degrees per second;
+///   --yaw=degrees          face the camera this way: 0 north, 90 west, 180 south, 270 east (also the --eye-level camera);
 ///   --no-focus-wrap        never shift the camera back onto the floor (to compare images of the same place);
 ///   --start-time=HH:MM     (read by SimulationHost) start the Store clock at this Store time;
 ///   --eye-level            look from a Villager's eye height (1.7 m) along the floor instead of
@@ -72,6 +73,8 @@ public partial class DevCapture : Node
     private int[] _lastCollections = [0, 0, 0];
     private Vector3 _panVelocity;
     private float _rotateDegreesPerSecond;
+    private float? _yawDegrees;
+    private Camera3D? _eyeCamera;
     private double _elapsed;
     private int _frames;
     private int _seamCrossings;
@@ -145,6 +148,8 @@ public partial class DevCapture : Node
                 _panVelocity = ParseFloorVector(arg["--pan=".Length..]);
             else if (arg.StartsWith("--rotate="))
                 _rotateDegreesPerSecond = float.Parse(arg["--rotate=".Length..], CultureInfo.InvariantCulture);
+            else if (arg.StartsWith("--yaw="))
+                _yawDegrees = float.Parse(arg["--yaw=".Length..], CultureInfo.InvariantCulture);
             else if (arg == "--no-focus-wrap")
                 Rig.WrapFocus = false;
             else if (arg == "--eye-level")
@@ -161,6 +166,12 @@ public partial class DevCapture : Node
                 CallDeferred(MethodName.RunZoomInTest);
             else if (arg.StartsWith("--choose-pillars="))
                 _layoutToChoose = PillarLayouts.Parse(arg["--choose-pillars=".Length..]);
+        }
+        if (_yawDegrees is { } yaw)
+        {
+            Rig.JumpToYaw(Mathf.DegToRad(yaw));
+            if (_eyeCamera is not null)
+                _eyeCamera.Rotation = new Vector3(_eyeCamera.Rotation.X, Mathf.DegToRad(yaw), 0f);
         }
         if (_tourDirectory is not null)
             CaptureFurnitureTour();
@@ -465,7 +476,7 @@ public partial class DevCapture : Node
     private void AddEyeLevelCamera()
     {
         // At eye level Furniture is always full.
-        var camera = new Camera3D { Fov = 70f, Far = 2000f, CullMask = ~FurnitureDetail.CoarseLayer };
+        var camera = _eyeCamera = new Camera3D { Fov = 70f, Far = 2000f, CullMask = ~FurnitureDetail.CoarseLayer };
         Rig.AddChild(camera);
         camera.Position = new Vector3(0f, 1.7f, 0f);
         camera.Rotation = new Vector3(Mathf.DegToRad(-3f), 0f, 0f);

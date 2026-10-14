@@ -160,7 +160,8 @@ public class StoreGenerationTests
     public void Furniture_on_the_floor_never_overlaps(int seed)
     {
         var snapshot = Generate(seed);
-        var onFloor = snapshot.Furniture.Where(p => p.Elevation == 0f && !FurnitureCatalog.Spec(p.Type).IsFloorCovering).ToList();
+        // Landmark Furniture is heaped and tipped over on purpose; Display Furniture stands neatly.
+        var onFloor = snapshot.Furniture.Where(p => p.LandmarkId < 0 && p.Elevation == 0f && !FurnitureCatalog.Spec(p.Type).IsFloorCovering).ToList();
 
         var overlaps = FootprintPairs(snapshot.Space, onFloor, onFloor).Take(5).ToList();
 
@@ -171,7 +172,7 @@ public class StoreGenerationTests
     public void Raised_furniture_rests_on_a_piece_below_it()
     {
         var snapshot = Generate(3008);
-        var raised = snapshot.Furniture.Where(p => p.Elevation > 0f).ToList();
+        var raised = snapshot.Furniture.Where(p => p.LandmarkId < 0 && p.Elevation > 0f).ToList();
 
         var supported = FootprintPairs(snapshot.Space, raised, snapshot.Furniture)
             .Where(pair => pair.B.Elevation < pair.A.Elevation

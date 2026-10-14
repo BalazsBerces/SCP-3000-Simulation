@@ -12,6 +12,8 @@ namespace Scp3008.Game;
 /// Furniture hides what stands behind it (occlusion culling, switched on in the project settings).
 /// User argument after "--": --lod-zoom=metres sets <see cref="FurnitureDetail.SwitchZoom"/>
 /// (to find the threshold with the benchmark), and --map-height=metres sets <see cref="FurnitureDetail.MapHeight"/>.
+/// Landmark Furniture is drawn by its own instance groups, out to <see cref="StoreVisibility.LandmarkDistance"/>,
+/// so a whole Landmark shows from afar (until the Edge fade) and on both sides of a Seam.
 /// Rebuilt whenever a new world is created. View only: it never touches the simulation.
 /// </summary>
 public partial class FurnitureRenderer : Node3D
@@ -50,14 +52,17 @@ public partial class FurnitureRenderer : Node3D
         var started = Time.GetTicksMsec();
         foreach (var child in GetChildren())
             child.QueueFree();
-        foreach (var group in snapshot.Furniture.GroupBy(p => (p.Type, p.Variant)))
+        foreach (var group in snapshot.Furniture.GroupBy(p => (p.Type, p.Variant, Landmark: p.LandmarkId >= 0)))
         {
+            var name = group.Key.Variant == 0 ? group.Key.Type.ToString() : $"{group.Key.Type}-{group.Key.Variant}";
             var instances = new WrappedInstances
             {
-                Name = group.Key.Variant == 0 ? group.Key.Type.ToString() : $"{group.Key.Type}-{group.Key.Variant}",
+                Name = group.Key.Landmark ? $"Landmark-{name}" : name,
                 Rig = Rig,
-                FarDistance = Visibility.FurnitureDistance,
-                ViewReach = Visibility.PlacementReach(Rig, snapshot.Space.ChunkSize),
+                FarDistance = group.Key.Landmark ? Visibility.LandmarkDistance : Visibility.FurnitureDistance,
+                ViewReach = group.Key.Landmark
+                    ? Visibility.LandmarkPlacementReach(Rig, snapshot.Space.ChunkSize)
+                    : Visibility.PlacementReach(Rig, snapshot.Space.ChunkSize),
                 Mesh = FurnitureMeshes.For(group.Key.Type, group.Key.Variant),
                 CoarseMesh = FurnitureMeshes.CoarseFor(group.Key.Type, group.Key.Variant),
                 OccluderQuads = FurnitureMeshes.OccluderQuads(group.Key.Type, group.Key.Variant),
@@ -66,13 +71,15 @@ public partial class FurnitureRenderer : Node3D
             instances.SetInstances(snapshot.Space, group.Select(p => (Placement(p), FurnitureMeshes.TintFor(p))));
         }
         FurnitureDetail.DrawBoth(3);
-        GD.Print($"Furniture: {snapshot.Furniture.Count} pieces placed in {Time.GetTicksMsec() - started} ms.");
+        GD.Print($"Furniture: {snapshot.Furniture.Count} pieces placed in {Time.GetTicksMsec() - started} ms; " +
+                 $"Landmarks: {string.Join(", ", snapshot.Landmarks.Select(l => $"{l.Type} in {snapshot.Sectors[l.SectorId].Name} at {l.Centre.X:0},{l.Centre.Y:0}, {l.Height:0} m"))}.");
     }
 
     /// <summary>
     /// The piece's transform in world space. Core rotations turn east towards south, which is a
-    /// clockwise turn seen from above, so the Godot yaw is its negative.
+    /// clockwise turn seen from above, so the Godot yaw is its negative. A tipped-over piece (Landmark
+    /// Furniture) is first tilted about its width axis through its base, its front (+Z) going down.
     /// </summary>
-    private static Transform3D Placement(FurniturePiece piece) =>
-        new(new Basis(Vector3.Up, -piece.Rotation), piece.Position.ToWorld(piece.Elevation));
+    public static Transform3D Placement(FurniturePiece piece) =>
+        new(new Basis(Vector3.Up, -piece.Rotation) * new Basis(Vector3.Right, piece.Tilt), piece.Position.ToWorld(piece.Elevation));
 }

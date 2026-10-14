@@ -12,15 +12,19 @@ internal sealed record FurnitureLayout(IReadOnlyList<FurniturePiece> Pieces, IRe
 /// into rooms (by a room partition), aligned halls and strips, or free-standing sets on an open
 /// floor; each of those is a Display furnished from one theme. Halls and strips run the same way
 /// across a whole Department, so their rows line up from cell to cell; rooms and sets turn freely.
-/// Nothing is placed under a Pillar or in the walkway ring around it.
+/// Nothing is placed under a Pillar or in the walkway ring around it, nor on a Landmark's
+/// rectangle (Landmarks are built of their own Furniture; see <see cref="LandmarkGenerator"/>).
 /// </summary>
 internal static class FurnitureGenerator
 {
     private const float Margin = 1.5f;
 
-    public static FurnitureLayout Generate(int seed, StoreSpace space, DepartmentMap departments, IReadOnlyList<Pillar> pillars)
+    public static FurnitureLayout Generate(int seed, StoreSpace space, DepartmentMap departments, IReadOnlyList<Pillar> pillars,
+        IReadOnlyList<LandmarkSite> landmarks)
     {
-        var store = new StoreFurniture(space, pillars.Select(p => (p.Position, HalfWidth: p.ClearHalfWidth)).ToArray());
+        var keepClear = pillars.Select(p => (p.Position, HalfSize: new Vector2(p.ClearHalfWidth)))
+            .Concat(landmarks.Select(l => (l.Centre, HalfSize: l.Size / 2f)));
+        var store = new StoreFurniture(space, keepClear.ToArray());
         var cellSize = departments.CellSize;
         var rowQuarters = departments.All.Select(d => SeededRandom.For(seed, stream: 3, d.Id).Next(2)).ToArray();
         var cells = new CellLayout[departments.CellsPerSide * departments.CellsPerSide];
@@ -131,11 +135,11 @@ internal static class FurnitureGenerator
     }
 }
 
-/// <summary>Everything placed so far in the Store, and what must be kept clear.</summary>
-internal sealed class StoreFurniture(StoreSpace space, (Vector2 Centre, float HalfWidth)[] keepClear)
+/// <summary>Everything placed so far in the Store, and the rectangles that must be kept clear.</summary>
+internal sealed class StoreFurniture(StoreSpace space, (Vector2 Centre, Vector2 HalfSize)[] keepClear)
 {
     public StoreSpace Space { get; } = space;
-    public (Vector2 Centre, float HalfWidth)[] KeepClear { get; } = keepClear;
+    public (Vector2 Centre, Vector2 HalfSize)[] KeepClear { get; } = keepClear;
     public List<FurniturePiece> Pieces { get; } = [];
     public List<Display> Displays { get; } = [];
 }
@@ -178,7 +182,7 @@ internal readonly record struct Frame(Vector2 Origin, int Quarters)
 
 /// <summary>
 /// Places Furniture in one department cell, keeping it inside the cell's margin, out of the
-/// squares kept clear around the Pillars, and never letting pieces on the floor overlap. Pieces
+/// squares kept clear around the Pillars and off the Landmarks, and never letting pieces on the floor overlap. Pieces
 /// are staged per Display and only kept when the whole Display is committed.
 /// </summary>
 internal sealed class Cell(StoreFurniture store, Department department, int x, int y, Vector2 origin, float size, SeededRandom random)
@@ -254,18 +258,18 @@ internal sealed class Cell(StoreFurniture store, Department department, int x, i
         return true;
     }
 
-    /// <summary>Whether the footprint's axis-aligned bounds reach into a square kept clear.</summary>
+    /// <summary>Whether the footprint's axis-aligned bounds reach into a rectangle kept clear.</summary>
     private bool InKeptClear(Footprint footprint)
     {
         var corners = footprint.Corners();
         var low = new Vector2(corners.Min(c => c.X), corners.Min(c => c.Y));
         var high = new Vector2(corners.Max(c => c.X), corners.Max(c => c.Y));
-        foreach (var (centre, halfWidth) in store.KeepClear)
+        foreach (var (centre, half) in store.KeepClear)
         {
-            // The square's image nearest this cell, in case it lies across a Seam.
+            // The rectangle's image nearest this cell, in case it lies across a Seam.
             var near = footprint.Centre + store.Space.Delta(footprint.Centre, centre);
-            if (high.X > near.X - halfWidth && low.X < near.X + halfWidth &&
-                high.Y > near.Y - halfWidth && low.Y < near.Y + halfWidth)
+            if (high.X > near.X - half.X && low.X < near.X + half.X &&
+                high.Y > near.Y - half.Y && low.Y < near.Y + half.Y)
                 return true;
         }
         return false;

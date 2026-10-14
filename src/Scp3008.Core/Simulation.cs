@@ -32,6 +32,7 @@ public sealed class Simulation : IDisposable
     private readonly FurnitureLayout _furniture;
     private readonly IReadOnlyList<Pillar> _pillars;
     private readonly IReadOnlyList<Sector> _sectors;
+    private readonly IReadOnlyList<Landmark> _landmarks;
     private readonly Weather _weather;
     private long _tick;
     private SimulationSpeed _speed = SimulationSpeed.Normal;
@@ -48,7 +49,12 @@ public sealed class Simulation : IDisposable
         _departments = DepartmentGenerator.Generate(config.Seed, _space);
         _sectors = PillarGenerator.Sectors(_space, config.PillarLayout);
         _pillars = PillarGenerator.Pillars(_sectors, config.PillarLayout);
-        _furniture = FurnitureGenerator.Generate(config.Seed, _space, _departments, _pillars);
+        // The Landmarks are placed first, so the Displays keep off them; their Furniture follows the Displays'.
+        var sites = LandmarkGenerator.Plan(config.Seed, _space, _sectors, _pillars, _departments.CellSize);
+        var furniture = FurnitureGenerator.Generate(config.Seed, _space, _departments, _pillars, sites);
+        var landmarks = LandmarkGenerator.Build(config.Seed, _space, sites, furniture.Pieces.Count);
+        _furniture = furniture with { Pieces = furniture.Pieces.Concat(landmarks.Pieces).ToList().AsReadOnly() };
+        _landmarks = landmarks.Landmarks;
         // Runtime randomness never comes from the Store seed (ADR 0003); it is unseeded unless a test fixes it.
         var runtimeSeed = config.RuntimeRngSeed ?? Random.Shared.Next();
         _weather = new Weather(_space, SeededRandom.For(runtimeSeed, WeatherStream));
@@ -277,7 +283,7 @@ public sealed class Simulation : IDisposable
     }
 
     private WorldSnapshot BuildSnapshot() =>
-        new(_config.Seed, _config.PillarLayout, new StoreClock(_tick), _space, _speed, _departments, _furniture.Pieces, _furniture.Displays, _furniture.Cells, Array.AsReadOnly(_weather.Snapshot()), _weather.Wind, _pillars, _sectors);
+        new(_config.Seed, _config.PillarLayout, new StoreClock(_tick), _space, _speed, _departments, _furniture.Pieces, _furniture.Displays, _furniture.Cells, Array.AsReadOnly(_weather.Snapshot()), _weather.Wind, _pillars, _sectors, _landmarks);
 
     private sealed class Subscription(Simulation owner, Action<DomainEvent> handler) : IDisposable
     {

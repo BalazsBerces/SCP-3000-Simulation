@@ -39,7 +39,7 @@ One of the equal squares the Pillar layout divides the Store into, named by its 
 _Avoid_: Zone, region, quadrant, district
 
 **Landmark**:
-A huge, far-visible, unique place of the Store that shapes what Villagers do there (the ruined Village, rack canyon, dead zone, clock wall, mattress mountain, fountain court or box fort). Every world has the ruined Village; the seed picks which of the others it has, at most one Landmark per Sector, preferring Sectors without a Pillar. It is made entirely of Furniture, which Villages may take and Restock slowly brings back; some also give their ground a lasting property, such as darkness or water, that stays when the Furniture is gone. Pillars are not Landmarks.
+A huge, far-visible, unique place of the Store that shapes what Villagers do there (the ruined Village, rack canyon, dead zone, clock wall, mattress mountain, fountain court or box fort). Every world has the ruined Village; the seed picks which of the others it has, at most one Landmark per Sector, preferring Sectors without a Pillar. It stands on a rectangle of at most a quarter of its Sector, clear of the Pillar and its walkway ring, which no Display enters, and rises well above the shelving and the Fog banks. It is made entirely of Furniture, which Villages may take and Restock slowly brings back; some also give their ground a lasting property, such as darkness or water, that stays when the Furniture is gone. Pillars are not Landmarks. The climbable ones (rack canyon, mattress mountain) have **Lookouts**: high places on their Furniture to look out from.
 _Avoid_: Point of interest (small, seen only up close)
 
 **Point of interest**:
@@ -59,7 +59,7 @@ A piece of Furniture that gives light (table lamp, floor lamp). Lamps on display
 _Avoid_: Fixture, light (that is what a Lamp gives)
 
 **Display**:
-A room or free-standing set of Furniture generated from exactly one Theme, with one coordinated Palette. Every generated piece belongs to one Display.
+A room or free-standing set of Furniture generated from exactly one Theme, with one coordinated Palette. Every generated piece outside a Landmark belongs to one Display.
 
 **Theme**:
 The strict catalogue entry for what a Display shows (bedroom, patio, kitchen, etc.). It lists allowed Furniture in Core, Common and Accent tiers and their Placement roles; each Department type allows only certain Themes, chosen by weight.

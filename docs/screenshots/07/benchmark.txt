@@ -1,0 +1,23 @@
+Godot Engine v4.7.2.stable.mono.official.ed1daf0bf - https://godotengine.org
+Vulkan 1.4.329 - Forward+ - Using Device #0: NVIDIA - NVIDIA GeForce RTX 2070 SUPER
+
+Furniture: 410810 pieces placed in 1037 ms; Landmarks: MattressMountain in A-3 at 264,952, 25 m, RuinedVillage in C-1 at 976,272, 22 m, BoxFort in C-2 at 984,712, 25 m.
+Pillars: 3x3 layout, 9 solid concrete Landmarks 1200 m tall, 9 Sectors, no emission or lights, reach 1200 m.
+Fog bank 12 formed at (682, 1340).
+Fog bank 13 formed at (441, 1066).
+Fog bank 7 dissipated at (765, 1282).
+Fog bank 14 formed at (549, 1318).
+Fog bank 8 dissipated at (792, 113).
+Fog bank 5 dissipated at (533, 712).
+Fog bank 15 formed at (277, 6).
+Fog bank 16 formed at (726, 730).
+Fog bank 16 dissipated at (579, 420).
+Closing time began on Store day 1.
+Fog bank 17 formed at (726, 730).
+Benchmark: Store 3008, 1920x1080, NVIDIA GeForce RTX 2070 SUPER, 20 s per lighting, target 120 fps average, minimum 90 fps average and 60 fps 1% low
+  Weather: fixed Fog bank, radius 160 m; MSAA Msaa4X, TAA True; Furniture full up to a zoom of 160 m, map above an overview camera height of 250 m
+  Open                       average  135,6 fps, 1% low   72,0 fps [meets 120 target] (2712 frames in 20,0 s; up to 0 lamp lights, 0 shadowed, 1794 visible Lamps with halos; average GPU 6,35 ms, CPU render 2,60 ms, 1431 draw calls, 1,8 M primitives)
+  Closing time               average  150,3 fps, 1% low   68,1 fps [meets 120 target] (3007 frames in 20,0 s; up to 256 lamp lights, 64 shadowed, 1795 visible Lamps with halos; average GPU 5,21 ms, CPU render 3,06 ms, 1670 draw calls, 2,0 M primitives)
+  Closing time far           average  106,2 fps, 1% low   91,1 fps [below 120 target] (2125 frames in 20,0 s; up to 256 lamp lights, 64 shadowed, 1700 visible Lamps with halos; average GPU 8,30 ms, CPU render 3,36 ms, 1645 draw calls, 2,5 M primitives)
+  Closing time at LOD switch average  105,9 fps, 1% low   78,2 fps [below 120 target] (2118 frames in 20,0 s; up to 256 lamp lights, 64 shadowed, 767 visible Lamps with halos; average GPU 8,35 ms, CPU render 3,62 ms, 2334 draw calls, 2,6 M primitives)
+Benchmark PASSED

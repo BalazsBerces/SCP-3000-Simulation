@@ -18,6 +18,7 @@ namespace Scp3008.Core;
 /// <param name="Wind">The wind the Fog banks drift with, in metres per Store hour (X east, Y south).</param>
 /// <param name="Pillars">The identical concrete Pillars on the layout's grid (9 or 4), marked by grid coordinate; never light or power sources.</param>
 /// <param name="Sectors">The equal Sectors of the layout's grid, row by row from the north-west; a Pillar stands in each one or, on the four-Pillar large layouts, in some of them.</param>
+/// <param name="Landmarks">The world's Landmarks, indexed by <see cref="Landmark.Id"/>; their Furniture is in <see cref="Furniture"/>, after the Displays' pieces.</param>
 public sealed record WorldSnapshot(
     int Seed,
     PillarLayout PillarLayout,
@@ -31,7 +32,8 @@ public sealed record WorldSnapshot(
     IReadOnlyList<FogBank> FogBanks,
     Vector2 Wind,
     IReadOnlyList<Pillar> Pillars,
-    IReadOnlyList<Sector> Sectors)
+    IReadOnlyList<Sector> Sectors,
+    IReadOnlyList<Landmark> Landmarks)
 {
     /// <summary>How a department cell is laid out; coordinates wrap.</summary>
     public CellLayout CellLayoutAt(int x, int y)
