@@ -37,6 +37,9 @@ namespace Scp3008.Game;
 ///   --silhouette-check=file  compare every Furniture type's full and coarse silhouette
 ///                          (<see cref="SilhouetteCheck"/>), write the report to file and quit
 ///                          with exit code 0 if every type passes, 3 if not.
+///   --coplanar-check=file  list every pair of overlapping visible box faces in one plane (they
+///                          z-fight) over every Furniture type and variant, write it to file and quit
+///                          with exit code 0 if there are none, 3 if not.
 ///   --coarse-colour-check=dir  compare every Furniture type's full and coarse colour per part
 ///                          (<see cref="CoarseColourCheck"/>), save side-by-side sheets and the
 ///                          report into dir and quit with exit code 0 if every part matches, 3 if not.
@@ -89,6 +92,16 @@ public partial class DevCapture : Node
             if (arg.StartsWith("--silhouette-check="))
             {
                 RunSilhouetteCheck(arg["--silhouette-check=".Length..]);
+                return;
+            }
+            if (arg.StartsWith("--coplanar-check="))
+            {
+                var lines = Enum.GetValues<FurnitureType>()
+                    .SelectMany(t => Enumerable.Range(0, FurnitureCatalog.VariantCount(t)).SelectMany(v => FurnitureMeshes.CoplanarFaces(t, v)))
+                    .ToList();
+                System.IO.File.WriteAllLines(arg["--coplanar-check=".Length..], lines);
+                GD.Print($"{lines.Count} coplanar face pairs.");
+                GetTree().Quit(lines.Count == 0 ? 0 : 3);
                 return;
             }
             if (arg.StartsWith("--coarse-colour-check="))

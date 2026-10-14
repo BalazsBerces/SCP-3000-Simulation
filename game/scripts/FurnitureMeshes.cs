@@ -204,7 +204,16 @@ public static class FurnitureMeshes
         new(0.93f, 0.88f, 0.8f), new(0.82f, 0.76f, 0.66f), new(0.9f, 0.89f, 0.86f), new(0.86f, 0.82f, 0.75f),
     ];
 
-    private static ArrayMesh Build(FurnitureType type, int variant, bool coarse)
+    private static ArrayMesh Build(FurnitureType type, int variant, bool coarse) => Describe(type, variant, coarse).Commit();
+
+    /// <summary>
+    /// Every pair of visible box faces of a Furniture type's full mesh that lie in one plane, face
+    /// the same way and overlap, so they z-fight: one line per pair, empty when there are none.
+    /// </summary>
+    public static IEnumerable<string> CoplanarFaces(FurnitureType type, int variant = 0) =>
+        Describe(type, variant, coarse: false).CoplanarFaces().Select(f => $"{type} {variant}: {f}");
+
+    private static Builder Describe(FurnitureType type, int variant, bool coarse)
     {
         var spec = FurnitureCatalog.Spec(type, variant);
         var (w, d, h) = (spec.Width, spec.Depth, spec.Height);
@@ -214,7 +223,7 @@ public static class FurnitureMeshes
         if (variant > 0)
         {
             BuildVariant(b, type, variant, w, d, h);
-            return b.Commit();
+            return b;
         }
         switch (type)
         {
@@ -475,8 +484,10 @@ public static class FurnitureMeshes
                 b.Box(Part.Pine, new(-hw, 0.1f, -hd), new(-hw + 0.04f, h, hd));
                 b.Box(Part.Pine, new(hw - 0.04f, 0.1f, -hd), new(hw, h, hd));
                 b.Box(Part.Pine, new(-hw, 0.1f, -hd), new(hw, h, -hd + 0.03f));
-                foreach (var y in new[] { 0.1f, h * 0.5f, h - 0.04f })
-                    b.Box(Part.Pine, new(-hw, y, -hd), new(hw, y + 0.04f, hd));
+                b.Box(Part.Pine, new(-hw, 0.1f, -hd), new(hw, 0.14f, hd));
+                b.Box(Part.Pine, new(-hw, h - 0.04f, -hd), new(hw, h, hd));
+                // A shelf behind the glass stops at its back face, or the two fronts would z-fight.
+                b.Box(Part.Pine, new(-hw, h * 0.5f, -hd), new(hw, h * 0.5f + 0.04f, type == FurnitureType.DisplayCabinet ? hd - 0.02f : hd));
                 if (type == FurnitureType.DisplayCabinet)
                     b.Box(Part.Glass, new(-hw + 0.04f, 0.14f, hd - 0.02f), new(hw - 0.04f, h - 0.04f, hd));
                 break;
@@ -588,7 +599,7 @@ public static class FurnitureMeshes
                 b.Box(Part.Maple, new Vector3(-hw, 0f, -hd), new Vector3(hw, h, hd));
                 break;
         }
-        return b.Commit();
+        return b;
     }
 
     /// <summary>
@@ -779,8 +790,9 @@ public static class FurnitureMeshes
                 b.Box(Part.Pine, new(-hw, 0.1f, -hd), new(-hw + 0.04f, h, hd));
                 b.Box(Part.Pine, new(hw - 0.04f, 0.1f, -hd), new(hw, h, hd));
                 b.Box(Part.Pine, new(-hw, 0.1f, -hd), new(hw, h, -hd + 0.03f));
-                foreach (var y in new[] { 0.1f, h * 0.5f, h - 0.04f })
-                    b.Box(Part.Pine, new(-hw, y, -hd), new(hw, y + 0.04f, hd));
+                b.Box(Part.Pine, new(-hw, 0.1f, -hd), new(hw, 0.14f, hd));
+                b.Box(Part.Pine, new(-hw, h - 0.04f, -hd), new(hw, h, hd));
+                b.Box(Part.Pine, new(-hw, h * 0.5f, -hd), new(hw, h * 0.5f + 0.04f, hd - 0.02f));
                 foreach (var x in new[] { -hw / 2f, hw / 2f })
                     b.Box(Part.Glass, new(x - hw / 2f + 0.03f, 0.14f, hd - 0.02f), new(x + hw / 2f - 0.03f, h - 0.04f, hd));
                 b.Box(Part.Pine, new(-0.015f, 0.14f, hd - 0.025f), new(0.015f, h - 0.04f, hd + 0.005f));
@@ -791,8 +803,10 @@ public static class FurnitureMeshes
                 b.Box(Part.Walnut, new(-hw, 0.1f, -hd), new(-hw + 0.04f, h, hd));
                 b.Box(Part.Walnut, new(hw - 0.04f, 0.1f, -hd), new(hw, h, hd));
                 b.Box(Part.Walnut, new(-hw, 0.1f, -hd), new(hw, h, -hd + 0.03f));
-                foreach (var y in new[] { 0.1f, 0.6f, 1.05f, 1.45f, h - 0.04f })
-                    b.Box(Part.Walnut, new(-hw, y, -hd), new(hw, y + 0.04f, hd));
+                b.Box(Part.Walnut, new(-hw, 0.1f, -hd), new(hw, 0.14f, hd));
+                b.Box(Part.Walnut, new(-hw, h - 0.04f, -hd), new(hw, h, hd));
+                foreach (var y in new[] { 0.6f, 1.05f, 1.45f })
+                    b.Box(Part.Walnut, new(-hw, y, -hd), new(hw, y + 0.04f, hd - 0.02f));
                 b.Box(Part.Glass, new(-hw + 0.04f, 0.14f, hd - 0.02f), new(hw - 0.04f, h - 0.04f, hd));
                 b.Box(Part.Rubber, new(-hw + 0.02f, 0f, -hd + 0.02f), new(hw - 0.02f, 0.1f, hd - 0.02f));
                 break;
@@ -1007,6 +1021,79 @@ public static class FurnitureMeshes
             return false;
         }
 
+        /// <summary>
+        /// Visible faces of two boxes in one plane, facing the same way and overlapping, that are
+        /// left after <see cref="SeparateCoplanarFaces"/> (see <see cref="CoplanarFaces(FurnitureType, int)"/>).
+        /// </summary>
+        public IEnumerable<string> CoplanarFaces()
+        {
+            SeparateCoplanarFaces();
+            string[] sides = ["-X", "-Y", "-Z", "+X", "+Y", "+Z"];
+            foreach (var (i, j, axis, upper, _, area) in CoplanarPairs())
+            {
+                var (a, b) = (_boxes[i], _boxes[j]);
+                yield return $"box {i} {a.Part} {a.Min}-{a.Max} and box {j} {b.Part} {b.Min}-{b.Max} on {sides[axis + (upper ? 3 : 0)]}, {area * 1e4f:0.#} cm2";
+            }
+        }
+
+        /// <summary>
+        /// Two boxes that overlap with a face in one plane would z-fight wherever those faces overlap
+        /// (a shelf's end flush with a corner post, a sofa back flush with an arm). In each such pair
+        /// the smaller face moves 2 mm into its box, so the larger face shows there; the step this
+        /// leaves is far too small to see. Repeats until no pair is left, as one move can line up two
+        /// faces that were both flush with a third.
+        /// </summary>
+        private void SeparateCoplanarFaces()
+        {
+            const float Inset = 0.002f;
+            for (var pass = 0; pass < 4; pass++)
+            {
+                var pairs = CoplanarPairs().ToList();
+                if (pairs.Count == 0)
+                    return;
+                foreach (var (i, j, axis, upper, plane, _) in pairs)
+                {
+                    var k = FaceArea(_boxes[i], axis) < FaceArea(_boxes[j], axis) ? i : j;
+                    var (part, min, max) = _boxes[k];
+                    // From the shared plane, so a face in several pairs moves only once.
+                    var inset = Mathf.Min(Inset, (max[axis] - min[axis]) / 4f);
+                    if (upper)
+                        max[axis] = Mathf.Min(max[axis], plane - inset);
+                    else
+                        min[axis] = Mathf.Max(min[axis], plane + inset);
+                    _boxes[k] = (part, min, max);
+                }
+            }
+        }
+
+        private static float FaceArea((Part Part, Vector3 Min, Vector3 Max) box, int axis)
+        {
+            var size = box.Max - box.Min;
+            return axis switch { 0 => size.Y * size.Z, 1 => size.X * size.Z, _ => size.X * size.Y };
+        }
+
+        private IEnumerable<(int I, int J, int Axis, bool Upper, float Plane, float Area)> CoplanarPairs()
+        {
+            const float Tolerance = 1e-3f;
+            for (var i = 0; i < _boxes.Count; i++)
+                for (var j = i + 1; j < _boxes.Count; j++)
+                    for (var axis = 0; axis < 3; axis++)
+                        foreach (var upper in new[] { false, true })
+                        {
+                            var (a, b) = (_boxes[i], _boxes[j]);
+                            var planeA = upper ? a.Max[axis] : a.Min[axis];
+                            var planeB = upper ? b.Max[axis] : b.Min[axis];
+                            if (Mathf.Abs(planeA - planeB) > Tolerance || FaceHidden(i, axis, upper) || FaceHidden(j, axis, upper))
+                                continue;
+                            var area = 1f;
+                            for (var other = 0; other < 3; other++)
+                                if (other != axis)
+                                    area *= Mathf.Max(0f, Mathf.Min(a.Max[other], b.Max[other]) - Mathf.Max(a.Min[other], b.Min[other]));
+                            if (area > 1e-6f)
+                                yield return (i, j, axis, upper, planeA, area);
+                        }
+        }
+
         /// <summary>A capped cylinder (or cone frustum) standing on <paramref name="baseCentre"/>.</summary>
         public void Cylinder(Part part, Vector3 baseCentre, float bottomRadius, float topRadius, float height, int segments = 12)
         {
@@ -1081,6 +1168,7 @@ public static class FurnitureMeshes
 
         public ArrayMesh Commit()
         {
+            SeparateCoplanarFaces();
             for (var i = 0; i < _boxes.Count; i++)
             {
                 var index = i;

@@ -5,7 +5,7 @@ namespace Scp3008.Game;
 
 /// <summary>
 /// The flat Store floor. It follows the camera focus out to the camera's far plane, and its
-/// shader gives each Department its own floor texture from a map of Department types, with
+/// shader gives each Department its own floor texture from a map of Department types, varied so its repeat does not show, with
 /// patterns that repeat exactly once per Store length, so the floor has no edge and no visible
 /// seam however far the camera pans. The map is rebuilt when a new world is created.
 /// </summary>
@@ -25,6 +25,21 @@ public partial class StoreFloor : MeshInstance3D
         new(1f, 1f, 1f), new(1f, 1f, 1f), new(1f, 1f, 1f), new(1f, 1f, 1f),
     ];
 
+    /// <summary>
+    /// How each Department type's floor breaks its repeat (see store_floor.gdshader): 1 randomly
+    /// offset copies for the jointless warehouse concrete and office carpet, 2 per-tile variation
+    /// for the large regular tiles of the food market and lighting floors, 0 large-scale shade and
+    /// wear only for the rest (planks, staggered or tiny tiles), where neither fits.
+    /// </summary>
+    private static readonly int[] LayerModes = [2, 0, 2, 1, 0, 0, 0, 1, 0, 0, 0];
+
+    /// <summary>For per-tile layers: tiles per repeat and the grid's offset in repeat units, read off the textures.</summary>
+    private static readonly Vector3[] LayerGrids =
+    [
+        new(4f, 0f, 0.18f), default, new(5f, 0f, 0f), default, default, default,
+        default, default, default, default, default,
+    ];
+
     private PlaneMesh _followingPlane = null!;
 
     public override void _Ready()
@@ -37,6 +52,8 @@ public partial class StoreFloor : MeshInstance3D
         FloorMaterial.SetShaderParameter("floor_roughness", GD.Load<TextureLayered>("res://assets/textures/floor_roughness.jpg"));
         FloorMaterial.SetShaderParameter("layer_metres", LayerMetres);
         FloorMaterial.SetShaderParameter("layer_tint", LayerTints.Select(c => new Vector3(c.R, c.G, c.B)).ToArray());
+        FloorMaterial.SetShaderParameter("layer_mode", LayerModes);
+        FloorMaterial.SetShaderParameter("layer_grid", LayerGrids);
         ShowDepartments(Host.Snapshot);
         Host.WorldCreated += ShowDepartments;
         FollowFocus();
@@ -76,6 +93,7 @@ public partial class StoreFloor : MeshInstance3D
     {
         // The Store size and the overview's Sector boundaries follow the world's Pillar layout.
         FloorMaterial.SetShaderParameter("store_size", snapshot.Space.Size);
+        FloorMaterial.SetShaderParameter("world_seed", snapshot.Seed);
         FloorMaterial.SetShaderParameter("chunk_size", snapshot.Space.ChunkSize);
         FloorMaterial.SetShaderParameter("sector_size", snapshot.Sectors[0].Size);
         if (StoreOverview.Enabled)
