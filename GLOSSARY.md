@@ -27,11 +27,11 @@ A connected region of the Store with its own look, Furniture and resources; acts
 _Avoid_: Biome, zone, area
 
 **Pillar**:
-One of the identical, monumental concrete blocks (32 × 32 m, rising out of sight) on the regular grid of the **Pillar layout**: nine on 3 × 3 (448 m apart), four on 2 × 2 (672 m apart), nine on 3 × 3 large (640 m apart), or four on the corners and diamond large layouts, which leave the other Sectors empty. Each stands at the centre of its Sector and is marked with its grid coordinate: column letter, then row number (e.g. B-2). A Furniture-free walkway ring surrounds each one. Because the Store wraps, a Pillar is seen again in every direction; in 2 × 2 its east and west neighbour is the same Pillar. Visible from far away; used for navigation and as a settlement anchor.
+One of the identical, monumental concrete blocks (32 × 32 m, rising out of sight) on the regular grid of the **Pillar layout**: nine on 3 × 3 (448 m apart), four on 2 × 2 (672 m apart), nine on 3 × 3 large (640 m apart), or four on the corners and diamond large layouts, which leave the other Sectors empty. Each stands at the centre of its Sector and is marked with its grid coordinate: column letter, then row number (e.g. B-2). A Furniture-free walkway ring surrounds each one (except where the abandoned scaffold, a Point of interest, climbs one Pillar), and each carries the speakers that play the Closing announcement. Because the Store wraps, a Pillar is seen again in every direction; in 2 × 2 its east and west neighbour is the same Pillar. Visible from far away; used for navigation and as a settlement anchor.
 _Avoid_: Column, monolith, tower
 
 **Pillar layout**:
-The world setting that chooses the Sector grid, which Sectors have a Pillar, and the Store size: 3 × 3 (the default) or 2 × 2 on the 1344 m Store, or, on the larger 1920 m Store, 3 × 3 large (nine Pillars), corners (Pillars in the four corner Sectors) or diamond (Pillars in the four edge-middle Sectors). It is part of the world state, not of the seed, so the same seed gives the same Departments and Furniture under 3 × 3 and 2 × 2, apart from the Pillar footprints and walkway rings; on the larger Store it gives others.
+The world setting that chooses the Sector grid, which Sectors have a Pillar, and the Store size: 3 × 3 or 2 × 2 on the 1344 m Store, or, on the larger 1920 m Store, 3 × 3 large (nine Pillars), corners (Pillars in the four corner Sectors) or diamond (the default; Pillars in the four edge-middle Sectors). It is part of the world state, not of the seed, so the same seed gives the same Departments and Furniture under 3 × 3 and 2 × 2, apart from the Pillar footprints and walkway rings; on the larger Store it gives others.
 _Avoid_: Pillar mode, grid size, map type
 
 **Sector**:
@@ -39,14 +39,23 @@ One of the equal squares the Pillar layout divides the Store into, named by its 
 _Avoid_: Zone, region, quadrant, district
 
 **Landmark**:
-Any huge, far-visible feature of the Store (Pillars, the till wall, the flooded Department, the ball-pit sea, the clock wall, etc.).
+A huge, far-visible, unique place of the Store that shapes what Villagers do there (the ruined Village, rack canyon, dead zone, clock wall, mattress mountain, fountain court or box fort). Every world has the ruined Village; the seed picks which of the others it has, at most one Landmark per Sector, preferring Sectors without a Pillar. It is made entirely of Furniture, which Villages may take and Restock slowly brings back; some also give their ground a lasting property, such as darkness or water, that stays when the Furniture is gone. Pillars are not Landmarks.
+_Avoid_: Point of interest (small, seen only up close)
+
+**Point of interest**:
+A small, distinctive place of the Store found only up close, such as a working restroom or a Ball pit; a Sector may hold several.
+_Avoid_: Landmark (huge, far-visible)
+
+**Ball pit**:
+One of the three modest bouncy castles filled with balls in every Store; a Point of interest. Harmless while the Store is open; at Closing time the Staff pass from any Ball pit to any other. Villagers cannot.
+_Avoid_: Ball-pit sea, portal
 
 **Furniture**:
 A single physical object in the Store (wardrobe, shelf unit, sofa, lamp…) that can be moved, used, built with or disassembled.
 _Avoid_: Prop, object, item
 
 **Lamp**:
-A piece of Furniture that gives light (table lamp, floor lamp). Lamps on display stay lit at all times, including Closing time; a Lamp taken away from its display needs a Village power source (battery or generator).
+A piece of Furniture that gives light (table lamp, floor lamp). Lamps on display stay lit at all times, including Closing time, except in the dead zone, where none is lit; a Lamp taken away from its display needs a Village power source (battery or generator).
 _Avoid_: Fixture, light (that is what a Lamp gives)
 
 **Display**:
@@ -91,7 +100,7 @@ The soft dissolve of content in the last stretch before the draw distance, so th
 _Avoid_: Haze, distance fog
 
 **Closing announcement**:
-The PA message ("The Store is now closing.") from the speaker towers that warns of Closing time.
+The PA message ("The Store is now closing.") from the speakers on every Pillar that warns of Closing time.
 _Avoid_: Alarm, siren
 
 **Closing time**:

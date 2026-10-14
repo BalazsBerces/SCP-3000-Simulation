@@ -9,7 +9,11 @@
     2. Run `claude -p` on it with full permissions. The agent implements it, runs the tests,
        commits to main, pushes, and closes the issue.
     3. Check that the issue is closed and the working tree is clean and pushed. If not, stop.
-    4. At the end of each build stage, pause for a manual visual review (unless -NoStagePause).
+    4. At the end of each build stage, close its milestone and pause for a manual visual review (unless -NoStagePause).
+
+  Build stages are GitHub milestones. A ticket ends its stage when it is the last open issue of an open
+  milestone; that ticket reviews the whole stage. A closed milestone is already reviewed, so tickets added
+  to it later run without a stage review.
 
   Logs are written to .ticket-logs/ (git-excluded locally).
 
@@ -42,9 +46,6 @@ $OutputEncoding = [Text.Encoding]::UTF8
 # Inherited by every claude child process, so it affects only the ticket runs.
 $env:CLAUDE_CODE_AUTO_COMPACT_WINDOW = $CompactWindow
 
-# Last ticket number of each build stage, including inserted suffix tickets (e.g. 05b).
-$StageEnds = @{ 5 = 'Atmosphere'; 8 = 'Landmarks'; 16 = 'Villagers'; 22 = 'Fortifications'; 28 = 'Staff'; 33 = 'Relations'; 36 = 'Observer tools and Knowledge' }
-
 $root = Split-Path -Parent $PSScriptRoot
 Set-Location $root
 $logDir = Join-Path $root '.ticket-logs'
@@ -53,23 +54,27 @@ $exclude = Join-Path $root '.git\info\exclude'
 if (-not (Select-String -Path $exclude -Pattern '^\.ticket-logs/' -Quiet)) { Add-Content $exclude '.ticket-logs/' }
 
 function Get-NextTicket {
-  $open = gh issue list -R $Repo --state open --label ready-for-agent --limit 200 --json number,title,labels | ConvertFrom-Json
+  $open = gh issue list -R $Repo --state open --label ready-for-agent --limit 200 --json number,title,labels,milestone | ConvertFrom-Json
+  $milestones = @{}
+  gh api "repos/$Repo/milestones?state=all&per_page=100" | ConvertFrom-Json | ForEach-Object { $_ } | ForEach-Object { $milestones[[int]$_.number] = $_ }
+  # A ticket (it has a stage or a difficulty, unlike the spec) without an 'NN: ' title would never run; say so.
+  $open | ForEach-Object { $_ } | Where-Object { $_.title -notmatch '^\d\d[a-z]?: ' -and
+      ($_.milestone -or @($_.labels | Where-Object { $_.name -in 'hard', 'easy' }).Count) } |
+    ForEach-Object { Write-Warning "Skipping #$($_.number) '$($_.title)': its title needs an 'NN: ' or 'NNa: ' prefix to be scheduled." }
   # Titles start with 'NN: ', or 'NNa: ' for a ticket inserted after NN (it runs after NN, before NN+1).
   $tickets = $open | ForEach-Object { $_ } | Where-Object { $_.title -match '^(\d\d)([a-z]?): ' } |
     ForEach-Object {
       $null = $_.title -match '^(\d\d)([a-z]?): '
       $n = [int]$Matches[1]; $suffix = $Matches[2]
       $difficulty = @($_.labels | ForEach-Object { $_.name } | Where-Object { $_ -in 'hard', 'easy' })
+      $stage = if ($_.milestone) { $milestones[[int]$_.milestone.number] }
+      # The last open issue of a still-open milestone ends the stage; a closed milestone is already reviewed.
+      $isStageEnd = [bool]($stage -and $stage.state -eq 'open' -and $stage.open_issues -eq 1)
       [pscustomobject]@{ Issue = $_.number; Ticket = $n; Label = $Matches[1] + $suffix; Title = $_.title
-        IsStageEnd = $false; Difficulty = ($difficulty | Select-Object -First 1) }
+        IsStageEnd = $isStageEnd; Stage = $stage; Difficulty = ($difficulty | Select-Object -First 1) }
     } |
     Sort-Object Ticket, Label
   if (-not $tickets) { return $null }
-  # A stage ends after its last remaining suffix ticket, not before inserted work.
-  foreach ($stageEnd in $StageEnds.Keys) {
-    $lastStageTicket = $tickets | Where-Object { $_.Ticket -eq $stageEnd } | Select-Object -Last 1
-    if ($lastStageTicket) { $lastStageTicket.IsStageEnd = $true }
-  }
   foreach ($t in $tickets) {
     # PS 5.1's ConvertFrom-Json emits a JSON array as one object; ForEach-Object unrolls it.
     $openBlockers = @(gh api "repos/$Repo/issues/$($t.Issue)/dependencies/blocked_by" | ConvertFrom-Json |
@@ -83,9 +88,11 @@ function Get-ReviewRule($t) {
   if (-not $t.IsStageEnd) {
     return "6. Skip the /spec-review step for this ticket; the code is reviewed once at the end of each build stage."
   }
-  $first = 1 + [int](@($StageEnds.Keys | Where-Object { $_ -lt $t.Ticket }) + 0 | Measure-Object -Maximum).Maximum
-  $firstTitle = $first.ToString('D2')
-  "6. This ticket completes the build stage '$($StageEnds[$t.Ticket])' (tickets $first-$($t.Ticket)). Instead of reviewing only this ticket, run /spec-review on the whole stage: the diff from the parent of ticket $first's commit (find it with git log --grep '^${firstTitle}: ') up to and including your uncommitted changes. Fix the real findings, rerun the tests, and include the fixes in this ticket's commit."
+  # The stage starts at the lowest-numbered ticket of its milestone, closed ones included.
+  $first = gh issue list -R $Repo --state all --milestone $t.Stage.title --limit 200 --json title | ConvertFrom-Json |
+    ForEach-Object { $_ } | Where-Object { $_.title -match '^(\d\d[a-z]?): ' } |
+    ForEach-Object { $null = $_.title -match '^(\d\d[a-z]?): '; $Matches[1] } | Sort-Object | Select-Object -First 1
+  "6. This ticket completes the build stage '$($t.Stage.title)' (tickets $first-$($t.Label)). Instead of reviewing only this ticket, run /spec-review on the whole stage: the diff from the parent of ticket $first's commit (find it with git log --grep '^${first}: ') up to and including your uncommitted changes. Fix the real findings, rerun the tests, and include the fixes in this ticket's commit."
 }
 
 function Get-Prompt($t) {
@@ -121,7 +128,10 @@ function Get-TicketModel($t) {
   return $HardModel
 }
 
-function Invoke-Claude($t, $log, $prompt, $resumeId) {
+function Invoke-Claude {
+  # The ForEach-Object block below runs in this scope, so its assignments do reach $final, $sessionId and $resetsAt.
+  [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseDeclaredVarsMoreThanAssignments', '')]
+  param($t, $log, $prompt, $resumeId)
   $cliArgs = @('-p', '--dangerously-skip-permissions', '--output-format', 'stream-json', '--verbose')
   # Plugins and claude.ai connectors the ticket runs never use stay off; only this process is affected.
   $cliArgs += @('--settings', (Join-Path $PSScriptRoot 'ticket-settings.json'))
@@ -212,8 +222,11 @@ while ($true) {
   Write-Host "Ticket $($t.Label) done." -ForegroundColor Green
   $done++
 
+  # Closing the milestone marks the stage as reviewed, so tickets added to it later skip the stage review.
+  if ($t.IsStageEnd) { gh api -X PATCH "repos/$Repo/milestones/$($t.Stage.number)" -f state=closed | Out-Null }
+
   if (-not $NoStagePause -and $t.IsStageEnd) {
-    Write-Host "`nStage '$($StageEnds[$t.Ticket])' is complete. Check it visually (see the closing comments on the issues)." -ForegroundColor Yellow
+    Write-Host "`nStage '$($t.Stage.title)' is complete. Check it visually (see the closing comments on the issues)." -ForegroundColor Yellow
     $answer = Read-Host 'Continue with the next stage? (Y/n)'
     if ($answer -match '^[nN]') { break }
   }
