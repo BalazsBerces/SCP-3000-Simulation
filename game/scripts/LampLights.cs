@@ -21,7 +21,10 @@ public partial class LampLights : Node3D
     [Export] public int MaxLights { get; set; } = 256;
 
     /// <summary>Most lights casting shadows at once: the nearest of the lit Lamps. Read once, when the lights are made.</summary>
-    [Export] public int ShadowBudget { get; set; } = 4;
+    [Export] public int ShadowBudget { get; set; } = 64;
+
+    /// <summary>Seconds a Lamp's shadow takes to fade in or out when it gains or loses a shadowed light.</summary>
+    [Export] public float ShadowFadeSeconds { get; set; } = 0.4f;
 
     /// <summary>Distance from the camera within which real lights are considered.</summary>
     [Export] public float MaxDistance { get; set; } = 320f;
@@ -38,8 +41,14 @@ public partial class LampLights : Node3D
     private readonly List<Candidate> _shadowCasters = [];
     private readonly Plane[] _frustum = new Plane[6];
     private OmniLight3D[] _lights = [];
+    // Where each light was last placed: a light is only moved when its Lamp changes,
+    // because moving a shadowed light makes Godot redraw its shadow map.
+    private Vector3?[] _lightPositions = [];
     // The Lamp id each shadowed light is on, so a shadow-casting Lamp keeps its light (and shadow map).
     private int[] _shadowSlots = [];
+    // Each shadowed light's shadow opacity: it fades in after a Lamp takes the light and out before the light is handed on.
+    private float[] _shadowOpacity = [];
+    private bool _shadowsFading;
     private readonly Comparison<Candidate> _byShadowRank;
     private StoreSpace _space = StoreSpace.Standard;
     private readonly List<Candidate> _visible = [];
@@ -78,10 +87,12 @@ public partial class LampLights : Node3D
                 ShadowBudget = int.Parse(arg["--lamp-shadows=".Length..]);
         var shadowed = Math.Clamp(ShadowBudget, 0, MaxLights);
         _lights = new OmniLight3D[MaxLights];
+        _lightPositions = new Vector3?[MaxLights];
         _shadowSlots = Enumerable.Repeat(-1, shadowed).ToArray();
+        _shadowOpacity = new float[shadowed];
         for (var i = 0; i < MaxLights; i++)
         {
-            // The first slots are the shadow budget; the rest never cast shadows.
+            // The first lights are the shadow slots, which cast shadows only while a Lamp holds them; the rest never do.
             _lights[i] = new OmniLight3D
             {
                 Name = i < shadowed ? $"ShadowedLamp{i}" : $"Lamp{i}",
@@ -89,7 +100,7 @@ public partial class LampLights : Node3D
                 // The selected lights illuminate surfaces only. Camera-dependent selection must
                 // never change the fog's illumination; source halos exist for every visible Lamp.
                 LightVolumetricFogEnergy = 0f,
-                ShadowEnabled = i < shadowed,
+                ShadowEnabled = false,
                 OmniShadowMode = OmniLight3D.ShadowMode.DualParaboloid,
                 ShadowBias = 0.05f,
                 Visible = false,
@@ -135,9 +146,9 @@ public partial class LampLights : Node3D
         var view = (camera.GlobalTransform, camera.Fov, camera.Near, camera.Far,
             StoreOverview.Enabled, GetViewport().GetVisibleRect().Size, Visibility.FurnitureDistance);
         // Display Lamps are static between world rebuilds. A stationary view needs no ranking,
-        // uploads or light changes, unless Lamps are switching or have just finished.
+        // uploads or light changes, unless Lamps are switching or have just finished, or shadows are fading.
         var levelsChanged = RefreshLevels();
-        if (!levelsChanged && _lastView == view)
+        if (!levelsChanged && _lastView == view && !_shadowsFading)
             return;
         _lastView = view;
         var planes = camera.GetFrustum();
@@ -156,7 +167,7 @@ public partial class LampLights : Node3D
             cutoff = _lit[^1].Distance;
             _lit.RemoveAt(_lit.Count - 1);
         }
-        ChooseShadowCasters();
+        ChooseShadowCasters((float)delta);
         _lastCutoff = cutoff;
         ShowLit(cutoff);
         _pools.Update(_levels, levelsChanged, _lit.Select(c => (c.Lamp.Index, RealWeight(c.Distance, cutoff))));
@@ -193,7 +204,8 @@ public partial class LampLights : Node3D
     /// <summary>A one-line summary for dev reports.</summary>
     public string Describe() =>
         $"{ActiveLights} lamp lights ({ShadowedLights} shadowed, budget {_lights.Length} lights, {_shadowSlots.Length} shadows; " +
-        $"shadow opacity {string.Join("/", _shadowSlots.Select((id, slot) => id >= 0 ? $"{_lights[slot].ShadowOpacity:0.00}" : "-"))}), " +
+        $"{_shadowSlots.Where((id, slot) => id >= 0 && _shadowOpacity[slot] >= 1f).Count()} at full shadow opacity, " +
+        $"{_shadowSlots.Where((id, slot) => id >= 0 && _shadowOpacity[slot] < 1f).Count()} fading), " +
         $"{VisibleLamps} visible Lamps with halos, {_lampsByChunk.Values.Sum(l => l.Length)} Lamps in the Store " +
         $"(at most {_pools.MostLampsPerCell} per pool cell)";
 
@@ -207,7 +219,7 @@ public partial class LampLights : Node3D
         var lit = _lit.FindIndex(c => c.Lamp.Id == id);
         var real = lit >= 0 ? RealWeight(_lit[lit].Distance, _lastCutoff) : 0f;
         var slot = Array.IndexOf(_shadowSlots, id);
-        var shadow = slot >= 0 ? $", shadow opacity {_lights[slot].ShadowOpacity:0.000}" : "";
+        var shadow = slot >= 0 ? $", shadow opacity {_shadowOpacity[slot]:0.000}" : "";
         return $"Lamp {id} at {candidate.Position}, {candidate.Distance:0.0} m from the camera: real {real:0.000}, pool {1f - real:0.000}{shadow}";
     }
 
@@ -256,9 +268,11 @@ public partial class LampLights : Node3D
     /// <summary>
     /// Gives the shadow budget to the nearest lit Lamps, with a bonus for those already casting
     /// shadows (so two Lamps at about the same distance do not swap shadows every frame), and
-    /// keeps every Lamp that stays shadowed on the light it already had.
+    /// keeps every Lamp that stays shadowed on the light it already had. A Lamp that drops out of
+    /// the budget fades its shadow out before its light goes to another Lamp, whose shadow then
+    /// fades in, so no shadow ever appears or vanishes at once.
     /// </summary>
-    private void ChooseShadowCasters()
+    private void ChooseShadowCasters(float delta)
     {
         _shadowCasters.Clear();
         _shadowCasters.AddRange(_lit);
@@ -266,12 +280,44 @@ public partial class LampLights : Node3D
         if (_shadowCasters.Count > _shadowSlots.Length)
             _shadowCasters.RemoveRange(_shadowSlots.Length, _shadowCasters.Count - _shadowSlots.Length);
 
+        var step = ShadowFadeSeconds > 0f ? delta / ShadowFadeSeconds : 1f;
+        _shadowsFading = false;
         for (var slot = 0; slot < _shadowSlots.Length; slot++)
-            if (!_shadowCasters.Exists(c => c.Lamp.Id == _shadowSlots[slot]))
-                _shadowSlots[slot] = -1;
+        {
+            var id = _shadowSlots[slot];
+            if (id < 0)
+                continue;
+            // A Lamp no longer lit reaches nothing in view or has no light left: nothing to fade.
+            if (!_lit.Exists(c => c.Lamp.Id == id))
+                Release(slot);
+            else if (_shadowCasters.Exists(c => c.Lamp.Id == id))
+                _shadowOpacity[slot] = Math.Min(1f, _shadowOpacity[slot] + step);
+            else if ((_shadowOpacity[slot] = Math.Max(0f, _shadowOpacity[slot] - step)) <= 0f)
+                Release(slot);
+        }
         foreach (var caster in _shadowCasters)
-            if (Array.IndexOf(_shadowSlots, caster.Lamp.Id) < 0)
-                _shadowSlots[Array.IndexOf(_shadowSlots, -1)] = caster.Lamp.Id;
+        {
+            if (Array.IndexOf(_shadowSlots, caster.Lamp.Id) >= 0)
+                continue;
+            var free = Array.IndexOf(_shadowSlots, -1);
+            if (free < 0)
+            {
+                // Waits for a fading shadow to hand its light on.
+                _shadowsFading = true;
+                continue;
+            }
+            _shadowSlots[free] = caster.Lamp.Id;
+            _shadowOpacity[free] = 0f;
+        }
+        for (var slot = 0; slot < _shadowSlots.Length; slot++)
+            if (_shadowSlots[slot] >= 0 && _shadowOpacity[slot] < 1f)
+                _shadowsFading = true;
+    }
+
+    private void Release(int slot)
+    {
+        _shadowSlots[slot] = -1;
+        _shadowOpacity[slot] = 0f;
     }
 
     private float ShadowRank(Candidate candidate) =>
@@ -281,19 +327,27 @@ public partial class LampLights : Node3D
     private void ShowLit(float cutoff)
     {
         var count = _lit.Count;
-        var shadowCutoff = ShadowCutoff();
         var next = _shadowSlots.Length;
         for (var i = 0; i < count; i++)
         {
             var candidate = _lit[i];
             var shadowSlot = Array.IndexOf(_shadowSlots, candidate.Lamp.Id);
-            var light = _lights[shadowSlot >= 0 ? shadowSlot : next++];
-            light.Position = candidate.Position;
-            light.OmniRange = candidate.Lamp.Range;
+            var index = shadowSlot >= 0 ? shadowSlot : next++;
+            var light = _lights[index];
+            if (_lightPositions[index] != candidate.Position)
+            {
+                _lightPositions[index] = candidate.Position;
+                light.Position = candidate.Position;
+                light.OmniRange = candidate.Lamp.Range;
+            }
             // Lights near the edge of the budget fade out, and their pools take over the rest.
             light.LightEnergy = candidate.Lamp.Energy * _levels[candidate.Lamp.Index] * RealWeight(candidate.Distance, cutoff);
             if (shadowSlot >= 0)
-                light.ShadowOpacity = ShadowWeight(candidate.Distance, shadowCutoff);
+            {
+                // A shadow at zero opacity is not rendered at all.
+                light.ShadowOpacity = _shadowOpacity[shadowSlot];
+                light.ShadowEnabled = _shadowOpacity[shadowSlot] > 0f;
+            }
             light.Visible = true;
         }
         for (var slot = 0; slot < _lights.Length; slot++)
@@ -303,27 +357,14 @@ public partial class LampLights : Node3D
                 _lights[slot].Visible = false;
         }
         if (count == 0)
+        {
             Array.Fill(_shadowSlots, -1);
+            Array.Fill(_shadowOpacity, 0f);
+            _shadowsFading = false;
+        }
         ActiveLights = count;
         ShadowedLights = count == 0 ? 0 : _shadowSlots.Count(id => id >= 0);
     }
-
-    /// <summary>The distance of the nearest lit Lamp without a shadow, or the reach if every lit Lamp has one.</summary>
-    private float ShadowCutoff()
-    {
-        var cutoff = MaxDistance;
-        foreach (var candidate in _lit)
-            if (Array.IndexOf(_shadowSlots, candidate.Lamp.Id) < 0)
-                cutoff = Math.Min(cutoff, candidate.Distance);
-        return cutoff;
-    }
-
-    /// <summary>
-    /// Shadows fade out towards the nearest Lamp without one, and are gone before a Lamp could take
-    /// over the shadow (at the hysteresis distance), so no shadow ever appears or vanishes at once.
-    /// </summary>
-    private float ShadowWeight(float distance, float cutoff) =>
-        1f - Mathf.SmoothStep(cutoff * 0.5f, cutoff * ShadowHysteresis, distance);
 
     /// <summary>Complementary spatial blend; a Lamp leaving the real-light budget has zero real energy.</summary>
     private static float RealWeight(float distance, float cutoff) =>
@@ -345,6 +386,8 @@ public partial class LampLights : Node3D
         _levelStamp = -1;
         _lampsByChunk.Clear();
         Array.Fill(_shadowSlots, -1);
+        Array.Fill(_shadowOpacity, 0f);
+        Array.Fill(_lightPositions, null);
         var lamps = snapshot.Furniture.Where(p => FurnitureCatalog.Spec(p).IsLamp).Select(ToLamp).ToList();
         foreach (var chunk in lamps.GroupBy(l => _space.ChunkOf(l.Bulb.ToStore())))
             _lampsByChunk[chunk.Key] = chunk.ToArray();

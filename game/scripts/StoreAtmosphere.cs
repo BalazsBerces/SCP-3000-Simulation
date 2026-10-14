@@ -32,7 +32,7 @@ public partial class StoreAtmosphere : Node
 
     /// <summary>
     /// How far Store-light shadows reach per metre of zoom distance, plus a margin: past the far edge
-    /// of the view (about 100 m at the default zoom), so they fade out beyond it.
+    /// of the view (137 m at the default 45 m zoom), so they fade out beyond it.
     /// </summary>
     [Export] public float ShadowReachPerZoomMetre { get; set; } = 2.6f;
     [Export] public float ShadowReachMargin { get; set; } = 20f;

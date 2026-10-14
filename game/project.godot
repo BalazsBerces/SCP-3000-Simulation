@@ -31,6 +31,11 @@ environment/volumetric_fog/volume_depth=48
 environment/ssao/quality=1
 anti_aliasing/quality/use_taa=true
 occlusion_culling/use_occlusion_culling=true
+lights_and_shadows/positional_shadow/atlas_size=8192
+lights_and_shadows/positional_shadow/atlas_quadrant_0_subdiv=3
+lights_and_shadows/positional_shadow/atlas_quadrant_1_subdiv=3
+lights_and_shadows/positional_shadow/atlas_quadrant_2_subdiv=3
+lights_and_shadows/positional_shadow/atlas_quadrant_3_subdiv=3
 
 [shader_globals]
 
