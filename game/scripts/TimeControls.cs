@@ -5,7 +5,8 @@ namespace Scp3008.Game;
 
 /// <summary>
 /// Observer time controls and Store clock. Buttons or keys: Space toggles pause,
-/// 1-5 select 1x, 2x, 4x, 8x and 16x.
+/// 1-5 select 1x, 2x, 4x, 8x and 16x. The Night/Day button or N jumps the clock forward to the
+/// middle of Closing time (lights out) or of the open day, to check either lighting quickly.
 /// </summary>
 public partial class TimeControls : CanvasLayer
 {
@@ -21,7 +22,12 @@ public partial class TimeControls : CanvasLayer
         (SimulationSpeed.Fast16, "16x", Key.Key5),
     ];
 
+    /// <summary>Where the Night/Day button jumps: well past the lights' fade in either direction.</summary>
+    private static readonly TimeSpan Night = TimeSpan.FromHours(23);
+    private static readonly TimeSpan Day = TimeSpan.FromHours(12);
+
     private readonly Dictionary<SimulationSpeed, Button> _buttons = new();
+    private Button _nightButton = null!;
     private Label _clockLabel = null!;
     private ProgressBar _dayProgress = null!;
     private SimulationSpeed _speedBeforePause = SimulationSpeed.Normal;
@@ -59,12 +65,21 @@ public partial class TimeControls : CanvasLayer
             row.AddChild(button);
             _buttons[speed] = button;
         }
+        _nightButton = new Button { FocusMode = Control.FocusModeEnum.None, CustomMinimumSize = new Vector2(64, 0) };
+        _nightButton.Pressed += ToggleNight;
+        row.AddChild(_nightButton);
     }
 
     public override void _UnhandledKeyInput(InputEvent @event)
     {
         if (@event is not InputEventKey { Pressed: true, Echo: false } key)
             return;
+        if (key.Keycode == Key.N)
+        {
+            ToggleNight();
+            GetViewport().SetInputAsHandled();
+            return;
+        }
         if (key.Keycode == Key.Space)
         {
             SetSpeed(Host.Speed == SimulationSpeed.Paused ? _speedBeforePause : SimulationSpeed.Paused);
@@ -86,12 +101,21 @@ public partial class TimeControls : CanvasLayer
         var storeTime = Host.InterpolatedStoreTime;
         var day = (int)storeTime.TotalDays + 1;
         var timeOfDay = TimeSpan.FromTicks(storeTime.Ticks % TimeSpan.TicksPerDay);
-        var phase = StoreHours.PhaseAt(timeOfDay) == DayPhase.Open ? "Open" : "Closing time";
+        var open = StoreHours.PhaseAt(timeOfDay) == DayPhase.Open;
+        var phase = open ? "Open" : "Closing time";
+        _nightButton.Text = open ? "Night" : "Day";
         _clockLabel.Text = $"Day {day}   {timeOfDay.Hours:00}:{timeOfDay.Minutes:00}   {phase}";
         _dayProgress.Value = timeOfDay.TotalDays;
         // Without a signal the button group does not unpress the others, so set every button.
         foreach (var (speed, button) in _buttons)
             button.SetPressedNoSignal(speed == Host.Speed);
+    }
+
+    /// <summary>Runs the clock forward to the next Closing time while open, or to the next open day.</summary>
+    private void ToggleNight()
+    {
+        var timeOfDay = TimeSpan.FromTicks(Host.InterpolatedStoreTime.Ticks % TimeSpan.TicksPerDay);
+        Host.AdvanceTo(StoreHours.PhaseAt(timeOfDay) == DayPhase.Open ? Night : Day);
     }
 
     private void SetSpeed(SimulationSpeed speed)

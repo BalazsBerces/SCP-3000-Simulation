@@ -11,7 +11,7 @@ namespace Scp3008.Game;
 /// <see cref="FurnitureDetail"/>; this node keeps it in step with the camera), and solid, tall
 /// Furniture hides what stands behind it (occlusion culling, switched on in the project settings).
 /// User argument after "--": --lod-zoom=metres sets <see cref="FurnitureDetail.SwitchZoom"/>
-/// (to find the threshold with the benchmark).
+/// (to find the threshold with the benchmark), and --map-height=metres sets <see cref="FurnitureDetail.MapHeight"/>.
 /// Rebuilt whenever a new world is created. View only: it never touches the simulation.
 /// </summary>
 public partial class FurnitureRenderer : Node3D
@@ -25,9 +25,11 @@ public partial class FurnitureRenderer : Node3D
         foreach (var arg in OS.GetCmdlineUserArgs())
             if (arg.StartsWith("--lod-zoom="))
                 FurnitureDetail.SwitchZoom = float.Parse(arg["--lod-zoom=".Length..], System.Globalization.CultureInfo.InvariantCulture);
+            else if (arg.StartsWith("--map-height="))
+                FurnitureDetail.MapHeight = float.Parse(arg["--map-height=".Length..], System.Globalization.CultureInfo.InvariantCulture);
         Host.WorldCreated += Rebuild;
         FurnitureDetail.Changed += ShowDetail;
-        FurnitureDetail.Update(Rig.Distance);
+        FurnitureDetail.Update(Rig.Distance, Rig.Camera.GlobalPosition.Y);
         ShowDetail(FurnitureDetail.Coarse);
         Rebuild(Host.Snapshot);
     }
@@ -39,7 +41,7 @@ public partial class FurnitureRenderer : Node3D
     }
 
     // Runs after the camera rig (CameraRig.ProcessPriority), so the level matches this frame's zoom.
-    public override void _Process(double delta) => FurnitureDetail.Update(Rig.Distance);
+    public override void _Process(double delta) => FurnitureDetail.Update(Rig.Distance, Rig.Camera.GlobalPosition.Y);
 
     private void ShowDetail(bool coarse) => Rig.Camera.CullMask = FurnitureDetail.Mask(Rig.Camera.CullMask);
 

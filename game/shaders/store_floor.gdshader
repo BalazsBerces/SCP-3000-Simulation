@@ -31,6 +31,11 @@ uniform bool show_sectors = false;
 uniform float sector_size = 448.0;
 uniform vec3 sector_line_color : source_color = vec3(1.0, 0.85, 0.35);
 
+// Store overview from high up only: all Furniture seen from above (FurnitureMap.cs), premultiplied
+// by coverage and linear (not sRGB), covering the Store once, in place of the Furniture meshes.
+uniform sampler2D furniture_map : filter_linear_mipmap_anisotropic, repeat_disable;
+uniform bool show_furniture_map = false;
+
 varying vec3 world_position;
 
 void vertex() {
@@ -76,6 +81,16 @@ void fragment() {
 	if (in_cell.y < border_width && department_at(cell + ivec2(0, -1)) != layer) border = 1.0;
 	if (in_cell.y > department_cell_size - border_width && department_at(cell + ivec2(0, 1)) != layer) border = 1.0;
 	color = mix(color, border_color, border);
+
+	float furniture = 0.0;
+	if (show_furniture_map) {
+		vec4 seen = texture(furniture_map, p / store_size);
+		furniture = seen.a;
+		color = color * (1.0 - furniture) + seen.rgb;
+		roughness = mix(roughness, 0.8, furniture);
+		normal_map = mix(normal_map, vec3(0.5, 0.5, 1.0), furniture);
+		NORMAL_MAP = normal_map;
+	}
 
 	if (show_chunks) {
 		color = mix(color, chunk_line_color, overlay_lines(p, chunk_size, 0.15));

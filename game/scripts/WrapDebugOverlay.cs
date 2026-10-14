@@ -22,6 +22,7 @@ public partial class WrapDebugOverlay : Node3D
 
     private Label _label = null!;
     private Label _overviewLabel = null!;
+    private Label _heightLabel = null!;
     private StoreSpace _space = StoreSpace.Standard;
     private readonly List<WrappedInstances> _markers = [];
 
@@ -46,6 +47,14 @@ public partial class WrapDebugOverlay : Node3D
         };
         _overviewLabel.AddThemeFontSizeOverride("font_size", 18);
         hud.AddChild(_overviewLabel);
+        _heightLabel = new Label
+        {
+            Name = "CameraHeight",
+            AnchorTop = 1f, AnchorBottom = 1f, OffsetLeft = 16f, OffsetTop = -108f,
+            Visible = false,
+        };
+        _heightLabel.AddThemeFontSizeOverride("font_size", 18);
+        hud.AddChild(_heightLabel);
 
         BuildMarkers(Host.Snapshot);
         Host.WorldCreated += BuildMarkers;
@@ -83,6 +92,8 @@ public partial class WrapDebugOverlay : Node3D
     {
         StoreOverview.Set(!StoreOverview.Enabled);
         _overviewLabel.Visible = StoreOverview.Enabled;
+        _heightLabel.Visible = StoreOverview.Enabled;
+        UpdateProcessing();
     }
 
     public override void _UnhandledKeyInput(InputEvent @event)
@@ -101,6 +112,10 @@ public partial class WrapDebugOverlay : Node3D
 
     public override void _Process(double delta)
     {
+        if (StoreOverview.Enabled)
+            _heightLabel.Text = $"Camera height  {Rig.Camera.GlobalPosition.Y:0} m";
+        if (!Enabled)
+            return;
         var focus = Rig.Focus.ToStore();
         var chunk = _space.ChunkOf(focus);
         _label.Text = $"Focus  x {focus.X:0.0}  y {focus.Y:0.0}    chunk ({chunk.X}, {chunk.Y})    F3 hides";
@@ -111,9 +126,11 @@ public partial class WrapDebugOverlay : Node3D
         Enabled = enabled;
         Visible = enabled;
         _label.Visible = enabled;
-        SetProcess(enabled);
+        UpdateProcessing();
         Floor.FloorMaterial.SetShaderParameter("show_chunks", enabled);
     }
+
+    private void UpdateProcessing() => SetProcess(Enabled || StoreOverview.Enabled);
 
     private void AddMarkers(PrimitiveMesh mesh, Color color, IEnumerable<Vector3> positions)
     {

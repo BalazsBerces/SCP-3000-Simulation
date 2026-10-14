@@ -8,8 +8,12 @@ namespace Scp3008.Game;
 /// Development aid for unattended checks. With user arguments after "--":
 ///   --capture=&lt;png path&gt;   save a screenshot after <c>--capture-after</c> seconds (default 3) and quit;
 ///   --fps-report           print the average frame rate over the capture window;
+///   --hitch-report         print every frame over the capture window that took over twice the
+///                          median (and over 12 ms), with what happened in it: a chunk or seam
+///                          crossing, a garbage collection;
 ///   --focus=x,y            start the camera focused on Store position (x, y);
 ///   --distance=metres      start the camera at this zoom distance;
+///   --overview-distance=metres  once the <see cref="StoreOverview"/> is on (--overview), jump to this zoom distance;
 ///   --pillars=name         (read by SimulationHost) start with this Pillar layout: 3x3, 2x2, 3x3L,
 ///                          3x3L-corners or 3x3L-diamond (the default);
 ///   --pillar=coordinate    focus beside a Pillar, by its grid coordinate (e.g. B-2), if the layout has it;
@@ -18,6 +22,7 @@ namespace Scp3008.Game;
 ///   --pan=vx,vy            pan the camera focus at (vx, vy) metres per second, then report how
 ///                          often it crossed a seam and its largest per-frame step, overall
 ///                          and on the crossing frames (a jump would show as a big step there);
+///   --rotate=degrees       turn the camera at this many degrees per second;
 ///   --no-focus-wrap        never shift the camera back onto the floor (to compare images of the same place);
 ///   --start-time=HH:MM     (read by SimulationHost) start the Store clock at this Store time;
 ///   --eye-level            look from a Villager's eye height (1.7 m) along the floor instead of
@@ -39,6 +44,9 @@ namespace Scp3008.Game;
 ///   --zoom-sweep=seconds   zoom slowly from 20 m inside the level-of-detail switch to 20 m beyond
 ///                          it and back over this many seconds, wobbling by 1.5 m like an unsteady
 ///                          hand, then report how often the level switched (2 means no flicker).
+///   --zoom-in-test         zoom in fast with the mouse wheel, from the farthest zoom in the normal
+///                          view and then in the <see cref="StoreOverview"/>, and report every frame
+///                          that took over twice the median, with the zoom and level of detail then.
 /// Does nothing in normal runs.
 /// </summary>
 public partial class DevCapture : Node
@@ -54,7 +62,13 @@ public partial class DevCapture : Node
     private string? _capturePath;
     private double _captureAfter = 3.0;
     private bool _fpsReport;
+    private bool _hitchReport;
+    private readonly List<(double Ms, string Events)> _frameLog = [];
+    private ulong _lastFrameUsec;
+    private (long X, long Y) _lastChunk;
+    private int[] _lastCollections = [0, 0, 0];
     private Vector3 _panVelocity;
+    private float _rotateDegreesPerSecond;
     private double _elapsed;
     private int _frames;
     private int _seamCrossings;
@@ -66,6 +80,7 @@ public partial class DevCapture : Node
     private PillarLayout? _layoutToChoose;
     private double _zoomSweepSeconds;
     private int _detailSwitches;
+    private float? _overviewDistance;
 
     public override void _Ready()
     {
@@ -89,10 +104,14 @@ public partial class DevCapture : Node
                 _captureAfter = double.Parse(arg["--capture-after=".Length..], CultureInfo.InvariantCulture);
             else if (arg == "--fps-report")
                 _fpsReport = true;
+            else if (arg == "--hitch-report")
+                _hitchReport = _fpsReport = true;
             else if (arg.StartsWith("--focus="))
                 Rig.JumpTo(ParseFloorVector(arg["--focus=".Length..]));
             else if (arg.StartsWith("--distance="))
                 Rig.JumpToDistance(float.Parse(arg["--distance=".Length..], CultureInfo.InvariantCulture));
+            else if (arg.StartsWith("--overview-distance="))
+                _overviewDistance = float.Parse(arg["--overview-distance=".Length..], CultureInfo.InvariantCulture);
             else if (arg.StartsWith("--pillar="))
             {
                 var coordinate = arg["--pillar=".Length..];
@@ -111,6 +130,8 @@ public partial class DevCapture : Node
             }
             else if (arg.StartsWith("--pan="))
                 _panVelocity = ParseFloorVector(arg["--pan=".Length..]);
+            else if (arg.StartsWith("--rotate="))
+                _rotateDegreesPerSecond = float.Parse(arg["--rotate=".Length..], CultureInfo.InvariantCulture);
             else if (arg == "--no-focus-wrap")
                 Rig.WrapFocus = false;
             else if (arg == "--eye-level")
@@ -123,6 +144,8 @@ public partial class DevCapture : Node
                 FurnitureMeshes.ShowCoarseInMagenta(true);
             else if (arg.StartsWith("--zoom-sweep="))
                 _zoomSweepSeconds = double.Parse(arg["--zoom-sweep=".Length..], CultureInfo.InvariantCulture);
+            else if (arg == "--zoom-in-test")
+                CallDeferred(MethodName.RunZoomInTest);
             else if (arg.StartsWith("--choose-pillars="))
                 _layoutToChoose = PillarLayouts.Parse(arg["--choose-pillars=".Length..]);
         }
@@ -154,7 +177,7 @@ public partial class DevCapture : Node
         };
         if (_zoomSweepSeconds > 0)
             _captureAfter = Math.Max(_captureAfter, _zoomSweepSeconds);
-        SetProcess(_zoomSweepSeconds > 0 || _capturePath is not null || _fpsReport || _panVelocity != Vector3.Zero || _seedToEnter is not null || _layoutToChoose is not null);
+        SetProcess(_overviewDistance is not null || _zoomSweepSeconds > 0 || _capturePath is not null || _fpsReport || _panVelocity != Vector3.Zero || _seedToEnter is not null || _layoutToChoose is not null);
     }
 
     public override void _Process(double delta)
@@ -164,10 +187,18 @@ public partial class DevCapture : Node
         _largestFocusStep = Mathf.Max(_largestFocusStep, step);
         if (_crossedThisFrame)
             _largestCrossingStep = Mathf.Max(_largestCrossingStep, step);
+        var crossed = _crossedThisFrame;
         _crossedThisFrame = false;
         _lastFocus = Rig.Focus;
+        if (_overviewDistance is { } overviewDistance && StoreOverview.Enabled)
+        {
+            Rig.JumpToDistance(overviewDistance);
+            _overviewDistance = null;
+        }
         if (_panVelocity != Vector3.Zero)
             Rig.MoveTargetBy(_panVelocity * (float)delta);
+        if (_rotateDegreesPerSecond != 0f)
+            Rig.JumpToYaw(Mathf.DegToRad(30f + _rotateDegreesPerSecond * (float)_elapsed));
         if (_zoomSweepSeconds > 0 && _elapsed <= _zoomSweepSeconds)
         {
             // Out and back in, a triangle wave, with a wobble faster than the sweep.
@@ -179,6 +210,8 @@ public partial class DevCapture : Node
 
         _elapsed += delta;
         _frames++;
+        if (_hitchReport)
+            LogFrame(crossed);
         if (_seedToEnter is not null && _elapsed >= 1.0)
         {
             Seeds.Submit(_seedToEnter);
@@ -197,6 +230,8 @@ public partial class DevCapture : Node
 
         if (_fpsReport)
             GD.Print($"FPS average over {_elapsed:0.0}s: {_frames / _elapsed:0.0}");
+        if (_hitchReport)
+            ReportHitches();
         if (_zoomSweepSeconds > 0)
             GD.Print($"Zoom sweep: {_frames} frames across the level-of-detail switch at {FurnitureDetail.SwitchZoom:0} m, " +
                      $"{_detailSwitches} switches, now {(FurnitureDetail.Coarse ? "coarse" : "full")} at zoom {Rig.Distance:0.0} m");
@@ -218,6 +253,93 @@ public partial class DevCapture : Node
             GD.Print(error == Error.Ok ? $"Screenshot saved to {_capturePath}" : $"Screenshot failed: {error}");
         }
         GetTree().Quit();
+    }
+
+    private void LogFrame(bool crossed)
+    {
+        var now = Time.GetTicksUsec();
+        var events = new List<string>();
+        var chunkSize = Host.Snapshot.Space.ChunkSize;
+        var chunk = ((long)Math.Floor(Rig.Focus.X / chunkSize), (long)Math.Floor(Rig.Focus.Z / chunkSize));
+        if (chunk != _lastChunk)
+            events.Add("chunk");
+        if (crossed)
+            events.Add("seam");
+        for (var generation = 0; generation < 3; generation++)
+        {
+            var count = GC.CollectionCount(generation);
+            if (count != _lastCollections[generation])
+                events.Add($"GC{generation}");
+            _lastCollections[generation] = count;
+        }
+        // Skip the first seconds: start-up, shader compilation and the first placements.
+        if (_lastFrameUsec != 0 && _elapsed > 3.0)
+            _frameLog.Add(((now - _lastFrameUsec) / 1000.0, string.Join(" ", events)));
+        _lastFrameUsec = now;
+        _lastChunk = chunk;
+    }
+
+    private void ReportHitches()
+    {
+        if (_frameLog.Count == 0)
+            return;
+        var sorted = _frameLog.Select(f => f.Ms).Order().ToList();
+        var median = sorted[sorted.Count / 2];
+        var hitches = _frameLog.Select((f, i) => (f.Ms, f.Events, Index: i)).Where(f => f.Ms > Math.Max(2 * median, 12.0)).ToList();
+        GD.Print($"Hitches: {hitches.Count} of {_frameLog.Count} frames; median {median:0.0} ms, 99th percentile {sorted[(int)(sorted.Count * 0.99)]:0.0} ms, worst {sorted[^1]:0.0} ms");
+        foreach (var (ms, events, index) in hitches.Take(40))
+            GD.Print($"  frame {index}: {ms:0.0} ms {events} (previous frame: {(index > 0 ? _frameLog[index - 1].Events : "")})");
+    }
+
+    private async void RunZoomInTest()
+    {
+        try
+        {
+            Host.HoldClearWeather();
+            await ZoomIn("Normal view", () => Rig.JumpToDistance(Rig.MaxDistance));
+            StoreOverview.Set(true);
+            // Wait out the overview's own zoom-out and the Furniture map.
+            await Wait(6.0);
+            await ZoomIn("Overview", () => Rig.JumpToDistance(float.MaxValue));
+        }
+        catch (Exception e)
+        {
+            GD.PushError($"Zoom-in test failed: {e}");
+        }
+        GetTree().Quit();
+    }
+
+    private async Task ZoomIn(string name, Action start)
+    {
+        start();
+        await Wait(3.0);
+        var frames = new List<(double Ms, float Distance, float Height, string Level)>();
+        var level = () => FurnitureDetail.Map ? "map" : FurnitureDetail.Coarse ? "coarse" : "full";
+        var last = Time.GetTicksUsec();
+        for (var frame = 0; frame < 240; frame++)
+        {
+            // Two wheel notches a frame for the first 60 frames: a fast scroll in.
+            if (frame < 60)
+                for (var notch = 0; notch < 2; notch++)
+                    Input.ParseInputEvent(new InputEventMouseButton { ButtonIndex = MouseButton.WheelUp, Pressed = true, Position = GetViewport().GetVisibleRect().Size / 2f });
+            await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+            var now = Time.GetTicksUsec();
+            frames.Add(((now - last) / 1000.0, Rig.Distance, Rig.Camera.GlobalPosition.Y,
+                level()));
+            last = now;
+        }
+        var median = frames.Select(f => f.Ms).Order().ElementAt(frames.Count / 2);
+        GD.Print($"Zoom in, {name}: median frame {median:0.0} ms, worst {frames.Max(f => f.Ms):0.0} ms");
+        for (var i = 0; i < frames.Count; i++)
+            if (frames[i].Ms > 2 * median && frames[i].Ms > 12)
+                GD.Print($"  frame {i}: {frames[i].Ms:0.0} ms at zoom {frames[i].Distance:0} m, height {frames[i].Height:0} m, {frames[i].Level}");
+    }
+
+    private async Task Wait(double seconds)
+    {
+        var until = Time.GetTicksMsec() + (ulong)(seconds * 1000);
+        while (Time.GetTicksMsec() < until)
+            await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
     }
 
     private async void CaptureFurnitureTour()

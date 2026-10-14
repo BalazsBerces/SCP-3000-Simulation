@@ -48,10 +48,20 @@ public partial class CameraRig : Node3D
     [Export] public float Smoothing { get; set; } = 7f;
 
     /// <summary>
-    /// Keep the focus on the Store floor by shifting the rig a whole Store length when it pans
-    /// across a seam. Wrapped content is placed around the focus, so the shift is invisible.
+    /// Keep the focus near the Store floor by shifting the rig whole Store lengths back onto it once
+    /// it has panned <see cref="RecentreStoreLengths"/> away, so world coordinates stay small enough
+    /// for float precision. Wrapped content is placed around the focus, so the shift is invisible.
     /// </summary>
     [Export] public bool WrapFocus { get; set; } = true;
+
+    /// <summary>
+    /// How many Store lengths the focus may pan off the Store floor before the rig shifts back onto
+    /// it. Every shift moves all wrapped content at once (a frame hitch of about 0.1 s), so this is
+    /// far rather than at the first seam: the camera passes seams like any chunk edge, and even at
+    /// the farthest zoom it takes over a minute of panning one way to get there. At 8 Store lengths
+    /// (15 km) float precision is still about a millimetre.
+    /// </summary>
+    [Export] public int RecentreStoreLengths { get; set; } = 8;
 
     private Vector3 _targetFocus;
     private float _targetYaw;
@@ -69,7 +79,10 @@ public partial class CameraRig : Node3D
     /// <summary>The current zoom: the camera's distance from the focus, in metres.</summary>
     public float Distance => _distance;
 
-    /// <summary>The point on the floor the camera looks at, always on the floor while <see cref="WrapFocus"/> is on.</summary>
+    /// <summary>
+    /// The point on the floor the camera looks at, unwrapped: within <see cref="RecentreStoreLengths"/>
+    /// Store lengths of the Store floor while <see cref="WrapFocus"/> is on.
+    /// </summary>
     public Vector3 Focus => Position;
 
     public override void _EnterTree()
@@ -195,13 +208,12 @@ public partial class CameraRig : Node3D
 
     private void WrapIntoStore()
     {
+        var lengths = new Vector2(Mathf.Floor(Position.X / _storeSize), Mathf.Floor(Position.Z / _storeSize));
+        if (Mathf.Abs(lengths.X) <= RecentreStoreLengths && Mathf.Abs(lengths.Y) <= RecentreStoreLengths)
+            return;
         // Shift by whole Store lengths, applied to the eased focus and its target alike, so the
         // easing carries on undisturbed on the other side of the seam.
-        var shift = new Vector3(
-            -_storeSize * Mathf.Floor(Position.X / _storeSize), 0f,
-            -_storeSize * Mathf.Floor(Position.Z / _storeSize));
-        if (shift == Vector3.Zero)
-            return;
+        var shift = new Vector3(-_storeSize * lengths.X, 0f, -_storeSize * lengths.Y);
         Position += shift;
         _targetFocus += shift;
         Recentred?.Invoke(shift);

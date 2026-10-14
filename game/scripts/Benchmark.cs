@@ -16,7 +16,9 @@ namespace Scp3008.Game;
 /// 1 if not. User arguments after "--":
 ///   --benchmark-seconds=s  measuring time per lighting (default 20);
 ///   --benchmark-shots=dir  save near, mid and far screenshots in each lighting;
-///   --lamp-reproduction=dir  capture a continuous pan, rotation and zoom over the Lamp displays.
+///   --lamp-reproduction=dir  capture a continuous pan, rotation and zoom over the Lamp displays;
+///   --benchmark-overview  measure only the <see cref="StoreOverview"/>, held over the Store centre at
+///   fixed camera heights at Closing time.
 /// </summary>
 public partial class Benchmark : Node
 {
@@ -37,11 +39,16 @@ public partial class Benchmark : Node
 
     private string? _shotsDirectory;
     private string? _reproductionDirectory;
+    private bool _overviewOnly;
     private double? _progress;
     private float? _holdZoom;
 
     // HoldZoom: hold the far point of the path at this zoom, approached from closer, as zooming out.
-    private sealed record Lighting(string Name, TimeSpan TimeOfDay, bool HoldFar = false, float? HoldZoom = null);
+    // OverviewHeight: hold the StoreOverview over the Store centre with the camera this high, in metres.
+    private sealed record Lighting(string Name, TimeSpan TimeOfDay, bool HoldFar = false, float? HoldZoom = null, float? OverviewHeight = null);
+
+    /// <summary>Camera heights the overview is measured at: with meshes, just below and above the map switch, at 877 m, and highest.</summary>
+    private static readonly float[] OverviewHeights = [150f, 230f, 270f, 500f, 877f, 2400f];
 
     private sealed record Result(Lighting Lighting, int Frames, double Seconds, double AverageFps, double OnePercentLowFps, int MostLights, int MostShadowed, int MostVisibleLamps,
         double GpuMilliseconds, double CpuMilliseconds, double DrawCalls, double Primitives);
@@ -68,6 +75,8 @@ public partial class Benchmark : Node
                 _shotsDirectory = arg["--benchmark-shots=".Length..];
             else if (arg.StartsWith("--lamp-reproduction="))
                 _reproductionDirectory = arg["--lamp-reproduction=".Length..];
+            else if (arg == "--benchmark-overview")
+                _overviewOnly = true;
         }
 
         DisplayServer.WindowSetVsyncMode(DisplayServer.VSyncMode.Disabled);
@@ -93,6 +102,17 @@ public partial class Benchmark : Node
     {
         Host.Speed = Scp3008.Core.SimulationSpeed.Paused;
         var results = new List<Result>();
+        if (_overviewOnly)
+        {
+            Host.AdvanceTo(TimeSpan.FromHours(23));
+            Host.HoldClearWeather();
+            StoreOverview.Set(true);
+            foreach (var height in OverviewHeights)
+                results.Add(await Measure(new Lighting($"Overview at {height:0} m", TimeSpan.FromHours(23), OverviewHeight: height)));
+            StoreOverview.Set(false);
+            Report(results);
+            return;
+        }
         foreach (var lighting in new[] { new Lighting("Open", TimeSpan.FromHours(12)), new Lighting("Closing time", TimeSpan.FromHours(23)) })
         {
             Host.AdvanceTo(lighting.TimeOfDay);
@@ -113,11 +133,16 @@ public partial class Benchmark : Node
         if (FurnitureDetail.SwitchZoom < Rig.MaxDistance)
             results.Add(await Measure(new Lighting("Closing time at LOD switch", TimeSpan.FromHours(23), HoldFar: true,
                 HoldZoom: FurnitureDetail.SwitchZoom)));
+        Report(results);
+    }
+
+    private void Report(List<Result> results)
+    {
         var size = GetViewport().GetVisibleRect().Size;
         GD.Print($"Benchmark: Store {Host.Snapshot.Seed}, {size.X}x{size.Y}, {RenderingServer.GetVideoAdapterName()}, " +
                  $"{MeasureSeconds:0} s per lighting, target {TargetFps} fps average, {TargetOnePercentLowFps} fps 1% low");
         GD.Print($"  Weather: fixed Fog bank, radius 160 m; MSAA {GetViewport().Msaa3D}, TAA {GetViewport().UseTaa}; " +
-                 $"Furniture full up to a zoom of {FurnitureDetail.SwitchZoom:0} m");
+                 $"Furniture full up to a zoom of {FurnitureDetail.SwitchZoom:0} m, map above an overview camera height of {FurnitureDetail.MapHeight:0} m");
         foreach (var r in results)
             GD.Print($"  {r.Lighting.Name,-26} average {r.AverageFps,6:0.0} fps, 1% low {r.OnePercentLowFps,6:0.0} fps " +
                      $"({r.Frames} frames in {r.Seconds:0.0} s; up to {r.MostLights} lamp lights, {r.MostShadowed} shadowed, {r.MostVisibleLamps} visible Lamps with halos; " +
@@ -137,6 +162,12 @@ public partial class Benchmark : Node
         var warmUpEnds = Now + WarmUpSeconds;
         while (Now < warmUpEnds)
         {
+            if (lighting.OverviewHeight is { } warmUpHeight)
+            {
+                HoldOverview(warmUpHeight);
+                await NextFrame();
+                continue;
+            }
             _progress = lighting.HoldFar ? 0.8 : 0.0;
             _holdZoom = lighting.HoldZoom is not null && Now < warmUpEnds - WarmUpSeconds / 2 ? Rig.MinDistance : lighting.HoldZoom;
             await NextFrame();
@@ -151,7 +182,10 @@ public partial class Benchmark : Node
         var last = start;
         while (last - start < MeasureSeconds)
         {
-            _progress = lighting.HoldFar ? 0.8 : (last - start) / MeasureSeconds;
+            if (lighting.OverviewHeight is { } height)
+                HoldOverview(height);
+            else
+                _progress = lighting.HoldFar ? 0.8 : (last - start) / MeasureSeconds;
             await NextFrame();
             var now = Now;
             frameSeconds.Add(now - last);
@@ -234,6 +268,16 @@ public partial class Benchmark : Node
         Rig.JumpToYaw(Mathf.DegToRad(30f + 90f * t));
         if (_holdZoom is { } zoom)
             Rig.JumpToDistance(zoom);
+    }
+
+    /// <summary>Holds the overview camera over the Store centre at this height, in metres.</summary>
+    private void HoldOverview(float height)
+    {
+        _progress = null;
+        var size = Host.Snapshot.Space.Size;
+        Rig.JumpTo(new Vector3(size / 2f, 0f, size / 2f));
+        Rig.JumpToDistance(height / Mathf.Sin(Mathf.DegToRad(Rig.OverviewTilt)));
+        Rig.JumpToYaw(Mathf.DegToRad(30f));
     }
 
     private async Task NextFrame() => await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);

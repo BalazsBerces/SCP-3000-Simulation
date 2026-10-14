@@ -1,4 +1,4 @@
-[gd_scene load_steps=20 format=3]
+[gd_scene load_steps=21 format=3]
 
 [ext_resource type="Script" path="res://scripts/SimulationHost.cs" id="1_host"]
 [ext_resource type="Script" path="res://scripts/StoreFloor.cs" id="2_floor"]
@@ -17,6 +17,7 @@
 
 [ext_resource type="Script" path="res://scripts/StoreVisibility.cs" id="15_visibility"]
 [ext_resource type="Script" path="res://scripts/PillarRenderer.cs" id="16_pillars"]
+[ext_resource type="Script" path="res://scripts/FurnitureMap.cs" id="17_furniture_map"]
 
 [sub_resource type="Resource" id="Resource_visibility"]
 script = ExtResource("15_visibility")
@@ -105,6 +106,12 @@ script = ExtResource("8_furniture")
 Visibility = SubResource("Resource_visibility")
 Host = NodePath("../SimulationHost")
 Rig = NodePath("../CameraRig")
+
+[node name="FurnitureMap" type="Node" parent="." node_paths=PackedStringArray("Host", "Rig", "Floor")]
+script = ExtResource("17_furniture_map")
+Host = NodePath("../SimulationHost")
+Rig = NodePath("../CameraRig")
+Floor = NodePath("../StoreFloor")
 
 [node name="LampLights" type="Node3D" parent="." node_paths=PackedStringArray("Host", "Rig", "Atmosphere", "FogBanks")]
 script = ExtResource("12_lamps")
