@@ -36,9 +36,10 @@ param(
   # Stage-end tickets also review the whole stage, so they get more effort.
   [ValidateSet('low', 'medium', 'high', 'xhigh', 'max')] [string]$StageEffort = 'high',
   # Context size (tokens, a plain number) at which a ticket session compacts itself; 'auto' keeps the model default.
-  # 120000 keeps the average context around 65-70k (cheap turns) while most tickets compact at most once;
-  # the earlier '300k' was not read as 300000 and compacted at about 67k.
-  [string]$CompactWindow = '120000'
+  # Sessions compact about 35-40k below this window (measured: 120000 compacted at ~85k), so 155000
+  # compacts at about 120k: cheap turns, and most tickets compact at most once.
+  # The earlier '300k' was not read as 300000 and compacted at about 67k.
+  [string]$CompactWindow = '155000'
 )
 
 $ErrorActionPreference = 'Stop'
