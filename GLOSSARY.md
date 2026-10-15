@@ -39,7 +39,7 @@ One of the equal squares the Pillar layout divides the Store into, named by its 
 _Avoid_: Zone, region, quadrant, district
 
 **Landmark**:
-A huge, far-visible, unique place of the Store that shapes what Villagers do there (the ruined Village, rack canyon, dead zone, clock wall, mattress mountain, fountain court or box fort). Every world has the ruined Village; the seed picks which of the others it has, at most one Landmark per Sector, preferring Sectors without a Pillar. It stands on a rectangle of at most a quarter of its Sector, clear of the Pillar and its walkway ring, which no Display enters, and rises well above the shelving and the Fog banks. It is made entirely of Furniture, which Villages may take and Restock slowly brings back; some also give their ground a lasting property, such as darkness or water, that stays when the Furniture is gone. Pillars are not Landmarks. The climbable ones (rack canyon, mattress mountain) have **Lookouts**: high places on their Furniture to look out from.
+A huge, far-visible, unique place of the Store that shapes what Villagers do there (the ruined Village, Abandoned scaffold, rack canyon, dead zone, clock wall, mattress mountain, fountain court or box fort). Every world has the ruined Village; the seed picks which of the others it has, at most one Landmark per Sector, preferring Sectors without a Pillar. It stands on a rectangle of at most a quarter of its Sector, clear of the Pillar and its walkway ring, which no Display enters, and rises well above the shelving and the Fog banks. It is made entirely of Furniture, which Villages may take and Restock slowly brings back; some also give their ground a lasting property, such as darkness or water, that stays when the Furniture is gone. Pillars are not Landmarks. The climbable ones (rack canyon, mattress mountain) have **Lookouts**: high places on their Furniture to look out from.
 _Avoid_: Point of interest (small, seen only up close)
 
 **Landmark showcase**:
@@ -58,17 +58,17 @@ _Avoid_: Landmark (huge, far-visible)
 Five kinds, each made only of Furniture and planned before the Displays, which keep clear of them: the **Restroom** (1–3 per Sector), the **Canteen** (3–4 per Store, in Restaurant/food market Departments), the **Set dinner table** (2–3 per Sector), the **Lost and found desk** (about one per Sector) and the **Shopping cart graveyard** (2–4 per Store). At most one per Department cell; none overlaps a Landmark, a Pillar or its walkway ring. No real store brand appears in their names, food or signage. The Landmark showcase has none.
 
 **Ball pit**:
-One of the three modest bouncy castles filled with balls in every Store; a Point of interest. Harmless while the Store is open; at Closing time the Staff pass from any Ball pit to any other. Villagers cannot.
+One of the three ball pools in every Store, like a store's kids' play area: padded walls, a net railing, a slide and hundreds of coloured balls; a Point of interest. Harmless while the Store is open; at Closing time the Staff pass from any Ball pit to any other. Villagers cannot.
 _Avoid_: Ball-pit sea, portal
 
 **Ball pit network**:
 The three Ball pits of a Store recorded as one network in the core: at Closing time the Staff may pass from any of them to any other; while the Store is open, and for Villagers always, it is closed.
 
 **Rare Points of interest**:
-Seven kinds, planned like the common ones: exactly 3 **Ball pits** (the Ball pit network), 1–2 each of the **Armchair henge** (a Stonehenge-like ring of armchairs; its false Belief: sitting in the ring at Closing time is safe), the **EXIT sign** (glows, its arrow leads nowhere), the **Mannequin crowd** (looks like the Staff from afar), the **Door to nowhere** (a free-standing door frame onto the same aisle; the false "portal" Belief) and the **Display aquarium** (live fish, glows in the dark), and exactly one **Abandoned scaffold**.
+Six kinds, planned like the common ones: exactly 3 **Ball pits** (the Ball pit network), 1–2 each of the **Armchair henge** (an unmistakable copy of Stonehenge built only of armchairs and sofas: trilithons, outer circle, inner horseshoe, altar and heel stone; its false Belief: sitting in the ring at Closing time is safe), the **EXIT sign** (glows, its arrow leads nowhere), the **Mannequin crowd** (a few dozen bare, faceless plastic shop mannequins that look like the Staff from afar), the **Door to nowhere** (a free-standing door frame onto the same aisle; the false "portal" Belief) and the **Aquarium aisle** (a pet-shop row of tanks of different sizes, each with its own kind of live fish; glows in the dark).
 
 **Abandoned scaffold**:
-A half-finished Furniture stair climbing one Pillar on its walkway ring and ending abruptly in a Lookout: the one exception to the ring staying Furniture-free. A Village can finish it as a Pillar scaffold with fewer Materials.
+A Landmark: a half-finished Furniture stair climbing high up one Pillar on its walkway ring, with abandoned, half-furnished rooms bolted to the Pillar's sides, ending abruptly in a Lookout in the topmost room: the one exception to the ring staying Furniture-free. Every world has exactly one, on top of the one Landmark per Sector the others are limited to. A Village can finish it as a Pillar scaffold with fewer Materials.
 _Avoid_: Ladder, tower
 
 **Lookout**:
