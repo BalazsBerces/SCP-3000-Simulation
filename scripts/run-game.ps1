@@ -28,6 +28,11 @@ $console = Join-Path $dir.FullName 'Godot_v4.7.2-stable_mono_win64_console.exe'
 if (-not $NoBuild) {
   # The first build after new assets also imports them, which can take a few minutes.
   $log = Join-Path $env:TEMP 'scp3008-build.log'
+  # No lingering build servers: the C# compiler server or a reused MSBuild node would inherit the
+  # redirected log handles, and the Godot console wrapper would then wait for them forever.
+  $env:UseSharedCompilation = 'false'
+  $env:MSBUILDDISABLENODEREUSE = '1'
+  $env:DOTNET_CLI_USE_MSBUILD_SERVER = '0'
   Write-Host "Building... (log: $log)" -ForegroundColor Cyan
   $build = Start-Process -FilePath $console -ArgumentList '--headless', '--path', "`"$game`"", '--build-solutions', '--quit' `
     -RedirectStandardOutput $log -RedirectStandardError "$log.err" -NoNewWindow -PassThru
