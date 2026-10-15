@@ -19,12 +19,18 @@ uniform float roughness : hint_range(0.0, 1.0) = 1.0;
 uniform float metallic : hint_range(0.0, 1.0) = 0.0;
 uniform vec3 emission_color : source_color = vec3(0.0);
 uniform float emission_energy = 0.0;
+// Lamp shades glow as far as their own Lamp has come on; other glowing parts (the EXIT sign, the
+// aquarium water) glow steadily, day and night.
+uniform bool lamp_glow = true;
 // Coarse meshes draw all their parts in one surface: UV2.x holds each vertex's part, whose look
 // comes from these tables (linear albedo with the tint flag in alpha; roughness and metallic).
+// Their size is PartSlots in FurnitureMeshes.cs; change both together.
 uniform bool coarse_parts = false;
-uniform vec4 part_albedo[32];
-uniform vec2 part_surface[32];
+uniform vec4 part_albedo[40];
+uniform vec2 part_surface[40];
 uniform int emissive_part = -1;
+// The steady glow of each coarse part (linear colour times energy); black for parts that do not glow.
+uniform vec3 part_glow[40];
 // Dev aid (DevCapture --lod-debug): draws coarse meshes magenta, to show which level is drawn.
 uniform bool lod_debug = false;
 // A clock hand of the clock wall: 1 the hour hand, 2 the minute hand, 0 not a hand. A hand turns about the
@@ -48,7 +54,7 @@ void vertex() {
 		VERTEX.xy = turn * (VERTEX.xy - pivot) + pivot;
 		NORMAL.xy = turn * NORMAL.xy;
 	}
-	if (coarse_parts ? part == emissive_part : emission_energy > 0.0) {
+	if (coarse_parts ? part == emissive_part : emission_energy > 0.0 && lamp_glow) {
 		shade_level = lamp_level_near(MODEL_MATRIX[3].xyz);
 	}
 }
@@ -58,7 +64,7 @@ void fragment() {
 	float surface_roughness = roughness;
 	float surface_metallic = metallic;
 	vec3 emission = emission_color * emission_energy;
-	// A glowing shade (emission_energy is only set on lamp shades) glows as far as its own Lamp has come on.
+	// A glowing shade glows as far as its own Lamp has come on (shade_level stays 1 for steady glows).
 	emission *= shade_level;
 	bool tint = tinted;
 	vec3 normal = NORMAL;
@@ -68,7 +74,7 @@ void fragment() {
 		surface_roughness = part_surface[part].x;
 		surface_metallic = part_surface[part].y;
 		if (part != emissive_part) {
-			emission = vec3(0.0);
+			emission = part_glow[part];
 		}
 		if (lod_debug) {
 			albedo = vec3(0.8, 0.05, 0.8);

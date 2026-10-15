@@ -172,11 +172,11 @@ public class StoreGenerationTests
     public void Raised_furniture_rests_on_a_piece_below_it()
     {
         var snapshot = Generate(3008);
-        var raised = snapshot.Furniture.Where(p => p.LandmarkId < 0 && p.Elevation > 0f).ToList();
+        // A tipped-over piece is lifted by its tilt; it is raised only if its lowest corner is off the floor.
+        var raised = snapshot.Furniture.Where(p => p.LandmarkId < 0 && Bottom(p) > 0.01f).ToList();
 
         var supported = FootprintPairs(snapshot.Space, raised, snapshot.Furniture)
-            .Where(pair => pair.B.Elevation < pair.A.Elevation
-                && pair.B.Elevation + FurnitureCatalog.Spec(pair.B).Height >= pair.A.Elevation - 0.01f)
+            .Where(pair => Bottom(pair.B) < Bottom(pair.A) && Top(pair.B) >= Bottom(pair.A) - 0.01f)
             .Select(pair => pair.A.Id)
             .ToHashSet();
 
@@ -280,7 +280,7 @@ public class StoreGenerationTests
     {
         var (specA, specB) = (FurnitureCatalog.Spec(a), FurnitureCatalog.Spec(b));
         var offset = space.Delta(a.Position, b.Position);
-        var reach = (specA.Width + specA.Depth + specB.Width + specB.Depth) / 2f;
+        var reach = (specA.Width + specA.Depth + specA.Height + specB.Width + specB.Depth + specB.Height) / 2f;
         if (offset.LengthSquared() > reach * reach)
             return false;
         var cornersA = Corners(a, Vector2.Zero);
@@ -309,13 +309,19 @@ public class StoreGenerationTests
         return (min, max);
     }
 
+    private static float Bottom(FurniturePiece piece) => FurnitureCatalog.Corners(piece).Min(c => c.Z);
+
+    private static float Top(FurniturePiece piece) => FurnitureCatalog.Corners(piece).Max(c => c.Z);
+
+    /// <summary>The footprint rectangle around a centre, tilt included: a tipped piece reaches further along its front.</summary>
     private static Vector2[] Corners(FurniturePiece piece, Vector2 centre)
     {
         var spec = FurnitureCatalog.Spec(piece);
         var along = new Vector2(MathF.Cos(piece.Rotation), MathF.Sin(piece.Rotation));
         var across = new Vector2(-along.Y, along.X);
+        var forward = FurnitureCatalog.Corners(piece).Select(c => Vector2.Dot(new Vector2(c.X, c.Y) - piece.Position, across)).ToList();
         var halfWidth = along * (spec.Width / 2f - 0.01f);
-        var halfDepth = across * (spec.Depth / 2f - 0.01f);
-        return [centre + halfWidth + halfDepth, centre + halfWidth - halfDepth, centre - halfWidth - halfDepth, centre - halfWidth + halfDepth];
+        var (front, back) = (centre + across * (forward.Max() - 0.01f), centre + across * (forward.Min() + 0.01f));
+        return [front + halfWidth, back + halfWidth, back - halfWidth, front - halfWidth];
     }
 }

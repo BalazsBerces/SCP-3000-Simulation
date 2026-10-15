@@ -4,22 +4,39 @@ namespace Scp3008.Core.Generation;
 
 /// <summary>Where a Point of interest stands, chosen before any Furniture is placed.</summary>
 /// <param name="Quarters">Quarter turns from the Point of interest's own frame (its width east-west) to the Store.</param>
-internal sealed record PointOfInterestSite(int Id, PointOfInterestType Type, int SectorId, Vector2 Centre, Vector2 Size, int Quarters);
-
-/// <summary>The built Points of interest and their Furniture.</summary>
-internal sealed record PointOfInterestLayout(IReadOnlyList<PointOfInterest> PointsOfInterest, IReadOnlyList<FurniturePiece> Pieces);
+/// <param name="Scaffold">How the abandoned scaffold climbs its Pillar; null for every other kind.</param>
+internal sealed record PointOfInterestSite(int Id, PointOfInterestType Type, int SectorId, Vector2 Centre, Vector2 Size, int Quarters,
+    ScaffoldPlan? Scaffold = null);
 
 /// <summary>
-/// Places and builds the common Points of interest from the seed: the canteens (in Restaurant/food market
+/// How the abandoned scaffold climbs its Pillar, in the Pillar's own frame before its quarter turn: along the middle
+/// of the walkway ring by the north face towards the east, one step diagonally across the north-east corner, then
+/// south along the east face (mirrored: west, round the north-west corner, down the west face).
+/// </summary>
+/// <param name="StepsBeforeCorner">Steps along the first face.</param>
+/// <param name="Steps">All its steps, the corner step included.</param>
+internal sealed record ScaffoldPlan(Pillar Pillar, bool Mirrored, int StepsBeforeCorner, int Steps);
+
+/// <summary>The built Points of interest, their Furniture and the network the Ball pits make.</summary>
+internal sealed record PointOfInterestLayout(IReadOnlyList<PointOfInterest> PointsOfInterest, IReadOnlyList<FurniturePiece> Pieces,
+    BallPitNetwork BallPitNetwork);
+
+/// <summary>
+/// Places and builds the Points of interest from the seed: the canteens (in Restaurant/food market
 /// Departments) and the cart graveyards, then, Sector by Sector, the dinner tables, restrooms and the lost and
-/// found desk. Each stands on a rectangle inside one department cell of its Sector, turned by a quarter turn,
-/// clear of the Pillars and their walkway rings, the Landmarks and each other; the Displays then keep off it.
-/// Each is built from its own random stream as individual Furniture.
+/// found desk, then the rare ones: three Ball pits (in the Kids' area where there is room), one or two of each of
+/// the armchair henge, EXIT sign, mannequin crowd, door to nowhere and display aquarium, and the abandoned
+/// scaffold. Each but the scaffold stands on a rectangle inside one department cell, turned by a quarter turn,
+/// clear of the Pillars and their walkway rings, the Landmarks and each other; the scaffold climbs one Pillar on
+/// its walkway ring. The Displays then keep off them all. Each is built from its own random stream as individual Furniture.
 /// </summary>
 internal static class PointOfInterestGenerator
 {
     private const int PlanStream = 6;
     private const int BuildStream = 7;
+
+    /// <summary>Ball pits in every Store.</summary>
+    private const int BallPitCount = 3;
 
     /// <summary>Free floor kept between a Point of interest and a Pillar's walkway ring or a Landmark.</summary>
     private const float Clearance = 1f;
@@ -36,6 +53,12 @@ internal static class PointOfInterestGenerator
         PointOfInterestType.SetDinnerTable => new(6f, 5f),
         PointOfInterestType.LostAndFoundDesk => new(5f, 5f),
         PointOfInterestType.ShoppingCartGraveyard => new(8f, 6f),
+        PointOfInterestType.BallPit => new(8f, 8f),
+        PointOfInterestType.ArmchairHenge => new(13f, 13f),
+        PointOfInterestType.ExitSign => new(6f, 6f),
+        PointOfInterestType.MannequinCrowd => new(7f, 6f),
+        PointOfInterestType.DoorToNowhere => new(5f, 11f),
+        PointOfInterestType.DisplayAquarium => new(9f, 5f),
         _ => throw new ArgumentOutOfRangeException(nameof(type), type, null),
     };
 
@@ -46,7 +69,7 @@ internal static class PointOfInterestGenerator
         var cellSize = departments.CellSize;
         var sites = new List<PointOfInterestSite>();
 
-        void Place(PointOfInterestType type, int firstCellX, int firstCellY, int cellsX, int cellsY, Func<int, int, bool> allowed)
+        bool TryPlace(PointOfInterestType type, int firstCellX, int firstCellY, int cellsX, int cellsY, Func<int, int, bool> allowed)
         {
             var cells = new List<(int X, int Y)>();
             for (var y = firstCellY; y < firstCellY + cellsY; y++)
@@ -70,9 +93,15 @@ internal static class PointOfInterestGenerator
                 var sector = sectors.First(s => centre.X >= s.Origin.X && centre.X < s.Origin.X + s.Size &&
                                                 centre.Y >= s.Origin.Y && centre.Y < s.Origin.Y + s.Size);
                 sites.Add(new PointOfInterestSite(sites.Count, type, sector.Id, centre, size, quarters));
-                return;
+                return true;
             }
-            throw new InvalidOperationException($"No room for a {type}.");
+            return false;
+        }
+
+        void Place(PointOfInterestType type, int firstCellX, int firstCellY, int cellsX, int cellsY, Func<int, int, bool> allowed)
+        {
+            if (!TryPlace(type, firstCellX, firstCellY, cellsX, cellsY, allowed))
+                throw new InvalidOperationException($"No room for a {type}.");
         }
 
         var side = departments.CellsPerSide;
@@ -93,7 +122,45 @@ internal static class PointOfInterestGenerator
                 PlaceInSector(PointOfInterestType.Restroom);
             PlaceInSector(PointOfInterestType.LostAndFoundDesk);
         }
+
+        // The rare ones, anywhere in the Store; the Ball pits in the Kids' area where it has room.
+        for (var n = 0; n < BallPitCount; n++)
+            if (!TryPlace(PointOfInterestType.BallPit, 0, 0, side, side, (x, y) => departments.AtCell(x, y).Type == DepartmentType.KidsArea))
+                Place(PointOfInterestType.BallPit, 0, 0, side, side, (_, _) => true);
+        foreach (var type in new[]
+                 {
+                     PointOfInterestType.ArmchairHenge, PointOfInterestType.ExitSign, PointOfInterestType.MannequinCrowd,
+                     PointOfInterestType.DoorToNowhere, PointOfInterestType.DisplayAquarium,
+                 })
+            for (var n = 1 + random.Next(2); n > 0; n--)
+                Place(type, 0, 0, side, side, (_, _) => true);
+        sites.Add(PlanScaffold(random, space, sectors, pillars, sites.Count));
         return sites.AsReadOnly();
+    }
+
+    /// <summary>Picks the Pillar the abandoned scaffold climbs, which way round and how far, and the rectangle its steps cover.</summary>
+    private static PointOfInterestSite PlanScaffold(SeededRandom random, StoreSpace space, IReadOnlyList<Sector> sectors, IReadOnlyList<Pillar> pillars, int id)
+    {
+        var pillar = pillars[random.Next(pillars.Count)];
+        var quarters = random.Next(4);
+        var plan = new ScaffoldPlan(pillar, random.Chance(0.5f), 6 + random.Next(5), 18 + random.Next(7));
+        var (centre, size) = ScaffoldBounds(plan);
+        var position = space.Wrap(pillar.Position + LandmarkBuilder.Turn(centre, quarters));
+        var sector = sectors.First(s => s.Name == pillar.Coordinate);
+        return new PointOfInterestSite(id, PointOfInterestType.AbandonedScaffold, sector.Id, position,
+            (quarters & 1) == 0 ? size : new Vector2(size.Y, size.X), quarters, plan);
+    }
+
+    /// <summary>Centre and size, in the Pillar's frame before its quarter turn, of the ring segment the scaffold's steps cover.</summary>
+    private static (Vector2 Centre, Vector2 Size) ScaffoldBounds(ScaffoldPlan plan)
+    {
+        var half = plan.Pillar.Width / 2f;
+        var outer = plan.Pillar.ClearHalfWidth;
+        // Along the first face from the first step to the ring's outer edge; down the second from the ring's outer edge to the last step.
+        var low = new Vector2(half - plan.StepsBeforeCorner * ScaffoldRun, -outer);
+        var high = new Vector2(outer, -half + (plan.Steps - plan.StepsBeforeCorner - 1) * ScaffoldRun);
+        var centre = (low + high) / 2f;
+        return (plan.Mirrored ? centre with { X = -centre.X } : centre, high - low);
     }
 
     private static bool IsFree(StoreSpace space, IReadOnlyList<Pillar> pillars, IReadOnlyList<LandmarkSite> landmarks,
@@ -130,12 +197,30 @@ internal static class PointOfInterestGenerator
                 case PointOfInterestType.SetDinnerTable: BuildDinnerTable(builder); break;
                 case PointOfInterestType.LostAndFoundDesk: BuildLostAndFound(builder); break;
                 case PointOfInterestType.ShoppingCartGraveyard: BuildCartGraveyard(builder); break;
+                case PointOfInterestType.BallPit: BuildBallPit(builder); break;
+                case PointOfInterestType.ArmchairHenge: BuildArmchairHenge(builder); break;
+                case PointOfInterestType.ExitSign: BuildExitSign(builder); break;
+                case PointOfInterestType.MannequinCrowd: BuildMannequinCrowd(builder); break;
+                case PointOfInterestType.DoorToNowhere: BuildDoorToNowhere(builder); break;
+                case PointOfInterestType.DisplayAquarium: BuildAquarium(builder); break;
+            }
+            Vector3? lookout = null;
+            if (site.Scaffold is { } plan)
+            {
+                var top = BuildScaffold(builder, plan);
+                var at = space.Wrap(site.Centre + LandmarkBuilder.Turn(new Vector2(top.X, top.Y), site.Quarters));
+                lookout = new Vector3(at.X, at.Y, top.Z);
             }
             foreach (var piece in builder.Pieces)
                 pieces.Add(piece with { Id = firstPieceId + pieces.Count });
-            pois.Add(new PointOfInterest(site.Id, site.Type, site.SectorId, site.Centre, site.Size));
+            pois.Add(new PointOfInterest(site.Id, site.Type, site.SectorId, site.Centre, site.Size)
+            {
+                PillarId = site.Scaffold?.Pillar.Id ?? -1,
+                Lookout = lookout,
+            });
         }
-        return new PointOfInterestLayout(pois.AsReadOnly(), pieces.AsReadOnly());
+        var network = new BallPitNetwork(pois.Where(p => p.Type == PointOfInterestType.BallPit).Select(p => p.Id).ToList().AsReadOnly());
+        return new PointOfInterestLayout(pois.AsReadOnly(), pieces.AsReadOnly(), network);
     }
 
     private const float Quarter = MathF.PI / 2f;
@@ -262,6 +347,175 @@ internal static class PointOfInterestGenerator
         foreach (var x in new[] { -2.2f, 0f, 2.2f })
             if (random.Chance(0.7f))
                 b.Put(FurnitureType.ShoppingCart, new Vector2(x, 2.2f), 0f, random.Range(-0.5f, 0.5f));
+    }
+
+    /// <summary>A bouncy castle full of balls, with play cubes strewn before its open front, a toy chest and a shoe cabinet beside it.</summary>
+    private static void BuildBallPit(PointOfInterestBuilder b)
+    {
+        var random = b.Random;
+        b.Put(FurnitureType.BouncyCastle, new Vector2(0f, -1f), 0f, 0f, tint: random.Next(FurniturePalettes.TintCount));
+        // One play cube to a metre-wide slot, so they never overlap however they are turned.
+        var slots = new List<float> { -2f, -1f, 0f, 1f, 2f };
+        for (var i = 3 + random.Next(3); i > 0; i--)
+        {
+            var slot = random.Next(slots.Count);
+            b.Put(FurnitureType.PlayCube, new Vector2(slots[slot] + random.Range(-0.1f, 0.1f), random.Range(2.3f, 3.4f)), 0f,
+                random.Range(-0.8f, 0.8f), tint: random.Next(FurniturePalettes.TintCount));
+            slots.RemoveAt(slot);
+        }
+        var side = random.Chance(0.5f) ? 1f : -1f;
+        b.Put(FurnitureType.ToyChest, new Vector2(3.3f * side, random.Range(-2.5f, 0f)), 0f, side * Quarter, tint: random.Next(FurniturePalettes.TintCount));
+        b.Put(FurnitureType.ShoeCabinet, new Vector2(-3.4f * side, 2.6f), 0f, -side * Quarter);
+    }
+
+    /// <summary>
+    /// A ring of armchairs facing in, some pairs bridged by a sofa laid on their backs like a lintel, a horseshoe of
+    /// armchairs inside it, and a rug with a low table at the centre; one of the ring's chairs knocked over.
+    /// </summary>
+    private static void BuildArmchairHenge(PointOfInterestBuilder b)
+    {
+        var random = b.Random;
+        var tint = random.Next(FurniturePalettes.TintCount);
+        int Tint() => random.Chance(0.7f) ? tint : random.Next(FurniturePalettes.TintCount);
+        const int ring = 12;
+        const float radius = 5.4f;
+        var start = random.Range(0f, MathF.Tau / ring);
+        static Vector2 At(float angle, float distance) => new(distance * MathF.Cos(angle), distance * MathF.Sin(angle));
+        // Every other pair of neighbouring chairs may carry a lintel.
+        var lintels = new HashSet<int>();
+        for (var pair = random.Next(2); pair < ring; pair += 2)
+            if (random.Chance(0.6f))
+                lintels.Add(pair);
+        var fallen = random.Next(ring);
+        for (var i = 0; i < ring; i++)
+        {
+            var angle = start + i * MathF.Tau / ring;
+            // Facing the centre from the angle a: its front (-sin r, cos r) is (-cos a, -sin a), so r = a + π/2.
+            var knocked = i == fallen && !lintels.Contains(i) && !lintels.Contains((i + ring - 1) % ring);
+            b.Put(FurnitureType.Armchair, At(angle, radius), 0f, angle + Quarter, tilt: knocked ? Quarter : 0f, tint: Tint());
+        }
+        var lintel = FurnitureCatalog.VariantCount(FurnitureType.Sofa) > 2 ? 2 : 0;
+        var chairHeight = FurnitureCatalog.Spec(FurnitureType.Armchair).Height;
+        foreach (var pair in lintels)
+        {
+            var angle = start + (pair + 0.5f) * MathF.Tau / ring;
+            b.Put(FurnitureType.Sofa, At(angle, radius * MathF.Cos(MathF.PI / ring)), chairHeight, angle + Quarter, lintel, tint: Tint());
+        }
+        // The inner horseshoe, open towards the first chair of the ring.
+        for (var i = 0; i < 5; i++)
+        {
+            var angle = start + MathF.PI + (i - 2) * 0.55f;
+            b.Put(FurnitureType.Armchair, At(angle, 3f), 0f, angle + Quarter, tint: Tint());
+        }
+        b.Put(FurnitureType.Rug, Vector2.Zero, 0f, start, tint: tint);
+        b.Put(FurnitureType.CoffeeTable, Vector2.Zero, 0f, start + Quarter);
+    }
+
+    /// <summary>A glowing EXIT sign at the mouth of a blind alcove of shelving, its arrow pointing sideways along shelving that leads nowhere.</summary>
+    private static void BuildExitSign(PointOfInterestBuilder b)
+    {
+        var random = b.Random;
+        foreach (var x in new[] { -1f, 1f })
+            b.Put(FurnitureType.ShelfUnit, new Vector2(x, -2.65f), 0f, 0f);
+        foreach (var x in new[] { -2.35f, 2.35f })
+            foreach (var y in new[] { -1.2f, 0.8f })
+                b.Put(FurnitureType.ShelfUnit, new Vector2(x, y), 0f, x < 0f ? -Quarter : Quarter);
+        b.Put(FurnitureType.ExitSign, new Vector2(random.Range(-0.3f, 0.3f), 2.4f), 0f, 0f);
+    }
+
+    /// <summary>A crowd of mannequins standing about, most of them facing one way, as if watching.</summary>
+    private static void BuildMannequinCrowd(PointOfInterestBuilder b)
+    {
+        var random = b.Random;
+        var facing = random.Range(-MathF.PI, MathF.PI);
+        var placed = new List<Vector2>();
+        var wanted = 8 + random.Next(7);
+        for (var attempt = 0; attempt < 200 && placed.Count < wanted; attempt++)
+        {
+            var at = new Vector2(random.Range(-3.2f, 3.2f), random.Range(-2.7f, 2.7f));
+            if (placed.Any(p => Vector2.Distance(p, at) < 0.8f))
+                continue;
+            var rotation = random.Chance(0.75f) ? facing + random.Range(-0.25f, 0.25f) : random.Range(-MathF.PI, MathF.PI);
+            if (b.Put(FurnitureType.Mannequin, at, 0f, rotation))
+                placed.Add(at);
+        }
+    }
+
+    /// <summary>
+    /// A free-standing door frame in the middle of an aisle of shelving that runs on alike on both sides of it,
+    /// with a mat before it either way, so the same aisle is seen through the door.
+    /// </summary>
+    private static void BuildDoorToNowhere(PointOfInterestBuilder b)
+    {
+        var tint = b.Random.Next(FurniturePalettes.TintCount);
+        foreach (var x in new[] { -1.9f, 1.9f })
+            for (var y = -4.4f; y <= 4.41f; y += 2.2f)
+                b.Put(FurnitureType.ShelfUnit, new Vector2(x, y), 0f, x < 0f ? -Quarter : Quarter);
+        b.Put(FurnitureType.DoorFrame, Vector2.Zero, 0f, 0f);
+        foreach (var y in new[] { -2f, 2f })
+            b.Put(FurnitureType.Rug, new Vector2(0f, y), 0f, 0f, tint: tint);
+    }
+
+    /// <summary>A huge glowing aquarium of live fish, with benches to watch it from, plants beside it and a box of fish food.</summary>
+    private static void BuildAquarium(PointOfInterestBuilder b)
+    {
+        var random = b.Random;
+        b.Put(FurnitureType.Aquarium, new Vector2(0f, -1.5f), 0f, 0f);
+        foreach (var x in new[] { -1.4f, 1.4f })
+            b.Put(FurnitureType.HallBench, new Vector2(x + random.Range(-0.2f, 0.2f), 1.4f), 0f, MathF.PI);
+        foreach (var x in new[] { -3.6f, 3.6f })
+            b.Put(FurnitureType.LargePlant, new Vector2(x, -1.6f), 0f, random.Range(-MathF.PI, MathF.PI), tint: random.Next(FurniturePalettes.TintCount));
+        b.Put(FurnitureType.FlatPackBox, new Vector2(random.Chance(0.5f) ? -3.3f : 3.3f, 1.5f), 0f, random.Range(-0.3f, 0.3f));
+    }
+
+    /// <summary>Length of the walkway ring each step of the abandoned scaffold takes.</summary>
+    private const float ScaffoldRun = 1f;
+
+    /// <summary>
+    /// The abandoned scaffold: a stair of Furniture up its Pillar's walkway ring. Each step is a column of shelf units
+    /// with wardrobes laid flat on top, the top one its tread, spanning the middle of the ring; every fourth step adds a
+    /// shelf unit beneath and starts again from one wardrobe. It turns one corner of the Pillar and stops in mid-air.
+    /// </summary>
+    /// <returns>The middle of the top tread in the Point of interest's own frame (X, Y) and its height (Z).</returns>
+    private static Vector3 BuildScaffold(PointOfInterestBuilder b, ScaffoldPlan plan)
+    {
+        var half = plan.Pillar.Width / 2f;
+        var middle = half + Pillar.WalkwayWidth / 2f;
+        var (centre, _) = ScaffoldBounds(plan);
+        var shelf = FurnitureCatalog.Spec(FurnitureType.ShelfUnit);
+        var wardrobe = FurnitureCatalog.Spec(FurnitureType.Wardrobe);
+        var top = Vector3.Zero;
+        for (var k = 0; k < plan.Steps; k++)
+        {
+            // The middle of the step and the way out from the Pillar, in the Pillar's frame.
+            Vector2 at, outward;
+            if (k < plan.StepsBeforeCorner)
+                (at, outward) = (new Vector2(half - (plan.StepsBeforeCorner - k - 0.5f) * ScaffoldRun, -middle), new Vector2(0f, -1f));
+            else if (k == plan.StepsBeforeCorner)
+                (at, outward) = (new Vector2(middle, -middle), Vector2.Normalize(new Vector2(1f, -1f)));
+            else
+                (at, outward) = (new Vector2(middle, -half + (k - plan.StepsBeforeCorner - 0.5f) * ScaffoldRun), new Vector2(1f, 0f));
+            if (plan.Mirrored)
+                (at, outward) = (at with { X = -at.X }, outward with { X = -outward.X });
+            var local = at - centre;
+            // Its front (-sin r, cos r) faces out; a shelf unit turned a quarter back has its width across the ring.
+            var facingOut = MathF.Atan2(-outward.X, outward.Y);
+            var height = 0f;
+            for (var i = 0; i < k / 4; i++, height += shelf.Height)
+                Step(FurnitureType.ShelfUnit, local, height, facingOut - Quarter, 0f);
+            for (var i = 0; i <= k % 4; i++, height += wardrobe.Depth)
+                // A wardrobe laid on its front lies from its base out along its front: start it half its height further in.
+                Step(FurnitureType.Wardrobe, local - outward * (wardrobe.Height / 2f), height + wardrobe.Depth / 2f, facingOut, Quarter);
+            top = new Vector3(local.X, local.Y, height);
+        }
+        return top;
+
+        // The rectangle is the stair's own bounding box, so a missing piece would leave a gap in it: never drop one.
+        void Step(FurnitureType type, Vector2 local, float elevation, float rotation, float tilt)
+        {
+            if (!b.Put(type, local, elevation, rotation, tilt: tilt))
+                throw new InvalidOperationException("A step of the abandoned scaffold sticks out of its rectangle.");
+        }
     }
 }
 

@@ -34,6 +34,7 @@ public sealed class Simulation : IDisposable
     private readonly IReadOnlyList<Sector> _sectors;
     private readonly IReadOnlyList<Landmark> _landmarks;
     private readonly IReadOnlyList<PointOfInterest> _pointsOfInterest;
+    private readonly BallPitNetwork _ballPitNetwork;
     private readonly Weather _weather;
     private long _tick;
     private SimulationSpeed _speed = SimulationSpeed.Normal;
@@ -67,6 +68,7 @@ public sealed class Simulation : IDisposable
         _furniture = furniture with { Pieces = furniture.Pieces.Concat(landmarks.Pieces).Concat(pointsOfInterest.Pieces).ToList().AsReadOnly() };
         _landmarks = landmarks.Landmarks;
         _pointsOfInterest = pointsOfInterest.PointsOfInterest;
+        _ballPitNetwork = pointsOfInterest.BallPitNetwork;
         // Runtime randomness never comes from the Store seed (ADR 0003); it is unseeded unless a test fixes it.
         var runtimeSeed = config.RuntimeRngSeed ?? Random.Shared.Next();
         _weather = new Weather(_space, SeededRandom.For(runtimeSeed, WeatherStream));
@@ -314,7 +316,10 @@ public sealed class Simulation : IDisposable
     }
 
     private WorldSnapshot BuildSnapshot() =>
-        new(_config.Seed, _config.PillarLayout, new StoreClock(_tick), _space, _speed, _departments, _furniture.Pieces, _furniture.Displays, _furniture.Cells, Array.AsReadOnly(_weather.Snapshot()), _weather.Wind, _pillars, _sectors, _landmarks, _pointsOfInterest, _config.LandmarkShowcase);
+        new(_config.Seed, _config.PillarLayout, new StoreClock(_tick), _space, _speed, _departments, _furniture.Pieces, _furniture.Displays, _furniture.Cells, Array.AsReadOnly(_weather.Snapshot()), _weather.Wind, _pillars, _sectors, _landmarks, _pointsOfInterest, _config.LandmarkShowcase)
+        {
+            BallPitNetwork = _ballPitNetwork,
+        };
 
     private sealed class Subscription(Simulation owner, Action<DomainEvent> handler) : IDisposable
     {

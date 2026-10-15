@@ -47,6 +47,14 @@ public static class FurnitureMeshes
         HourHand,
         MinuteHand,
         Food,
+        // The rare Points of interest (ticket 08b): the Ball pit's balls, the EXIT sign's green panel and white
+        // letters, the display aquarium's water and fish, the mannequins' bare plastic.
+        Balls,
+        SignPanel,
+        SignLetters,
+        AquariumWater,
+        Fish,
+        MannequinSkin,
     }
 
     // Emission of a lit lamp shade.
@@ -73,8 +81,8 @@ public static class FurnitureMeshes
     private static Dictionary<Part, ShaderMaterial>? _materials;
     private static ShaderMaterial? _coarseMaterial;
 
-    // Size of the part tables in the furniture shader; at least the number of parts.
-    private const int PartSlots = 32;
+    // Size of the part tables (part_albedo, part_surface, part_glow) in furniture.gdshader; at least the number of parts. Change both together.
+    private const int PartSlots = 40;
 
     /// <summary>How brightly every lamp shade glows, from 0 (off) to 1 (lit).</summary>
     public static void SetLampGlow(float level)
@@ -171,7 +179,7 @@ public static class FurnitureMeshes
             FurnitureType.Sofa or FurnitureType.Armchair or FurnitureType.Rug or FurnitureType.Bed
                 or FurnitureType.CushionBin or FurnitureType.BlanketStack or FurnitureType.CurtainRack
                 or FurnitureType.OfficeChair or FurnitureType.Parasol or FurnitureType.FrameDisplay or FurnitureType.Mattress => FabricColors,
-            FurnitureType.BunkBed or FurnitureType.KidsTable or FurnitureType.KidsChair or FurnitureType.PlayCube or FurnitureType.ToyShelf => PlasticColors,
+            FurnitureType.BunkBed or FurnitureType.BouncyCastle or FurnitureType.KidsTable or FurnitureType.KidsChair or FurnitureType.PlayCube or FurnitureType.ToyShelf => PlasticColors,
             FurnitureType.PottedPlant or FurnitureType.LargePlant or FurnitureType.PlanterBox => LeafColors,
             FurnitureType.FlatPackBox or FurnitureType.CardboardBox => CardboardColors,
             _ => null,
@@ -648,6 +656,76 @@ public static class FurnitureMeshes
                 b.Cylinder(Part.Ceramic, Vector3.Zero, hw * 0.8f, hw, 0.02f, 16);
                 b.Cylinder(Part.Food, new Vector3(0f, 0.02f, 0f), hw * 0.6f, hw * 0.4f, 0.03f, 12);
                 break;
+            case FurnitureType.BouncyCastle:
+                BuildBouncyCastle(b, hw, hd);
+                break;
+            case FurnitureType.ExitSign:
+            {
+                // A glowing green sign on two posts: an arrow and EXIT in white on both faces.
+                foreach (var x in new[] { -hw + 0.1f, hw - 0.14f })
+                {
+                    b.Box(Part.DarkSteel, new Vector3(x, 0.03f, -0.02f), new Vector3(x + 0.04f, h - 0.4f, 0.02f));
+                    b.Box(Part.DarkSteel, new Vector3(x - 0.03f, 0f, -hd), new Vector3(x + 0.07f, 0.03f, hd));
+                }
+                b.Box(Part.DarkSteel, new Vector3(-hw, h - 0.4f, -0.07f), new Vector3(hw, h, 0.07f));
+                b.Box(Part.SignPanel, new Vector3(-hw + 0.02f, h - 0.38f, 0.07f), new Vector3(hw - 0.02f, h - 0.02f, 0.08f));
+                b.Box(Part.SignPanel, new Vector3(-hw + 0.02f, h - 0.38f, -0.08f), new Vector3(hw - 0.02f, h - 0.02f, -0.07f));
+                SignLetters(b, h - 0.35f, 0.08f, 1f);
+                SignLetters(b, h - 0.35f, -0.08f, -1f);
+                break;
+            }
+            case FurnitureType.Mannequin:
+                // A tall, faceless figure in a dark suit (the matte black rubber) on a chrome stand: from afar it passes for the Staff.
+                b.Cylinder(Part.Chrome, Vector3.Zero, hd - 0.01f, hd - 0.01f, 0.02f, 16);
+                b.Cylinder(Part.Chrome, new Vector3(0f, 0.02f, -0.09f), 0.015f, 0.015f, 0.9f, 6);
+                foreach (var x in new[] { -0.13f, 0.03f })
+                    b.Box(Part.Rubber, new Vector3(x, 0.02f, -0.07f), new Vector3(x + 0.1f, 0.98f, 0.07f));
+                b.Box(Part.Rubber, new Vector3(-0.17f, 0.98f, -0.1f), new Vector3(0.17f, 1.58f, 0.1f));
+                foreach (var x in new[] { -hw, hw - 0.07f })
+                {
+                    b.Box(Part.Rubber, new Vector3(x, 0.98f, -0.05f), new Vector3(x + 0.07f, 1.54f, 0.05f));
+                    b.Box(Part.MannequinSkin, new Vector3(x + 0.005f, 0.8f, -0.04f), new Vector3(x + 0.065f, 0.98f, 0.04f));
+                }
+                b.Box(Part.Rubber, new Vector3(-hw + 0.07f, 1.42f, -0.1f), new Vector3(-0.17f, 1.58f, 0.1f));
+                b.Box(Part.Rubber, new Vector3(0.17f, 1.42f, -0.1f), new Vector3(hw - 0.07f, 1.58f, 0.1f));
+                b.Cylinder(Part.MannequinSkin, new Vector3(0f, 1.58f, 0f), 0.05f, 0.045f, 0.1f, 8);
+                b.Cylinder(Part.MannequinSkin, new Vector3(0f, 1.68f, 0f), 0.085f, 0.1f, h - 1.68f, 12);
+                break;
+            case FurnitureType.DoorFrame:
+                // A door frame standing alone, with nothing but the aisle behind it.
+                b.Box(Part.Ceramic, new Vector3(-hw, 0f, -0.08f), new Vector3(-hw + 0.1f, h, 0.08f));
+                b.Box(Part.Ceramic, new Vector3(hw - 0.1f, 0f, -0.08f), new Vector3(hw, h, 0.08f));
+                b.Box(Part.Ceramic, new Vector3(-hw + 0.1f, h - 0.1f, -0.08f), new Vector3(hw - 0.1f, h, 0.08f));
+                b.Box(Part.Oak, new Vector3(-hw + 0.1f, 0f, -0.08f), new Vector3(hw - 0.1f, 0.02f, 0.08f));
+                // Feet that keep it standing.
+                foreach (var x in new[] { -hw, hw - 0.1f })
+                    b.Box(Part.PaintedMetal, new Vector3(x, 0f, -hd), new Vector3(x + 0.1f, 0.04f, hd));
+                break;
+            case FurnitureType.Aquarium:
+            {
+                // A long tank of glowing water on a dark cabinet, with fish against the front and back glass.
+                b.Box(Part.Walnut, new Vector3(-hw, 0f, -hd), new Vector3(hw, 0.8f, hd));
+                b.Box(Part.AquariumWater, new Vector3(-hw + 0.05f, 0.8f, -hd + 0.05f), new Vector3(hw - 0.05f, h - 0.2f, hd - 0.05f));
+                foreach (var x in new[] { -hw, hw - 0.05f })
+                    foreach (var z in new[] { -hd, hd - 0.05f })
+                        b.Box(Part.DarkSteel, new Vector3(x, 0.8f, z), new Vector3(x + 0.05f, h - 0.15f, z + 0.05f));
+                b.Box(Part.DarkSteel, new Vector3(-hw, h - 0.15f, -hd), new Vector3(hw, h, hd));
+                b.Box(Part.Stone, new Vector3(-hw + 0.05f, 0.8f, hd - 0.05f), new Vector3(hw - 0.05f, 0.95f, hd - 0.04f));
+                for (var i = 0; i < 18; i++)
+                {
+                    var x = -hw + 0.3f + (w - 0.6f) * ((i * 0.618034f) % 1f);
+                    var y = 1.05f + (h - 1.45f) * ((i * 0.7548777f + 0.3f) % 1f);
+                    var size = 1.1f + 0.5f * ((i * 0.4142f) % 1f);
+                    var facing = i % 2 == 0 ? 1f : -1f;
+                    var z = i % 3 == 2 ? -hd + 0.03f : hd - 0.05f;
+                    // Body and tail, the tail behind the body.
+                    b.Box(Part.Fish, new Vector3(x - 0.09f * size, y - 0.04f * size, z), new Vector3(x + 0.09f * size, y + 0.04f * size, z + 0.02f));
+                    var tail = x - facing * 0.09f * size;
+                    b.Box(Part.Fish, new Vector3(Mathf.Min(tail, tail - facing * 0.05f * size), y - 0.05f * size, z),
+                        new Vector3(Mathf.Max(tail, tail - facing * 0.05f * size), y + 0.05f * size, z + 0.02f));
+                }
+                break;
+            }
             default:
                 b.Box(Part.Maple, new Vector3(-hw, 0f, -hd), new Vector3(hw, h, hd));
                 break;
@@ -674,8 +752,19 @@ public static class FurnitureMeshes
                 (float X, float Y)[] shapes = round ? [(hw, hw * 0.58f), (hw * 0.58f, hw), (hw * 0.86f, hw * 0.86f)] : [(hw, hw)];
                 foreach (var (x, y) in shapes)
                     b.Box(frame, new Vector3(-x, mid - y, -hd), new Vector3(x, mid + y, hd - 0.012f));
-                foreach (var (x, y) in shapes)
-                    b.Box(Part.Ceramic, new Vector3(-x * 0.88f, mid - y * 0.88f, hd - 0.012f), new Vector3(x * 0.88f, mid + y * 0.88f, hd - 0.007f));
+                // The dial is the same stepped outline cut into slabs that do not overlap: overlapping dial boxes share
+                // their faces' planes and z-fight.
+                var steps = shapes.OrderBy(s => s.Y).ToArray();
+                for (var i = 0; i < steps.Length; i++)
+                {
+                    var (x, y) = (steps[i].X * 0.88f, steps[i].Y * 0.88f);
+                    var below = i == 0 ? 0f : steps[i - 1].Y * 0.88f;
+                    foreach (var sign in i == 0 ? new[] { 1f } : new[] { -1f, 1f })
+                    {
+                        var (y0, y1) = i == 0 ? (mid - y, mid + y) : sign > 0 ? (mid + below, mid + y) : (mid - y, mid - below);
+                        b.Box(Part.Ceramic, new Vector3(-x, y0, hd - 0.012f), new Vector3(x, y1, hd - 0.007f));
+                    }
+                }
                 b.Pivot = mid;
                 b.Box(Part.HourHand, new Vector3(-hw * 0.035f, mid - hw * 0.06f, hd - 0.007f), new Vector3(hw * 0.035f, mid + hw * 0.48f, hd - 0.004f));
                 b.Box(Part.MinuteHand, new Vector3(-hw * 0.022f, mid - hw * 0.08f, hd - 0.004f), new Vector3(hw * 0.022f, mid + hw * 0.76f, hd));
@@ -704,6 +793,92 @@ public static class FurnitureMeshes
                 b.Box(Part.Stone, new Vector3(-hw, 0f, -hd + 0.04f), new Vector3(hw, h - 0.1f, hd - 0.04f));
                 b.Box(Part.Stone, new Vector3(-hw, h - 0.1f, -hd), new Vector3(hw, h, hd));
                 break;
+        }
+    }
+
+    /// <summary>
+    /// The Ball pit: an inflated floor, walls and corner towers in the piece's plastic colour with red tower tops, net
+    /// walls up to an open rim and a layer of balls; open at the front, and from above, so the balls show.
+    /// </summary>
+    private static void BuildBouncyCastle(Builder b, float hw, float hd)
+    {
+        const float Floor = 0.45f, Wall = 0.35f, WallTop = 1.2f, FrontTop = 0.9f, Canopy = 2.1f, Door = 0.8f;
+        b.Box(Part.Plastic, new Vector3(-hw, 0f, -hd), new Vector3(hw, Floor, hd));
+        foreach (var x in new[] { -hw + 0.4f, hw - 0.4f })
+            foreach (var z in new[] { -hd + 0.4f, hd - 0.4f })
+            {
+                b.Cylinder(Part.Plastic, new Vector3(x, Floor, z), 0.4f, 0.4f, 2.3f - Floor);
+                b.Cylinder(Part.Balls, new Vector3(x, 2.3f, z), 0.42f, 0.04f, 0.3f);
+            }
+        b.Box(Part.Plastic, new Vector3(-hw + 0.4f, Floor, -hd), new Vector3(hw - 0.4f, WallTop, -hd + Wall));
+        b.Box(Part.Plastic, new Vector3(-hw, Floor, -hd + 0.4f), new Vector3(-hw + Wall, WallTop, hd - 0.4f));
+        b.Box(Part.Plastic, new Vector3(hw - Wall, Floor, -hd + 0.4f), new Vector3(hw, WallTop, hd - 0.4f));
+        b.Box(Part.Plastic, new Vector3(-hw + 0.4f, Floor, hd - Wall), new Vector3(-Door, FrontTop, hd));
+        b.Box(Part.Plastic, new Vector3(Door, Floor, hd - Wall), new Vector3(hw - 0.4f, FrontTop, hd));
+        b.Box(Part.Plastic, new Vector3(-hw + 0.4f, Canopy, -hd), new Vector3(hw - 0.4f, Canopy + 0.15f, -hd + Wall));
+        b.Box(Part.Plastic, new Vector3(-hw + 0.4f, Canopy, hd - Wall), new Vector3(hw - 0.4f, Canopy + 0.15f, hd));
+        b.Box(Part.Plastic, new Vector3(-hw, Canopy, -hd + 0.4f), new Vector3(-hw + Wall, Canopy + 0.15f, hd - 0.4f));
+        b.Box(Part.Plastic, new Vector3(hw - Wall, Canopy, -hd + 0.4f), new Vector3(hw, Canopy + 0.15f, hd - 0.4f));
+        // The net: strands along the middle of each wall, from its top to the canopy; none across the doorway.
+        void Net(float from, float to, float bottom, bool alongX, float at)
+        {
+            for (var t = from; t <= to + 0.01f; t += 0.2f)
+                b.Box(Part.Rubber, alongX ? new Vector3(t - 0.012f, bottom, at - 0.015f) : new Vector3(at - 0.015f, bottom, t - 0.012f),
+                    alongX ? new Vector3(t + 0.012f, Canopy, at + 0.015f) : new Vector3(at + 0.015f, Canopy, t + 0.012f));
+            for (var y = bottom + 0.2f; y < Canopy - 0.05f; y += 0.2f)
+                b.Box(Part.Rubber, alongX ? new Vector3(from, y - 0.01f, at - 0.01f) : new Vector3(at - 0.01f, y - 0.01f, from),
+                    alongX ? new Vector3(to, y + 0.01f, at + 0.01f) : new Vector3(at + 0.01f, y + 0.01f, to));
+        }
+        Net(-hw + 0.8f, hw - 0.8f, WallTop, true, -hd + Wall / 2f);
+        Net(-hd + 0.8f, hd - 0.8f, WallTop, false, -hw + Wall / 2f);
+        Net(-hd + 0.8f, hd - 0.8f, WallTop, false, hw - Wall / 2f);
+        Net(-hw + 0.8f, -Door, FrontTop, true, hd - Wall / 2f);
+        Net(Door, hw - 0.8f, FrontTop, true, hd - Wall / 2f);
+        b.Box(Part.Balls, new Vector3(-hw + Wall, Floor, -hd + Wall), new Vector3(hw - Wall, 0.75f, hd - Wall));
+        // Loose balls on top, in other colours; each sits a hair higher than the last, so none share a top face.
+        Part[] colours = [Part.RackUpright, Part.RackBeam, Part.Ceramic, Part.Fish];
+        for (var i = 0; i < 40; i++)
+        {
+            var x = -hw + 0.45f + (2f * hw - 0.9f) * ((i * 0.618034f) % 1f);
+            var z = -hd + 0.45f + (2f * hd - 0.9f) * ((i * 0.7548777f + 0.3f) % 1f);
+            b.Box(colours[i % colours.Length], new Vector3(x - 0.055f, 0.7f, z - 0.055f), new Vector3(x + 0.055f, 0.8f + 0.002f * i, z + 0.055f));
+        }
+    }
+
+    // The EXIT sign's face, five cells high: an arrow pointing left (to nowhere), then E, X, I, T.
+    private static readonly string[] SignRows =
+    [
+        "..#....###.#.#.###.###",
+        ".#.....#...#.#..#...#.",
+        "#####..##...#...#...#.",
+        ".#.....#...#.#..#...#.",
+        "..#....###.#.#.###..#.",
+    ];
+
+    /// <summary>
+    /// The EXIT sign's white letters on one face, from <paramref name="bottom"/> up, standing out from the panel face at
+    /// <paramref name="z"/> towards <paramref name="side"/> (+1 the front, -1 the back, mirrored so it reads from there).
+    /// </summary>
+    private static void SignLetters(Builder b, float bottom, float z, float side)
+    {
+        const float Cell = 0.055f;
+        var left = -SignRows[0].Length * Cell / 2f;
+        for (var row = 0; row < SignRows.Length; row++)
+        {
+            var line = SignRows[row];
+            var y = bottom + (SignRows.Length - 1 - row) * Cell;
+            for (var start = 0; start < line.Length; start++)
+            {
+                if (line[start] != '#')
+                    continue;
+                var end = start;
+                while (end + 1 < line.Length && line[end + 1] == '#')
+                    end++;
+                var (x0, x1) = (side * (left + start * Cell), side * (left + (end + 1) * Cell));
+                b.Box(Part.SignLetters, new Vector3(Mathf.Min(x0, x1), y, Mathf.Min(z, z + side * 0.006f)),
+                    new Vector3(Mathf.Max(x0, x1), y + Cell, Mathf.Max(z, z + side * 0.006f)));
+                start = end;
+            }
         }
     }
 
@@ -957,6 +1132,15 @@ public static class FurnitureMeshes
             material.SetShaderParameter("uv_scale", new Vector2(1f / metres, 1f / metres));
             return material;
         }
+        // Glows the same day and night, unlike a lamp shade.
+        ShaderMaterial Steady(Color color, float roughness, Color glow, float energy)
+        {
+            var material = Plain(color, roughness);
+            material.SetShaderParameter("emission_color", glow);
+            material.SetShaderParameter("emission_energy", energy);
+            material.SetShaderParameter("lamp_glow", false);
+            return material;
+        }
         ShaderMaterial Hand(int hand)
         {
             var material = Plain(new Color(0.06f, 0.06f, 0.07f), 0.5f, 0.4f);
@@ -998,6 +1182,12 @@ public static class FurnitureMeshes
             [Part.HourHand] = Hand(1),
             [Part.MinuteHand] = Hand(2),
             [Part.Food] = Plain(new Color(0.62f, 0.36f, 0.16f), 0.65f),
+            [Part.Balls] = Plain(new Color(0.85f, 0.16f, 0.14f), 0.4f),
+            [Part.SignPanel] = Steady(new Color(0.05f, 0.55f, 0.25f), 0.4f, new Color(0.1f, 0.85f, 0.35f), 2.5f),
+            [Part.SignLetters] = Steady(new Color(0.95f, 0.97f, 0.95f), 0.4f, new Color(0.9f, 1f, 0.92f), 3f),
+            [Part.AquariumWater] = Steady(new Color(0.06f, 0.24f, 0.3f), 0.05f, new Color(0.15f, 0.5f, 0.65f), 0.6f),
+            [Part.Fish] = Plain(new Color(1f, 0.5f, 0.1f), 0.45f),
+            [Part.MannequinSkin] = Plain(new Color(0.88f, 0.86f, 0.82f), 0.35f),
         };
         return _materials;
     }
@@ -1017,8 +1207,15 @@ public static class FurnitureMeshes
         // which made every coarse part far too dark and too saturated (ticket 06f).
         var albedo = new Vector4[PartSlots];
         var surface = new Vector2[PartSlots];
+        var glow = new Vector3[PartSlots];
         foreach (var (part, material) in Materials())
         {
+            // Every glowing part but the lamp shade (see emissive_part) glows steadily.
+            if (part != Part.LampShade && (float)material.GetShaderParameter("emission_energy") > 0f)
+            {
+                var emission = ((Color)material.GetShaderParameter("emission_color")).SrgbToLinear() * (float)material.GetShaderParameter("emission_energy");
+                glow[(int)part] = new Vector3(emission.R, emission.G, emission.B);
+            }
             // Linear, as the full material's shader sees it: its albedo_color and textures are sRGB.
             var linear = ((Color)material.GetShaderParameter("albedo_color")).SrgbToLinear();
             var roughness = (float)material.GetShaderParameter("roughness");
@@ -1035,6 +1232,7 @@ public static class FurnitureMeshes
         _coarseMaterial.SetShaderParameter("coarse_parts", true);
         _coarseMaterial.SetShaderParameter("part_albedo", albedo);
         _coarseMaterial.SetShaderParameter("part_surface", surface);
+        _coarseMaterial.SetShaderParameter("part_glow", glow);
         _coarseMaterial.SetShaderParameter("emissive_part", (int)Part.LampShade);
         _coarseMaterial.SetShaderParameter("emission_color", shade.GetShaderParameter("emission_color"));
         _coarseMaterial.SetShaderParameter("emission_energy", shade.GetShaderParameter("emission_energy"));

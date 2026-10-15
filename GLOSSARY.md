@@ -57,6 +57,19 @@ Five kinds, each made only of Furniture and planned before the Displays, which k
 One of the three modest bouncy castles filled with balls in every Store; a Point of interest. Harmless while the Store is open; at Closing time the Staff pass from any Ball pit to any other. Villagers cannot.
 _Avoid_: Ball-pit sea, portal
 
+**Ball pit network**:
+The three Ball pits of a Store recorded as one network in the core: at Closing time the Staff may pass from any of them to any other; while the Store is open, and for Villagers always, it is closed.
+
+**Rare Points of interest**:
+Seven kinds, planned like the common ones: exactly 3 **Ball pits** (the Ball pit network), 1–2 each of the **Armchair henge** (a Stonehenge-like ring of armchairs; its false Belief: sitting in the ring at Closing time is safe), the **EXIT sign** (glows, its arrow leads nowhere), the **Mannequin crowd** (looks like the Staff from afar), the **Door to nowhere** (a free-standing door frame onto the same aisle; the false "portal" Belief) and the **Display aquarium** (live fish, glows in the dark), and exactly one **Abandoned scaffold**.
+
+**Abandoned scaffold**:
+A half-finished Furniture stair climbing one Pillar on its walkway ring and ending abruptly in a Lookout: the one exception to the ring staying Furniture-free. A Village can finish it as a Pillar scaffold with fewer Materials.
+_Avoid_: Ladder, tower
+
+**Lookout**:
+A high place on Furniture from which to look out over the Store: on the climbable Landmarks (rack canyon, mattress mountain) and at the top of the Abandoned scaffold.
+
 **Furniture**:
 A single physical object in the Store (wardrobe, shelf unit, sofa, lamp…) that can be moved, used, built with or disassembled.
 _Avoid_: Prop, object, item
@@ -66,7 +79,7 @@ A piece of Furniture that gives light (table lamp, floor lamp). Lamps on display
 _Avoid_: Fixture, light (that is what a Lamp gives)
 
 **Display**:
-A room or free-standing set of Furniture generated from exactly one Theme, with one coordinated Palette. Every generated piece outside a Landmark belongs to one Display.
+A room or free-standing set of Furniture generated from exactly one Theme, with one coordinated Palette. Every generated piece outside a Landmark or a Point of interest belongs to one Display.
 
 **Theme**:
 The strict catalogue entry for what a Display shows (bedroom, patio, kitchen, etc.). It lists allowed Furniture in Core, Common and Accent tiers and their Placement roles; each Department type allows only certain Themes, chosen by weight.

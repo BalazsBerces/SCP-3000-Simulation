@@ -82,6 +82,18 @@ panel button after a second.
 Evidence and remaining human checks are in [ticket 06a verification](docs/ticket-06a-verification.md)
 and [ticket 06b verification](docs/ticket-06b-verification.md).
 
+## Landmarks and Points of interest
+
+`Landmarks` on the facade snapshot lists the seed's Landmarks (each with its rectangle, Sector and `Lookouts`); their
+Furniture carries a `LandmarkId`. `GroundAt(position)` gives a ground property a Landmark leaves (darkness in the
+dead zone, water in the fountain court), `StoreLightLevelAt(position)` the Store light there, `LampLevel(lamp)` how
+bright a Lamp is now, and `ClockReading(clock)` what a clock on the clock wall shows. `PointsOfInterest` lists the
+common and rare Points of interest, whose Furniture carries a `PointOfInterestId`; the Abandoned scaffold also records
+its `PillarId` and its `Lookout`. `BallPitNetwork` holds the three Ball pits, and `StaffExitsFrom(id)` returns the
+Ball pits the Staff can pass to from one: the other two at Closing time, none while the Store is open.
+`WorldConfig.LandmarkShowcase` builds a Store with every Landmark side by side and no Points of interest.
+`ScenarioBuilder.RemoveFurniture` lets tests take Furniture away.
+
 ## Weather
 
 Weather: the core exposes `FogBanks`, `Wind` and `FogDensityAt(position)` through the facade's snapshots; `Simulation.FogDensityAt` reads the latest snapshot. Banks grow, drift across Seams and dissipate with formed/dissipated domain events. Runtime randomness is independent of Store generation; tests supply `RuntimeRngSeed`. Natural formation reserves at most 45% of the floor at the banks' largest sizes (including spreading during dissipation), leaving clear stretches even if banks overlap. A new Store starts with 12 Store hours of weather warm-up. These are reversible tuning choices; no new ADR is needed.

@@ -49,6 +49,15 @@ public sealed record WorldSnapshot(
     /// <summary>Whether the Store is open or in Closing time.</summary>
     public DayPhase Phase => Clock.Phase;
 
+    /// <summary>The Store's three Ball pits as the one network the Staff pass through at Closing time.</summary>
+    public BallPitNetwork BallPitNetwork { get; init; } = BallPitNetwork.None;
+
+    /// <summary>
+    /// The Ball pits, by <see cref="PointOfInterest.Id"/>, the Staff can pass to now from one Point of interest:
+    /// every other Ball pit at Closing time, none while open or from anything else. Villagers never pass.
+    /// </summary>
+    public IReadOnlyList<int> StaffExitsFrom(int pointOfInterestId) => BallPitNetwork.StaffExitsFrom(pointOfInterestId, Phase);
+
     /// <summary>How bright the Store lights are, from 0 (out) to 1 (fully on).</summary>
     public double StoreLightLevel => Clock.StoreLightLevel;
 

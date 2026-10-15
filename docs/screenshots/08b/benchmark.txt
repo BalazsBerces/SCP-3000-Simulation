@@ -1,0 +1,7 @@
+Benchmark: Store 3008, 1920x1080, NVIDIA GeForce RTX 2070 SUPER, 20 s per lighting, target 120 fps average, minimum 90 fps average and 60 fps 1% low
+  Weather: fixed Fog bank, radius 160 m; MSAA Msaa4X, TAA True; Furniture full up to a zoom of 160 m, map above an overview camera height of 250 m
+  Open                       average  147,8 fps, 1% low   82,7 fps [meets 120 target] (2957 frames in 20,0 s; up to 0 lamp lights, 0 shadowed, 1784 visible Lamps with halos; average GPU 6,02 ms, CPU render 2,58 ms, 1435 draw calls, 1,8 M primitives)
+  Closing time               average  151,4 fps, 1% low   63,5 fps [meets 120 target] (3029 frames in 20,0 s; up to 256 lamp lights, 64 shadowed, 1784 visible Lamps with halos; average GPU 4,97 ms, CPU render 3,12 ms, 1665 draw calls, 1,9 M primitives)
+  Closing time far           average  119,1 fps, 1% low   89,2 fps [below 120 target] (2383 frames in 20,0 s; up to 256 lamp lights, 64 shadowed, 1691 visible Lamps with halos; average GPU 7,75 ms, CPU render 3,32 ms, 1663 draw calls, 2,5 M primitives)
+  Closing time at LOD switch average  121,9 fps, 1% low   74,5 fps [meets 120 target] (2439 frames in 20,0 s; up to 256 lamp lights, 64 shadowed, 770 visible Lamps with halos; average GPU 7,52 ms, CPU render 3,71 ms, 2345 draw calls, 2,5 M primitives)
+Benchmark PASSED

@@ -84,6 +84,11 @@ public enum FurnitureType
     // Point of interest Furniture, found only in Points of interest
     ShoppingCart,
     MealPlate,
+    BouncyCastle,
+    ExitSign,
+    Mannequin,
+    DoorFrame,
+    Aquarium,
 }
 
 /// <summary>
@@ -101,7 +106,7 @@ public enum FurnitureType
 /// Which version of its type the piece is (e.g. a round or a long dining table), from 0 to
 /// <see cref="FurnitureCatalog.VariantCount"/> - 1; its size is <see cref="FurnitureCatalog.Spec(FurniturePiece)"/>.
 /// </param>
-/// <param name="DisplayId">The <see cref="Display"/> the piece belongs to, by <see cref="Display.Id"/>; -1 for Landmark Furniture.</param>
+/// <param name="DisplayId">The <see cref="Display"/> the piece belongs to, by <see cref="Display.Id"/>; -1 for Landmark and Point of interest Furniture.</param>
 /// <param name="Tint">
 /// The colour of its fabric, plastic or leaves, as an index into the tints (0 to
 /// <see cref="FurniturePalettes.TintCount"/> - 1); always one of its Display's palette, if it has one.
@@ -123,7 +128,7 @@ public readonly record struct FurniturePiece(int Id, FurnitureType Type, Vector2
 /// <param name="IsFloorCovering">Flat pieces (rugs) that other Furniture may stand on.</param>
 /// <param name="LightRadius">
 /// How far a Lamp's light reaches, in metres; zero for Furniture that gives no light. Lamps on
-/// display stay lit at all times, including Closing time, independently of the Store lights.
+/// display are off while the Store is open and come on as the Store lights fade (<see cref="WorldSnapshot.LampLevel"/>).
 /// </param>
 /// <param name="Variant">Which version of the type this spec describes; 0 is the standard one.</param>
 public sealed record FurnitureSpec(FurnitureType Type, float Width, float Depth, float Height, bool IsFloorCovering = false, float LightRadius = 0f,
@@ -173,7 +178,11 @@ public static class FurnitureCatalog
     ];
 
     /// <summary>The Furniture types found only in Points of interest, never on display.</summary>
-    public static IReadOnlyList<FurnitureType> PointOfInterestTypes { get; } = [FurnitureType.ShoppingCart, FurnitureType.MealPlate];
+    public static IReadOnlyList<FurnitureType> PointOfInterestTypes { get; } =
+    [
+        FurnitureType.ShoppingCart, FurnitureType.MealPlate, FurnitureType.BouncyCastle, FurnitureType.ExitSign, FurnitureType.Mannequin,
+        FurnitureType.DoorFrame, FurnitureType.Aquarium,
+    ];
 
     /// <summary>
     /// The eight corners of a piece's box, tilt and rotation included: X east and Y south around its
@@ -272,6 +281,11 @@ public static class FurnitureCatalog
             new(FurnitureType.BasinKerb, 2.0f, 0.5f, 0.6f),                    // straight stone kerb of a basin
             new(FurnitureType.ShoppingCart, 0.55f, 1.0f, 1.0f),                // wire basket on a wheeled chassis, handle at the back
             new(FurnitureType.MealPlate, 0.3f, 0.3f, 0.05f),                   // a plate of food
+            new(FurnitureType.BouncyCastle, 5.0f, 5.0f, 2.6f),                 // inflatable floor, corner towers and net walls, full of balls
+            new(FurnitureType.ExitSign, 1.4f, 0.3f, 2.7f),                     // glowing EXIT sign with an arrow, high on two posts
+            new(FurnitureType.Mannequin, 0.5f, 0.3f, 1.95f),                   // tall, slim, faceless, on a stand
+            new(FurnitureType.DoorFrame, 1.3f, 0.3f, 2.3f),                    // free-standing door frame, no wall around it
+            new(FurnitureType.Aquarium, 5.0f, 1.6f, 2.4f),                     // huge glowing tank of live fish on a cabinet
 
             // Variants of the most repeated types: other proportions, backs, legs or materials.
             new(FurnitureType.Chair, 0.45f, 0.5f, 1.05f, Variant: 1),          // high ladder back
