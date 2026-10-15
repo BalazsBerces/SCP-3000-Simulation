@@ -700,9 +700,7 @@ internal sealed class DisplayFurnisher
             var random = _owner._random;
             if (_owner._archetype.PreferredVariant is { } preferred && preferred.Type == type && random.Chance(0.75f))
                 return preferred.Variant;
-            var allowed = Enumerable.Range(0, FurnitureCatalog.VariantCount(type))
-                .Where(v => !centre || v == 0 || FurnitureCatalog.Spec(type, v).Height <= 1.5f).ToArray();
-            return random.Pick(allowed);
+            return FurnitureCatalog.PickVariant(random, type, s => !centre || s.Variant == 0 || s.Height <= 1.5f);
         }
     }
 }

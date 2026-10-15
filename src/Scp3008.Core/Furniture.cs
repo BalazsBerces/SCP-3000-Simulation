@@ -131,8 +131,12 @@ public readonly record struct FurniturePiece(int Id, FurnitureType Type, Vector2
 /// display are off while the Store is open and come on as the Store lights fade (<see cref="WorldSnapshot.LampLevel"/>).
 /// </param>
 /// <param name="Variant">Which version of the type this spec describes; 0 is the standard one.</param>
+/// <param name="IsLeather">
+/// Upholstered in leather rather than fabric (the leather sofa). Leather versions are rare: a type's leather
+/// versions together are chosen about <see cref="FurnitureCatalog.LeatherShare"/> of the time.
+/// </param>
 public sealed record FurnitureSpec(FurnitureType Type, float Width, float Depth, float Height, bool IsFloorCovering = false, float LightRadius = 0f,
-    int Variant = 0)
+    int Variant = 0, bool IsLeather = false)
 {
     /// <summary>Whether this is a Lamp: Furniture that gives light.</summary>
     public bool IsLamp => LightRadius > 0f;
@@ -154,6 +158,23 @@ public static class FurnitureCatalog
 
     /// <summary>How many versions a type comes in (at least one).</summary>
     public static int VariantCount(FurnitureType type) => Specs[(int)type].Length;
+
+    /// <summary>The share of a type's pieces, among the versions allowed, that are leather when it has both leather and fabric versions.</summary>
+    public const float LeatherShare = 0.1f;
+
+    /// <summary>
+    /// Picks a version of a type from those <paramref name="allowed"/> (all by default): the fabric ones equally
+    /// often, the leather ones together only <see cref="LeatherShare"/> of the time.
+    /// </summary>
+    internal static int PickVariant(SeededRandom random, FurnitureType type, Func<FurnitureSpec, bool>? allowed = null)
+    {
+        var specs = Specs[(int)type].Where(s => allowed is null || allowed(s)).ToArray();
+        var leather = specs.Where(s => s.IsLeather).ToArray();
+        var fabric = specs.Where(s => !s.IsLeather).ToArray();
+        if (leather.Length > 0 && fabric.Length > 0)
+            return random.Pick(random.Chance(LeatherShare) ? leather : fabric).Variant;
+        return random.Pick(specs).Variant;
+    }
 
     /// <summary>Heights above the floor of the beams a <see cref="FurnitureType.PalletRack"/> holds boxes on.</summary>
     public static IReadOnlyList<float> PalletRackLevels { get; } = [0.15f, 1.65f, 3.15f];
@@ -302,6 +323,7 @@ public static class FurnitureCatalog
             new(FurnitureType.GardenTable, 2.0f, 0.9f, 0.75f, Variant: 2),     // long picnic table
             new(FurnitureType.Sofa, 1.6f, 0.9f, 0.85f, Variant: 1),            // two-seat loveseat
             new(FurnitureType.Sofa, 2.7f, 1.0f, 0.9f, Variant: 2),             // large three-seat sofa
+            new(FurnitureType.Sofa, 2.2f, 0.95f, 0.85f, Variant: 3, IsLeather: true), // leather sofa, rare
             new(FurnitureType.Wardrobe, 1.6f, 0.6f, 2.0f, Variant: 1),         // double wardrobe
             new(FurnitureType.Wardrobe, 0.6f, 0.6f, 2.1f, Variant: 2),         // narrow tall wardrobe
             new(FurnitureType.KitchenCabinet, 0.8f, 0.6f, 0.9f, Variant: 1),   // wide drawer cabinet

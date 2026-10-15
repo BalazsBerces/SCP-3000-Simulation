@@ -2,29 +2,28 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://ce72l62acq00s"
-path.s3tc="res://.godot/imported/Sofa_01_diff_1k.jpg-a2bd48e876eda563ea703baea4a2f469.s3tc.ctex"
+uid="uid://vt65acj1qduu"
+path="res://.godot/imported/M_Koltuk._baseColor.jpg-b264cc2dd1aa698a36cd0595fe0ee001.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
-"vram_texture": true
+"vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/models/Sofa_01/textures/Sofa_01_diff_1k.jpg"
-dest_files=["res://.godot/imported/Sofa_01_diff_1k.jpg-a2bd48e876eda563ea703baea4a2f469.s3tc.ctex"]
+source_file="res://assets/models/fabric_loveseat/textures/M_Koltuk._baseColor.jpg"
+dest_files=["res://.godot/imported/M_Koltuk._baseColor.jpg-b264cc2dd1aa698a36cd0595fe0ee001.ctex"]
 
 [params]
 
-compress/mode=2
+compress/mode=0
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0
 compress/hdr_compression=1
-compress/normal_map=2
+compress/normal_map=0
 compress/channel_pack=0
-mipmaps/generate=true
+mipmaps/generate=false
 mipmaps/limit=-1
 roughness/mode=0
 roughness/src_normal=""
@@ -38,4 +37,4 @@ process/normal_map_invert_y=false
 process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
 process/size_limit=0
-detect_3d/compress_to=0
+detect_3d/compress_to=1

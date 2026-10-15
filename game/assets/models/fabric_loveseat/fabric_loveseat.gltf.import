@@ -3,13 +3,13 @@
 importer="scene"
 importer_version=1
 type="PackedScene"
-uid="uid://dlsbelwc1pebx"
-path="res://.godot/imported/sofa_03.gltf-db102d5e42dd9cb11f378d0203984aa1.scn"
+uid="uid://ch5hw2rnh4skj"
+path="res://.godot/imported/fabric_loveseat.gltf-ad3f5533430f41dd31940b4c31dcc0e0.scn"
 
 [deps]
 
-source_file="res://assets/models/sofa_03/sofa_03.gltf"
-dest_files=["res://.godot/imported/sofa_03.gltf-db102d5e42dd9cb11f378d0203984aa1.scn"]
+source_file="res://assets/models/fabric_loveseat/fabric_loveseat.gltf"
+dest_files=["res://.godot/imported/fabric_loveseat.gltf-ad3f5533430f41dd31940b4c31dcc0e0.scn"]
 
 [params]
 

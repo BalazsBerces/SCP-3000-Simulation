@@ -25,6 +25,18 @@ public class FurnitureRebalanceTests(ITestOutputHelper output)
         Assert.InRange(pieces.Count, 410_806 * 0.9, 410_806 * 1.1);
     }
 
+    [Fact]
+    public void Leather_sofas_are_marked_and_about_a_tenth_of_the_sofas()
+    {
+        Assert.Contains(Enumerable.Range(0, FurnitureCatalog.VariantCount(FurnitureType.Sofa)), v => FurnitureCatalog.Spec(FurnitureType.Sofa, v).IsLeather);
+        Assert.Contains(Enumerable.Range(0, FurnitureCatalog.VariantCount(FurnitureType.Sofa)), v => !FurnitureCatalog.Spec(FurnitureType.Sofa, v).IsLeather);
+        using var sim = Simulation.Create(new WorldConfig(Seed: 3008, RuntimeRngSeed: 1));
+        var sofas = sim.Snapshot.Furniture.Where(p => p.Type == FurnitureType.Sofa).ToList();
+        var leather = sofas.Count(p => FurnitureCatalog.Spec(p).IsLeather) / (float)sofas.Count;
+        output.WriteLine($"{sofas.Count} sofas, {leather:P1} leather");
+        Assert.InRange(leather, 0.05f, 0.15f);
+    }
+
     [Theory]
     [MemberData(nameof(Worlds))]
     public void Lamps_are_occasional_except_in_electrical_departments_on_both_store_sizes(int seed, PillarLayout layout)

@@ -239,7 +239,7 @@ internal static class LandmarkGenerator
             var type = random.Pick(remains);
             float[] tilts = [0f, 0f, MathF.PI / 2f, -MathF.PI / 2f, MathF.PI];
             b.Rest(type, at, 0f, random.Range(-MathF.PI, MathF.PI), random.Pick(tilts) + random.Range(-0.15f, 0.15f),
-                random.Next(FurnitureCatalog.VariantCount(type)), random.Next(FurniturePalettes.TintCount));
+                FurnitureCatalog.PickVariant(random, type), random.Next(FurniturePalettes.TintCount));
         }
     }
 
@@ -562,7 +562,7 @@ internal static class LandmarkGenerator
             var type = random.Pick(strewn);
             float[] tilts = [0f, MathF.PI / 2f, -MathF.PI / 2f];
             if (b.Rest(type, at, 0f, random.Range(-MathF.PI, MathF.PI), random.Pick(tilts) + random.Range(-0.1f, 0.1f),
-                    random.Next(FurnitureCatalog.VariantCount(type)), random.Next(FurniturePalettes.TintCount)))
+                    FurnitureCatalog.PickVariant(random, type), random.Next(FurniturePalettes.TintCount)))
                 placed++;
         }
     }

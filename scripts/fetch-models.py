@@ -9,12 +9,16 @@ Poly Haven models (CC0) are saved as their 1k glTF (with textures/). The bathroo
 loafbrr_1's "Toilets" pack (CC0, OpenGameArt): its glTF binary carries no textures, so each chosen
 object is written as its own glTF with the pack's 1k Diffuse, Normal and AoRM maps (ORM order:
 occlusion, roughness, metallic) attached, converted to JPEG.
+Sketchfab models (CC-BY) need a Sketchfab API token (sketchfab.com/settings/password) in the
+SKETCHFAB_API_TOKEN environment variable or the file ~/.sketchfab-token; their textures are
+scaled down to 1k JPEGs.
 The game maps each model to a Furniture type and variant and fits it to the core's size
 (game/scripts/FurnitureModels.cs).
 """
 
 import io
 import json
+import os
 import pathlib
 import struct
 import sys
@@ -33,9 +37,9 @@ TOILETS_PAGE = "https://opengameart.org/content/toilets"
 # (folder, source, asset or root node, title, used for).
 MODELS = [
     ("ArmChair_01", "polyhaven", "ArmChair_01", "Arm Chair 01", "Armchair"),
-    ("sofa_02", "polyhaven", "sofa_02", "Sofa 02", "Sofa"),
-    ("Sofa_01", "polyhaven", "Sofa_01", "Sofa 01", "Sofa, two-seat loveseat variant"),
-    ("sofa_03", "polyhaven", "sofa_03", "Sofa 03", "Sofa, large three-seat variant"),
+    ("fabric_sofa", "sketchfab", "be39bf64cf4c4a02b55a0ef1d40e1fbb", "Modern Minimalist Fabric Sofa", "Sofa and its large three-seat variant"),
+    ("fabric_loveseat", "sketchfab", "5a1ccfe43ffd4f1883abe4dca7d2b3bb", "Modern Fabric Sofa - Low Poly / Game Ready", "Sofa, two-seat loveseat variant"),
+    ("sofa_02", "polyhaven", "sofa_02", "Sofa 02", "Sofa, leather variant (rare)"),
     ("painted_wooden_chair_01", "polyhaven", "painted_wooden_chair_01", "Painted Wooden Chair 01", "Chair"),
     ("dining_chair_02", "polyhaven", "dining_chair_02", "Dining Chair 02", "Chair, high-back variant"),
     ("GreenChair_01", "polyhaven", "GreenChair_01", "Green Chair 01", "Chair, carver variant with arms"),
@@ -72,6 +76,61 @@ def polyhaven(folder, asset):
         (target / path).parent.mkdir(parents=True, exist_ok=True)
         (target / path).write_bytes(get(entry["url"]))
     return ", ".join(info["authors"].keys()), f"https://polyhaven.com/a/{asset}", "CC0"
+
+
+def sketchfab_token():
+    token = os.environ.get("SKETCHFAB_API_TOKEN")
+    if not token:
+        path = pathlib.Path.home() / ".sketchfab-token"
+        token = path.read_text(encoding="utf-8").strip() if path.exists() else ""
+    if not token:
+        sys.exit("Sketchfab models need an API token: set SKETCHFAB_API_TOKEN or write it to ~/.sketchfab-token.")
+    return token
+
+
+def sketchfab(folder, uid):
+    info = json.loads(get(f"https://api.sketchfab.com/v3/models/{uid}"))
+    licence = {"by": "CC-BY", "cc0": "CC0"}.get(info["license"]["slug"])
+    if licence is None:
+        sys.exit(f"{info['name']} has the licence {info['license']['label']}; only CC0 and CC-BY may be used.")
+    request = urllib.request.Request(f"https://api.sketchfab.com/v3/models/{uid}/download",
+                                     headers={**USER_AGENT, "Authorization": f"Token {sketchfab_token()}"})
+    with urllib.request.urlopen(request) as response:
+        archive = zipfile.ZipFile(io.BytesIO(get(json.loads(response.read())["gltf"]["url"])))
+    gltf = json.loads(archive.read("scene.gltf"))
+    target = OUT / folder
+    (target / "textures").mkdir(parents=True, exist_ok=True)
+    for image in gltf.get("images", []):
+        name = pathlib.PurePosixPath(image["uri"]).stem
+        picture = Image.open(io.BytesIO(archive.read(image["uri"]))).convert("RGB")
+        picture.thumbnail((1024, 1024))
+        image["uri"] = f"textures/{name}.jpg"
+        picture.save(target / image["uri"], quality=92, optimize=True)
+        image.pop("mimeType", None)
+    # The game wants albedo, normal and roughness maps on every material: missing ones become
+    # small flat maps of the material's own factors (a flat normal map changes nothing).
+    def flat(name, colour):
+        uri = f"textures/{name}.jpg"
+        Image.new("RGB", (4, 4), colour).save(target / uri, quality=95)
+        gltf.setdefault("images", []).append({"uri": uri})
+        gltf.setdefault("textures", []).append({"source": len(gltf["images"]) - 1})
+        return {"index": len(gltf["textures"]) - 1}
+
+    for index, material in enumerate(gltf["materials"]):
+        pbr = material.setdefault("pbrMetallicRoughness", {})
+        tag = f"{folder}_material{index}"
+        if "baseColorTexture" not in pbr:
+            factor = pbr.pop("baseColorFactor", [1.0, 1.0, 1.0, 1.0])
+            pbr["baseColorTexture"] = flat(f"{tag}_albedo", tuple(round(255 * c ** (1 / 2.2)) for c in factor[:3]))
+        if "metallicRoughnessTexture" not in pbr:
+            roughness, metallic = pbr.pop("roughnessFactor", 1.0), pbr.pop("metallicFactor", 1.0)
+            pbr["metallicRoughnessTexture"] = flat(f"{tag}_orm", (255, round(255 * roughness), round(255 * metallic)))
+        if "normalTexture" not in material:
+            material["normalTexture"] = flat(f"{tag}_normal", (128, 128, 255))
+    gltf["buffers"] = [{"uri": f"{folder}.bin", "byteLength": len(archive.read("scene.bin"))}]
+    (target / f"{folder}.bin").write_bytes(archive.read("scene.bin"))
+    (target / f"{folder}.gltf").write_text(json.dumps(gltf, indent=1), encoding="utf-8")
+    return info["user"]["displayName"], info["viewerUrl"], licence
 
 
 def toilets(pack, folder, root):
@@ -157,6 +216,10 @@ def main():
         if source == "polyhaven":
             author, url, licence = polyhaven(folder, asset)
             where = "Poly Haven"
+        elif source == "sketchfab":
+            author, url, licence = sketchfab(folder, asset)
+            where = "Sketchfab"
+            licence = "CC-BY ([CC BY 4.0](https://creativecommons.org/licenses/by/4.0/))" if licence == "CC-BY" else licence
         else:
             if pack is None:
                 pack = zipfile.ZipFile(io.BytesIO(get(TOILETS_ZIP)))

@@ -58,9 +58,11 @@ public static class FurnitureModels
     public static readonly IReadOnlyList<Model> All =
     [
         new(FurnitureType.Armchair, 0, "ArmChair_01", 0f, SeatBudget, true, "Kirill Sannikov", "CC0", "https://polyhaven.com/a/ArmChair_01"),
-        new(FurnitureType.Sofa, 0, "sofa_02", 0f, SofaBudget, false, "Kirill Sannikov", "CC0", "https://polyhaven.com/a/sofa_02"),
-        new(FurnitureType.Sofa, 1, "Sofa_01", 0f, SofaBudget, true, "Kirill Sannikov", "CC0", "https://polyhaven.com/a/Sofa_01"),
-        new(FurnitureType.Sofa, 2, "sofa_03", 0f, SofaBudget, false, "Fran Calvente", "CC0", "https://polyhaven.com/a/sofa_03"),
+        // Everyday fabric sofas, tinted to the Display's palette; the leather one (variant 3) is rare.
+        new(FurnitureType.Sofa, 0, "fabric_sofa", 0f, SofaBudget, true, "Sempay_3D", "CC-BY", "https://sketchfab.com/3d-models/modern-minimalist-fabric-sofa-be39bf64cf4c4a02b55a0ef1d40e1fbb"),
+        new(FurnitureType.Sofa, 1, "fabric_loveseat", 90f, SofaBudget, true, "Renend Studio", "CC-BY", "https://sketchfab.com/3d-models/modern-fabric-sofa-low-poly-game-ready-5a1ccfe43ffd4f1883abe4dca7d2b3bb"),
+        new(FurnitureType.Sofa, 2, "fabric_sofa", 0f, SofaBudget, true, "Sempay_3D", "CC-BY", "https://sketchfab.com/3d-models/modern-minimalist-fabric-sofa-be39bf64cf4c4a02b55a0ef1d40e1fbb"),
+        new(FurnitureType.Sofa, 3, "sofa_02", 0f, SofaBudget, false, "Kirill Sannikov", "CC0", "https://polyhaven.com/a/sofa_02"),
         new(FurnitureType.Chair, 0, "painted_wooden_chair_01", 0f, ChairBudget, false, "Kuutti Siitonen", "CC0", "https://polyhaven.com/a/painted_wooden_chair_01"),
         new(FurnitureType.Chair, 1, "dining_chair_02", 0f, ChairBudget, false, "James Ray Cock", "CC0", "https://polyhaven.com/a/dining_chair_02"),
         new(FurnitureType.Chair, 2, "GreenChair_01", 0f, ChairBudget, false, "Kirill Sannikov", "CC0", "https://polyhaven.com/a/GreenChair_01"),
@@ -239,7 +241,7 @@ public static class FurnitureModels
         if (node is MeshInstance3D { Mesh: { } mesh } instance)
             for (var s = 0; s < mesh.GetSurfaceCount(); s++)
             {
-                // Opaque parts only (ADR 0005); the one transparent part (sofa_03's fringe) is a small detail.
+                // Opaque parts only (ADR 0005); transparent parts are small details.
                 if ((instance.GetActiveMaterial(s) ?? mesh.SurfaceGetMaterial(s)) is not BaseMaterial3D material
                     || material.Transparency != BaseMaterial3D.TransparencyEnum.Disabled)
                     continue;
