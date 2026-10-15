@@ -75,8 +75,8 @@ public partial class CoarseColourCheck : Node
                 var coarse = FurnitureMeshes.CoarseFor(type, variant);
                 Frame(full);
                 var parts = Enumerable.Range(0, full.GetSurfaceCount()).Select(s => full.SurfaceGetName(s)).Distinct().ToList();
-                var fullMasks = await Masks(full, parts, coarse: false);
-                var coarseMasks = await Masks(coarse, parts, coarse: true);
+                var fullMasks = await Masks(type, variant, full, parts, coarse: false);
+                var coarseMasks = await Masks(type, variant, coarse, parts, coarse: true);
                 int?[] tints = FurnitureMeshes.IsTinted(type) ? [.. Tints.Select(t => (int?)t)] : [null];
                 foreach (var tint in tints)
                 {
@@ -182,14 +182,14 @@ public partial class CoarseColourCheck : Node
     }
 
     /// <summary>For each part, the pixels it covers in the given mesh, minus its one-pixel edge.</summary>
-    private async Task<List<List<int>>> Masks(ArrayMesh mesh, List<string> parts, bool coarse)
+    private async Task<List<List<int>>> Masks(FurnitureType type, int variant, ArrayMesh mesh, List<string> parts, bool coarse)
     {
         var result = new List<List<int>>();
         for (var first = 0; first < parts.Count; first += 3)
         {
             var group = new Vector3I(-1, -1, -1);
             for (var c = 0; c < 3 && first + c < parts.Count; c++)
-                group[c] = PartIndex(parts[first + c]);
+                group[c] = FurnitureMeshes.PartIndex(type, variant, parts[first + c]);
             ArrayMesh drawn;
             if (coarse)
             {
@@ -204,7 +204,7 @@ public partial class CoarseColourCheck : Node
                 {
                     var material = new ShaderMaterial { Shader = _maskShader };
                     material.SetShaderParameter("parts", group);
-                    material.SetShaderParameter("surface_part", PartIndex(mesh.SurfaceGetName(s)));
+                    material.SetShaderParameter("surface_part", FurnitureMeshes.PartIndex(type, variant, mesh.SurfaceGetName(s)));
                     drawn.SurfaceSetMaterial(s, material);
                 }
                 _piece.MaterialOverride = null;
@@ -233,14 +233,6 @@ public partial class CoarseColourCheck : Node
         var image = _viewport.GetTexture().GetImage();
         image.Convert(Image.Format.Rgb8);
         return image;
-    }
-
-    private static int PartIndex(string name)
-    {
-        for (var i = 0; i < 64; i++)
-            if (FurnitureMeshes.PartName(i) == name)
-                return i;
-        throw new ArgumentException($"Unknown part {name}.");
     }
 
     /// <summary>The average linear colour of the given pixels; black if there are none.</summary>

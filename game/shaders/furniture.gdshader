@@ -1,5 +1,6 @@
 // Furniture parts: the StandardMaterial3D features the parts use (albedo, tint from the instance
-// colour, normal and roughness maps, metallic, emission), plus the light of the Lamp pools.
+// colour, normal and roughness maps, metallic, emission), plus the light of the Lamp pools. The
+// external models' materials (FurnitureModels.cs) use it too, with packed ORM maps and fabric tint.
 shader_type spatial;
 #include "res://shaders/lamp_pools.gdshaderinc"
 #include "res://shaders/lamp_levels.gdshaderinc"
@@ -14,6 +15,15 @@ uniform bool textured = false;
 uniform bool normal_enabled = false;
 // Take the albedo tint from the instance colour.
 uniform bool tinted = false;
+// A model's packed map (glTF metallicRoughness): ambient occlusion in red, roughness in green and
+// metallic in blue of roughness_texture, rather than roughness alone in red.
+uniform bool orm = false;
+// A tinted model material tints only its light fabric: texels lighter than tint_threshold (linear
+// luminance) take the instance colour, keeping their shading relative to the fabric's average
+// luminance tint_luminance; darker texels (wooden legs, frames) keep their own colour.
+uniform bool tint_light = false;
+uniform float tint_threshold = 0.12;
+uniform float tint_luminance = 0.5;
 uniform vec2 uv_scale = vec2(1.0);
 uniform float roughness : hint_range(0.0, 1.0) = 1.0;
 uniform float metallic : hint_range(0.0, 1.0) = 0.0;
@@ -39,12 +49,15 @@ uniform bool lod_debug = false;
 uniform int clock_hand = 0;
 
 varying flat int part;
+// A coarse model mesh marks the vertices on its light, tinted fabric with UV2.y 1 (see tint_light).
+varying flat float coarse_tint;
 // How far this piece's own Lamp has come on; read once per vertex, only for glowing shades.
 varying flat float shade_level;
 
 void vertex() {
 	UV = UV * uv_scale;
 	part = int(UV2.x + 0.5);
+	coarse_tint = coarse_parts ? UV2.y : 0.0;
 	shade_level = 1.0;
 	if (clock_hand > 0) {
 		float reading = mod(time_to_closing + COLOR.a * 86400.0, 86400.0);
@@ -71,6 +84,10 @@ void fragment() {
 	if (coarse_parts) {
 		albedo = part_albedo[part].rgb;
 		tint = part_albedo[part].a > 0.5;
+		if (coarse_tint > 0.5) {
+			albedo = vec3(1.0);
+			tint = true;
+		}
 		surface_roughness = part_surface[part].x;
 		surface_metallic = part_surface[part].y;
 		if (part != emissive_part) {
@@ -81,8 +98,22 @@ void fragment() {
 			tint = false;
 		}
 	} else if (textured) {
-		albedo *= texture(albedo_texture, UV).rgb;
-		surface_roughness *= texture(roughness_texture, UV).r;
+		vec3 texel = texture(albedo_texture, UV).rgb;
+		if (tint && tint_light) {
+			float luminance = dot(texel, vec3(0.2126, 0.7152, 0.0722));
+			float fabric = smoothstep(0.6 * tint_threshold, tint_threshold, luminance);
+			texel = mix(texel, COLOR.rgb * luminance / tint_luminance, fabric);
+			tint = false;
+		}
+		albedo *= texel;
+		if (orm) {
+			vec3 packed = texture(roughness_texture, UV).rgb;
+			AO = packed.r;
+			surface_roughness *= packed.g;
+			surface_metallic *= packed.b;
+		} else {
+			surface_roughness *= texture(roughness_texture, UV).r;
+		}
 		if (normal_enabled) {
 			vec3 normal_map = texture(normal_texture, UV).rgb;
 			NORMAL_MAP = normal_map;

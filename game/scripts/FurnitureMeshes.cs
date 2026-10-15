@@ -12,6 +12,8 @@ namespace Scp3008.Game;
 /// legs, poles and frames stay (thin round ones as plain four-sided posts), only small details
 /// (handles, trim, tape strips) are left out, round parts have fewer sides and materials skip
 /// their normal maps. <see cref="SilhouetteCheck"/> compares the two.
+/// The hero types (armchair, sofa, chair, toilet, vanity unit) are drawn from external models
+/// instead (<see cref="FurnitureModels"/>), fitted to the same sizes in the same mesh space.
 /// </summary>
 public static class FurnitureMeshes
 {
@@ -82,7 +84,7 @@ public static class FurnitureMeshes
     private static ShaderMaterial? _coarseMaterial;
 
     // Size of the part tables (part_albedo, part_surface, part_glow) in furniture.gdshader; at least the number of parts. Change both together.
-    private const int PartSlots = 40;
+    internal const int PartSlots = 40;
 
     /// <summary>How brightly every lamp shade glows, from 0 (off) to 1 (lit).</summary>
     public static void SetLampGlow(float level)
@@ -147,6 +149,8 @@ public static class FurnitureMeshes
 
     private static ArrayMesh Get(FurnitureType type, int variant, bool coarse)
     {
+        if (FurnitureModels.Find(type, variant) is { } model)
+            return coarse ? FurnitureModels.Coarse(model) : FurnitureModels.Full(model);
         if (!Cache.TryGetValue((type, variant, coarse), out var mesh))
             Cache[(type, variant, coarse)] = mesh = Build(type, variant, coarse);
         return mesh;
@@ -171,6 +175,24 @@ public static class FurnitureMeshes
 
     /// <summary>The name of the part with this index: a full mesh's surface name, a coarse mesh's UV2.x.</summary>
     public static string PartName(int part) => ((Part)part).ToString();
+
+    /// <summary>
+    /// The part a full mesh's surface draws, as its coarse mesh marks it in UV2.x: a procedural
+    /// part's index, or a model's surface index (each model has its own coarse part table).
+    /// </summary>
+    public static int PartIndex(FurnitureType type, int variant, string surfaceName)
+    {
+        if (FurnitureModels.Find(type, variant) is not null)
+        {
+            var full = For(type, variant);
+            for (var s = 0; s < full.GetSurfaceCount(); s++)
+                if (full.SurfaceGetName(s) == surfaceName)
+                    return s;
+        }
+        else if (Enum.TryParse<Part>(surfaceName, out var part))
+            return (int)part;
+        throw new ArgumentException($"Unknown part {surfaceName} of {type} {variant}.");
+    }
 
     private static Color[]? Palette(FurnitureType type)
     {
@@ -1101,7 +1123,11 @@ public static class FurnitureMeshes
 
     /// <summary>Four corner posts flush with the footprint.</summary>
     /// <summary>Dev aid: draws every coarse mesh magenta, to show which level of detail is drawn.</summary>
-    public static void ShowCoarseInMagenta(bool enabled) => CoarseMaterial().SetShaderParameter("lod_debug", enabled);
+    public static void ShowCoarseInMagenta(bool enabled)
+    {
+        CoarseMaterial().SetShaderParameter("lod_debug", enabled);
+        FurnitureModels.ShowCoarseInMagenta(enabled);
+    }
 
     private static void Posts(Builder b, Part part, float hw, float hd, float h, float half) =>
         Legs(b, part, hw - half, hd - half, h, half);

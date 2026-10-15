@@ -10,7 +10,8 @@ namespace Scp3008.Game;
 /// Store with the same seed and that layout, like Generate. The Landmark showcase button switches between the
 /// Store and the Landmark showcase (every Landmark in a row, no Displays) with the same seed and layout; in the
 /// showcase a button per Landmark flies the camera to it. The Point of interest showcase button does the same for
-/// the Points of interest (every kind in a row, no Displays or Landmarks). Also names the Department under the camera focus.
+/// the Points of interest (every kind in a row, no Displays or Landmarks). The Credits button shows CREDITS.md: the
+/// source, author and licence of every external model and texture. Also names the Department under the camera focus.
 /// </summary>
 public partial class SeedPanel : CanvasLayer
 {
@@ -102,6 +103,14 @@ public partial class SeedPanel : CanvasLayer
         ShowShowcaseButtons(Host.Snapshot);
         // After the camera has set its start view.
         Callable.From(FlyToFirstOfShowcase).CallDeferred();
+
+        var credits = new Button
+        {
+            Name = "Credits", Text = "Credits", FocusMode = Control.FocusModeEnum.None,
+            TooltipText = "Sources, authors and licences of the external models and textures",
+        };
+        credits.Pressed += ShowCredits;
+        column.AddChild(credits);
 
         _status = new Label { Name = "Department" };
         column.AddChild(_status);
@@ -199,6 +208,38 @@ public partial class SeedPanel : CanvasLayer
             button.Pressed += () => Rig.FlyTo(centre, MathF.Max(size.X, size.Y) * ShowcaseDistancePerMetre);
             container.AddChild(button);
         }
+    }
+
+    /// <summary>Shows CREDITS.md in a dialog: headings in bold, links clickable.</summary>
+    internal void ShowCredits()
+    {
+        var text = new RichTextLabel
+        {
+            Name = "CreditsText", BbcodeEnabled = true, FitContent = true, SelectionEnabled = true,
+            Text = CreditsBbcode(Godot.FileAccess.GetFileAsString("res://CREDITS.md")),
+        };
+        text.MetaClicked += meta => OS.ShellOpen(meta.AsString());
+        var scroll = new ScrollContainer { CustomMinimumSize = new Vector2(760f, 440f) };
+        text.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        scroll.AddChild(text);
+        var dialog = new AcceptDialog { Name = "CreditsDialog", Title = "Credits", Exclusive = false };
+        dialog.AddChild(scroll);
+        dialog.Confirmed += dialog.QueueFree;
+        dialog.Canceled += dialog.QueueFree;
+        AddChild(dialog);
+        dialog.PopupCentered();
+    }
+
+    /// <summary>The small Markdown subset of CREDITS.md (headings, links, code spans) as BBCode.</summary>
+    internal static string CreditsBbcode(string markdown)
+    {
+        var lines = markdown.Replace("\r", "").Split('\n').Select(line =>
+        {
+            line = line.Replace("[", "[lb]").Replace("`", "");
+            line = System.Text.RegularExpressions.Regex.Replace(line, @"\[lb\]([^\]]*)\]\(([^)]*)\)", "[url=$2]$1[/url]");
+            return line.StartsWith('#') ? $"[b]{line.TrimStart('#', ' ')}[/b]" : line;
+        });
+        return string.Join("\n", lines);
     }
 
     private static string LayoutLabel(PillarLayout layout) => layout switch

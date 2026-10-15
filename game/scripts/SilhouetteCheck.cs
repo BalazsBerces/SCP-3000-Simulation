@@ -5,7 +5,8 @@ namespace Scp3008.Game;
 
 /// <summary>
 /// Compares every Furniture type and variant's full mesh with its coarse mesh (level of detail):
-/// both are drawn as flat silhouettes from the front, the side and above on a 5 mm grid, and the
+/// both are drawn as flat silhouettes from the front, the side and above on a 5 mm grid (2 cm for
+/// the external models, <see cref="ModelCell"/>), and the
 /// coarse mesh must cover nearly all of the full one, reach the floor where the full one does and
 /// start at the same height (a coarse piece that lost its legs floats). Run by DevCapture's
 /// <c>--silhouette-check</c>.
@@ -13,6 +14,10 @@ namespace Scp3008.Game;
 public static class SilhouetteCheck
 {
     private const float Cell = 0.005f;
+
+    // The external models' grid: their coarse mesh is drawn only from the switch zoom out (160 m),
+    // where a pixel spans about 20 cm.
+    private const float ModelCell = 0.02f;
 
     // Share of the full silhouette the coarse one must cover in each view. Below 1 because thin
     // round parts become boxes and invisible details (handles, trim, tape) may go.
@@ -41,18 +46,20 @@ public static class SilhouetteCheck
                 yield return Compare(type, variant);
     }
 
-    public static Result Compare(FurnitureType type, int variant)
+    public static Result Compare(FurnitureType type, int variant) =>
+        Compare(type, variant, Triangles(FurnitureMeshes.For(type, variant)), Triangles(FurnitureMeshes.CoarseFor(type, variant)),
+            FurnitureModels.Find(type, variant) is null ? Cell : ModelCell);
+
+    private static Result Compare(FurnitureType type, int variant, List<Vector3> full, List<Vector3> coarse, float cell)
     {
-        var full = Triangles(FurnitureMeshes.For(type, variant));
-        var coarse = Triangles(FurnitureMeshes.CoarseFor(type, variant));
         var bounds = new Aabb(full[0], Vector3.Zero);
         foreach (var p in full)
             bounds = bounds.Expand(p);
-        bounds = bounds.Grow(Cell);
+        bounds = bounds.Grow(cell);
         float Coverage(int u, int v, float? maxV = null)
         {
-            var a = Raster(full, bounds, u, v, maxV);
-            var b = Raster(coarse, bounds, u, v, maxV);
+            var a = Raster(full, bounds, u, v, maxV, cell);
+            var b = Raster(coarse, bounds, u, v, maxV, cell);
             var (count, kept) = (0, 0);
             for (var i = 0; i < a.Length; i++)
                 if (a[i])
@@ -88,23 +95,23 @@ public static class SilhouetteCheck
     }
 
     /// <summary>The cells whose centres lie inside a triangle, projected onto axes u and v (0 = X, 1 = Y, 2 = Z).</summary>
-    private static bool[] Raster(List<Vector3> triangles, Aabb bounds, int u, int v, float? maxV)
+    private static bool[] Raster(List<Vector3> triangles, Aabb bounds, int u, int v, float? maxV, float cell)
     {
         var (u0, v0) = (bounds.Position[u], bounds.Position[v]);
-        var (nu, nv) = ((int)Mathf.Ceil(bounds.Size[u] / Cell), (int)Mathf.Ceil(bounds.Size[v] / Cell));
+        var (nu, nv) = ((int)Mathf.Ceil(bounds.Size[u] / cell), (int)Mathf.Ceil(bounds.Size[v] / cell));
         var cells = new bool[nu * nv];
         for (var t = 0; t + 2 < triangles.Count; t += 3)
         {
-            var a = new Vector2(triangles[t][u] - u0, triangles[t][v] - v0) / Cell;
-            var b = new Vector2(triangles[t + 1][u] - u0, triangles[t + 1][v] - v0) / Cell;
-            var c = new Vector2(triangles[t + 2][u] - u0, triangles[t + 2][v] - v0) / Cell;
+            var a = new Vector2(triangles[t][u] - u0, triangles[t][v] - v0) / cell;
+            var b = new Vector2(triangles[t + 1][u] - u0, triangles[t + 1][v] - v0) / cell;
+            var c = new Vector2(triangles[t + 2][u] - u0, triangles[t + 2][v] - v0) / cell;
             var area = Cross(b - a, c - a);
             if (Mathf.Abs(area) < 1e-6f)
                 continue;
             var (minX, maxX) = (Math.Max(0, (int)Mathf.Floor(Mathf.Min(a.X, Mathf.Min(b.X, c.X)))), Math.Min(nu - 1, (int)Mathf.Ceil(Mathf.Max(a.X, Mathf.Max(b.X, c.X)))));
             var (minY, maxY) = (Math.Max(0, (int)Mathf.Floor(Mathf.Min(a.Y, Mathf.Min(b.Y, c.Y)))), Math.Min(nv - 1, (int)Mathf.Ceil(Mathf.Max(a.Y, Mathf.Max(b.Y, c.Y)))));
             if (maxV is { } top)
-                maxY = Math.Min(maxY, (int)((top - v0) / Cell));
+                maxY = Math.Min(maxY, (int)((top - v0) / cell));
             for (var y = minY; y <= maxY; y++)
                 for (var x = minX; x <= maxX; x++)
                 {
@@ -115,7 +122,7 @@ public static class SilhouetteCheck
                 }
         }
         if (maxV is { } limit)
-            for (var y = Math.Max(0, (int)((limit - v0) / Cell) + 1); y < nv; y++)
+            for (var y = Math.Max(0, (int)((limit - v0) / cell) + 1); y < nv; y++)
                 Array.Fill(cells, false, y * nu, nu);
         return cells;
     }

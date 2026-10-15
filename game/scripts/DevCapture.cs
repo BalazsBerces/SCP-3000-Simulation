@@ -32,6 +32,7 @@ namespace Scp3008.Game;
 ///                          restarts once the new Store is shown;
 ///   --choose-pillars=name  after one second, choose this Pillar layout in the top-right panel;
 ///                          the capture timer restarts once the new Store is shown.
+///   --show-credits         after one second, open the Credits dialog as the seed panel's Credits button does.
 ///   --furniture-tour=dir  save 1080p JPG captures into dir, then quit: every Department type
 ///                          (Department-*), every layout archetype (Archetype-*) and every
 ///                          Furniture variant (Variant-*-n).
@@ -44,6 +45,10 @@ namespace Scp3008.Game;
 ///   --coarse-colour-check=dir  compare every Furniture type's full and coarse colour per part
 ///                          (<see cref="CoarseColourCheck"/>), save side-by-side sheets and the
 ///                          report into dir and quit with exit code 0 if every part matches, 3 if not.
+///   --model-check=file     check the external Furniture models (<see cref="ModelCheck"/>): each fills
+///                          its Furniture size, keeps to its triangle budget, has a CC0 or CC-BY
+///                          licence and is in CREDITS.md; write the report to file and quit with
+///                          exit code 0 if every check passes, 3 if not.
 ///   --lod-debug            draw coarse Furniture meshes magenta (see <see cref="FurnitureDetail"/>);
 ///   --zoom-sweep=seconds   zoom slowly from 20 m inside the level-of-detail switch to 20 m beyond
 ///                          it and back over this many seconds, wobbling by 1.5 m like an unsteady
@@ -107,6 +112,16 @@ public partial class DevCapture : Node
                 GetTree().Quit(lines.Count == 0 ? 0 : 3);
                 return;
             }
+            if (arg.StartsWith("--model-check="))
+            {
+                var (passed, lines) = ModelCheck.Run();
+                System.IO.File.WriteAllLines(arg["--model-check=".Length..], lines);
+                GD.Print(lines[^1]);
+                foreach (var line in lines.Where(l => l.StartsWith("FAIL")))
+                    GD.Print(line);
+                GetTree().Quit(passed ? 0 : 3);
+                return;
+            }
             if (arg.StartsWith("--coarse-colour-check="))
             {
                 RunColourCheck(arg["--coarse-colour-check=".Length..]);
@@ -164,6 +179,8 @@ public partial class DevCapture : Node
                 _zoomSweepSeconds = double.Parse(arg["--zoom-sweep=".Length..], CultureInfo.InvariantCulture);
             else if (arg == "--zoom-in-test")
                 CallDeferred(MethodName.RunZoomInTest);
+            else if (arg == "--show-credits")
+                GetTree().CreateTimer(1.0).Timeout += Seeds.ShowCredits;
             else if (arg.StartsWith("--choose-pillars="))
                 _layoutToChoose = PillarLayouts.Parse(arg["--choose-pillars=".Length..]);
         }
