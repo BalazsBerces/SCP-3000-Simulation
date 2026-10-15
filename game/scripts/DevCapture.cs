@@ -12,6 +12,7 @@ namespace Scp3008.Game;
 ///                          median (and over 12 ms), with what happened in it: a chunk or seam
 ///                          crossing, a garbage collection;
 ///   --focus=x,y            start the camera focused on Store position (x, y);
+///   --poi=Type             start the camera focused on the first Point of interest of that type (e.g. MannequinCrowd);
 ///   --distance=metres      start the camera at this zoom distance;
 ///   --overview-distance=metres  once the <see cref="StoreOverview"/> is on (--overview), jump to this zoom distance;
 ///   --pillars=name         (read by SimulationHost) start with this Pillar layout: 3x3, 2x2, 3x3L,
@@ -139,6 +140,15 @@ public partial class DevCapture : Node
                 _hitchReport = _fpsReport = true;
             else if (arg.StartsWith("--focus="))
                 Rig.JumpTo(ParseFloorVector(arg["--focus=".Length..]));
+            else if (arg.StartsWith("--poi="))
+            {
+                var name = arg["--poi=".Length..];
+                var poi = Host.Snapshot.PointsOfInterest.FirstOrDefault(p => p.Type.ToString() == name);
+                if (poi is null)
+                    GD.PrintErr($"No Point of interest {name} in this Store.");
+                else
+                    Rig.JumpTo(new Vector3(poi.Centre.X, 0f, poi.Centre.Y));
+            }
             else if (arg.StartsWith("--distance="))
                 Rig.JumpToDistance(float.Parse(arg["--distance=".Length..], CultureInfo.InvariantCulture));
             else if (arg.StartsWith("--overview-distance="))

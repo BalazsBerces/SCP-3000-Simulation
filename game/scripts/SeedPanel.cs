@@ -283,6 +283,9 @@ public partial class SeedPanel : CanvasLayer
     /// <summary>A showcase starts at its first (westmost) Landmark or Point of interest.</summary>
     private void FlyToFirstOfShowcase()
     {
+        // A dev capture that names its own focus keeps it.
+        if (OS.GetCmdlineUserArgs().Any(a => a.StartsWith("--focus=") || a.StartsWith("--poi=")))
+            return;
         var snapshot = Host.Snapshot;
         if (snapshot.LandmarkShowcase && snapshot.Landmarks.MinBy(l => l.Centre.X) is { } landmark)
             Rig.FlyTo(landmark.Centre, Extent(landmark) * ShowcaseDistancePerMetre);

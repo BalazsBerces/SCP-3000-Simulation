@@ -44,7 +44,7 @@ internal static class PointOfInterestGenerator
         PointOfInterestType.BallPit => new(8f, 8f),
         PointOfInterestType.ArmchairHenge => new(13f, 13f),
         PointOfInterestType.ExitSign => new(6f, 6f),
-        PointOfInterestType.MannequinCrowd => new(7f, 6f),
+        PointOfInterestType.MannequinCrowd => new(12f, 9f),
         PointOfInterestType.DoorToNowhere => new(5f, 11f),
         PointOfInterestType.DisplayAquarium => new(9f, 5f),
         _ => throw new ArgumentOutOfRangeException(nameof(type), type, null),
@@ -411,21 +411,41 @@ internal static class PointOfInterestGenerator
         b.Put(FurnitureType.ExitSign, new Vector2(random.Range(-0.3f, 0.3f), 2.4f), 0f, 0f);
     }
 
-    /// <summary>A crowd of mannequins standing about, most of them facing one way, as if watching.</summary>
+    /// <summary>Fewest and most mannequins in a crowd: about three times the first, smaller crowd.</summary>
+    private const int CrowdMin = 24, CrowdMax = 42;
+
+    /// <summary>The standing poses and builds (variants 0–4); the damaged ones (variant 5, a fallen figure) are placed separately.</summary>
+    private const int StandingVariants = 5, ArmlessVariant = 5;
+
+    /// <summary>Free floor kept between two mannequins' bounding circles.</summary>
+    private const float CrowdSpacing = 0.05f;
+
+    /// <summary>
+    /// A crowd of bare plastic mannequins standing about, most of them facing one way, as if watching; one lies knocked
+    /// over and, half of the time, another has lost an arm. Their bounding circles never overlap.
+    /// </summary>
     private static void BuildMannequinCrowd(PointOfInterestBuilder b)
     {
         var random = b.Random;
         var facing = random.Range(-MathF.PI, MathF.PI);
-        var placed = new List<Vector2>();
-        var wanted = 8 + random.Next(7);
-        for (var attempt = 0; attempt < 200 && placed.Count < wanted; attempt++)
+        var placed = new List<(Vector2 At, float Radius)>();
+        var wanted = CrowdMin + random.Next(CrowdMax - CrowdMin + 1);
+        var damaged = new List<(int Variant, float Tilt)> { (0, MathF.PI / 2f) };
+        if (random.Chance(0.5f))
+            damaged.Add((ArmlessVariant, 0f));
+
+        for (var attempt = 0; attempt < 4000 && placed.Count < wanted; attempt++)
         {
-            var at = new Vector2(random.Range(-3.2f, 3.2f), random.Range(-2.7f, 2.7f));
-            if (placed.Any(p => Vector2.Distance(p, at) < 0.8f))
+            var (variant, tilt) = placed.Count < damaged.Count ? damaged[placed.Count] : (random.Next(StandingVariants), 0f);
+            var at = new Vector2(random.Range(-5.4f, 5.4f), random.Range(-3.9f, 3.9f));
+            var spec = FurnitureCatalog.Spec(FurnitureType.Mannequin, variant);
+            // A fallen figure lies along its full height.
+            var radius = tilt == 0f ? MathF.Sqrt(spec.Width * spec.Width + spec.Depth * spec.Depth) / 2f : spec.Height / 2f + 0.1f;
+            if (placed.Any(p => Vector2.Distance(p.At, at) < p.Radius + radius + CrowdSpacing))
                 continue;
-            var rotation = random.Chance(0.75f) ? facing + random.Range(-0.25f, 0.25f) : random.Range(-MathF.PI, MathF.PI);
-            if (b.Put(FurnitureType.Mannequin, at, 0f, rotation))
-                placed.Add(at);
+            var rotation = tilt != 0f || !random.Chance(0.75f) ? random.Range(-MathF.PI, MathF.PI) : facing + random.Range(-0.25f, 0.25f);
+            if (b.Put(FurnitureType.Mannequin, at, 0f, rotation, variant, tilt, tint: random.Next(FurniturePalettes.TintCount)))
+                placed.Add((at, radius));
         }
     }
 

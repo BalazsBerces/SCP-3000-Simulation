@@ -304,11 +304,16 @@ public static class FurnitureCatalog
             new(FurnitureType.MealPlate, 0.3f, 0.3f, 0.05f),                   // a plate of food
             new(FurnitureType.BouncyCastle, 5.0f, 5.0f, 2.6f),                 // inflatable floor, corner towers and net walls, full of balls
             new(FurnitureType.ExitSign, 1.4f, 0.3f, 2.7f),                     // glowing EXIT sign with an arrow, high on two posts
-            new(FurnitureType.Mannequin, 0.5f, 0.3f, 1.95f),                   // tall, slim, faceless, on a stand
+            new(FurnitureType.Mannequin, 0.5f, 0.3f, 1.8f),                    // bare plastic shop mannequin, arms down, on a foot plate
             new(FurnitureType.DoorFrame, 1.3f, 0.3f, 2.3f),                    // free-standing door frame, no wall around it
             new(FurnitureType.Aquarium, 5.0f, 1.6f, 2.4f),                     // huge glowing tank of live fish on a cabinet
 
             // Variants of the most repeated types: other proportions, backs, legs or materials.
+            new(FurnitureType.Mannequin, 0.75f, 0.35f, 1.8f, Variant: 1),      // one arm raised, the other hand on the hip
+            new(FurnitureType.Mannequin, 0.5f, 0.75f, 1.8f, Variant: 2),       // mid-stride
+            new(FurnitureType.Mannequin, 0.46f, 0.28f, 1.95f, Variant: 3),     // tall and slim, arms down
+            new(FurnitureType.Mannequin, 0.6f, 0.36f, 1.65f, Variant: 4),      // short and broad, arms down
+            new(FurnitureType.Mannequin, 0.5f, 0.3f, 1.8f, Variant: 5),        // damaged: the left arm is missing
             new(FurnitureType.Chair, 0.45f, 0.5f, 1.05f, Variant: 1),          // high ladder back
             new(FurnitureType.Chair, 0.55f, 0.55f, 0.85f, Variant: 2),         // carver with arms
             new(FurnitureType.OfficeChair, 0.6f, 0.6f, 0.95f, Variant: 1),     // low-back task chair

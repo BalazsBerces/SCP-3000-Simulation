@@ -177,6 +177,44 @@ public class PointOfInterestTests
     }
 
     [Theory]
+    [MemberData(nameof(LayoutsAndSeeds))]
+    public void Each_mannequin_crowd_holds_24_to_42_bare_mannequins_in_three_poses_none_overlapping_and_the_crowd_count_is_unchanged(PillarLayout layout, int seed)
+    {
+        var snapshot = Generate(seed, layout);
+        var crowds = snapshot.PointsOfInterest.Where(p => p.Type == PointOfInterestType.MannequinCrowd).ToList();
+        Assert.InRange(crowds.Count, 1, 2);
+        foreach (var crowd in crowds)
+        {
+            var figures = PiecesOf(snapshot, crowd).ToList();
+            Assert.All(figures, f => Assert.Equal(FurnitureType.Mannequin, f.Type));
+            Assert.InRange(figures.Count, 24, 42);
+            // At least three poses, and some variety in build and plastic.
+            Assert.True(figures.Select(f => f.Variant).Where(v => v != 5).Distinct().Count() >= 3);
+            Assert.True(figures.Select(f => f.Tint).Distinct().Count() >= 3);
+            // One or two are damaged: one knocked over, and maybe one missing an arm.
+            var fallen = figures.Count(f => f.Tilt != 0f);
+            var armless = figures.Count(f => f.Variant == 5);
+            Assert.Equal(1, fallen);
+            Assert.InRange(fallen + armless, 1, 2);
+            // None overlap: the discs round their footprints keep apart.
+            float Radius(FurniturePiece f) => FurnitureCatalog.Corners(f).Max(c => (new Vector2(c.X, c.Y) - f.Position).Length());
+            for (var i = 0; i < figures.Count; i++)
+                for (var j = i + 1; j < figures.Count; j++)
+                {
+                    var gap = snapshot.Space.Delta(figures[i].Position, figures[j].Position).Length();
+                    Assert.True(gap >= (Radius(figures[i]) + Radius(figures[j])) * 0.6f,
+                        $"Mannequins {figures[i].Id} and {figures[j].Id} overlap ({gap:0.00} m apart).");
+                    Assert.True(gap > 0.45f, $"Mannequins {figures[i].Id} and {figures[j].Id} stand on one spot.");
+                }
+            // Most still face one way.
+            var upright = figures.Where(f => f.Tilt == 0f).ToList();
+            var mean = MathF.Atan2(upright.Sum(f => MathF.Sin(f.Rotation)), upright.Sum(f => MathF.Cos(f.Rotation)));
+            var facingTheSameWay = upright.Count(f => MathF.Abs((float)Math.IEEERemainder(f.Rotation - mean, 2 * Math.PI)) < 0.5f);
+            Assert.True(facingTheSameWay > upright.Count / 2, "Most mannequins should face one way.");
+        }
+    }
+
+    [Theory]
     [InlineData(PillarLayout.ThreeByThree, 3008)]
     [InlineData(PillarLayout.TwoByTwo, 42)]
     [InlineData(PillarLayout.DiamondLarge, 7)]

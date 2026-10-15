@@ -204,6 +204,7 @@ public static class FurnitureMeshes
             FurnitureType.BunkBed or FurnitureType.BouncyCastle or FurnitureType.KidsTable or FurnitureType.KidsChair or FurnitureType.PlayCube or FurnitureType.ToyShelf => PlasticColors,
             FurnitureType.PottedPlant or FurnitureType.LargePlant or FurnitureType.PlanterBox => LeafColors,
             FurnitureType.FlatPackBox or FurnitureType.CardboardBox => CardboardColors,
+            FurnitureType.Mannequin => MannequinColors,
             _ => null,
         };
     }
@@ -215,6 +216,14 @@ public static class FurnitureMeshes
         new(0.85f, 0.81f, 0.7f), new(0.76f, 0.67f, 0.5f), new(0.55f, 0.52f, 0.5f), new(0.22f, 0.22f, 0.24f),
         new(0.15f, 0.2f, 0.38f), new(0.35f, 0.45f, 0.58f), new(0.55f, 0.62f, 0.5f), new(0.2f, 0.36f, 0.24f),
         new(0.78f, 0.58f, 0.15f), new(0.65f, 0.34f, 0.24f), new(0.78f, 0.5f, 0.52f), new(0.92f, 0.91f, 0.88f),
+    ];
+
+    // Bare shop-mannequin plastic, tint 0 to 11: mostly off-whites and creams, some dingier, a few dark.
+    private static readonly Color[] MannequinColors =
+    [
+        new(0.92f, 0.9f, 0.85f), new(0.88f, 0.86f, 0.8f), new(0.95f, 0.94f, 0.91f), new(0.85f, 0.8f, 0.7f),
+        new(0.78f, 0.76f, 0.72f), new(0.7f, 0.69f, 0.66f), new(0.9f, 0.78f, 0.7f), new(0.8f, 0.66f, 0.54f),
+        new(0.6f, 0.58f, 0.52f), new(0.36f, 0.36f, 0.37f), new(0.15f, 0.15f, 0.16f), new(0.82f, 0.82f, 0.78f),
     ];
 
     private static readonly Color[] PlasticColors =
@@ -259,6 +268,11 @@ public static class FurnitureMeshes
         if (type is FurnitureType.WallClock or FurnitureType.FountainBowl or FurnitureType.FountainColumn or FurnitureType.BasinKerb)
         {
             BuildStoneAndClocks(b, type, variant, w, d, h);
+            return b;
+        }
+        if (type == FurnitureType.Mannequin)
+        {
+            BuildMannequin(b, variant, w, d, h);
             return b;
         }
         if (variant > 0)
@@ -696,23 +710,6 @@ public static class FurnitureMeshes
                 SignLetters(b, h - 0.35f, -0.08f, -1f);
                 break;
             }
-            case FurnitureType.Mannequin:
-                // A tall, faceless figure in a dark suit (the matte black rubber) on a chrome stand: from afar it passes for the Staff.
-                b.Cylinder(Part.Chrome, Vector3.Zero, hd - 0.01f, hd - 0.01f, 0.02f, 16);
-                b.Cylinder(Part.Chrome, new Vector3(0f, 0.02f, -0.09f), 0.015f, 0.015f, 0.9f, 6);
-                foreach (var x in new[] { -0.13f, 0.03f })
-                    b.Box(Part.Rubber, new Vector3(x, 0.02f, -0.07f), new Vector3(x + 0.1f, 0.98f, 0.07f));
-                b.Box(Part.Rubber, new Vector3(-0.17f, 0.98f, -0.1f), new Vector3(0.17f, 1.58f, 0.1f));
-                foreach (var x in new[] { -hw, hw - 0.07f })
-                {
-                    b.Box(Part.Rubber, new Vector3(x, 0.98f, -0.05f), new Vector3(x + 0.07f, 1.54f, 0.05f));
-                    b.Box(Part.MannequinSkin, new Vector3(x + 0.005f, 0.8f, -0.04f), new Vector3(x + 0.065f, 0.98f, 0.04f));
-                }
-                b.Box(Part.Rubber, new Vector3(-hw + 0.07f, 1.42f, -0.1f), new Vector3(-0.17f, 1.58f, 0.1f));
-                b.Box(Part.Rubber, new Vector3(0.17f, 1.42f, -0.1f), new Vector3(hw - 0.07f, 1.58f, 0.1f));
-                b.Cylinder(Part.MannequinSkin, new Vector3(0f, 1.58f, 0f), 0.05f, 0.045f, 0.1f, 8);
-                b.Cylinder(Part.MannequinSkin, new Vector3(0f, 1.68f, 0f), 0.085f, 0.1f, h - 1.68f, 12);
-                break;
             case FurnitureType.DoorFrame:
                 // A door frame standing alone, with nothing but the aisle behind it.
                 b.Box(Part.Ceramic, new Vector3(-hw, 0f, -0.08f), new Vector3(-hw + 0.1f, h, 0.08f));
@@ -901,6 +898,77 @@ public static class FurnitureMeshes
                     new Vector3(Mathf.Max(x0, x1), y + Cell, Mathf.Max(z, z + side * 0.006f)));
                 start = end;
             }
+        }
+    }
+
+    /// <summary>
+    /// A bare, faceless plastic shop mannequin with human proportions (ticket 08e): an egg of a head on a
+    /// neck, a torso that narrows to the waist and flares to the hips, tapering arms and legs, on a foot
+    /// plate. Variants are poses and builds: 0 arms down, 1 one arm raised and a hand on the hip, 2 mid-stride,
+    /// 3 tall and slim, 4 short and broad, 5 missing its left arm. The figure is drawn for a 1.8 m standard
+    /// and scaled to the variant's height and build.
+    /// </summary>
+    private static void BuildMannequin(Builder b, int variant, float w, float d, float h)
+    {
+        var (kx, ky) = (variant switch { 3 => 0.92f, 4 => 1.2f, _ => 1f }, h / 1.8f);
+        Vector3 P(Vector3 v) => new(v.X * kx, v.Y * ky, v.Z * kx);
+        const Part Skin = Part.MannequinSkin;
+        void Limb(Vector3 from, Vector3 to, float r0, float r1) => b.Tube(Skin, P(from), P(to), r0 * kx, r1 * kx);
+        void Blob(Vector3 at, float rx, float ry, float rz) => b.Ellipsoid(Skin, P(at), rx * kx, ry * ky, rz * kx);
+
+        var striding = variant == 2;
+        // The feet, standing on a plate (a striding figure on the bare floor).
+        var floor = striding ? 0f : 0.015f;
+        if (!striding)
+            b.Box(Part.DarkSteel, new Vector3(-0.2f * kx, 0f, -0.15f * kx), new Vector3(0.2f * kx, floor, 0.15f * kx));
+        foreach (var side in new[] { -1f, 1f })
+        {
+            var hip = new Vector3(side * 0.09f, 0.88f, 0f);
+            var (knee, ankle) = striding
+                ? (new Vector3(side * 0.09f, 0.48f, side < 0f ? 0.18f : -0.1f), new Vector3(side * 0.09f, 0.09f, side < 0f ? 0.26f : -0.26f))
+                : (new Vector3(side * 0.09f, 0.48f, 0.015f), new Vector3(side * 0.09f, 0.09f, 0f));
+            Limb(hip, knee, 0.075f, 0.05f);
+            Limb(knee, ankle, 0.05f, 0.032f);
+            Blob(knee, 0.052f, 0.052f, 0.052f);
+            var toe = striding && side > 0f ? -0.02f : 0.12f;
+            b.Box(Skin, P(new Vector3(ankle.X - 0.04f, floor, ankle.Z - 0.05f)), P(new Vector3(ankle.X + 0.04f, ankle.Y - 0.01f, ankle.Z + toe)));
+        }
+
+        // Pelvis, waist, chest, shoulder line, neck and head.
+        Blob(new Vector3(0f, 0.9f, 0f), 0.17f, 0.12f, 0.1f);
+        Blob(new Vector3(0f, 1.05f, 0f), 0.13f, 0.12f, 0.085f);
+        Blob(new Vector3(0f, 1.27f, 0.005f), 0.17f, 0.2f, 0.105f);
+        Blob(new Vector3(0f, 1.44f, 0f), 0.2f, 0.07f, 0.09f);
+        Limb(new Vector3(0f, 1.46f, 0f), new Vector3(0f, 1.58f, 0.01f), 0.05f, 0.04f);
+        Blob(new Vector3(0f, 1.69f, 0.01f), 0.085f, 0.115f, 0.1f);
+
+        // Arms: shoulder, elbow, hand.
+        foreach (var side in new[] { -1f, 1f })
+        {
+            var shoulder = new Vector3(side * 0.21f, 1.43f, 0f);
+            if (variant == 5 && side < 0f)
+            {
+                // The left arm is gone: only the socket at the shoulder is left.
+                Blob(shoulder, 0.045f, 0.05f, 0.05f);
+                continue;
+            }
+            Vector3 elbow, hand;
+            if (variant == 1 && side > 0f)
+                (elbow, hand) = (new Vector3(0.31f, 1.48f, 0.06f), new Vector3(0.34f, 1.72f, 0.1f));
+            else if (variant == 1)
+                (elbow, hand) = (new Vector3(-0.3f, 1.2f, -0.02f), new Vector3(-0.2f, 0.98f, 0.05f));
+            else if (striding)
+            {
+                var swing = side < 0f ? -0.14f : 0.14f;
+                (elbow, hand) = (new Vector3(side * 0.24f, 1.2f, swing * 0.5f), new Vector3(side * 0.23f, 0.97f, swing));
+            }
+            else
+                (elbow, hand) = (new Vector3(side * 0.245f, 1.2f, 0f), new Vector3(side * 0.25f, 0.95f, 0.03f));
+            Blob(shoulder, 0.055f, 0.055f, 0.055f);
+            Limb(shoulder, elbow, 0.05f, 0.04f);
+            Blob(elbow, 0.042f, 0.042f, 0.042f);
+            Limb(elbow, hand, 0.04f, 0.028f);
+            Blob(hand + new Vector3(0f, -0.025f, 0f), 0.03f, 0.055f, 0.022f);
         }
     }
 
@@ -1213,7 +1281,7 @@ public static class FurnitureMeshes
             [Part.SignLetters] = Steady(new Color(0.95f, 0.97f, 0.95f), 0.4f, new Color(0.9f, 1f, 0.92f), 3f),
             [Part.AquariumWater] = Steady(new Color(0.06f, 0.24f, 0.3f), 0.05f, new Color(0.15f, 0.5f, 0.65f), 0.6f),
             [Part.Fish] = Plain(new Color(1f, 0.5f, 0.1f), 0.45f),
-            [Part.MannequinSkin] = Plain(new Color(0.88f, 0.86f, 0.82f), 0.35f),
+            [Part.MannequinSkin] = Plain(Colors.White, 0.3f, tinted: true),
         };
         return _materials;
     }
@@ -1431,6 +1499,80 @@ public static class FurnitureMeshes
                             if (area > 1e-6f)
                                 yield return (i, j, axis, upper, planeA, area);
                         }
+        }
+
+        /// <summary>A capped tube tapering from <paramref name="radiusFrom"/> at <paramref name="from"/> to <paramref name="radiusTo"/> at <paramref name="to"/>, along any axis.</summary>
+        public void Tube(Part part, Vector3 from, Vector3 to, float radiusFrom, float radiusTo, int segments = 8)
+        {
+            if (coarse)
+            {
+                var margin = Vector3.One * Mathf.Max(radiusFrom, radiusTo) * 0.8f;
+                Box(part, new Vector3(Mathf.Min(from.X, to.X), Mathf.Min(from.Y, to.Y), Mathf.Min(from.Z, to.Z)) - margin,
+                    new Vector3(Mathf.Max(from.X, to.X), Mathf.Max(from.Y, to.Y), Mathf.Max(from.Z, to.Z)) + margin);
+                return;
+            }
+            var axis = (to - from).Normalized();
+            var u = axis.Cross(Mathf.Abs(axis.Y) < 0.9f ? Vector3.Up : Vector3.Right).Normalized();
+            var v = u.Cross(axis);
+            var tool = Surface(part);
+            var length = (to - from).Length();
+            var slope = (radiusFrom - radiusTo) / length;
+            for (var i = 0; i < segments; i++)
+            {
+                var (a0, a1) = (Mathf.Tau * i / segments, Mathf.Tau * (i + 1) / segments);
+                var (d0, d1) = (u * Mathf.Cos(a0) + v * Mathf.Sin(a0), u * Mathf.Cos(a1) + v * Mathf.Sin(a1));
+                var (n0, n1) = ((d0 + axis * slope).Normalized(), (d1 + axis * slope).Normalized());
+                var (b0, b1) = (from + d0 * radiusFrom, from + d1 * radiusFrom);
+                var (t0, t1) = (to + d0 * radiusTo, to + d1 * radiusTo);
+                var (u0, u1) = (radiusFrom * a0, radiusFrom * a1);
+                // Clockwise seen from outside, like the box faces.
+                Vertex(tool, b0, n0, new Vector2(u0, 0));
+                Vertex(tool, t1, n1, new Vector2(u1, length));
+                Vertex(tool, t0, n0, new Vector2(u0, length));
+                Vertex(tool, b0, n0, new Vector2(u0, 0));
+                Vertex(tool, b1, n1, new Vector2(u1, 0));
+                Vertex(tool, t1, n1, new Vector2(u1, length));
+                Vertex(tool, to, axis, Vector2.Zero);
+                Vertex(tool, t0, axis, new Vector2(d0.X, d0.Z) * radiusTo);
+                Vertex(tool, t1, axis, new Vector2(d1.X, d1.Z) * radiusTo);
+                Vertex(tool, from, -axis, Vector2.Zero);
+                Vertex(tool, b1, -axis, new Vector2(d1.X, d1.Z) * radiusFrom);
+                Vertex(tool, b0, -axis, new Vector2(d0.X, d0.Z) * radiusFrom);
+            }
+        }
+
+        /// <summary>A smooth ellipsoid with the given radii around <paramref name="centre"/>.</summary>
+        public void Ellipsoid(Part part, Vector3 centre, float rx, float ry, float rz, int segments = 10, int rings = 6)
+        {
+            if (coarse)
+            {
+                Box(part, centre - new Vector3(rx, ry, rz) * 0.85f, centre + new Vector3(rx, ry, rz) * 0.85f);
+                return;
+            }
+            var tool = Surface(part);
+            Vector3 At(int ring, int seg) =>
+                new(rx * Mathf.Sin(Mathf.Pi * ring / rings) * Mathf.Cos(Mathf.Tau * seg / segments),
+                    ry * Mathf.Cos(Mathf.Pi * ring / rings),
+                    rz * Mathf.Sin(Mathf.Pi * ring / rings) * Mathf.Sin(Mathf.Tau * seg / segments));
+            void Emit(Vector3 local, int seg)
+            {
+                var normal = new Vector3(local.X / (rx * rx), local.Y / (ry * ry), local.Z / (rz * rz)).Normalized();
+                Vertex(tool, centre + local, normal, new Vector2(Mathf.Tau * seg / segments * rx, (local.Y + ry) * 0.5f));
+            }
+            for (var ring = 0; ring < rings; ring++)
+                for (var seg = 0; seg < segments; seg++)
+                {
+                    // Ring 0 is the top pole and the last the bottom one, where a quad is a single triangle.
+                    var (t0, t1, b0, b1) = (At(ring, seg), At(ring, seg + 1), At(ring + 1, seg), At(ring + 1, seg + 1));
+                    if (ring > 0)
+                    {
+                        Emit(b0, seg); Emit(t1, seg + 1); Emit(t0, seg);
+                    }
+                    if (ring < rings - 1)
+                    {
+                        Emit(b0, seg); Emit(b1, seg + 1); Emit(t1, seg + 1);
+                    }
+                }
         }
 
         /// <summary>A capped cylinder (or cone frustum) standing on <paramref name="baseCentre"/>.</summary>
