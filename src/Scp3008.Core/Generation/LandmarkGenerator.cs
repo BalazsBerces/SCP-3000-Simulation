@@ -84,6 +84,43 @@ internal static class LandmarkGenerator
         return sites.AsReadOnly();
     }
 
+    /// <summary>Gap between neighbouring Landmarks in the showcase row.</summary>
+    private const float ShowcaseGap = 32f;
+
+    /// <summary>
+    /// The Landmark showcase: every Landmark type once, unturned, side by side along x in a row centred
+    /// on the Store, on the cell grid, on the row nearest the middle of the Store that keeps clear of every Pillar.
+    /// </summary>
+    public static IReadOnlyList<LandmarkSite> Showcase(StoreSpace space, IReadOnlyList<Sector> sectors, IReadOnlyList<Pillar> pillars, float cellSize)
+    {
+        var kinds = new[] { LandmarkType.RuinedVillage }.Concat(Others).ToList();
+        var length = kinds.Sum(k => OwnSize(k).X) + ShowcaseGap * (kinds.Count - 1);
+        if (length > space.Size)
+            throw new InvalidOperationException($"The showcase row ({length:0} m) is longer than the Store.");
+        var start = MathF.Round((space.Size - length) / 2f / cellSize) * cellSize;
+        var deepest = kinds.Max(k => OwnSize(k).Y);
+        var rows = new List<float>();
+        for (var y = deepest / 2f; y + deepest / 2f <= space.Size; y += cellSize)
+            rows.Add(y);
+        foreach (var y in rows.OrderBy(y => MathF.Abs(y - space.Size / 2f)))
+        {
+            var sites = new List<LandmarkSite>();
+            var x = start;
+            foreach (var type in kinds)
+            {
+                var size = OwnSize(type);
+                var centre = new Vector2(x + size.X / 2f, y);
+                var sector = sectors.First(s => centre.X >= s.Origin.X && centre.X < s.Origin.X + s.Size &&
+                                                centre.Y >= s.Origin.Y && centre.Y < s.Origin.Y + s.Size);
+                sites.Add(new LandmarkSite(sites.Count, type, sector.Id, centre, size, 0));
+                x += size.X + ShowcaseGap;
+            }
+            if (sites.All(site => pillars.All(p => Clear(space.Delta(p.Position, site.Centre), p.ClearHalfWidth + cellSize, site.Size / 2f))))
+                return sites.AsReadOnly();
+        }
+        throw new InvalidOperationException("No row of the Store keeps the showcase clear of the Pillars.");
+    }
+
     public static LandmarkLayout Build(int seed, StoreSpace space, IReadOnlyList<LandmarkSite> sites, int firstPieceId)
     {
         var landmarks = new List<Landmark>();

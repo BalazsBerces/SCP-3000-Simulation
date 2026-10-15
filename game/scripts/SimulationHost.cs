@@ -27,6 +27,9 @@ public partial class SimulationHost : Node
     /// <summary>Pillar layout of the first world; then of the latest world asked for.</summary>
     public PillarLayout Layout { get; private set; }
 
+    /// <summary>Whether the latest world asked for is the Landmark showcase (<c>--landmark-showcase</c> for the first).</summary>
+    public bool LandmarkShowcase { get; private set; }
+
     private readonly ConcurrentQueue<DomainEvent> _pendingEvents = new();
     private SnapshotInterpolator _interpolator = new(Simulation.RealTimeStep);
     private Simulation _simulation = null!;
@@ -75,8 +78,10 @@ public partial class SimulationHost : Node
                 startTime = TimeSpan.ParseExact(arg["--start-time=".Length..], @"hh\:mm", CultureInfo.InvariantCulture);
             else if (arg == "--pause")
                 startPaused = true;
+            else if (arg == "--landmark-showcase")
+                LandmarkShowcase = true;
         }
-        var simulation = Simulation.Create(new WorldConfig(Seed, PillarLayout: Layout));
+        var simulation = Simulation.Create(new WorldConfig(Seed, PillarLayout: Layout, LandmarkShowcase: LandmarkShowcase));
         if (startTime is { } target)
             simulation.AdvanceTo(target);
         Adopt(simulation, startPaused ? SimulationSpeed.Paused : SimulationSpeed.Normal);
@@ -103,15 +108,17 @@ public partial class SimulationHost : Node
 
     /// <summary>
     /// Generates a new Store from <paramref name="seed"/> in the background, with the given Pillar
-    /// layout or else the current one, then replaces the current world; its Store clock starts anew.
+    /// layout or else the current one, as the Landmark showcase or a normal Store (else as the current
+    /// world is), then replaces the current world; its Store clock starts anew.
     /// </summary>
-    public void CreateWorld(int seed, PillarLayout? layout = null)
+    public void CreateWorld(int seed, PillarLayout? layout = null, bool? landmarkShowcase = null)
     {
         if (_nextWorld is not null)
             return;
         Seed = seed;
         Layout = layout ?? Layout;
-        var config = new WorldConfig(seed, PillarLayout: Layout);
+        LandmarkShowcase = landmarkShowcase ?? LandmarkShowcase;
+        var config = new WorldConfig(seed, PillarLayout: Layout, LandmarkShowcase: LandmarkShowcase);
         _nextWorld = Task.Run(() => Simulation.Create(config));
     }
 

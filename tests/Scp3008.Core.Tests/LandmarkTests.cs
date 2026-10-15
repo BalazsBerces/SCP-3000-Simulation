@@ -339,4 +339,34 @@ public class LandmarkTests
             Assert.True(corner.Z >= -tolerance, $"{piece.Type} {piece.Id} of {landmark.Type} sinks into the floor.");
         }
     }
+
+    [Fact]
+    public void The_landmark_showcase_has_every_landmark_once_in_a_row_with_no_displays()
+    {
+        using var sim = Simulation.Create(new WorldConfig(3008, RuntimeRngSeed: 1, LandmarkShowcase: true));
+        var snapshot = sim.Snapshot;
+
+        Assert.True(snapshot.LandmarkShowcase);
+        Assert.Equal(Enum.GetValues<LandmarkType>().Order(), snapshot.Landmarks.Select(l => l.Type).Order());
+        Assert.Empty(snapshot.Displays);
+        Assert.All(snapshot.Furniture, p => Assert.True(p.LandmarkId >= 0, $"{p.Type} {p.Id} is not Landmark Furniture."));
+        Assert.All(snapshot.Landmarks, l => Assert.NotEmpty(PiecesOf(snapshot, l)));
+
+        // Side by side along x, on one row, without overlapping each other or any Pillar's walkway ring.
+        var row = snapshot.Landmarks.OrderBy(l => l.Centre.X).ToList();
+        Assert.All(row, l => Assert.Equal(row[0].Centre.Y, l.Centre.Y));
+        foreach (var (a, b) in row.Zip(row.Skip(1)))
+            Assert.True(a.Centre.X + a.Size.X / 2f < b.Centre.X - b.Size.X / 2f, $"{a.Type} overlaps {b.Type}.");
+        foreach (var landmark in row)
+            foreach (var pillar in snapshot.Pillars)
+            {
+                var delta = snapshot.Space.Delta(pillar.Position, landmark.Centre);
+                Assert.True(MathF.Abs(delta.X) >= pillar.ClearHalfWidth + landmark.Size.X / 2f ||
+                            MathF.Abs(delta.Y) >= pillar.ClearHalfWidth + landmark.Size.Y / 2f,
+                    $"{landmark.Type} reaches Pillar {pillar.Coordinate}'s walkway ring.");
+            }
+    }
+
+    [Fact]
+    public void A_normal_store_is_not_the_landmark_showcase() => Assert.False(Generate(3008).LandmarkShowcase);
 }

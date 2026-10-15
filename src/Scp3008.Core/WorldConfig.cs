@@ -12,4 +12,9 @@ namespace Scp3008.Core;
 /// The Pillar grid and its Sectors, 3 × 3 unless chosen otherwise. Part of the world state
 /// (<see cref="WorldSnapshot.PillarLayout"/>), so a world is saved and restored with it.
 /// </param>
-public sealed record WorldConfig(int Seed, int? RuntimeRngSeed = null, PillarLayout PillarLayout = PillarLayout.ThreeByThree);
+/// <param name="LandmarkShowcase">
+/// Builds the Landmark showcase instead of a normal Store: every Landmark type once, side by side
+/// in one row on empty Store floor, with no Displays. The seed still varies how each Landmark is built.
+/// </param>
+public sealed record WorldConfig(int Seed, int? RuntimeRngSeed = null, PillarLayout PillarLayout = PillarLayout.ThreeByThree,
+    bool LandmarkShowcase = false);

@@ -182,6 +182,14 @@ public partial class CameraRig : Node3D
             WrapIntoStore();
         ApplyTransform();    }
 
+    /// <summary>Eases the focus to the nearest image of a Store position and the zoom to a distance, as if panned and zoomed there.</summary>
+    public void FlyTo(System.Numerics.Vector2 target, float distance)
+    {
+        var delta = Host.Snapshot.Space.Delta(_targetFocus.ToStore(), target);
+        _targetFocus += new Vector3(delta.X, 0f, delta.Y);
+        _targetDistance = ClampDistance(distance);
+    }
+
     /// <summary>Moves the focus and its target instantly, with no easing (dev tools only).</summary>
     public void JumpTo(Vector3 focus)
     {

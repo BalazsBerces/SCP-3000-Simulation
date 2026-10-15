@@ -50,8 +50,13 @@ public sealed class Simulation : IDisposable
         _sectors = PillarGenerator.Sectors(_space, config.PillarLayout);
         _pillars = PillarGenerator.Pillars(_sectors, config.PillarLayout);
         // The Landmarks are placed first, so the Displays keep off them; their Furniture follows the Displays'.
-        var sites = LandmarkGenerator.Plan(config.Seed, _space, _sectors, _pillars, _departments.CellSize);
-        var furniture = FurnitureGenerator.Generate(config.Seed, _space, _departments, _pillars, sites);
+        // The Landmark showcase has every Landmark in a row and no Displays around them.
+        var sites = config.LandmarkShowcase
+            ? LandmarkGenerator.Showcase(_space, _sectors, _pillars, _departments.CellSize)
+            : LandmarkGenerator.Plan(config.Seed, _space, _sectors, _pillars, _departments.CellSize);
+        var furniture = config.LandmarkShowcase
+            ? new FurnitureLayout([], [], [])
+            : FurnitureGenerator.Generate(config.Seed, _space, _departments, _pillars, sites);
         var landmarks = LandmarkGenerator.Build(config.Seed, _space, sites, furniture.Pieces.Count);
         _furniture = furniture with { Pieces = furniture.Pieces.Concat(landmarks.Pieces).ToList().AsReadOnly() };
         _landmarks = landmarks.Landmarks;
@@ -302,7 +307,7 @@ public sealed class Simulation : IDisposable
     }
 
     private WorldSnapshot BuildSnapshot() =>
-        new(_config.Seed, _config.PillarLayout, new StoreClock(_tick), _space, _speed, _departments, _furniture.Pieces, _furniture.Displays, _furniture.Cells, Array.AsReadOnly(_weather.Snapshot()), _weather.Wind, _pillars, _sectors, _landmarks);
+        new(_config.Seed, _config.PillarLayout, new StoreClock(_tick), _space, _speed, _departments, _furniture.Pieces, _furniture.Displays, _furniture.Cells, Array.AsReadOnly(_weather.Snapshot()), _weather.Wind, _pillars, _sectors, _landmarks, _config.LandmarkShowcase);
 
     private sealed class Subscription(Simulation owner, Action<DomainEvent> handler) : IDisposable
     {

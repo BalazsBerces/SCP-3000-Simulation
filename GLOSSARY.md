@@ -42,6 +42,10 @@ _Avoid_: Zone, region, quadrant, district
 A huge, far-visible, unique place of the Store that shapes what Villagers do there (the ruined Village, rack canyon, dead zone, clock wall, mattress mountain, fountain court or box fort). Every world has the ruined Village; the seed picks which of the others it has, at most one Landmark per Sector, preferring Sectors without a Pillar. It stands on a rectangle of at most a quarter of its Sector, clear of the Pillar and its walkway ring, which no Display enters, and rises well above the shelving and the Fog banks. It is made entirely of Furniture, which Villages may take and Restock slowly brings back; some also give their ground a lasting property, such as darkness or water, that stays when the Furniture is gone. Pillars are not Landmarks. The climbable ones (rack canyon, mattress mountain) have **Lookouts**: high places on their Furniture to look out from.
 _Avoid_: Point of interest (small, seen only up close)
 
+**Landmark showcase**:
+A world for looking at the Landmarks rather than a Store to simulate: every Landmark type once, side by side in one row on empty Store floor, with no Displays. The seed still varies how each Landmark is built.
+_Avoid_: Test map, gallery level
+
 **Point of interest**:
 A small, distinctive place of the Store found only up close, such as a working restroom or a Ball pit; a Sector may hold several.
 _Avoid_: Landmark (huge, far-visible)
