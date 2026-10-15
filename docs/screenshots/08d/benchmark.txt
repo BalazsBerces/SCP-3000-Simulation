@@ -1,0 +1,15 @@
+With ticket 08d:
+Benchmark: Store 3008, 1920x1080, NVIDIA GeForce RTX 2070 SUPER, 20 s per lighting, target 120 fps average, minimum 90 fps average and 60 fps 1% low
+  Open                       average  113,9 fps, 1% low   66,5 fps [below 120 target] (2279 frames in 20,0 s; up to 0 lamp lights, 0 shadowed, 1771 visible Lamps with halos; average GPU 7,82 ms, CPU render 2,55 ms, 1418 draw calls, 1,9 M primitives)
+  Closing time               average  141,2 fps, 1% low   69,0 fps [meets 120 target] (2824 frames in 20,0 s; up to 256 lamp lights, 64 shadowed, 1771 visible Lamps with halos; average GPU 6,11 ms, CPU render 2,99 ms, 1622 draw calls, 2,1 M primitives)
+  Closing time far           average   98,4 fps, 1% low   82,0 fps [below 120 target] (1969 frames in 20,0 s; up to 256 lamp lights, 64 shadowed, 1675 visible Lamps with halos; average GPU 9,21 ms, CPU render 3,16 ms, 1660 draw calls, 2,6 M primitives)
+  Closing time at LOD switch average   90,8 fps, 1% low   73,8 fps [below 120 target] (1817 frames in 20,0 s; up to 256 lamp lights, 64 shadowed, 757 visible Lamps with halos; average GPU 10,04 ms, CPU render 3,43 ms, 2283 draw calls, 2,4 M primitives)
+Benchmark PASSED
+
+Baseline (HEAD cd865bc, same machine, same session):
+Benchmark: Store 3008, 1920x1080, NVIDIA GeForce RTX 2070 SUPER, 20 s per lighting, target 120 fps average, minimum 90 fps average and 60 fps 1% low
+  Open                       average  113,5 fps, 1% low   67,7 fps [below 120 target] (2271 frames in 20,0 s; up to 0 lamp lights, 0 shadowed, 1771 visible Lamps with halos; average GPU 7,75 ms, CPU render 2,65 ms, 1420 draw calls, 1,9 M primitives)
+  Closing time               average  139,2 fps, 1% low   66,9 fps [meets 120 target] (2786 frames in 20,0 s; up to 256 lamp lights, 64 shadowed, 1771 visible Lamps with halos; average GPU 6,09 ms, CPU render 3,05 ms, 1593 draw calls, 2,1 M primitives)
+  Closing time far           average   95,4 fps, 1% low   78,7 fps [below 120 target] (1908 frames in 20,0 s; up to 256 lamp lights, 64 shadowed, 1675 visible Lamps with halos; average GPU 9,33 ms, CPU render 3,30 ms, 1660 draw calls, 2,6 M primitives)
+  Closing time at LOD switch average   85,7 fps, 1% low   68,1 fps [below 120 target] (1715 frames in 20,0 s; up to 256 lamp lights, 64 shadowed, 757 visible Lamps with halos; average GPU 10,44 ms, CPU render 3,55 ms, 2283 draw calls, 2,4 M primitives)
+Benchmark FAILED: below minimum

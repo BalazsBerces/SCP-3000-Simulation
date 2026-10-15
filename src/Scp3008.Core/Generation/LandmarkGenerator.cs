@@ -4,7 +4,8 @@ namespace Scp3008.Core.Generation;
 
 /// <summary>Where a Landmark stands, chosen before any Furniture is placed.</summary>
 /// <param name="Quarters">Quarter turns from the Landmark's own frame (its length east-west) to the Store.</param>
-internal sealed record LandmarkSite(int Id, LandmarkType Type, int SectorId, Vector2 Centre, Vector2 Size, int Quarters);
+/// <param name="Pillar">The Pillar the abandoned scaffold climbs; null for every other Landmark.</param>
+internal sealed record LandmarkSite(int Id, LandmarkType Type, int SectorId, Vector2 Centre, Vector2 Size, int Quarters, Pillar? Pillar = null);
 
 /// <summary>The built Landmarks and their Furniture.</summary>
 internal sealed record LandmarkLayout(IReadOnlyList<Landmark> Landmarks, IReadOnlyList<FurniturePiece> Pieces);
@@ -14,8 +15,9 @@ internal sealed record LandmarkLayout(IReadOnlyList<Landmark> Landmarks, IReadOn
 /// Landmark is in it with a fixed chance. Each takes its own Sector, the Pillar-less Sectors first
 /// (in an order picked by the seed), then the Sectors with a Pillar, and stands on a rectangle of
 /// whole 16 m department cells inside the Sector, a cell away from its edges, from the Pillar's
-/// walkway ring, and no more than a quarter of it. Each Landmark is then built from its own random
-/// stream as individual Furniture, stacked and tipped over (see <see cref="FurniturePiece.Tilt"/>).
+/// walkway ring, and no more than a quarter of it. On top of these, every world has the abandoned scaffold
+/// on one Pillar, standing on the Pillar and its walkway ring in that Pillar's Sector. Each Landmark is then
+/// built from its own random stream as individual Furniture, stacked and tipped over (see <see cref="FurniturePiece.Tilt"/>).
 /// </summary>
 internal static class LandmarkGenerator
 {
@@ -81,6 +83,9 @@ internal static class LandmarkGenerator
                 throw new InvalidOperationException($"No room for the {type} in Sector {sector.Name}.");
             sites.Add(new LandmarkSite(sites.Count, type, sector.Id, random.Pick(candidates), size, quarters));
         }
+        // Drawn last, so the other Landmarks do not depend on it.
+        var pillar = pillars[random.Next(pillars.Count)];
+        sites.Add(ScaffoldSite(sectors, pillar, random.Next(4), sites.Count));
         return sites.AsReadOnly();
     }
 
@@ -89,7 +94,8 @@ internal static class LandmarkGenerator
 
     /// <summary>
     /// The Landmark showcase: every Landmark type once, unturned, side by side along x in a row centred
-    /// on the Store, on the cell grid, on the row nearest the middle of the Store that keeps clear of every Pillar.
+    /// on the Store, on the cell grid, on the row nearest the middle of the Store that keeps clear of every Pillar;
+    /// the abandoned scaffold, unturned, on the Pillar nearest the middle of the row.
     /// </summary>
     public static IReadOnlyList<LandmarkSite> Showcase(StoreSpace space, IReadOnlyList<Sector> sectors, IReadOnlyList<Pillar> pillars, float cellSize)
     {
@@ -116,10 +122,20 @@ internal static class LandmarkGenerator
                 x += size.X + ShowcaseGap;
             }
             if (sites.All(site => pillars.All(p => Clear(space.Delta(p.Position, site.Centre), p.ClearHalfWidth + cellSize, site.Size / 2f))))
+            {
+                var middle = new Vector2(start + length / 2f, y);
+                var pillar = pillars.MinBy(p => space.Delta(p.Position, middle).LengthSquared())!;
+                sites.Add(ScaffoldSite(sectors, pillar, 0, sites.Count));
                 return sites.AsReadOnly();
+            }
         }
         throw new InvalidOperationException("No row of the Store keeps the showcase clear of the Pillars.");
     }
+
+    /// <summary>The abandoned scaffold's site: its Pillar with the walkway ring, in the Pillar's Sector, its first face turned by quarter turns.</summary>
+    private static LandmarkSite ScaffoldSite(IReadOnlyList<Sector> sectors, Pillar pillar, int quarters, int id) =>
+        new(id, LandmarkType.AbandonedScaffold, sectors.First(s => s.Name == pillar.Coordinate).Id, pillar.Position,
+            new Vector2(pillar.ClearHalfWidth * 2f), quarters, pillar);
 
     public static LandmarkLayout Build(int seed, StoreSpace space, IReadOnlyList<LandmarkSite> sites, int firstPieceId)
     {
@@ -137,11 +153,15 @@ internal static class LandmarkGenerator
                 case LandmarkType.DeadZone: BuildDeadZone(builder); break;
                 case LandmarkType.ClockWall: BuildClockWall(builder); break;
                 case LandmarkType.FountainCourt: BuildFountainCourt(builder); break;
+                case LandmarkType.AbandonedScaffold: BuildAbandonedScaffold(builder, site.Pillar!); break;
             }
             var first = pieces.Count;
             foreach (var piece in builder.Pieces)
                 pieces.Add(piece with { Id = firstPieceId + pieces.Count });
-            var landmark = new Landmark(site.Id, site.Type, site.SectorId, site.Centre, site.Size, builder.Top, builder.Lookouts.AsReadOnly());
+            var landmark = new Landmark(site.Id, site.Type, site.SectorId, site.Centre, site.Size, builder.Top, builder.Lookouts.AsReadOnly())
+            {
+                PillarId = site.Pillar?.Id ?? -1,
+            };
             if (site.Type == LandmarkType.ClockWall)
                 landmark = SetClocks(landmark, pieces.Skip(first).ToList(), builder.Random);
             landmarks.Add(landmark);
@@ -817,6 +837,160 @@ internal static class LandmarkGenerator
                     0f, heading + MathF.PI / 2f * end);
     }
 
+    // --- The abandoned scaffold: a stair of Furniture up one Pillar's walkway ring, with rooms bolted to its sides ---
+
+    private const float Quarter = MathF.PI / 2f;
+
+    /// <summary>How far along the walkway ring each step of the abandoned scaffold goes, and how much it rises: one wardrobe laid flat.</summary>
+    private const float ScaffoldRun = 1f, ScaffoldRise = 0.6f;
+
+    /// <summary>Steps of the stair, rooms left out: from 40 m up, leaving the top room's Furniture under 60 m.</summary>
+    private const int ScaffoldMinSteps = 67, ScaffoldMaxSteps = 92;
+
+    /// <summary>Rooms along the stair, the top one included, and the least steps between the planned middle rooms.</summary>
+    private const int ScaffoldMinRooms = 3, ScaffoldMaxRooms = 6, StepsBetweenRooms = 8;
+
+    /// <summary>How many steps' run of the walkway ring a room of the abandoned scaffold takes; it spans the ring's whole width.</summary>
+    private const int RoomRun = 4;
+
+    /// <summary>
+    /// The abandoned scaffold. In the Pillar's frame before its quarter turn, the stair starts at the west end of the
+    /// north face and climbs east along the middle of the walkway ring, one step diagonally across each corner, then down
+    /// the east face, along the south and up the west (mirrored: the other way round), stopping short of a whole lap. Each
+    /// step is a column of shelf units and wardrobes laid flat, the top one its tread, every step one wardrobe higher.
+    /// Along the way the stair runs through rooms bolted to the Pillar's side, each a floor of wardrobes laid flat across
+    /// the whole ring, propped on bookcases leant against the Pillar, and half furnished; the stair ends in the top room,
+    /// which holds its Lookout. A room never turns a corner: one that would waits for the next face.
+    /// </summary>
+    private static void BuildAbandonedScaffold(LandmarkBuilder b, Pillar pillar)
+    {
+        var random = b.Random;
+        var mirrored = random.Chance(0.5f);
+        var steps = ScaffoldMinSteps + random.Next(ScaffoldMaxSteps - ScaffoldMinSteps + 1);
+        // The middle rooms, by the steps climbed before each, at least StepsBetweenRooms apart and away from both ends.
+        var middleRooms = ScaffoldMinRooms - 1 + random.Next(ScaffoldMaxRooms - ScaffoldMinRooms + 1);
+        const int firstRoom = 10;
+        var spare = steps - StepsBetweenRooms - firstRoom - StepsBetweenRooms * (middleRooms - 1);
+        var rooms = Enumerable.Range(0, middleRooms).Select(_ => random.Next(spare + 1)).Order()
+            .Select((offset, i) => firstRoom + offset + StepsBetweenRooms * i).ToList();
+
+        var half = pillar.Width / 2f;
+        var middle = half + Pillar.WalkwayWidth / 2f;
+        var faceSlots = (int)MathF.Round(pillar.Width / ScaffoldRun);
+        // Each face's slots, then the corner after it; the last face has no corner after it.
+        var lap = 4 * (faceSlots + 1) - 1;
+        var wardrobe = FurnitureCatalog.Spec(FurnitureType.Wardrobe);
+        var shelf = FurnitureCatalog.Spec(FurnitureType.ShelfUnit);
+        // Shelf units stand in for wardrobes in pairs, as high as a whole number of wardrobes laid flat.
+        var wardrobesPerShelfPair = (int)MathF.Round(2f * shelf.Height / wardrobe.Depth);
+
+        var slot = 0;
+        var climbed = 0;
+        while (true)
+        {
+            if (slot >= lap)
+                throw new InvalidOperationException("The abandoned scaffold runs out of walkway ring.");
+            var face = slot / (faceSlots + 1);
+            var along = slot % (faceSlots + 1);
+            var top = climbed >= steps;
+            if (along + RoomRun <= faceSlots && (top || rooms.Count > 0 && climbed >= rooms[0]))
+            {
+                Room(face, -half + along * ScaffoldRun, climbed * ScaffoldRise, top);
+                if (top)
+                    return;
+                rooms.RemoveAt(0);
+                slot += RoomRun;
+                continue;
+            }
+            // The middle of the step and the way out from the Pillar, in the north face's frame.
+            var (at, outward) = along < faceSlots
+                ? (new Vector2(-half + (along + 0.5f) * ScaffoldRun, -middle), new Vector2(0f, -1f))
+                : (new Vector2(middle, -middle), Vector2.Normalize(new Vector2(1f, -1f)));
+            // Its front (-sin r, cos r) faces out; a shelf unit turned a quarter back has its width across the ring.
+            var facingOut = MathF.Atan2(-outward.X, outward.Y);
+            var wardrobes = climbed + 1;
+            var pairs = (wardrobes - 1) / wardrobesPerShelfPair;
+            var height = 0f;
+            for (var i = 0; i < 2 * pairs; i++, height += shelf.Height)
+                Piece(face, FurnitureType.ShelfUnit, at, height, facingOut - Quarter, 0f);
+            for (var i = 0; i < wardrobes - pairs * wardrobesPerShelfPair; i++, height += wardrobe.Depth)
+                Piece(face, FurnitureType.Wardrobe, at, height, facingOut, Quarter);
+            climbed++;
+            slot++;
+        }
+
+        // One room, from a point along the north face, its floor's top at a height.
+        void Room(int face, float start, float floor, bool top)
+        {
+            // In the north face's frame: so far along the room, so far out from the Pillar.
+            Vector2 At(float along, float outFromPillar) => new(start + along, -half - outFromPillar);
+            const float facingPillar = 0f, facingOut = MathF.PI, facingOn = -Quarter;
+            // The floor: two by three wardrobes laid flat on their fronts, lengthwise along the face.
+            for (var i = 0; i < 2; i++)
+                for (var j = 0; j < 3; j++)
+                    Piece(face, FurnitureType.Wardrobe, At(1f + 2f * i, 0.5f + j), floor - wardrobe.Depth, facingOn, Quarter);
+            // Propped from below on bookcases leant against the Pillar.
+            var strut = Bounds(FurnitureType.Bookcase, facingOut, Quarter / 2f);
+            foreach (var along in new[] { 0.6f, RoomRun - 0.6f })
+                Piece(face, FurnitureType.Bookcase, At(along, strut.Y / 2f), floor - wardrobe.Depth - strut.Z, facingOut, Quarter / 2f);
+            // The outer wall: a row of bookcases, with gaps where some were never put up.
+            var bookcase = FurnitureCatalog.Spec(FurnitureType.Bookcase);
+            var wall = (int)(RoomRun / bookcase.Width);
+            var tint = random.Next(FurniturePalettes.TintCount);
+            for (var i = 0; i < wall; i++)
+                if (random.Chance(0.7f))
+                    Piece(face, FurnitureType.Bookcase, At((i + 0.5f) * RoomRun / wall, Pillar.WalkwayWidth - bookcase.Depth / 2f), floor, facingPillar, 0f, tint);
+            if (random.Chance(0.5f))
+                Piece(face, FurnitureType.Rug, At(RoomRun / 2f, 1.3f), floor, facingPillar, 0f, random.Next(FurniturePalettes.TintCount));
+            // Against the Pillar a bed or a desk, with a lamp and a chair, leaving a lane along the ring's outer side.
+            var chair = random.Range(-0.4f, 0.4f);
+            if (random.Chance(0.5f))
+            {
+                var bed = FurnitureCatalog.Spec(FurnitureType.Bed);
+                Piece(face, FurnitureType.Bed, At(0.3f + bed.Depth / 2f, bed.Width / 2f), floor, facingOn, 0f, random.Next(FurniturePalettes.TintCount));
+                Piece(face, FurnitureType.FloorLamp, At(2.75f, 0.35f), floor, facingOut, 0f);
+                Piece(face, FurnitureType.Chair, At(3.4f, 0.4f), floor, facingOut + chair, 0f);
+            }
+            else
+            {
+                var desk = FurnitureCatalog.Spec(FurnitureType.Desk);
+                Piece(face, FurnitureType.Desk, At(1.2f, desk.Depth / 2f), floor, facingOut, 0f);
+                if (random.Chance(0.5f))
+                    Piece(face, FurnitureType.DeskLamp, At(0.75f, 0.3f), floor + desk.Height, facingOut, 0f);
+                else
+                    Piece(face, FurnitureType.FloorLamp, At(3.4f, 0.35f), floor, facingOut, 0f);
+                Piece(face, FurnitureType.Chair, At(1.2f, desk.Depth + 0.35f), floor, facingPillar + chair, 0f);
+            }
+            if (top)
+                b.Lookouts.Add(Turned(face, new Vector3(At(3f, 2.1f), floor)));
+        }
+
+        // Turns a point of the north face's frame to its face, mirrored if the stair goes the other way round.
+        Vector3 Turned(int face, Vector3 local)
+        {
+            var at = LandmarkBuilder.Turn(new Vector2(local.X, local.Y), face);
+            return new Vector3(mirrored ? -at.X : at.X, at.Y, local.Z);
+        }
+
+        // Places a piece given in the north face's frame, its bounds centred on a point and its lowest point at a height.
+        // The rectangle is the walkway ring's, so a piece left out would leave a hole in the stair: never drop one.
+        void Piece(int face, FurnitureType type, Vector2 at, float bottom, float rotation, float tilt, int tint = 0)
+        {
+            var local = Turned(face, new Vector3(at, 0f));
+            rotation += face * Quarter;
+            if (!b.Rest(type, new Vector2(local.X, local.Y), bottom, mirrored ? -rotation : rotation, tilt, tint: tint))
+                throw new InvalidOperationException($"A {type} of the abandoned scaffold sticks out of the walkway ring.");
+        }
+    }
+
+    /// <summary>The extent of a piece, however it is turned and tipped over: along X and Y, and its height.</summary>
+    private static Vector3 Bounds(FurnitureType type, float rotation, float tilt)
+    {
+        var corners = FurnitureCatalog.Corners(new FurniturePiece(0, type, Vector2.Zero, 0f, rotation, 0, Tilt: tilt));
+        return new Vector3(corners.Max(c => c.X) - corners.Min(c => c.X), corners.Max(c => c.Y) - corners.Min(c => c.Y),
+            corners.Max(c => c.Z) - corners.Min(c => c.Z));
+    }
+
     // --- Mazes ---
 
     /// <summary>
@@ -886,6 +1060,9 @@ internal sealed class LandmarkBuilder(StoreSpace space, LandmarkSite site, Seede
 {
     private readonly List<FurniturePiece> _pieces = [];
 
+    /// <summary>How far, in metres, a piece flush with an edge of the rectangle may stick out of it by rounding.</summary>
+    private const float Flush = 1e-3f;
+
     public SeededRandom Random { get; } = random;
 
     public IReadOnlyList<FurniturePiece> Pieces => _pieces;
@@ -909,7 +1086,8 @@ internal sealed class LandmarkBuilder(StoreSpace space, LandmarkSite site, Seede
             piece = piece with { Elevation = piece.Elevation - lowest };
             corners = FurnitureCatalog.Corners(piece);
         }
-        var half = site.Size / 2f;
+        // A piece flush with an edge of the rectangle is inside it, whatever the rounding.
+        var half = site.Size / 2f + new Vector2(Flush);
         foreach (var corner in corners)
             if (MathF.Abs(corner.X - site.Centre.X) > half.X || MathF.Abs(corner.Y - site.Centre.Y) > half.Y)
                 return false;

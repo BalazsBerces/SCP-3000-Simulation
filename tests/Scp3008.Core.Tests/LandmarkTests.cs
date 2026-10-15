@@ -43,7 +43,8 @@ public class LandmarkTests
 
         Assert.All(kinds, k => Assert.Contains(LandmarkType.RuinedVillage, k));
         Assert.All(Seeds.Select(seed => Generate(seed)), s => Assert.Single(s.Landmarks, l => l.Type == LandmarkType.RuinedVillage));
-        foreach (var other in Enum.GetValues<LandmarkType>().Except([LandmarkType.RuinedVillage]))
+        Assert.All(Seeds.Select(seed => Generate(seed)), s => Assert.Single(s.Landmarks, l => l.Type == LandmarkType.AbandonedScaffold));
+        foreach (var other in Enum.GetValues<LandmarkType>().Except([LandmarkType.RuinedVillage, LandmarkType.AbandonedScaffold]))
         {
             Assert.Contains(kinds, k => k.Contains(other));
             Assert.Contains(kinds, k => !k.Contains(other));
@@ -64,9 +65,10 @@ public class LandmarkTests
     public void Landmarks_take_one_sector_each_pillar_less_first_clear_of_pillars_and_at_most_a_quarter_of_it(PillarLayout layout, int seed)
     {
         var snapshot = Generate(seed, layout);
-        var landmarks = snapshot.Landmarks;
+        Assert.Equal(Enumerable.Range(0, snapshot.Landmarks.Count), snapshot.Landmarks.Select(l => l.Id));
+        // The abandoned scaffold climbs a Pillar, on top of the one-Landmark-per-Sector limit (see below).
+        var landmarks = snapshot.Landmarks.Where(l => l.Type != LandmarkType.AbandonedScaffold).ToList();
         Assert.Equal(landmarks.Count, landmarks.Select(l => l.SectorId).Distinct().Count());
-        Assert.Equal(Enumerable.Range(0, landmarks.Count), landmarks.Select(l => l.Id));
 
         var pillarLess = snapshot.Sectors.Count(s => !snapshot.Pillars.Any(p => p.Coordinate == s.Name));
         var inPillarLess = landmarks.Count(l => !snapshot.Pillars.Any(p => p.Coordinate == snapshot.Sectors[l.SectorId].Name));
@@ -125,6 +127,7 @@ public class LandmarkTests
             .SelectMany(s => s.Landmarks.Select(l => (Landmark: l, Pieces: PiecesOf(s, l).ToList())))
             .GroupBy(x => x.Landmark.Type).ToDictionary(g => g.Key, g => g.First());
         Assert.Equal(Enum.GetValues<LandmarkType>().Length, landmarks.Count);
+        Assert.All(landmarks.Values.Where(l => l.Landmark.Type != LandmarkType.AbandonedScaffold), l => Assert.Equal(-1, l.Landmark.PillarId));
 
         static float Share(List<FurniturePiece> pieces, params FurnitureType[] types) =>
             pieces.Count(p => types.Contains(p.Type)) / (float)pieces.Count;
@@ -157,6 +160,9 @@ public class LandmarkTests
         var court = landmarks[LandmarkType.FountainCourt];
         Assert.True(court.Pieces.Count(p => p.Type == FurnitureType.FountainBowl) >= 10, "The fountain court has fountains of stone bowls.");
         Assert.True(court.Pieces.Count(p => p.Type == FurnitureType.BasinKerb) >= 50, "The fountain court has a great basin.");
+
+        var scaffold = landmarks[LandmarkType.AbandonedScaffold];
+        Assert.True(Share(scaffold.Pieces, FurnitureType.Wardrobe, FurnitureType.ShelfUnit) >= 0.8f, "The abandoned scaffold is a stair of wardrobes and shelf units.");
 
         foreach (var (landmark, pieces) in new[] { canyon, mountain })
         {
@@ -349,11 +355,19 @@ public class LandmarkTests
         Assert.True(snapshot.LandmarkShowcase);
         Assert.Equal(Enum.GetValues<LandmarkType>().Order(), snapshot.Landmarks.Select(l => l.Type).Order());
         Assert.Empty(snapshot.Displays);
+        Assert.Empty(snapshot.PointsOfInterest);
         Assert.All(snapshot.Furniture, p => Assert.True(p.LandmarkId >= 0, $"{p.Type} {p.Id} is not Landmark Furniture."));
         Assert.All(snapshot.Landmarks, l => Assert.NotEmpty(PiecesOf(snapshot, l)));
 
-        // Side by side along x, on one row, without overlapping each other or any Pillar's walkway ring.
-        var row = snapshot.Landmarks.OrderBy(l => l.Centre.X).ToList();
+        // The abandoned scaffold climbs the Pillar nearest the middle of the row.
+        var scaffold = Assert.Single(snapshot.Landmarks, l => l.Type == LandmarkType.AbandonedScaffold);
+        var row = snapshot.Landmarks.Where(l => l != scaffold).OrderBy(l => l.Centre.X).ToList();
+        var middle = new Vector2((row[0].Centre.X - row[0].Size.X / 2f + row[^1].Centre.X + row[^1].Size.X / 2f) / 2f, row[0].Centre.Y);
+        var nearest = snapshot.Pillars.MinBy(p => snapshot.Space.Distance(p.Position, middle))!;
+        Assert.Equal(nearest.Id, scaffold.PillarId);
+        Assert.Equal(nearest.Position, scaffold.Centre);
+
+        // The others side by side along x, on one row, without overlapping each other or any Pillar's walkway ring.
         Assert.All(row, l => Assert.Equal(row[0].Centre.Y, l.Centre.Y));
         foreach (var (a, b) in row.Zip(row.Skip(1)))
             Assert.True(a.Centre.X + a.Size.X / 2f < b.Centre.X - b.Size.X / 2f, $"{a.Type} overlaps {b.Type}.");
@@ -365,6 +379,94 @@ public class LandmarkTests
                             MathF.Abs(delta.Y) >= pillar.ClearHalfWidth + landmark.Size.Y / 2f,
                     $"{landmark.Type} reaches Pillar {pillar.Coordinate}'s walkway ring.");
             }
+    }
+
+    [Theory]
+    [InlineData(PillarLayout.ThreeByThree, 3008)]
+    [InlineData(PillarLayout.ThreeByThree, 5)]
+    [InlineData(PillarLayout.ThreeByThree, -1)]
+    [InlineData(PillarLayout.TwoByTwo, 3008)]
+    [InlineData(PillarLayout.TwoByTwo, 42)]
+    [InlineData(PillarLayout.ThreeByThreeLarge, 3008)]
+    [InlineData(PillarLayout.CornersLarge, 3008)]
+    [InlineData(PillarLayout.CornersLarge, 7)]
+    [InlineData(PillarLayout.DiamondLarge, 3008)]
+    [InlineData(PillarLayout.DiamondLarge, -1)]
+    public void Every_world_has_one_abandoned_scaffold_climbing_40_to_60_m_up_one_pillar_through_3_to_6_rooms_to_its_lookout(PillarLayout layout, int seed)
+    {
+        var snapshot = Generate(seed, layout);
+        var space = snapshot.Space;
+        var scaffold = Assert.Single(snapshot.Landmarks, l => l.Type == LandmarkType.AbandonedScaffold);
+        Assert.DoesNotContain(snapshot.PointsOfInterest, p => p.Type.ToString() == nameof(LandmarkType.AbandonedScaffold));
+        var pillar = Assert.Single(snapshot.Pillars, p => p.Id == scaffold.PillarId);
+        Assert.Equal(snapshot.SectorAt(pillar.Position).Id, scaffold.SectorId);
+        Assert.Equal(pillar.Position, scaffold.Centre);
+        Assert.Equal(new Vector2(pillar.ClearHalfWidth * 2f), scaffold.Size);
+
+        // Every piece of it stands on its Pillar's walkway ring: outside the Pillar, inside the ring's outer edge.
+        var pieces = PiecesOf(snapshot, scaffold).ToList();
+        Assert.True(pieces.Count >= 300, $"The scaffold has only {pieces.Count} pieces.");
+        foreach (var piece in pieces)
+            foreach (var corner in FurnitureCatalog.Corners(piece))
+            {
+                var delta = space.Delta(pillar.Position, new Vector2(corner.X, corner.Y));
+                var reach = MathF.Max(MathF.Abs(delta.X), MathF.Abs(delta.Y));
+                Assert.InRange(reach, pillar.Width / 2f - 0.01f, pillar.ClearHalfWidth + 0.01f);
+                Assert.True(corner.Z >= -0.01f);
+            }
+        // It winds round several of the Pillar's faces.
+        var faces = pieces.Select(p => space.Delta(pillar.Position, p.Position))
+            .Where(d => MathF.Min(MathF.Abs(d.X), MathF.Abs(d.Y)) < pillar.Width / 2f)
+            .Select(d => MathF.Abs(d.X) > MathF.Abs(d.Y) ? (d.X > 0 ? "east" : "west") : (d.Y > 0 ? "south" : "north"))
+            .Distinct().Count();
+        Assert.True(faces >= 3, $"The scaffold climbs only {faces} faces of its Pillar.");
+
+        // 3 to 6 half-furnished rooms at different heights, each with a bed or a desk, a lamp and a chair.
+        var rooms = pieces.Where(p => p.Type is FurnitureType.Bed or FurnitureType.Desk).ToList();
+        Assert.InRange(rooms.Count, 3, 6);
+        Assert.Equal(rooms.Count, rooms.Select(r => MathF.Round(r.Elevation, 2)).Distinct().Count());
+        foreach (var room in rooms)
+        {
+            var around = pieces.Where(p => space.Distance(p.Position, room.Position) < 4f &&
+                                           p.Elevation >= room.Elevation - 0.01f && p.Elevation <= room.Elevation + 1f).ToList();
+            Assert.Contains(around, p => p.Type == FurnitureType.Chair);
+            Assert.Contains(around, p => FurnitureCatalog.Spec(p).IsLamp);
+        }
+
+        // The stair reaches 40 to 60 m; its Lookout is in the topmost room, on its floor.
+        var lookout = Assert.Single(scaffold.Lookouts);
+        Assert.InRange(lookout.Z, 40f, 60f);
+        Assert.InRange(scaffold.Height, lookout.Z, 60f);
+        var topRoom = rooms.MaxBy(r => r.Elevation);
+        Assert.Equal(topRoom.Elevation, lookout.Z, 2);
+        Assert.True(space.Distance(new Vector2(lookout.X, lookout.Y), topRoom.Position) < 4f, "The Lookout is not in the top room.");
+        Assert.Contains(pieces, p => space.Distance(p.Position, new Vector2(lookout.X, lookout.Y)) < 1.5f &&
+                                     MathF.Abs(FurnitureCatalog.Corners(p).Max(c => c.Z) - lookout.Z) < 0.01f);
+
+        // Only its own Pillar's walkway ring holds Furniture: every other piece keeps off every ring.
+        foreach (var other in snapshot.Pillars)
+            foreach (var piece in snapshot.Furniture.Where(p => p.LandmarkId != scaffold.Id &&
+                                                                 space.Distance(p.Position, other.Position) < other.ClearHalfWidth * 1.5f + 3f))
+            {
+                var corners = FurnitureCatalog.Corners(piece).Select(c => space.Delta(other.Position, new Vector2(c.X, c.Y))).ToList();
+                const float touching = 0.02f;
+                var clear = other.ClearHalfWidth - touching;
+                Assert.True(corners.All(c => c.X >= clear) || corners.All(c => c.X <= -clear) ||
+                            corners.All(c => c.Y >= clear) || corners.All(c => c.Y <= -clear),
+                    $"{piece.Type} {piece.Id} stands on Pillar {other.Coordinate}'s walkway ring.");
+            }
+    }
+
+    [Fact]
+    public void The_abandoned_scaffold_differs_with_the_seed_and_stays_the_same_for_one_seed()
+    {
+        Landmark Scaffold(WorldSnapshot s) => s.Landmarks.Single(l => l.Type == LandmarkType.AbandonedScaffold);
+        var scaffolds = Seeds.Select(seed => Scaffold(Generate(seed))).ToList();
+        Assert.True(scaffolds.Select(s => s.PillarId).Distinct().Count() >= 3, "The scaffold climbs hardly any different Pillars.");
+        Assert.True(scaffolds.Select(s => s.Lookouts[0]).Distinct().Count() >= 6, "The scaffold's Lookout hardly moves with the seed.");
+        var again = Generate(Seeds[0]);
+        Assert.Equal(scaffolds[0].PillarId, Scaffold(again).PillarId);
+        Assert.Equal(scaffolds[0].Lookouts, Scaffold(again).Lookouts);
     }
 
     [Fact]

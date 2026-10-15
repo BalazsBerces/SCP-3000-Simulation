@@ -190,22 +190,29 @@ public partial class SeedPanel : CanvasLayer
     private void ShowShowcaseButtons(WorldSnapshot snapshot)
     {
         FillButtons(_landmarkButtons, snapshot.LandmarkShowcase,
-            snapshot.Landmarks.Select(l => (LandmarkNames.Of(l.Type), l.Centre, l.Size)));
+            snapshot.Landmarks.Select(l => (LandmarkNames.Of(l.Type), l.Centre, Extent(l))));
         FillButtons(_poiButtons, snapshot.PointOfInterestShowcase,
-            snapshot.PointsOfInterest.Select(p => (PointOfInterestNames.Of(p.Type), p.Centre, p.Size)));
+            snapshot.PointsOfInterest.Select(p => (PointOfInterestNames.Of(p.Type), p.Centre, MathF.Max(p.Size.X, p.Size.Y))));
     }
 
-    private void FillButtons(HFlowContainer container, bool visible, IEnumerable<(string Name, System.Numerics.Vector2 Centre, System.Numerics.Vector2 Size)> places)
+    /// <summary>
+    /// How big a Landmark looks: its longer side, or for a tall, narrow one (the abandoned scaffold) its height,
+    /// so the camera backs off far enough to see it whole.
+    /// </summary>
+    private static float Extent(Landmark landmark) =>
+        MathF.Max(MathF.Max(landmark.Size.X, landmark.Size.Y), landmark.Height * 1.5f);
+
+    private void FillButtons(HFlowContainer container, bool visible, IEnumerable<(string Name, System.Numerics.Vector2 Centre, float Extent)> places)
     {
         foreach (var child in container.GetChildren())
             child.QueueFree();
         container.Visible = visible;
         if (!visible)
             return;
-        foreach (var (name, centre, size) in places.OrderBy(p => p.Centre.X))
+        foreach (var (name, centre, extent) in places.OrderBy(p => p.Centre.X))
         {
             var button = new Button { Text = name, FocusMode = Control.FocusModeEnum.None };
-            button.Pressed += () => Rig.FlyTo(centre, MathF.Max(size.X, size.Y) * ShowcaseDistancePerMetre);
+            button.Pressed += () => Rig.FlyTo(centre, extent * ShowcaseDistancePerMetre);
             container.AddChild(button);
         }
     }
@@ -278,7 +285,7 @@ public partial class SeedPanel : CanvasLayer
     {
         var snapshot = Host.Snapshot;
         if (snapshot.LandmarkShowcase && snapshot.Landmarks.MinBy(l => l.Centre.X) is { } landmark)
-            Rig.FlyTo(landmark.Centre, MathF.Max(landmark.Size.X, landmark.Size.Y) * ShowcaseDistancePerMetre);
+            Rig.FlyTo(landmark.Centre, Extent(landmark) * ShowcaseDistancePerMetre);
         else if (snapshot.PointOfInterestShowcase && snapshot.PointsOfInterest.MinBy(p => p.Centre.X) is { } poi)
             Rig.FlyTo(poi.Centre, MathF.Max(poi.Size.X, poi.Size.Y) * ShowcaseDistancePerMetre);
     }
@@ -300,7 +307,6 @@ public static class PointOfInterestNames
         PointOfInterestType.MannequinCrowd => "Mannequins",
         PointOfInterestType.DoorToNowhere => "Door to nowhere",
         PointOfInterestType.DisplayAquarium => "Aquarium",
-        PointOfInterestType.AbandonedScaffold => "Scaffold",
         _ => type.ToString(),
     };
 }
@@ -317,6 +323,7 @@ public static class LandmarkNames
         LandmarkType.DeadZone => "Dead zone",
         LandmarkType.ClockWall => "Clock wall",
         LandmarkType.FountainCourt => "Fountain court",
+        LandmarkType.AbandonedScaffold => "Abandoned scaffold",
         _ => type.ToString(),
     };
 }

@@ -37,36 +37,19 @@ public enum PointOfInterestType
     DoorToNowhere,
     /// <summary>A huge display aquarium with live fish that Restock refills: fresh food and water; it glows in the dark. 1–2 per Store.</summary>
     DisplayAquarium,
-    /// <summary>
-    /// A half-finished Furniture stair spiralling up one Pillar on its walkway ring (the one exception to the ring being
-    /// Furniture-free) and ending abruptly: a Lookout that a Village can finish as a Pillar scaffold with fewer Materials.
-    /// Exactly 1 per Store.
-    /// </summary>
-    AbandonedScaffold,
 }
 
 /// <summary>
 /// A small, distinctive place of the Store found only up close, made of individual Furniture: the pieces
 /// whose <see cref="FurniturePiece.PointOfInterestId"/> is its <see cref="Id"/>. It stands on a rectangle
-/// inside one Sector, which no Display Furniture, Landmark or Pillar (with its walkway ring) enters; only the
-/// abandoned scaffold stands on a walkway ring, of the Pillar it climbs.
+/// inside one Sector, which no Display Furniture, Landmark or Pillar (with its walkway ring) enters.
 /// </summary>
 /// <param name="Id">Index in <see cref="WorldSnapshot.PointsOfInterest"/>.</param>
 /// <param name="Type">Which kind of Point of interest it is.</param>
 /// <param name="SectorId">The Sector it stands in, by <see cref="Sector.Id"/>.</param>
 /// <param name="Centre">Centre of its rectangle on the floor, in metres.</param>
 /// <param name="Size">Extent of its rectangle east-west (X) and north-south (Y), in metres.</param>
-public sealed record PointOfInterest(int Id, PointOfInterestType Type, int SectorId, Vector2 Centre, Vector2 Size)
-{
-    /// <summary>The Pillar the abandoned scaffold climbs, by <see cref="Pillar.Id"/>; -1 for every other kind.</summary>
-    public int PillarId { get; init; } = -1;
-
-    /// <summary>
-    /// The high place to look out from, if it has one: the top of the abandoned scaffold (X east, Y south, Z height
-    /// above the floor, in metres).
-    /// </summary>
-    public Vector3? Lookout { get; init; }
-}
+public sealed record PointOfInterest(int Id, PointOfInterestType Type, int SectorId, Vector2 Centre, Vector2 Size);
 
 /// <summary>
 /// The three Ball pits of a Store joined as one network: at Closing time the Staff pass from any of them to any other.

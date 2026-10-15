@@ -27,7 +27,7 @@ A connected region of the Store with its own look, Furniture and resources; acts
 _Avoid_: Biome, zone, area
 
 **Pillar**:
-One of the identical, monumental concrete blocks (32 × 32 m, rising out of sight) on the regular grid of the **Pillar layout**: nine on 3 × 3 (448 m apart), four on 2 × 2 (672 m apart), nine on 3 × 3 large (640 m apart), or four on the corners and diamond large layouts, which leave the other Sectors empty. Each stands at the centre of its Sector and is marked with its grid coordinate: column letter, then row number (e.g. B-2). A Furniture-free walkway ring surrounds each one (except where the abandoned scaffold, a Point of interest, climbs one Pillar), and each carries the speakers that play the Closing announcement. Because the Store wraps, a Pillar is seen again in every direction; in 2 × 2 its east and west neighbour is the same Pillar. Visible from far away; used for navigation and as a settlement anchor.
+One of the identical, monumental concrete blocks (32 × 32 m, rising out of sight) on the regular grid of the **Pillar layout**: nine on 3 × 3 (448 m apart), four on 2 × 2 (672 m apart), nine on 3 × 3 large (640 m apart), or four on the corners and diamond large layouts, which leave the other Sectors empty. Each stands at the centre of its Sector and is marked with its grid coordinate: column letter, then row number (e.g. B-2). A Furniture-free walkway ring surrounds each one (except where the abandoned scaffold, a Landmark, climbs one Pillar), and each carries the speakers that play the Closing announcement. Because the Store wraps, a Pillar is seen again in every direction; in 2 × 2 its east and west neighbour is the same Pillar. Visible from far away; used for navigation and as a settlement anchor.
 _Avoid_: Column, monolith, tower
 
 **Pillar layout**:
@@ -43,11 +43,11 @@ A huge, far-visible, unique place of the Store that shapes what Villagers do the
 _Avoid_: Point of interest (small, seen only up close)
 
 **Landmark showcase**:
-A world for looking at the Landmarks rather than a Store to simulate: every Landmark type once, side by side in one row on empty Store floor, with no Displays. The seed still varies how each Landmark is built.
+A world for looking at the Landmarks rather than a Store to simulate: every Landmark type once, side by side in one row on empty Store floor (the abandoned scaffold on the Pillar nearest the row), with no Displays and no Points of interest. The seed still varies how each Landmark is built.
 _Avoid_: Test map, gallery level
 
 **Point of interest showcase**:
-Like the Landmark showcase, for the Points of interest: every kind once, side by side in one row on empty Store floor (the abandoned scaffold on a Pillar), with no Displays and no Landmarks. The seed still varies how each is built.
+Like the Landmark showcase, for the Points of interest: every kind once, side by side in one row on empty Store floor, with no Displays and no Landmarks. The seed still varies how each is built.
 _Avoid_: Test map, gallery level
 
 **Point of interest**:
