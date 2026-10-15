@@ -8,6 +8,7 @@
 // the world seed, and needs nothing but the floor position.
 shader_type spatial;
 #include "res://shaders/lamp_pools.gdshaderinc"
+#include "res://shaders/ground.gdshaderinc"
 
 // One layer per Department type, in DepartmentType order.
 uniform sampler2DArray floor_albedo : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
@@ -219,10 +220,25 @@ void fragment() {
 	if (show_sectors) {
 		color = mix(color, sector_line_color, overlay_lines(p, sector_size, 1.5));
 	}
+	// The fountain court's floor is wet: darker, glossy and a little blue-green.
+	bool wet = on_ground_rect(p, ground_water_rect);
+	if (wet) {
+		color *= vec3(0.55, 0.66, 0.7);
+		roughness = 0.08;
+		normal_map = vec3(0.5, 0.5, 1.0);
+		NORMAL_MAP = normal_map;
+	}
 	ALBEDO = color;
-	ROUGHNESS = mix(roughness, border_roughness, border);
-	METALLIC = border_metallic * border;
-	SPECULAR = 0.35;
-	EMISSION = lamp_pools(VERTEX, lamp_mapped_normal(NORMAL, TANGENT, BINORMAL, normal_map, 1.0), INV_VIEW_MATRIX,
-			ALBEDO, ROUGHNESS, METALLIC, SPECULAR);
+	ROUGHNESS = wet ? roughness : mix(roughness, border_roughness, border);
+	METALLIC = wet ? 0.0 : border_metallic * border;
+	SPECULAR = wet ? 0.5 : 0.35;
+	// The dead zone: no light ever falls on its floor.
+	if (on_ground_rect(p, ground_dark_rect)) {
+		ALBEDO = vec3(0.0);
+		SPECULAR = 0.0;
+		EMISSION = vec3(0.0);
+	} else {
+		EMISSION = lamp_pools(VERTEX, lamp_mapped_normal(NORMAL, TANGENT, BINORMAL, normal_map, 1.0), INV_VIEW_MATRIX,
+				ALBEDO, ROUGHNESS, METALLIC, SPECULAR);
+	}
 }

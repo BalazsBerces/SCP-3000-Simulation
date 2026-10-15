@@ -48,8 +48,56 @@ public sealed record WorldSnapshot(
     /// <summary>How bright the Store lights are, from 0 (out) to 1 (fully on).</summary>
     public double StoreLightLevel => Clock.StoreLightLevel;
 
-    /// <summary>How far a display Lamp has come on, from 0 (off) to 1 (fully lit); see <see cref="StoreHours.LampLevelAt"/>.</summary>
-    public float LampLevel(FurniturePiece lamp) => StoreHours.LampLevelAt(lamp.Id, Clock.TimeOfDay);
+    /// <summary>
+    /// How bright the Store lights are at a Store position (it may be unwrapped), from 0 (out) to 1 (fully on):
+    /// <see cref="StoreLightLevel"/>, except on ground with <see cref="GroundProperty.Darkness"/>, where they never come on.
+    /// </summary>
+    public double StoreLightLevelAt(Vector2 position) =>
+        GroundAt(position).HasFlag(GroundProperty.Darkness) ? 0.0 : StoreLightLevel;
+
+    /// <summary>
+    /// How far a Lamp has come on, from 0 (off) to 1 (fully lit); see <see cref="StoreHours.LampLevelAt"/>.
+    /// A Lamp on ground with <see cref="GroundProperty.Darkness"/> is never lit.
+    /// </summary>
+    public float LampLevel(FurniturePiece lamp) =>
+        GroundAt(lamp.Position).HasFlag(GroundProperty.Darkness) ? 0f : StoreHours.LampLevelAt(lamp.Id, Clock.TimeOfDay);
+
+    /// <summary>
+    /// What the ground is like at a Store position (it may be unwrapped): the <see cref="Landmark.Ground"/> of the
+    /// Landmark whose rectangle covers it, <see cref="GroundProperty.None"/> elsewhere. It belongs to the ground, so
+    /// it stays whatever happens to the Landmark's Furniture.
+    /// </summary>
+    public GroundProperty GroundAt(Vector2 position)
+    {
+        var ground = GroundProperty.None;
+        foreach (var landmark in Landmarks)
+            if (landmark.Ground != GroundProperty.None && landmark.Covers(Space, position))
+                ground |= landmark.Ground;
+        return ground;
+    }
+
+    /// <summary>The true time left until Closing time next begins: up to a whole Store day, zero at the moment it begins.</summary>
+    public TimeSpan TimeToClosing
+    {
+        get
+        {
+            var left = (StoreHours.ClosingTimeStarts - Clock.TimeOfDay).Ticks % TimeSpan.TicksPerDay;
+            return TimeSpan.FromTicks(left < 0 ? left + TimeSpan.TicksPerDay : left);
+        }
+    }
+
+    /// <summary>
+    /// The time a clock of the clock wall shows on its 24-hour dial, which counts down: the time left until Closing time
+    /// plus the clock's own offset (<see cref="Landmark.ClockOffsets"/>), within one day. Only the true clock shows
+    /// <see cref="TimeToClosing"/>.
+    /// </summary>
+    public TimeSpan ClockReading(FurniturePiece clock)
+    {
+        if (clock.LandmarkId < 0 || clock.LandmarkId >= Landmarks.Count ||
+            !Landmarks[clock.LandmarkId].ClockOffsets.TryGetValue(clock.Id, out var offset))
+            throw new ArgumentException($"Piece {clock.Id} is not a clock of the clock wall.", nameof(clock));
+        return TimeSpan.FromTicks((TimeToClosing + offset).Ticks % TimeSpan.TicksPerDay);
+    }
 
     /// <summary>
     /// The fog density at a Store position, from 0 (only the thin haze) to 1 (deep inside a thick

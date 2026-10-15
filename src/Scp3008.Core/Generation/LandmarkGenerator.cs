@@ -23,7 +23,11 @@ internal static class LandmarkGenerator
     private const int BuildStream = 5;
     private const float OtherLandmarkChance = 2f / 3f;
 
-    private static readonly LandmarkType[] Others = [LandmarkType.RackCanyon, LandmarkType.BoxFort, LandmarkType.MattressMountain];
+    private static readonly LandmarkType[] Others =
+    [
+        LandmarkType.RackCanyon, LandmarkType.BoxFort, LandmarkType.MattressMountain,
+        LandmarkType.DeadZone, LandmarkType.ClockWall, LandmarkType.FountainCourt,
+    ];
 
     /// <summary>The size of each Landmark in its own frame: sized for its idea, read from far away, and in whole cells.</summary>
     private static Vector2 OwnSize(LandmarkType type) => type switch
@@ -32,6 +36,9 @@ internal static class LandmarkGenerator
         LandmarkType.RackCanyon => new(160f, 112f),
         LandmarkType.BoxFort => new(80f, 80f),
         LandmarkType.MattressMountain => new(80f, 80f),
+        LandmarkType.DeadZone => new(112f, 112f),
+        LandmarkType.ClockWall => new(128f, 32f),
+        LandmarkType.FountainCourt => new(96f, 96f),
         _ => throw new ArgumentOutOfRangeException(nameof(type), type, null),
     };
 
@@ -90,10 +97,17 @@ internal static class LandmarkGenerator
                 case LandmarkType.RackCanyon: BuildRackCanyon(builder); break;
                 case LandmarkType.BoxFort: BuildBoxFort(builder); break;
                 case LandmarkType.MattressMountain: BuildMattressMountain(builder); break;
+                case LandmarkType.DeadZone: BuildDeadZone(builder); break;
+                case LandmarkType.ClockWall: BuildClockWall(builder); break;
+                case LandmarkType.FountainCourt: BuildFountainCourt(builder); break;
             }
+            var first = pieces.Count;
             foreach (var piece in builder.Pieces)
                 pieces.Add(piece with { Id = firstPieceId + pieces.Count });
-            landmarks.Add(new Landmark(site.Id, site.Type, site.SectorId, site.Centre, site.Size, builder.Top, builder.Lookouts.AsReadOnly()));
+            var landmark = new Landmark(site.Id, site.Type, site.SectorId, site.Centre, site.Size, builder.Top, builder.Lookouts.AsReadOnly());
+            if (site.Type == LandmarkType.ClockWall)
+                landmark = SetClocks(landmark, pieces.Skip(first).ToList(), builder.Random);
+            landmarks.Add(landmark);
         }
         return new LandmarkLayout(landmarks.AsReadOnly(), pieces.AsReadOnly());
     }
@@ -467,6 +481,303 @@ internal static class LandmarkGenerator
             b.Rest(type, new Vector2(MathF.Cos(angle), MathF.Sin(angle)) * random.Range(radius - 1f, radius + 3.5f), 0f,
                 random.Range(-MathF.PI, MathF.PI), random.Chance(0.6f) ? 0f : random.Range(-0.7f, 0.7f), tint: random.Next(FurniturePalettes.TintCount));
         }
+    }
+
+    // --- The dead zone: towers of racks and showroom sets, abandoned in the dark ---
+
+    private static void BuildDeadZone(LandmarkBuilder b)
+    {
+        var random = b.Random;
+        const float spacing = 36f;
+        // Towers of pallet racks on a grid, stacked up to five high: the dark shapes rising out of the black.
+        for (var gy = -1; gy <= 1; gy++)
+            for (var gx = -1; gx <= 1; gx++)
+            {
+                var centre = new Vector2(gx, gy) * spacing + new Vector2(random.Range(-2f, 2f), random.Range(-2f, 2f));
+                var levels = gx == 0 && gy == 0 ? 5 : 4 + random.Next(2);
+                var heading = random.Chance(0.5f) ? 0f : MathF.PI / 2f;
+                var along = new Vector2(MathF.Cos(heading), MathF.Sin(heading));
+                var across = new Vector2(-along.Y, along.X);
+                foreach (var a in new[] { -1.4f, 1.4f })
+                    foreach (var c in new[] { -0.56f, 0.56f })
+                        RackStack(b, centre + along * a + across * c, heading + (c < 0f ? MathF.PI : 0f), levels, tiltTop: false);
+            }
+
+        // Showroom sets left standing in the dark, their Lamps never lit; some of their Furniture knocked over.
+        var kind = random.Next(3);
+        for (var gy = -1; gy <= 1; gy++)
+            for (var gx = -1; gx <= 1; gx++)
+            {
+                if (gx == 0 && gy == 0)
+                    continue;
+                DarkSet(b, new Vector2(gx, gy) * spacing / 2f, random.Next(4) * MathF.PI / 2f + random.Range(-0.1f, 0.1f), kind++ % 3);
+            }
+
+        // Furniture strewn about the dark floor, kept clear of the towers.
+        FurnitureType[] strewn = [FurnitureType.Chair, FurnitureType.Armchair, FurnitureType.FlatPackBox, FurnitureType.Nightstand,
+            FurnitureType.CoffeeTable, FurnitureType.FloorLamp, FurnitureType.Bookcase, FurnitureType.Wardrobe];
+        for (var placed = 0; placed < 90;)
+        {
+            var at = new Vector2(random.Range(-52f, 52f), random.Range(-52f, 52f));
+            var nearest = new Vector2(MathF.Round(at.X / spacing), MathF.Round(at.Y / spacing)) * spacing;
+            if (Vector2.Distance(at, nearest) < 7f)
+                continue;
+            var type = random.Pick(strewn);
+            float[] tilts = [0f, MathF.PI / 2f, -MathF.PI / 2f];
+            if (b.Rest(type, at, 0f, random.Range(-MathF.PI, MathF.PI), random.Pick(tilts) + random.Range(-0.1f, 0.1f),
+                    random.Next(FurnitureCatalog.VariantCount(type)), random.Next(FurniturePalettes.TintCount)))
+                placed++;
+        }
+    }
+
+    /// <summary>One abandoned showroom set of the dead zone around a point: a living room, a bedroom or a dining room, each with Lamps.</summary>
+    private static void DarkSet(LandmarkBuilder b, Vector2 centre, float heading, int kind)
+    {
+        var random = b.Random;
+        var tint = random.Next(FurniturePalettes.TintCount);
+        var turn = Matrix3x2.CreateRotation(heading);
+        void Piece(FurnitureType type, float x, float y, float rotation, float elevation = 0f, int variant = 0)
+        {
+            var at = centre + Vector2.Transform(new Vector2(x, y), turn);
+            if (elevation == 0f && random.Chance(0.15f))
+                b.Rest(type, at + new Vector2(random.Range(-0.8f, 0.8f), random.Range(-0.8f, 0.8f)), 0f, heading + rotation + random.Range(-1f, 1f),
+                    MathF.PI / 2f * (random.Chance(0.5f) ? 1f : -1f), variant, tint);
+            else
+                b.Put(type, at, elevation, heading + rotation + random.Range(-0.04f, 0.04f), 0f, variant, tint);
+        }
+
+        switch (kind)
+        {
+            case 0:
+                Piece(FurnitureType.Rug, 0f, 0f, 0f);
+                Piece(FurnitureType.Sofa, 0f, -2f, 0f, variant: 2);
+                Piece(FurnitureType.Armchair, -2.2f, 0.2f, -MathF.PI / 2f);
+                Piece(FurnitureType.Armchair, 2.2f, 0.2f, MathF.PI / 2f);
+                Piece(FurnitureType.CoffeeTable, 0f, 0f, 0f);
+                Piece(FurnitureType.FloorLamp, -1.9f, -2.3f, 0f);
+                Piece(FurnitureType.FloorLamp, 1.9f, -2.3f, 0f);
+                Piece(FurnitureType.Sideboard, 0f, 2.8f, MathF.PI);
+                b.Put(FurnitureType.TableLamp, centre + Vector2.Transform(new Vector2(0.5f, 2.8f), turn),
+                    FurnitureCatalog.SurfaceHeight(FurnitureType.Sideboard), heading);
+                break;
+            case 1:
+                Piece(FurnitureType.Rug, 0f, 1.6f, 0f);
+                Piece(FurnitureType.Bed, 0f, -0.6f, 0f);
+                foreach (var side in new[] { -1.15f, 1.15f })
+                {
+                    Piece(FurnitureType.Nightstand, side, -1.45f, 0f);
+                    b.Put(FurnitureType.TableLamp, centre + Vector2.Transform(new Vector2(side, -1.45f), turn),
+                        FurnitureCatalog.SurfaceHeight(FurnitureType.Nightstand), heading);
+                }
+                Piece(FurnitureType.Wardrobe, 3f, 1.5f, MathF.PI / 2f, variant: 1);
+                Piece(FurnitureType.FloorLamp, -2.6f, 1.8f, 0f);
+                Piece(FurnitureType.Dresser, -3f, -0.5f, -MathF.PI / 2f);
+                break;
+            default:
+                Piece(FurnitureType.Rug, 0f, 0f, 0f);
+                Piece(FurnitureType.DiningTable, 0f, 0f, 0f, variant: 2);
+                foreach (var x in new[] { -0.6f, 0.6f })
+                {
+                    Piece(FurnitureType.Chair, x, -0.8f, 0f);
+                    Piece(FurnitureType.Chair, x, 0.8f, MathF.PI);
+                }
+                Piece(FurnitureType.Chair, -1.4f, 0f, -MathF.PI / 2f);
+                Piece(FurnitureType.Chair, 1.4f, 0f, MathF.PI / 2f);
+                Piece(FurnitureType.FloorLamp, -2.4f, -1.6f, 0f);
+                Piece(FurnitureType.FloorLamp, 2.4f, 1.6f, 0f);
+                Piece(FurnitureType.Sideboard, 0f, -2.6f, 0f);
+                b.Put(FurnitureType.TableLamp, centre + Vector2.Transform(new Vector2(-0.5f, -2.6f), turn),
+                    FurnitureCatalog.SurfaceHeight(FurnitureType.Sideboard), heading);
+                break;
+        }
+    }
+
+    // --- The clock wall: a long, high wall hung with thousands of clocks ---
+
+    private static void BuildClockWall(LandmarkBuilder b)
+    {
+        var random = b.Random;
+        const int columns = 75;
+        const float column = 1.6f, half = columns * column / 2f;
+        var wardrobe = FurnitureCatalog.Spec(FurnitureType.Wardrobe, 1);
+        // The wall: two back-to-back rows of double wardrobes, stacked ten to twelve high, fronts out.
+        for (var i = 0; i < columns; i++)
+        {
+            var x = -half + (i + 0.5f) * column;
+            var courses = 10 + random.Next(3);
+            foreach (var row in new[] { -1, 1 })
+                for (var course = 0; course < courses; course++)
+                    b.Put(FurnitureType.Wardrobe, new Vector2(x, row * wardrobe.Depth / 2f), course * wardrobe.Height,
+                        row > 0 ? 0f : MathF.PI, variant: 1, tint: random.Next(FurniturePalettes.TintCount));
+        }
+
+        // The clocks: hung all over both faces up to the lowest course, of every size, each in its own spot.
+        const float pitch = 1.5f, clockTop = 20f;
+        foreach (var row in new[] { -1, 1 })
+            for (var x = -half + pitch / 2f; x < half; x += pitch)
+                for (var y = 0.3f; y + pitch <= clockTop; y += pitch)
+                {
+                    var variant = random.NextFloat() switch { < 0.4f => 0, < 0.65f => 3, < 0.9f => 1, _ => 2 };
+                    if (variant == 0)
+                    {
+                        // Two small clocks share a spot, side by side.
+                        foreach (var side in new[] { -1f, 1f })
+                            HangClock(b, x + side * 0.4f, y + random.Range(0f, pitch - 0.6f), row, 0, wardrobe.Depth);
+                        continue;
+                    }
+                    var size = FurnitureCatalog.Spec(FurnitureType.WallClock, variant).Width;
+                    var slack = (pitch - size) / 2f;
+                    HangClock(b, x + random.Range(-slack, slack), y + random.Range(0f, pitch - size), row, variant, wardrobe.Depth);
+                }
+
+        // Clocks and a few wardrobes fallen at the foot of the wall.
+        for (var i = 0; i < 160; i++)
+        {
+            var side = random.Chance(0.5f) ? 1f : -1f;
+            var at = new Vector2(random.Range(-half, half), side * random.Range(1.2f, 9f));
+            b.Rest(FurnitureType.WallClock, at, 0f, random.Range(-MathF.PI, MathF.PI), MathF.PI / 2f * (random.Chance(0.7f) ? -1f : 1f),
+                random.Next(FurnitureCatalog.VariantCount(FurnitureType.WallClock)));
+        }
+        for (var i = 0; i < 24; i++)
+        {
+            var side = random.Chance(0.5f) ? 1f : -1f;
+            b.Rest(FurnitureType.Wardrobe, new Vector2(random.Range(-half, half), side * random.Range(2f, 12f)), 0f,
+                random.Range(-0.4f, 0.4f) + (side > 0 ? 0f : MathF.PI), MathF.PI / 2f + random.Range(-0.1f, 0.1f), 1,
+                random.Next(FurniturePalettes.TintCount));
+        }
+    }
+
+    /// <summary>Hangs a clock on a face of the clock wall (row 1 south, -1 north), its face out, its bottom at a height.</summary>
+    private static void HangClock(LandmarkBuilder b, float x, float bottom, int row, int variant, float wallHalfDepth)
+    {
+        var depth = FurnitureCatalog.Spec(FurnitureType.WallClock, variant).Depth;
+        b.Put(FurnitureType.WallClock, new Vector2(x, row * (wallHalfDepth + depth / 2f + 0.005f)),
+            bottom, row > 0 ? 0f : MathF.PI, variant: variant);
+    }
+
+    /// <summary>
+    /// Gives every clock of the clock wall its own offset from the time left until Closing time, all different, and
+    /// picks one clock on the wall to be the true clock, whose offset is zero.
+    /// </summary>
+    private static Landmark SetClocks(Landmark wall, IReadOnlyList<FurniturePiece> pieces, SeededRandom random)
+    {
+        var clocks = pieces.Where(p => p.Type == FurnitureType.WallClock).ToList();
+        var hanging = clocks.Where(p => p.Tilt == 0f).ToList();
+        var trueClock = random.Pick(hanging).Id;
+        var used = new HashSet<long> { 0 };
+        var offsets = new Dictionary<int, TimeSpan>();
+        foreach (var clock in clocks)
+        {
+            if (clock.Id == trueClock)
+            {
+                offsets[clock.Id] = TimeSpan.Zero;
+                continue;
+            }
+            long seconds;
+            do
+                seconds = 1 + random.Next(24 * 60 * 60 - 1);
+            while (!used.Add(seconds));
+            offsets[clock.Id] = TimeSpan.FromSeconds(seconds);
+        }
+        return wall with { TrueClockId = trueClock, ClockOffsets = offsets.AsReadOnly() };
+    }
+
+    // --- The fountain court: a fountain plaza around a tower of stone bowls ---
+
+    private static void BuildFountainCourt(LandmarkBuilder b)
+    {
+        var random = b.Random;
+        // The great fountain: stone bowls, from the widest up to the smallest, on columns, crowned with a slender column.
+        var elevation = 0f;
+        foreach (var bowl in new[] { 3, 2, 1, 1, 0, 0 })
+        {
+            b.Put(FurnitureType.FountainBowl, Vector2.Zero, elevation, 0f, variant: bowl);
+            elevation += FurnitureCatalog.Spec(FurnitureType.FountainBowl, bowl).Height;
+            var columnVariant = bowl == 0 && elevation > 19f ? 1 : 0;
+            b.Put(FurnitureType.FountainColumn, Vector2.Zero, elevation, 0f, variant: columnVariant);
+            elevation += FurnitureCatalog.Spec(FurnitureType.FountainColumn, columnVariant).Height;
+        }
+
+        // Its great basin: a ring of stone kerbs, with benches round it facing the fountain.
+        Ring(b, FurnitureType.BasinKerb, 18f, 57, 0f);
+        Ring(b, FurnitureType.HallBench, 21f, 24, MathF.PI / 48f);
+
+        // Eight smaller fountains round it.
+        for (var k = 0; k < 8; k++)
+        {
+            var angle = (k + 0.5f) * MathF.Tau / 8f;
+            var at = new Vector2(MathF.Cos(angle), MathF.Sin(angle)) * 28f;
+            b.Put(FurnitureType.FountainBowl, at, 0f, angle, variant: 2);
+            var e = FurnitureCatalog.Spec(FurnitureType.FountainBowl, 2).Height;
+            b.Put(FurnitureType.FountainColumn, at, e, angle, variant: 1);
+            b.Put(FurnitureType.FountainBowl, at, e + FurnitureCatalog.Spec(FurnitureType.FountainColumn, 1).Height, angle, variant: 0);
+        }
+
+        // A ring of planters, open where the paths in run along the axes.
+        for (var k = 0; k < 40; k++)
+        {
+            var angle = (k + 0.5f) * MathF.Tau / 40f;
+            if (MathF.Abs(MathF.Sin(2f * angle)) < 0.2f)
+                continue;
+            b.Put(FurnitureType.PlanterBox, new Vector2(MathF.Cos(angle), MathF.Sin(angle)) * 34.5f, 0f, angle + MathF.PI / 2f,
+                tint: random.Next(FurniturePalettes.TintCount));
+        }
+
+        // Four long reflecting pools at the sides, each with three small fountains.
+        for (var side = 0; side < 4; side++)
+        {
+            var heading = side * MathF.PI / 2f;
+            Pool(b, Side(side, 0f, 41f), heading, 15, 4f);
+            foreach (var t in new[] { -9f, 0f, 9f })
+                b.Put(FurnitureType.FountainBowl, Side(side, t, 41f), 0f, heading, variant: 0);
+        }
+
+        // Cafe tables under parasols between the pools, and big plants in the corners.
+        for (var side = 0; side < 4; side++)
+            foreach (var t in new[] { -28f, 28f })
+            {
+                var at = Side(side, t, 41f);
+                var tint = random.Next(FurniturePalettes.TintCount);
+                b.Put(FurnitureType.Parasol, at, 0f, random.Range(-MathF.PI, MathF.PI), tint: tint);
+                b.Put(FurnitureType.GardenTable, at, 0f, random.Range(-MathF.PI, MathF.PI), variant: 1);
+                for (var c = 0; c < 3; c++)
+                {
+                    var angle = random.Range(0f, MathF.Tau);
+                    var direction = new Vector2(MathF.Cos(angle), MathF.Sin(angle));
+                    b.Put(FurnitureType.GardenChair, at + direction * 0.95f, 0f, MathF.Atan2(direction.X, -direction.Y), variant: 1);
+                }
+            }
+        foreach (var corner in new[] { new Vector2(-1f, -1f), new Vector2(1f, -1f), new Vector2(1f, 1f), new Vector2(-1f, 1f) })
+            for (var i = 0; i < 7; i++)
+                b.Put(FurnitureType.LargePlant, corner * 43f + new Vector2(random.Range(-3.5f, 3.5f), random.Range(-3.5f, 3.5f)), 0f,
+                    random.Range(-MathF.PI, MathF.PI), tint: random.Next(FurniturePalettes.TintCount));
+    }
+
+    /// <summary>Pieces in a ring round the frame's centre, their width along it and their fronts facing in.</summary>
+    private static void Ring(LandmarkBuilder b, FurnitureType type, float radius, int count, float phase)
+    {
+        for (var k = 0; k < count; k++)
+        {
+            var angle = phase + k * MathF.Tau / count;
+            b.Put(type, new Vector2(MathF.Cos(angle), MathF.Sin(angle)) * radius, 0f, angle + MathF.PI / 2f);
+        }
+    }
+
+    /// <summary>A long rectangular pool edged with stone kerbs: so many kerbs long and so wide inside.</summary>
+    private static void Pool(LandmarkBuilder b, Vector2 centre, float heading, int length, float width)
+    {
+        var kerb = FurnitureCatalog.Spec(FurnitureType.BasinKerb);
+        var turn = Matrix3x2.CreateRotation(heading);
+        var halfLength = length * kerb.Width / 2f;
+        for (var i = 0; i < length; i++)
+            foreach (var row in new[] { -1, 1 })
+                b.Put(FurnitureType.BasinKerb, centre + Vector2.Transform(new Vector2(-halfLength + (i + 0.5f) * kerb.Width, row * (width + kerb.Depth) / 2f), turn),
+                    0f, heading + (row > 0 ? MathF.PI : 0f));
+        var ends = (int)MathF.Ceiling(width / kerb.Width);
+        foreach (var end in new[] { -1, 1 })
+            for (var i = 0; i < ends; i++)
+                b.Put(FurnitureType.BasinKerb, centre + Vector2.Transform(new Vector2(end * (halfLength - kerb.Depth / 2f), -width / 2f + (i + 0.5f) * width / ends), turn),
+                    0f, heading + MathF.PI / 2f * end);
     }
 
     // --- Mazes ---

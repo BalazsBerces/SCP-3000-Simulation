@@ -32,7 +32,7 @@ public class FurnitureRebalanceTests(ITestOutputHelper output)
         using var sim = Simulation.Create(new WorldConfig(Seed: seed, PillarLayout: layout, RuntimeRngSeed: 1));
         sim.Advance(TimeSpan.FromSeconds(1));
         var snapshot = sim.Snapshot;
-        var lamps = snapshot.Furniture.Where(p => FurnitureCatalog.Spec(p).IsLamp).ToList();
+        var lamps = snapshot.Furniture.Where(p => p.DisplayId >= 0 && FurnitureCatalog.Spec(p).IsLamp).ToList();
         var share = lamps.Count / (double)snapshot.Furniture.Count;
         output.WriteLine($"{seed} / {layout.Name()}: {snapshot.Furniture.Count} Furniture, {lamps.Count} Lamps, {share:P4} Lamp pieces");
         Assert.InRange(share, 0.03, 0.04);

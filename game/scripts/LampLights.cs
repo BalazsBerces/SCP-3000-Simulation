@@ -388,7 +388,9 @@ public partial class LampLights : Node3D
         Array.Fill(_shadowSlots, -1);
         Array.Fill(_shadowOpacity, 0f);
         Array.Fill(_lightPositions, null);
-        var lamps = snapshot.Furniture.Where(p => FurnitureCatalog.Spec(p).IsLamp).Select(ToLamp).ToList();
+        // Lamps on dark ground (the dead zone) are never lit, so they cast no light.
+        var lamps = snapshot.Furniture.Where(p => FurnitureCatalog.Spec(p).IsLamp && !snapshot.GroundAt(p.Position).HasFlag(GroundProperty.Darkness))
+            .Select(ToLamp).ToList();
         foreach (var chunk in lamps.GroupBy(l => _space.ChunkOf(l.Bulb.ToStore())))
             _lampsByChunk[chunk.Key] = chunk.ToArray();
         _levels = new float[lamps.Count];

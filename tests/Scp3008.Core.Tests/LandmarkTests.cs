@@ -43,7 +43,7 @@ public class LandmarkTests
 
         Assert.All(kinds, k => Assert.Contains(LandmarkType.RuinedVillage, k));
         Assert.All(Seeds.Select(seed => Generate(seed)), s => Assert.Single(s.Landmarks, l => l.Type == LandmarkType.RuinedVillage));
-        foreach (var other in new[] { LandmarkType.RackCanyon, LandmarkType.BoxFort, LandmarkType.MattressMountain })
+        foreach (var other in Enum.GetValues<LandmarkType>().Except([LandmarkType.RuinedVillage]))
         {
             Assert.Contains(kinds, k => k.Contains(other));
             Assert.Contains(kinds, k => !k.Contains(other));
@@ -124,7 +124,7 @@ public class LandmarkTests
         var landmarks = Seeds.Select(seed => Generate(seed))
             .SelectMany(s => s.Landmarks.Select(l => (Landmark: l, Pieces: PiecesOf(s, l).ToList())))
             .GroupBy(x => x.Landmark.Type).ToDictionary(g => g.Key, g => g.First());
-        Assert.Equal(4, landmarks.Count);
+        Assert.Equal(Enum.GetValues<LandmarkType>().Length, landmarks.Count);
 
         static float Share(List<FurniturePiece> pieces, params FurnitureType[] types) =>
             pieces.Count(p => types.Contains(p.Type)) / (float)pieces.Count;
@@ -145,6 +145,19 @@ public class LandmarkTests
         Assert.True(Share(mountain.Pieces, FurnitureType.Mattress) >= 0.8f, "The mattress mountain is a heap of mattresses.");
         Assert.Contains(mountain.Pieces, p => p.Type == FurnitureType.Bed);
 
+        var deadZone = landmarks[LandmarkType.DeadZone];
+        Assert.True(deadZone.Pieces.Count(p => p.Type == FurnitureType.PalletRack) >= 50, "The dead zone has towers of racks.");
+        Assert.True(deadZone.Pieces.Count(p => FurnitureCatalog.Spec(p).IsLamp) >= 10, "The dead zone's showroom sets have Lamps, never lit.");
+
+        var clockWall = landmarks[LandmarkType.ClockWall];
+        var wallClocks = clockWall.Pieces.Where(p => p.Type == FurnitureType.WallClock).ToList();
+        Assert.True(wallClocks.Count >= 2000, "The clock wall has thousands of clocks.");
+        Assert.True(wallClocks.Select(p => p.Variant).Distinct().Count() >= 3, "The clocks of the clock wall differ.");
+
+        var court = landmarks[LandmarkType.FountainCourt];
+        Assert.True(court.Pieces.Count(p => p.Type == FurnitureType.FountainBowl) >= 10, "The fountain court has fountains of stone bowls.");
+        Assert.True(court.Pieces.Count(p => p.Type == FurnitureType.BasinKerb) >= 50, "The fountain court has a great basin.");
+
         foreach (var (landmark, pieces) in new[] { canyon, mountain })
         {
             // A lookout stands high in the Landmark, on its Furniture.
@@ -155,6 +168,149 @@ public class LandmarkTests
                 Assert.True(MathF.Abs(delta.X) <= landmark.Size.X / 2f && MathF.Abs(delta.Y) <= landmark.Size.Y / 2f);
             });
         }
+    }
+
+    /// <summary>A world (3 x 3 Pillars) that has a Landmark of this type, and the Landmark.</summary>
+    private static (Simulation Sim, Landmark Landmark) WorldWith(LandmarkType type)
+    {
+        foreach (var seed in Seeds.Concat(Enumerable.Range(10, 40)))
+        {
+            var sim = Simulation.Create(new WorldConfig(seed, RuntimeRngSeed: 1));
+            var landmark = sim.Snapshot.Landmarks.FirstOrDefault(l => l.Type == type);
+            if (landmark is not null)
+            {
+                sim.Scenario.SetFogBankFormation(false);
+                return (sim, landmark);
+            }
+            sim.Dispose();
+        }
+        throw new InvalidOperationException($"No seed gives a {type}.");
+    }
+
+    /// <summary>Positions all over a Landmark's rectangle, its edges and corners included, some of them unwrapped.</summary>
+    private static IEnumerable<Vector2> PositionsOn(WorldSnapshot snapshot, Landmark landmark)
+    {
+        for (var y = 0; y <= 8; y++)
+            for (var x = 0; x <= 8; x++)
+            {
+                var at = landmark.Centre + (new Vector2(x, y) / 8f - new Vector2(0.5f)) * landmark.Size * 0.999f;
+                yield return at;
+                if ((x + y) % 5 == 0)
+                    yield return at + new Vector2(snapshot.Space.Size, -snapshot.Space.Size);
+            }
+    }
+
+    /// <summary>Positions just outside a Landmark's rectangle, all round it.</summary>
+    private static IEnumerable<Vector2> PositionsAround(Landmark landmark)
+    {
+        var half = landmark.Size / 2f + new Vector2(1f);
+        for (var t = -1f; t <= 1f; t += 0.25f)
+        {
+            yield return landmark.Centre + new Vector2(t * half.X, -half.Y);
+            yield return landmark.Centre + new Vector2(t * half.X, half.Y);
+            yield return landmark.Centre + new Vector2(-half.X, t * half.Y);
+            yield return landmark.Centre + new Vector2(half.X, t * half.Y);
+        }
+    }
+
+    [Fact]
+    public void The_dead_zone_stays_dark_while_the_store_is_open_also_after_its_furniture_is_taken()
+    {
+        var (sim, zone) = WorldWith(LandmarkType.DeadZone);
+        using var _ = sim;
+        sim.AdvanceTo(TimeSpan.FromHours(12));
+        Assert.Equal(DayPhase.Open, sim.Snapshot.Phase);
+        Assert.Equal(1.0, sim.Snapshot.StoreLightLevel);
+
+        void AssertDark()
+        {
+            var snapshot = sim.Snapshot;
+            Assert.All(PositionsOn(snapshot, zone), at =>
+            {
+                Assert.True(sim.GroundAt(at).HasFlag(GroundProperty.Darkness), $"No darkness at {at}.");
+                Assert.Equal(0.0, snapshot.StoreLightLevelAt(at));
+            });
+            Assert.All(PositionsAround(zone), at =>
+            {
+                Assert.False(sim.GroundAt(at).HasFlag(GroundProperty.Darkness), $"Darkness outside the dead zone at {at}.");
+                Assert.Equal(snapshot.StoreLightLevel, snapshot.StoreLightLevelAt(at));
+            });
+        }
+
+        AssertDark();
+        // No Lamp in it is lit, while the Store is open or in Closing time.
+        var lamps = sim.Snapshot.Furniture.Where(p => p.LandmarkId == zone.Id && FurnitureCatalog.Spec(p).IsLamp).ToList();
+        Assert.NotEmpty(lamps);
+        foreach (var time in new[] { 21.75, 23.0, 3.0, 7.75, 12.0 })
+        {
+            sim.AdvanceTo(TimeSpan.FromHours(time));
+            Assert.All(lamps, lamp => Assert.Equal(0f, sim.Snapshot.LampLevel(lamp)));
+        }
+
+        Assert.True(sim.Scenario.RemoveFurniture(p => p.LandmarkId == zone.Id) >= 300);
+        Assert.DoesNotContain(sim.Snapshot.Furniture, p => p.LandmarkId == zone.Id);
+        AssertDark();
+        sim.Advance(TimeSpan.FromDays(1));
+        AssertDark();
+    }
+
+    [Fact]
+    public void The_fountain_court_has_water_everywhere_also_after_its_furniture_is_taken()
+    {
+        var (sim, court) = WorldWith(LandmarkType.FountainCourt);
+        using var _ = sim;
+
+        void AssertWater()
+        {
+            var snapshot = sim.Snapshot;
+            Assert.All(PositionsOn(snapshot, court), at => Assert.True(sim.GroundAt(at).HasFlag(GroundProperty.Water), $"No water at {at}."));
+            Assert.All(PositionsAround(court), at => Assert.Equal(GroundProperty.None, sim.GroundAt(at)));
+            // The Store's largest water source: no other Landmark has water.
+            Assert.Single(snapshot.Landmarks, l => l.Ground.HasFlag(GroundProperty.Water));
+        }
+
+        AssertWater();
+        Assert.True(sim.Scenario.RemoveFurniture(p => p.LandmarkId == court.Id) >= 300);
+        Assert.DoesNotContain(sim.Snapshot.Furniture, p => p.LandmarkId == court.Id);
+        sim.Advance(TimeSpan.FromHours(30));
+        AssertWater();
+    }
+
+    [Fact]
+    public void Other_landmarks_and_the_rest_of_the_store_are_ordinary_ground()
+    {
+        var snapshot = Generate(3008);
+        foreach (var landmark in snapshot.Landmarks.Where(l => l.Type is not (LandmarkType.DeadZone or LandmarkType.FountainCourt)))
+            Assert.Equal(GroundProperty.None, snapshot.GroundAt(landmark.Centre));
+        Assert.Equal(GroundProperty.None, snapshot.GroundAt(snapshot.Pillars[0].Position));
+    }
+
+    [Fact]
+    public void Exactly_one_clock_of_the_clock_wall_shows_the_true_time_to_closing_time_and_the_core_knows_which()
+    {
+        var (sim, wall) = WorldWith(LandmarkType.ClockWall);
+        using var _ = sim;
+        var clocks = sim.Snapshot.Furniture.Where(p => p.LandmarkId == wall.Id && p.Type == FurnitureType.WallClock).ToList();
+        Assert.True(clocks.Count >= 2000);
+        Assert.Equal(clocks.Select(c => c.Id).Order(), wall.ClockOffsets.Keys.Order());
+        Assert.Contains(clocks, c => c.Id == wall.TrueClockId);
+        Assert.Empty(sim.Snapshot.Landmarks.Where(l => l.Type != LandmarkType.ClockWall).SelectMany(l => l.ClockOffsets));
+
+        foreach (var (time, toClosing) in new[] { (12.0, 10.0), (21.5, 0.5), (23.0, 23.0), (4.25, 17.75) })
+        {
+            sim.AdvanceTo(TimeSpan.FromHours(time));
+            var snapshot = sim.Snapshot;
+            Assert.Equal(TimeSpan.FromHours(toClosing), snapshot.TimeToClosing);
+            var readings = clocks.Select(snapshot.ClockReading).ToList();
+            Assert.Equal(clocks.Count, readings.Distinct().Count());
+            var showingTruth = clocks.Where((_, i) => readings[i] == snapshot.TimeToClosing).ToList();
+            Assert.Equal(wall.TrueClockId, Assert.Single(showingTruth).Id);
+        }
+        // The clocks count down with Store time.
+        var before = sim.Snapshot.ClockReading(clocks[0]);
+        sim.Advance(TimeSpan.FromHours(1));
+        Assert.Equal(TimeSpan.FromTicks((before - TimeSpan.FromHours(1) + TimeSpan.FromDays(1)).Ticks % TimeSpan.TicksPerDay),
+            sim.Snapshot.ClockReading(clocks[0]));
     }
 
     [Fact]

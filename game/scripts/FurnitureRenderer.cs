@@ -65,14 +65,29 @@ public partial class FurnitureRenderer : Node3D
                     : Visibility.PlacementReach(Rig, snapshot.Space.ChunkSize),
                 Mesh = FurnitureMeshes.For(group.Key.Type, group.Key.Variant),
                 CoarseMesh = FurnitureMeshes.CoarseFor(group.Key.Type, group.Key.Variant),
-                OccluderQuads = FurnitureMeshes.OccluderQuads(group.Key.Type, group.Key.Variant),
+                // Landmark Furniture hides nothing: the panels of thousands of stacked, tilted and touching
+                // pieces stalled the first render with occlusion culling on, as the crossing pantry panels did.
+                OccluderQuads = group.Key.Landmark ? [] : FurnitureMeshes.OccluderQuads(group.Key.Type, group.Key.Variant),
             };
             AddChild(instances);
-            instances.SetInstances(snapshot.Space, group.Select(p => (Placement(p), FurnitureMeshes.TintFor(p))));
+            instances.SetInstances(snapshot.Space, group.Select(p => (Placement(p), Colour(snapshot, p))));
         }
         FurnitureDetail.DrawBoth(3);
         GD.Print($"Furniture: {snapshot.Furniture.Count} pieces placed in {Time.GetTicksMsec() - started} ms; " +
                  $"Landmarks: {string.Join(", ", snapshot.Landmarks.Select(l => $"{l.Type} in {snapshot.Sectors[l.SectorId].Name} at {l.Centre.X:0},{l.Centre.Y:0}, {l.Height:0} m"))}.");
+    }
+
+    /// <summary>
+    /// A piece's instance colour: its tint, and for a clock of the clock wall its offset from the time to Closing time,
+    /// as a fraction of a day in the alpha, which turns its hands (furniture.gdshader).
+    /// </summary>
+    private static Color Colour(WorldSnapshot snapshot, FurniturePiece piece)
+    {
+        var colour = FurnitureMeshes.TintFor(piece);
+        if (piece.Type == FurnitureType.WallClock && piece.LandmarkId >= 0
+            && snapshot.Landmarks[piece.LandmarkId].ClockOffsets.TryGetValue(piece.Id, out var offset))
+            colour.A = (float)(offset.TotalSeconds / 86400.0);
+        return colour;
     }
 
     /// <summary>

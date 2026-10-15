@@ -77,6 +77,10 @@ public enum FurnitureType
     // Landmark Furniture, found only in Landmarks
     Mattress,
     CardboardBox,
+    WallClock,
+    FountainBowl,
+    FountainColumn,
+    BasinKerb,
 
 }
 
@@ -159,7 +163,11 @@ public static class FurnitureCatalog
     };
 
     /// <summary>The Furniture types found only in Landmarks, never on display.</summary>
-    public static IReadOnlyList<FurnitureType> LandmarkTypes { get; } = [FurnitureType.Mattress, FurnitureType.CardboardBox];
+    public static IReadOnlyList<FurnitureType> LandmarkTypes { get; } =
+    [
+        FurnitureType.Mattress, FurnitureType.CardboardBox, FurnitureType.WallClock, FurnitureType.FountainBowl,
+        FurnitureType.FountainColumn, FurnitureType.BasinKerb,
+    ];
 
     /// <summary>
     /// The eight corners of a piece's box, tilt and rotation included: X east and Y south around its
@@ -252,6 +260,10 @@ public static class FurnitureCatalog
             new(FurnitureType.ToyChest, 0.8f, 0.45f, 0.5f),
             new(FurnitureType.Mattress, 1.4f, 2.0f, 0.22f),
             new(FurnitureType.CardboardBox, 0.8f, 0.8f, 0.8f),
+            new(FurnitureType.WallClock, 0.6f, 0.08f, 0.6f),                   // round wall clock, its face to the front
+            new(FurnitureType.FountainBowl, 2.4f, 2.4f, 0.6f),                 // round stone bowl full of water
+            new(FurnitureType.FountainColumn, 0.9f, 0.9f, 3.0f),               // stone column a bowl stands on
+            new(FurnitureType.BasinKerb, 2.0f, 0.5f, 0.6f),                    // straight stone kerb of a basin
 
             // Variants of the most repeated types: other proportions, backs, legs or materials.
             new(FurnitureType.Chair, 0.45f, 0.5f, 1.05f, Variant: 1),          // high ladder back
@@ -274,6 +286,13 @@ public static class FurnitureCatalog
             new(FurnitureType.KitchenCabinet, 0.6f, 0.6f, 2.1f, Variant: 2),   // tall pantry
             new(FurnitureType.DisplayCabinet, 1.6f, 0.45f, 1.0f, Variant: 1),  // low, wide glass cabinet
             new(FurnitureType.DisplayCabinet, 0.6f, 0.45f, 1.9f, Variant: 2),  // narrow glass tower
+            new(FurnitureType.WallClock, 1.0f, 0.08f, 1.0f, Variant: 1),       // large round clock
+            new(FurnitureType.WallClock, 1.4f, 0.1f, 1.4f, Variant: 2),        // huge round clock
+            new(FurnitureType.WallClock, 0.8f, 0.08f, 0.8f, Variant: 3),       // square clock
+            new(FurnitureType.FountainBowl, 4.0f, 4.0f, 0.8f, Variant: 1),
+            new(FurnitureType.FountainBowl, 6.0f, 6.0f, 1.0f, Variant: 2),
+            new(FurnitureType.FountainBowl, 9.0f, 9.0f, 1.2f, Variant: 3),
+            new(FurnitureType.FountainColumn, 0.5f, 0.5f, 2.0f, Variant: 1),   // slender column
         ];
         var byType = new FurnitureSpec[Enum.GetValues<FurnitureType>().Length][];
         foreach (var group in specs.GroupBy(s => s.Type))

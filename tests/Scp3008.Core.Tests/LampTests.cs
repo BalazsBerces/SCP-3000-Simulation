@@ -10,7 +10,7 @@ public class LampTests
         using var sim = Simulation.Create(new WorldConfig(Seed: 3008, RuntimeRngSeed: 1));
         sim.Scenario.SetFogBankFormation(false);
         sim.Scenario.ClearFogBanks();
-        var lamps = sim.Snapshot.Furniture.Where(p => FurnitureCatalog.Spec(p.Type).IsLamp).ToArray();
+        var lamps = sim.Snapshot.Furniture.Where(p => p.DisplayId >= 0 && FurnitureCatalog.Spec(p.Type).IsLamp).ToArray();
         Assert.NotEmpty(lamps);
         var events = new List<DomainEvent>();
         using var subscription = sim.Subscribe(events.Add);
@@ -18,14 +18,14 @@ public class LampTests
         sim.AdvanceTo(TimeSpan.FromHours(23));
         Assert.Equal(0.0, sim.Snapshot.StoreLightLevel);
         Assert.Single(events.OfType<ClosingTimeBegan>());
-        Assert.Equal(lamps, sim.Snapshot.Furniture.Where(p => FurnitureCatalog.Spec(p.Type).IsLamp));
+        Assert.Equal(lamps, sim.Snapshot.Furniture.Where(p => p.DisplayId >= 0 && FurnitureCatalog.Spec(p.Type).IsLamp));
         Assert.All(lamps, p => Assert.Equal(p.Type is FurnitureType.TableLamp or FurnitureType.DeskLamp ? 3f : 5f,
             FurnitureCatalog.Spec(p.Type).LightRadius));
 
         sim.AdvanceTo(TimeSpan.FromHours(8));
         Assert.Equal(1.0, sim.Snapshot.StoreLightLevel);
         Assert.Single(events.OfType<StoreReopened>());
-        Assert.Equal(lamps, sim.Snapshot.Furniture.Where(p => FurnitureCatalog.Spec(p.Type).IsLamp));
+        Assert.Equal(lamps, sim.Snapshot.Furniture.Where(p => p.DisplayId >= 0 && FurnitureCatalog.Spec(p.Type).IsLamp));
     }
 
     private static readonly FurnitureType[] LampTypes = [FurnitureType.TableLamp, FurnitureType.FloorLamp, FurnitureType.DeskLamp, FurnitureType.ArcLamp];
@@ -49,7 +49,7 @@ public class LampTests
         var snapshot = sim.Snapshot;
 
         var lampsByDepartment = snapshot.Furniture
-            .Where(p => FurnitureCatalog.Spec(p.Type).IsLamp)
+            .Where(p => p.DisplayId >= 0 && FurnitureCatalog.Spec(p.Type).IsLamp)
             .GroupBy(p => snapshot.Departments.At(p.Position).Type)
             .ToDictionary(g => g.Key, g => g.Count());
 
@@ -76,7 +76,7 @@ public class LampLevelTests
     }
 
     private static FurniturePiece[] LampsOf(Simulation sim) =>
-        sim.Snapshot.Furniture.Where(p => FurnitureCatalog.Spec(p).IsLamp).ToArray();
+        sim.Snapshot.Furniture.Where(p => p.DisplayId >= 0 && FurnitureCatalog.Spec(p).IsLamp).ToArray();
 
     private static float[] Levels(Simulation sim, FurniturePiece[] lamps) =>
         lamps.Select(sim.Snapshot.LampLevel).ToArray();

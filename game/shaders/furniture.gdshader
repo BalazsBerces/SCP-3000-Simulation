@@ -3,6 +3,7 @@
 shader_type spatial;
 #include "res://shaders/lamp_pools.gdshaderinc"
 #include "res://shaders/lamp_levels.gdshaderinc"
+#include "res://shaders/ground.gdshaderinc"
 
 uniform vec4 albedo_color : source_color = vec4(1.0);
 uniform sampler2D albedo_texture : source_color, hint_default_white, filter_linear_mipmap, repeat_enable;
@@ -26,6 +27,10 @@ uniform vec2 part_surface[32];
 uniform int emissive_part = -1;
 // Dev aid (DevCapture --lod-debug): draws coarse meshes magenta, to show which level is drawn.
 uniform bool lod_debug = false;
+// A clock hand of the clock wall: 1 the hour hand, 2 the minute hand, 0 not a hand. A hand turns about the
+// dial centre (height in UV2.y) to show the time left until Closing time plus the clock's own offset (the instance
+// colour's alpha, as a fraction of a day), on a dial that counts down.
+uniform int clock_hand = 0;
 
 varying flat int part;
 // How far this piece's own Lamp has come on; read once per vertex, only for glowing shades.
@@ -35,6 +40,14 @@ void vertex() {
 	UV = UV * uv_scale;
 	part = int(UV2.x + 0.5);
 	shade_level = 1.0;
+	if (clock_hand > 0) {
+		float reading = mod(time_to_closing + COLOR.a * 86400.0, 86400.0);
+		float angle = TAU * reading / (clock_hand == 1 ? 43200.0 : 3600.0);
+		mat2 turn = mat2(vec2(cos(angle), -sin(angle)), vec2(sin(angle), cos(angle)));
+		vec2 pivot = vec2(0.0, UV2.y);
+		VERTEX.xy = turn * (VERTEX.xy - pivot) + pivot;
+		NORMAL.xy = turn * NORMAL.xy;
+	}
 	if (coarse_parts ? part == emissive_part : emission_energy > 0.0) {
 		shade_level = lamp_level_near(MODEL_MATRIX[3].xyz);
 	}
@@ -76,6 +89,13 @@ void fragment() {
 	ALBEDO = albedo;
 	ROUGHNESS = surface_roughness;
 	METALLIC = surface_metallic;
-	EMISSION = emission
-			+ lamp_pools(VERTEX, normal, INV_VIEW_MATRIX, albedo, surface_roughness, surface_metallic, 0.5);
+	// The dead zone: no light falls on its Furniture and no shade glows.
+	if (on_ground_rect((INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xz, ground_dark_rect)) {
+		ALBEDO = vec3(0.0);
+		SPECULAR = 0.0;
+		EMISSION = vec3(0.0);
+	} else {
+		EMISSION = emission
+				+ lamp_pools(VERTEX, normal, INV_VIEW_MATRIX, albedo, surface_roughness, surface_metallic, 0.5);
+	}
 }

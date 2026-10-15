@@ -13,6 +13,36 @@ public enum LandmarkType
     BoxFort,
     /// <summary>A huge heap of mattresses, climbable to a lookout at its summit.</summary>
     MattressMountain,
+    /// <summary>
+    /// An abandoned stretch of Store where the lights never come on and no Lamp is lit: towers of racks and
+    /// showroom sets left in the dark. Its ground has <see cref="GroundProperty.Darkness"/>.
+    /// </summary>
+    DeadZone,
+    /// <summary>
+    /// A long, high wall hung with thousands of clocks, all showing different times; exactly one, the true clock,
+    /// shows the true time left until Closing time (<see cref="Landmark.TrueClockId"/>).
+    /// </summary>
+    ClockWall,
+    /// <summary>
+    /// A huge decorative fountain plaza around a tower of stone bowls: the Store's largest water source.
+    /// Its ground has <see cref="GroundProperty.Water"/>.
+    /// </summary>
+    FountainCourt,
+}
+
+/// <summary>
+/// What a stretch of the Store's ground is like, whatever Furniture stands on it: a lasting property
+/// of the ground under a Landmark, kept when its Furniture is taken.
+/// </summary>
+[Flags]
+public enum GroundProperty
+{
+    /// <summary>Ordinary Store floor.</summary>
+    None = 0,
+    /// <summary>The Store lights never come on here and no Lamp is lit, even while the Store is open (the dead zone).</summary>
+    Darkness = 1,
+    /// <summary>There is water here (the fountain court).</summary>
+    Water = 2,
 }
 
 /// <summary>
@@ -37,4 +67,32 @@ public sealed record Landmark(int Id, LandmarkType Type, int SectorId, Vector2 C
     /// so it can be seen from afar.
     /// </summary>
     public const float MinHeight = 20f;
+
+    /// <summary>The property of the ground under this Landmark's rectangle (see <see cref="WorldSnapshot.GroundAt"/>).</summary>
+    public GroundProperty Ground => Type switch
+    {
+        LandmarkType.DeadZone => GroundProperty.Darkness,
+        LandmarkType.FountainCourt => GroundProperty.Water,
+        _ => GroundProperty.None,
+    };
+
+    /// <summary>
+    /// The clock wall's one true clock, by <see cref="FurniturePiece.Id"/>: the only clock that shows the true time
+    /// left until Closing time. Known to the core and hidden from Villagers. -1 for other Landmarks.
+    /// </summary>
+    public int TrueClockId { get; init; } = -1;
+
+    /// <summary>
+    /// How far each of the clock wall's clocks is off, by <see cref="FurniturePiece.Id"/>: each shows the time left until
+    /// Closing time plus its own offset, on a 24-hour dial that counts down (see <see cref="WorldSnapshot.ClockReading"/>). The offsets
+    /// differ, so no two clocks show the same time; only the true clock's is zero. Empty for other Landmarks.
+    /// </summary>
+    public IReadOnlyDictionary<int, TimeSpan> ClockOffsets { get; init; } = new Dictionary<int, TimeSpan>();
+
+    /// <summary>Whether a Store position (it may be unwrapped) lies on this Landmark's rectangle, edges included.</summary>
+    public bool Covers(StoreSpace space, Vector2 position)
+    {
+        var delta = space.Delta(Centre, position);
+        return MathF.Abs(delta.X) <= Size.X / 2f && MathF.Abs(delta.Y) <= Size.Y / 2f;
+    }
 }

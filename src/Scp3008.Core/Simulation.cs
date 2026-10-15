@@ -29,7 +29,7 @@ public sealed class Simulation : IDisposable
     private readonly WorldConfig _config;
     private readonly StoreSpace _space;
     private readonly DepartmentMap _departments;
-    private readonly FurnitureLayout _furniture;
+    private FurnitureLayout _furniture;
     private readonly IReadOnlyList<Pillar> _pillars;
     private readonly IReadOnlyList<Sector> _sectors;
     private readonly IReadOnlyList<Landmark> _landmarks;
@@ -77,6 +77,9 @@ public sealed class Simulation : IDisposable
     /// 1 (deep inside a thick Fog bank). Safe to call from any thread.
     /// </summary>
     public float FogDensityAt(Vector2 position) => _snapshot.FogDensityAt(position);
+
+    /// <inheritdoc cref="WorldSnapshot.GroundAt"/>
+    public GroundProperty GroundAt(Vector2 position) => _snapshot.GroundAt(position);
 
     /// <inheritdoc cref="WorldSnapshot.SectorAt"/>
     public Sector SectorAt(Vector2 position) => _snapshot.SectorAt(position);
@@ -271,6 +274,22 @@ public sealed class Simulation : IDisposable
             change(weather, now, emit);
             return true;
         });
+
+    /// <summary>Takes every piece of Furniture that matches out of the Store and publishes a new snapshot; returns how many.</summary>
+    internal int RemoveFurniture(Func<FurniturePiece, bool> match)
+    {
+        lock (_stepLock)
+        {
+            var kept = _furniture.Pieces.Where(p => !match(p)).ToList();
+            var removed = _furniture.Pieces.Count - kept.Count;
+            if (removed > 0)
+            {
+                _furniture = _furniture with { Pieces = kept.AsReadOnly() };
+                _snapshot = BuildSnapshot();
+            }
+            return removed;
+        }
+    }
 
     private void Unsubscribe(Action<DomainEvent> handler)
     {

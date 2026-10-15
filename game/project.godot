@@ -39,6 +39,22 @@ lights_and_shadows/positional_shadow/atlas_quadrant_3_subdiv=3
 
 [shader_globals]
 
+ground_dark_rect={
+"type": "vec4",
+"value": Vector4(0, 0, 0, 0)
+}
+ground_water_rect={
+"type": "vec4",
+"value": Vector4(0, 0, 0, 0)
+}
+ground_store_size={
+"type": "float",
+"value": 0.0
+}
+time_to_closing={
+"type": "float",
+"value": 0.0
+}
 lamp_cells={
 "type": "sampler2D",
 "value": ""

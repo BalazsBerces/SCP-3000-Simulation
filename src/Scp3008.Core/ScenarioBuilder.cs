@@ -38,4 +38,15 @@ public sealed class ScenarioBuilder
     /// </summary>
     public void HoldWind(Vector2 metresPerStoreHour) =>
         _simulation.Change((weather, _, _) => weather.HoldWind(metresPerStoreHour));
+
+    /// <summary>
+    /// Takes every piece of Furniture that matches out of the Store, as if it had been carried off; returns how many.
+    /// What the ground is like (<see cref="WorldSnapshot.GroundAt"/>) stays. Piece ids stay unique, so after this they
+    /// no longer match the pieces' indices in <see cref="WorldSnapshot.Furniture"/>.
+    /// </summary>
+    public int RemoveFurniture(Func<FurniturePiece, bool> match)
+    {
+        ArgumentNullException.ThrowIfNull(match);
+        return _simulation.RemoveFurniture(match);
+    }
 }

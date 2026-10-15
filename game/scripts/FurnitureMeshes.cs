@@ -41,6 +41,11 @@ public static class FurnitureMeshes
         Terracotta,
         Soil,
         LampShade,
+        Stone,
+        Water,
+        // The hands of the clock wall's clocks, turned in the shader (see furniture.gdshader's clock_hand).
+        HourHand,
+        MinuteHand,
     }
 
     // Emission of a lit lamp shade.
@@ -220,6 +225,11 @@ public static class FurnitureMeshes
         var (hw, hd) = (w / 2f, d / 2f);
         // Wave-two legs and arms use 7 cm sections; they count as thin like the narrower first-wave legs.
         var b = new Builder(coarse, type >= FurnitureType.Desk ? 0.09f : CoarseMinThickness, type >= FurnitureType.Desk ? 5 : 0);
+        if (type is FurnitureType.WallClock or FurnitureType.FountainBowl or FurnitureType.FountainColumn or FurnitureType.BasinKerb)
+        {
+            BuildStoneAndClocks(b, type, variant, w, d, h);
+            return b;
+        }
         if (variant > 0)
         {
             BuildVariant(b, type, variant, w, d, h);
@@ -616,6 +626,54 @@ public static class FurnitureMeshes
     /// The parts of a variant (1 or 2) of the types that have several; each has its own silhouette,
     /// sized from the variant's spec.
     /// </summary>
+    /// <summary>Landmark Furniture of ticket 08: the clock wall's clocks and the fountain court's stonework.</summary>
+    private static void BuildStoneAndClocks(Builder b, FurnitureType type, int variant, float w, float d, float h)
+    {
+        var (hw, hd) = (w / 2f, d / 2f);
+        switch (type)
+        {
+            case FurnitureType.WallClock:
+            {
+                // A wooden case, round (stepped) or square, a white dial and two hands turning about its centre.
+                var mid = h / 2f;
+                var round = variant != 3;
+                var frame = variant == 1 ? Part.Oak : variant == 2 ? Part.DarkSteel : Part.Walnut;
+                (float X, float Y)[] shapes = round ? [(hw, hw * 0.58f), (hw * 0.58f, hw), (hw * 0.86f, hw * 0.86f)] : [(hw, hw)];
+                foreach (var (x, y) in shapes)
+                    b.Box(frame, new Vector3(-x, mid - y, -hd), new Vector3(x, mid + y, hd - 0.012f));
+                foreach (var (x, y) in shapes)
+                    b.Box(Part.Ceramic, new Vector3(-x * 0.88f, mid - y * 0.88f, hd - 0.012f), new Vector3(x * 0.88f, mid + y * 0.88f, hd - 0.007f));
+                b.Pivot = mid;
+                b.Box(Part.HourHand, new Vector3(-hw * 0.035f, mid - hw * 0.06f, hd - 0.007f), new Vector3(hw * 0.035f, mid + hw * 0.48f, hd - 0.004f));
+                b.Box(Part.MinuteHand, new Vector3(-hw * 0.022f, mid - hw * 0.08f, hd - 0.004f), new Vector3(hw * 0.022f, mid + hw * 0.76f, hd));
+                break;
+            }
+            case FurnitureType.FountainBowl:
+                // A wide stone bowl on a short foot, brimming with water.
+                b.Cylinder(Part.Stone, Vector3.Zero, hw * 0.3f, hw * 0.34f, h * 0.3f, 16);
+                b.Cylinder(Part.Stone, new Vector3(0f, h * 0.3f, 0f), hw * 0.4f, hw, h * 0.66f, 24);
+                b.Cylinder(Part.Water, new Vector3(0f, h * 0.96f, 0f), hw * 0.9f, hw * 0.9f, h * 0.035f, 24);
+                break;
+            case FurnitureType.FountainColumn:
+                // A stone column with a base and a capital; the slender one tapers to a finial.
+                if (variant == 1)
+                {
+                    b.Cylinder(Part.Stone, Vector3.Zero, hw, hw * 0.6f, h * 0.15f, 12);
+                    b.Cylinder(Part.Stone, new Vector3(0f, h * 0.15f, 0f), hw * 0.45f, hw * 0.2f, h * 0.85f, 12);
+                    break;
+                }
+                b.Cylinder(Part.Stone, Vector3.Zero, hw, hw, h * 0.08f, 16);
+                b.Cylinder(Part.Stone, new Vector3(0f, h * 0.08f, 0f), hw * 0.62f, hw * 0.55f, h * 0.82f, 16);
+                b.Cylinder(Part.Stone, new Vector3(0f, h * 0.9f, 0f), hw * 0.6f, hw, h * 0.1f, 16);
+                break;
+            case FurnitureType.BasinKerb:
+                // A block of stone kerb with a wider coping on top.
+                b.Box(Part.Stone, new Vector3(-hw, 0f, -hd + 0.04f), new Vector3(hw, h - 0.1f, hd - 0.04f));
+                b.Box(Part.Stone, new Vector3(-hw, h - 0.1f, -hd), new Vector3(hw, h, hd));
+                break;
+        }
+    }
+
     private static void BuildVariant(Builder b, FurnitureType type, int variant, float w, float d, float h)
     {
         var (hw, hd) = (w / 2f, d / 2f);
@@ -866,6 +924,12 @@ public static class FurnitureMeshes
             material.SetShaderParameter("uv_scale", new Vector2(1f / metres, 1f / metres));
             return material;
         }
+        ShaderMaterial Hand(int hand)
+        {
+            var material = Plain(new Color(0.06f, 0.06f, 0.07f), 0.5f, 0.4f);
+            material.SetShaderParameter("clock_hand", hand);
+            return material;
+        }
         var shade = Plain(new Color(0.95f, 0.9f, 0.78f), 0.8f);
         shade.SetShaderParameter("emission_color", new Color(1f, 0.85f, 0.6f));
         shade.SetShaderParameter("emission_energy", LampShadeGlow);
@@ -896,6 +960,10 @@ public static class FurnitureMeshes
             [Part.Terracotta] = Plain(new Color(0.62f, 0.32f, 0.2f), 0.85f),
             [Part.Soil] = Plain(new Color(0.18f, 0.12f, 0.08f), 1f),
             [Part.LampShade] = shade,
+            [Part.Stone] = Plain(new Color(0.8f, 0.78f, 0.72f), 0.75f),
+            [Part.Water] = Plain(new Color(0.16f, 0.3f, 0.33f), 0.04f),
+            [Part.HourHand] = Hand(1),
+            [Part.MinuteHand] = Hand(2),
         };
         return _materials;
     }
@@ -969,6 +1037,9 @@ public static class FurnitureMeshes
     private sealed class Builder(bool coarse, float minThickness, int coarseSegments)
     {
         public bool Coarse => coarse;
+
+        /// <summary>Height of the dial centre the clock hands turn about; full meshes carry it in the hands' UV2.y.</summary>
+        public float Pivot { get; set; }
         private readonly Dictionary<Part, SurfaceTool> _surfaces = new();
         private readonly List<(Part Part, Vector3 Min, Vector3 Max)> _boxes = new();
         private Part _part;
@@ -1235,6 +1306,8 @@ public static class FurnitureMeshes
             tool.SetUV(uv);
             if (coarse)
                 tool.SetUV2(new Vector2((int)_part, 0f));
+            else if (_part is Part.HourHand or Part.MinuteHand)
+                tool.SetUV2(new Vector2(0f, Pivot));
             tool.AddVertex(position);
         }
     }
