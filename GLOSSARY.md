@@ -46,6 +46,10 @@ _Avoid_: Point of interest (small, seen only up close)
 A world for looking at the Landmarks rather than a Store to simulate: every Landmark type once, side by side in one row on empty Store floor, with no Displays. The seed still varies how each Landmark is built.
 _Avoid_: Test map, gallery level
 
+**Point of interest showcase**:
+Like the Landmark showcase, for the Points of interest: every kind once, side by side in one row on empty Store floor (the abandoned scaffold on a Pillar), with no Displays and no Landmarks. The seed still varies how each is built.
+_Avoid_: Test map, gallery level
+
 **Point of interest**:
 A small, distinctive place of the Store found only up close, such as a working restroom or a Ball pit; a Sector may hold several.
 _Avoid_: Landmark (huge, far-visible)

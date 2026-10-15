@@ -16,5 +16,10 @@ namespace Scp3008.Core;
 /// Builds the Landmark showcase instead of a normal Store: every Landmark type once, side by side
 /// in one row on empty Store floor, with no Displays. The seed still varies how each Landmark is built.
 /// </param>
+/// <param name="PointOfInterestShowcase">
+/// Builds the Point of interest showcase instead of a normal Store: every Point of interest type once, side by side
+/// in one row on empty Store floor (the abandoned scaffold on a Pillar), with no Displays and no Landmarks.
+/// The seed still varies how each one is built. Not combined with <paramref name="LandmarkShowcase"/>.
+/// </param>
 public sealed record WorldConfig(int Seed, int? RuntimeRngSeed = null, PillarLayout PillarLayout = PillarLayout.ThreeByThree,
-    bool LandmarkShowcase = false);
+    bool LandmarkShowcase = false, bool PointOfInterestShowcase = false);

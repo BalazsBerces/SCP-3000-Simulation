@@ -263,4 +263,30 @@ public class PointOfInterestTests
     {
         Assert.Empty(Generate(3008, showcase: true).PointsOfInterest);
     }
+
+    [Theory]
+    [MemberData(nameof(LayoutsAndSeeds))]
+    public void The_point_of_interest_showcase_has_every_kind_once_with_no_displays_or_landmarks(PillarLayout layout, int seed)
+    {
+        using var sim = Simulation.Create(new WorldConfig(seed, RuntimeRngSeed: 1, PillarLayout: layout, PointOfInterestShowcase: true));
+        var snapshot = sim.Snapshot;
+
+        Assert.True(snapshot.PointOfInterestShowcase);
+        Assert.False(snapshot.LandmarkShowcase);
+        Assert.Empty(snapshot.Landmarks);
+        Assert.Empty(snapshot.Displays);
+        Assert.Equal(Enum.GetValues<PointOfInterestType>().Order(), snapshot.PointsOfInterest.Select(p => p.Type).Order());
+        Assert.All(snapshot.PointsOfInterest, poi => Assert.NotEmpty(PiecesOf(snapshot, poi)));
+        Assert.All(snapshot.Furniture, piece => Assert.True(piece.PointOfInterestId >= 0));
+    }
+
+    [Fact]
+    public void A_normal_store_is_not_the_point_of_interest_showcase() => Assert.False(Generate(3008).PointOfInterestShowcase);
+
+    [Fact]
+    public void A_world_cannot_be_both_showcases()
+    {
+        Assert.Throws<ArgumentException>(() =>
+            Simulation.Create(new WorldConfig(3008, LandmarkShowcase: true, PointOfInterestShowcase: true)));
+    }
 }

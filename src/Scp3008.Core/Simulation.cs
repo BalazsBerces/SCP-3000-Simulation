@@ -53,14 +53,21 @@ public sealed class Simulation : IDisposable
         _pillars = PillarGenerator.Pillars(_sectors, config.PillarLayout);
         // The Landmarks are placed first, so the Displays keep off them; their Furniture follows the Displays'.
         // The Landmark showcase has every Landmark in a row and no Displays around them.
+        // The Point of interest showcase has no Landmarks and no Displays either.
+        if (config.LandmarkShowcase && config.PointOfInterestShowcase)
+            throw new ArgumentException("A world is at most one showcase.", nameof(config));
         var sites = config.LandmarkShowcase
             ? LandmarkGenerator.Showcase(_space, _sectors, _pillars, _departments.CellSize)
-            : LandmarkGenerator.Plan(config.Seed, _space, _sectors, _pillars, _departments.CellSize);
-        // The Points of interest are planned next, so the Displays keep off them too; the showcase has none.
+            : config.PointOfInterestShowcase
+                ? []
+                : LandmarkGenerator.Plan(config.Seed, _space, _sectors, _pillars, _departments.CellSize);
+        // The Points of interest are planned next, so the Displays keep off them too; the Landmark showcase has none.
         IReadOnlyList<PointOfInterestSite> poiSites = config.LandmarkShowcase
             ? []
-            : PointOfInterestGenerator.Plan(config.Seed, _space, _departments, _sectors, _pillars, sites);
-        var furniture = config.LandmarkShowcase
+            : config.PointOfInterestShowcase
+                ? PointOfInterestGenerator.Showcase(_space, _sectors, _pillars)
+                : PointOfInterestGenerator.Plan(config.Seed, _space, _departments, _sectors, _pillars, sites);
+        var furniture = config.LandmarkShowcase || config.PointOfInterestShowcase
             ? new FurnitureLayout([], [], [])
             : FurnitureGenerator.Generate(config.Seed, _space, _departments, _pillars, sites, poiSites);
         var landmarks = LandmarkGenerator.Build(config.Seed, _space, sites, furniture.Pieces.Count);
@@ -319,6 +326,7 @@ public sealed class Simulation : IDisposable
         new(_config.Seed, _config.PillarLayout, new StoreClock(_tick), _space, _speed, _departments, _furniture.Pieces, _furniture.Displays, _furniture.Cells, Array.AsReadOnly(_weather.Snapshot()), _weather.Wind, _pillars, _sectors, _landmarks, _pointsOfInterest, _config.LandmarkShowcase)
         {
             BallPitNetwork = _ballPitNetwork,
+            PointOfInterestShowcase = _config.PointOfInterestShowcase,
         };
 
     private sealed class Subscription(Simulation owner, Action<DomainEvent> handler) : IDisposable

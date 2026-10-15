@@ -49,6 +49,9 @@ public sealed record WorldSnapshot(
     /// <summary>Whether the Store is open or in Closing time.</summary>
     public DayPhase Phase => Clock.Phase;
 
+    /// <summary>Whether this is the Point of interest showcase (every Point of interest in a row, no Displays or Landmarks) rather than a normal Store.</summary>
+    public bool PointOfInterestShowcase { get; init; }
+
     /// <summary>The Store's three Ball pits as the one network the Staff pass through at Closing time.</summary>
     public BallPitNetwork BallPitNetwork { get; init; } = BallPitNetwork.None;
 

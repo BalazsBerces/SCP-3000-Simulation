@@ -9,7 +9,8 @@ namespace Scp3008.Game;
 /// row (Pillars: 3×3 | 2×2 | 3×3 large | Corners | Diamond) marks the active layout; choosing another regenerates the
 /// Store with the same seed and that layout, like Generate. The Landmark showcase button switches between the
 /// Store and the Landmark showcase (every Landmark in a row, no Displays) with the same seed and layout; in the
-/// showcase a button per Landmark flies the camera to it. Also names the Department under the camera focus.
+/// showcase a button per Landmark flies the camera to it. The Point of interest showcase button does the same for
+/// the Points of interest (every kind in a row, no Displays or Landmarks). Also names the Department under the camera focus.
 /// </summary>
 public partial class SeedPanel : CanvasLayer
 {
@@ -23,6 +24,8 @@ public partial class SeedPanel : CanvasLayer
     private readonly Dictionary<PillarLayout, Button> _layoutButtons = new();
     private Button _showcase = null!;
     private HFlowContainer _landmarkButtons = null!;
+    private Button _poiShowcase = null!;
+    private HFlowContainer _poiButtons = null!;
 
     /// <summary>Zoom distance the camera flies to per metre of a Landmark's larger side, so it fills the view.</summary>
     private const float ShowcaseDistancePerMetre = 1.1f;
@@ -86,9 +89,19 @@ public partial class SeedPanel : CanvasLayer
         column.AddChild(_showcase);
         _landmarkButtons = new HFlowContainer { Name = "Landmarks" };
         column.AddChild(_landmarkButtons);
-        ShowLandmarkButtons(Host.Snapshot);
+        _poiShowcase = new Button
+        {
+            Name = "PointOfInterestShowcase", Text = "Point of interest showcase", ToggleMode = true, ButtonPressed = Host.PointOfInterestShowcase,
+            FocusMode = Control.FocusModeEnum.None,
+            TooltipText = "Every Point of interest side by side, with no Displays or Landmarks; press again for the Store",
+        };
+        _poiShowcase.Toggled += ChoosePointOfInterestShowcase;
+        column.AddChild(_poiShowcase);
+        _poiButtons = new HFlowContainer { Name = "PointsOfInterest" };
+        column.AddChild(_poiButtons);
+        ShowShowcaseButtons(Host.Snapshot);
         // After the camera has set its start view.
-        Callable.From(FlyToFirstLandmark).CallDeferred();
+        Callable.From(FlyToFirstOfShowcase).CallDeferred();
 
         _status = new Label { Name = "Department" };
         column.AddChild(_status);
@@ -153,19 +166,38 @@ public partial class SeedPanel : CanvasLayer
         Host.CreateWorld(Host.Snapshot.Seed, landmarkShowcase: showcase);
     }
 
-    /// <summary>In the showcase, a button per Landmark, west to east, that flies the camera to it.</summary>
-    private void ShowLandmarkButtons(WorldSnapshot snapshot)
+    /// <summary>Switches between the Store and the Point of interest showcase, keeping the seed and the Pillar layout.</summary>
+    public void ChoosePointOfInterestShowcase(bool showcase)
     {
-        foreach (var child in _landmarkButtons.GetChildren())
-            child.QueueFree();
-        _landmarkButtons.Visible = snapshot.LandmarkShowcase;
-        if (!snapshot.LandmarkShowcase)
-            return;
-        foreach (var landmark in snapshot.Landmarks.OrderBy(l => l.Centre.X))
+        if (Host.IsGenerating || showcase == Host.Snapshot.PointOfInterestShowcase)
         {
-            var button = new Button { Text = LandmarkNames.Of(landmark.Type), FocusMode = Control.FocusModeEnum.None };
-            button.Pressed += () => Rig.FlyTo(landmark.Centre, MathF.Max(landmark.Size.X, landmark.Size.Y) * ShowcaseDistancePerMetre);
-            _landmarkButtons.AddChild(button);
+            _poiShowcase.SetPressedNoSignal(Host.IsGenerating ? Host.PointOfInterestShowcase : Host.Snapshot.PointOfInterestShowcase);
+            return;
+        }
+        Host.CreateWorld(Host.Snapshot.Seed, pointOfInterestShowcase: showcase);
+    }
+
+    /// <summary>In a showcase, a button per Landmark or Point of interest, west to east, that flies the camera to it.</summary>
+    private void ShowShowcaseButtons(WorldSnapshot snapshot)
+    {
+        FillButtons(_landmarkButtons, snapshot.LandmarkShowcase,
+            snapshot.Landmarks.Select(l => (LandmarkNames.Of(l.Type), l.Centre, l.Size)));
+        FillButtons(_poiButtons, snapshot.PointOfInterestShowcase,
+            snapshot.PointsOfInterest.Select(p => (PointOfInterestNames.Of(p.Type), p.Centre, p.Size)));
+    }
+
+    private void FillButtons(HFlowContainer container, bool visible, IEnumerable<(string Name, System.Numerics.Vector2 Centre, System.Numerics.Vector2 Size)> places)
+    {
+        foreach (var child in container.GetChildren())
+            child.QueueFree();
+        container.Visible = visible;
+        if (!visible)
+            return;
+        foreach (var (name, centre, size) in places.OrderBy(p => p.Centre.X))
+        {
+            var button = new Button { Text = name, FocusMode = Control.FocusModeEnum.None };
+            button.Pressed += () => Rig.FlyTo(centre, MathF.Max(size.X, size.Y) * ShowcaseDistancePerMetre);
+            container.AddChild(button);
         }
     }
 
@@ -195,17 +227,41 @@ public partial class SeedPanel : CanvasLayer
             _seedInput.Text = snapshot.Seed.ToString();
         MarkLayout(snapshot.PillarLayout);
         _showcase.SetPressedNoSignal(snapshot.LandmarkShowcase);
-        ShowLandmarkButtons(snapshot);
-        FlyToFirstLandmark();
+        _poiShowcase.SetPressedNoSignal(snapshot.PointOfInterestShowcase);
+        ShowShowcaseButtons(snapshot);
+        FlyToFirstOfShowcase();
     }
 
-    /// <summary>The showcase starts at its first (westmost) Landmark.</summary>
-    private void FlyToFirstLandmark()
+    /// <summary>A showcase starts at its first (westmost) Landmark or Point of interest.</summary>
+    private void FlyToFirstOfShowcase()
     {
         var snapshot = Host.Snapshot;
-        if (snapshot.LandmarkShowcase && snapshot.Landmarks.MinBy(l => l.Centre.X) is { } first)
-            Rig.FlyTo(first.Centre, MathF.Max(first.Size.X, first.Size.Y) * ShowcaseDistancePerMetre);
+        if (snapshot.LandmarkShowcase && snapshot.Landmarks.MinBy(l => l.Centre.X) is { } landmark)
+            Rig.FlyTo(landmark.Centre, MathF.Max(landmark.Size.X, landmark.Size.Y) * ShowcaseDistancePerMetre);
+        else if (snapshot.PointOfInterestShowcase && snapshot.PointsOfInterest.MinBy(p => p.Centre.X) is { } poi)
+            Rig.FlyTo(poi.Centre, MathF.Max(poi.Size.X, poi.Size.Y) * ShowcaseDistancePerMetre);
     }
+}
+
+/// <summary>Display names of the Point of interest types.</summary>
+public static class PointOfInterestNames
+{
+    public static string Of(PointOfInterestType type) => type switch
+    {
+        PointOfInterestType.Restroom => "Restroom",
+        PointOfInterestType.Canteen => "Canteen",
+        PointOfInterestType.SetDinnerTable => "Dinner table",
+        PointOfInterestType.LostAndFoundDesk => "Lost and found",
+        PointOfInterestType.ShoppingCartGraveyard => "Cart graveyard",
+        PointOfInterestType.BallPit => "Ball pit",
+        PointOfInterestType.ArmchairHenge => "Armchair henge",
+        PointOfInterestType.ExitSign => "EXIT sign",
+        PointOfInterestType.MannequinCrowd => "Mannequins",
+        PointOfInterestType.DoorToNowhere => "Door to nowhere",
+        PointOfInterestType.DisplayAquarium => "Aquarium",
+        PointOfInterestType.AbandonedScaffold => "Scaffold",
+        _ => type.ToString(),
+    };
 }
 
 /// <summary>Display names of the Landmark types.</summary>

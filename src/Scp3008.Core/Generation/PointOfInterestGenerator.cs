@@ -138,12 +138,59 @@ internal static class PointOfInterestGenerator
         return sites.AsReadOnly();
     }
 
+    /// <summary>Free floor between neighbouring Points of interest in the showcase row.</summary>
+    private const float ShowcaseGap = 6f;
+
+    /// <summary>
+    /// The Point of interest showcase: every kind once, unturned, side by side along x in a row centred on the Store, on
+    /// the row nearest the middle of the Store that keeps clear of every Pillar and its walkway ring, then the abandoned
+    /// scaffold (a fixed stair) on the first Pillar.
+    /// </summary>
+    public static IReadOnlyList<PointOfInterestSite> Showcase(StoreSpace space, IReadOnlyList<Sector> sectors, IReadOnlyList<Pillar> pillars)
+    {
+        var kinds = Enum.GetValues<PointOfInterestType>().Where(t => t != PointOfInterestType.AbandonedScaffold).ToList();
+        var length = kinds.Sum(k => OwnSize(k).X) + ShowcaseGap * (kinds.Count - 1);
+        if (length > space.Size)
+            throw new InvalidOperationException($"The showcase row ({length:0} m) is longer than the Store.");
+        var start = MathF.Round((space.Size - length) / 2f);
+        var deepest = kinds.Max(k => OwnSize(k).Y);
+        var rows = new List<float>();
+        for (var y = deepest / 2f; y + deepest / 2f <= space.Size; y += 1f)
+            rows.Add(y);
+        foreach (var y in rows.OrderBy(y => MathF.Abs(y - space.Size / 2f)))
+        {
+            var sites = new List<PointOfInterestSite>();
+            var x = start;
+            foreach (var type in kinds)
+            {
+                var size = OwnSize(type);
+                var centre = new Vector2(x + size.X / 2f, y);
+                var sector = sectors.First(s => centre.X >= s.Origin.X && centre.X < s.Origin.X + s.Size &&
+                                                centre.Y >= s.Origin.Y && centre.Y < s.Origin.Y + s.Size);
+                sites.Add(new PointOfInterestSite(sites.Count, type, sector.Id, centre, size, 0));
+                x += size.X + ShowcaseGap;
+            }
+            if (sites.All(site => pillars.All(p => Apart(space.Delta(p.Position, site.Centre), new Vector2(p.ClearHalfWidth), site.Size / 2f, Clearance))))
+            {
+                sites.Add(ScaffoldSite(space, sectors, new ScaffoldPlan(pillars[0], false, 8, 21), 0, sites.Count));
+                return sites.AsReadOnly();
+            }
+        }
+        throw new InvalidOperationException("No row of the Store keeps the showcase clear of the Pillars.");
+    }
+
     /// <summary>Picks the Pillar the abandoned scaffold climbs, which way round and how far, and the rectangle its steps cover.</summary>
     private static PointOfInterestSite PlanScaffold(SeededRandom random, StoreSpace space, IReadOnlyList<Sector> sectors, IReadOnlyList<Pillar> pillars, int id)
     {
         var pillar = pillars[random.Next(pillars.Count)];
         var quarters = random.Next(4);
         var plan = new ScaffoldPlan(pillar, random.Chance(0.5f), 6 + random.Next(5), 18 + random.Next(7));
+        return ScaffoldSite(space, sectors, plan, quarters, id);
+    }
+
+    private static PointOfInterestSite ScaffoldSite(StoreSpace space, IReadOnlyList<Sector> sectors, ScaffoldPlan plan, int quarters, int id)
+    {
+        var pillar = plan.Pillar;
         var (centre, size) = ScaffoldBounds(plan);
         var position = space.Wrap(pillar.Position + LandmarkBuilder.Turn(centre, quarters));
         var sector = sectors.First(s => s.Name == pillar.Coordinate);

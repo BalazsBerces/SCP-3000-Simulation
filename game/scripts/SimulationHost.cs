@@ -30,6 +30,9 @@ public partial class SimulationHost : Node
     /// <summary>Whether the latest world asked for is the Landmark showcase (<c>--landmark-showcase</c> for the first).</summary>
     public bool LandmarkShowcase { get; private set; }
 
+    /// <summary>Whether the latest world asked for is the Point of interest showcase (<c>--poi-showcase</c> for the first).</summary>
+    public bool PointOfInterestShowcase { get; private set; }
+
     private readonly ConcurrentQueue<DomainEvent> _pendingEvents = new();
     private SnapshotInterpolator _interpolator = new(Simulation.RealTimeStep);
     private Simulation _simulation = null!;
@@ -80,8 +83,14 @@ public partial class SimulationHost : Node
                 startPaused = true;
             else if (arg == "--landmark-showcase")
                 LandmarkShowcase = true;
+            else if (arg == "--poi-showcase")
+                PointOfInterestShowcase = true;
         }
-        var simulation = Simulation.Create(new WorldConfig(Seed, PillarLayout: Layout, LandmarkShowcase: LandmarkShowcase));
+        // A world is at most one showcase.
+        if (LandmarkShowcase && PointOfInterestShowcase)
+            PointOfInterestShowcase = false;
+        var simulation = Simulation.Create(new WorldConfig(Seed, PillarLayout: Layout, LandmarkShowcase: LandmarkShowcase,
+            PointOfInterestShowcase: PointOfInterestShowcase));
         if (startTime is { } target)
             simulation.AdvanceTo(target);
         Adopt(simulation, startPaused ? SimulationSpeed.Paused : SimulationSpeed.Normal);
@@ -108,17 +117,19 @@ public partial class SimulationHost : Node
 
     /// <summary>
     /// Generates a new Store from <paramref name="seed"/> in the background, with the given Pillar
-    /// layout or else the current one, as the Landmark showcase or a normal Store (else as the current
-    /// world is), then replaces the current world; its Store clock starts anew.
+    /// layout or else the current one, as the Landmark showcase, the Point of interest showcase or a normal Store (else
+    /// as the current world is; choosing one showcase leaves the other), then replaces the current world; its Store clock starts anew.
     /// </summary>
-    public void CreateWorld(int seed, PillarLayout? layout = null, bool? landmarkShowcase = null)
+    public void CreateWorld(int seed, PillarLayout? layout = null, bool? landmarkShowcase = null, bool? pointOfInterestShowcase = null)
     {
         if (_nextWorld is not null)
             return;
         Seed = seed;
         Layout = layout ?? Layout;
-        LandmarkShowcase = landmarkShowcase ?? LandmarkShowcase;
-        var config = new WorldConfig(seed, PillarLayout: Layout, LandmarkShowcase: LandmarkShowcase);
+        LandmarkShowcase = landmarkShowcase ?? (pointOfInterestShowcase == true ? false : LandmarkShowcase);
+        PointOfInterestShowcase = pointOfInterestShowcase ?? (landmarkShowcase == true ? false : PointOfInterestShowcase);
+        var config = new WorldConfig(seed, PillarLayout: Layout, LandmarkShowcase: LandmarkShowcase,
+            PointOfInterestShowcase: PointOfInterestShowcase);
         _nextWorld = Task.Run(() => Simulation.Create(config));
     }
 
