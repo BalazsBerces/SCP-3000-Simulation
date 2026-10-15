@@ -20,10 +20,11 @@ internal static class FurnitureGenerator
     private const float Margin = 1.5f;
 
     public static FurnitureLayout Generate(int seed, StoreSpace space, DepartmentMap departments, IReadOnlyList<Pillar> pillars,
-        IReadOnlyList<LandmarkSite> landmarks)
+        IReadOnlyList<LandmarkSite> landmarks, IReadOnlyList<PointOfInterestSite> pointsOfInterest)
     {
         var keepClear = pillars.Select(p => (p.Position, HalfSize: new Vector2(p.ClearHalfWidth)))
-            .Concat(landmarks.Select(l => (l.Centre, HalfSize: l.Size / 2f)));
+            .Concat(landmarks.Select(l => (l.Centre, HalfSize: l.Size / 2f)))
+            .Concat(pointsOfInterest.Select(p => (p.Centre, HalfSize: p.Size / 2f + new Vector2(PointOfInterestGenerator.DisplayMargin))));
         var store = new StoreFurniture(space, keepClear.ToArray());
         var cellSize = departments.CellSize;
         var rowQuarters = departments.All.Select(d => SeededRandom.For(seed, stream: 3, d.Id).Next(2)).ToArray();

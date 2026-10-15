@@ -33,6 +33,7 @@ public sealed class Simulation : IDisposable
     private readonly IReadOnlyList<Pillar> _pillars;
     private readonly IReadOnlyList<Sector> _sectors;
     private readonly IReadOnlyList<Landmark> _landmarks;
+    private readonly IReadOnlyList<PointOfInterest> _pointsOfInterest;
     private readonly Weather _weather;
     private long _tick;
     private SimulationSpeed _speed = SimulationSpeed.Normal;
@@ -54,12 +55,18 @@ public sealed class Simulation : IDisposable
         var sites = config.LandmarkShowcase
             ? LandmarkGenerator.Showcase(_space, _sectors, _pillars, _departments.CellSize)
             : LandmarkGenerator.Plan(config.Seed, _space, _sectors, _pillars, _departments.CellSize);
+        // The Points of interest are planned next, so the Displays keep off them too; the showcase has none.
+        IReadOnlyList<PointOfInterestSite> poiSites = config.LandmarkShowcase
+            ? []
+            : PointOfInterestGenerator.Plan(config.Seed, _space, _departments, _sectors, _pillars, sites);
         var furniture = config.LandmarkShowcase
             ? new FurnitureLayout([], [], [])
-            : FurnitureGenerator.Generate(config.Seed, _space, _departments, _pillars, sites);
+            : FurnitureGenerator.Generate(config.Seed, _space, _departments, _pillars, sites, poiSites);
         var landmarks = LandmarkGenerator.Build(config.Seed, _space, sites, furniture.Pieces.Count);
-        _furniture = furniture with { Pieces = furniture.Pieces.Concat(landmarks.Pieces).ToList().AsReadOnly() };
+        var pointsOfInterest = PointOfInterestGenerator.Build(config.Seed, _space, poiSites, furniture.Pieces.Count + landmarks.Pieces.Count);
+        _furniture = furniture with { Pieces = furniture.Pieces.Concat(landmarks.Pieces).Concat(pointsOfInterest.Pieces).ToList().AsReadOnly() };
         _landmarks = landmarks.Landmarks;
+        _pointsOfInterest = pointsOfInterest.PointsOfInterest;
         // Runtime randomness never comes from the Store seed (ADR 0003); it is unseeded unless a test fixes it.
         var runtimeSeed = config.RuntimeRngSeed ?? Random.Shared.Next();
         _weather = new Weather(_space, SeededRandom.For(runtimeSeed, WeatherStream));
@@ -307,7 +314,7 @@ public sealed class Simulation : IDisposable
     }
 
     private WorldSnapshot BuildSnapshot() =>
-        new(_config.Seed, _config.PillarLayout, new StoreClock(_tick), _space, _speed, _departments, _furniture.Pieces, _furniture.Displays, _furniture.Cells, Array.AsReadOnly(_weather.Snapshot()), _weather.Wind, _pillars, _sectors, _landmarks, _config.LandmarkShowcase);
+        new(_config.Seed, _config.PillarLayout, new StoreClock(_tick), _space, _speed, _departments, _furniture.Pieces, _furniture.Displays, _furniture.Cells, Array.AsReadOnly(_weather.Snapshot()), _weather.Wind, _pillars, _sectors, _landmarks, _pointsOfInterest, _config.LandmarkShowcase);
 
     private sealed class Subscription(Simulation owner, Action<DomainEvent> handler) : IDisposable
     {

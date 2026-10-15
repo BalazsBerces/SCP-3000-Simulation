@@ -81,7 +81,9 @@ public enum FurnitureType
     FountainBowl,
     FountainColumn,
     BasinKerb,
-
+    // Point of interest Furniture, found only in Points of interest
+    ShoppingCart,
+    MealPlate,
 }
 
 /// <summary>
@@ -105,13 +107,14 @@ public enum FurnitureType
 /// <see cref="FurniturePalettes.TintCount"/> - 1); always one of its Display's palette, if it has one.
 /// </param>
 /// <param name="LandmarkId">The <see cref="Landmark"/> the piece is part of, by <see cref="Landmark.Id"/>; -1 for Display Furniture.</param>
+/// <param name="PointOfInterestId">The <see cref="PointOfInterest"/> the piece is part of, by <see cref="PointOfInterest.Id"/>; -1 for other Furniture.</param>
 /// <param name="Tilt">
 /// How far the piece is tipped over, in radians, about its width axis through the centre of its base:
 /// positive tips its front down, a quarter turn lays it on its front. Zero (upright) for Display Furniture;
 /// its corners are <see cref="FurnitureCatalog.Corners"/>.
 /// </param>
 public readonly record struct FurniturePiece(int Id, FurnitureType Type, Vector2 Position, float Elevation, float Rotation,
-    int Variant = 0, int DisplayId = -1, int Tint = 0, int LandmarkId = -1, float Tilt = 0f);
+    int Variant = 0, int DisplayId = -1, int Tint = 0, int LandmarkId = -1, float Tilt = 0f, int PointOfInterestId = -1);
 
 /// <summary>The fixed properties of a Furniture type.</summary>
 /// <param name="Width">Size along the piece's width axis, in metres.</param>
@@ -168,6 +171,9 @@ public static class FurnitureCatalog
         FurnitureType.Mattress, FurnitureType.CardboardBox, FurnitureType.WallClock, FurnitureType.FountainBowl,
         FurnitureType.FountainColumn, FurnitureType.BasinKerb,
     ];
+
+    /// <summary>The Furniture types found only in Points of interest, never on display.</summary>
+    public static IReadOnlyList<FurnitureType> PointOfInterestTypes { get; } = [FurnitureType.ShoppingCart, FurnitureType.MealPlate];
 
     /// <summary>
     /// The eight corners of a piece's box, tilt and rotation included: X east and Y south around its
@@ -264,6 +270,8 @@ public static class FurnitureCatalog
             new(FurnitureType.FountainBowl, 2.4f, 2.4f, 0.6f),                 // round stone bowl full of water
             new(FurnitureType.FountainColumn, 0.9f, 0.9f, 3.0f),               // stone column a bowl stands on
             new(FurnitureType.BasinKerb, 2.0f, 0.5f, 0.6f),                    // straight stone kerb of a basin
+            new(FurnitureType.ShoppingCart, 0.55f, 1.0f, 1.0f),                // wire basket on a wheeled chassis, handle at the back
+            new(FurnitureType.MealPlate, 0.3f, 0.3f, 0.05f),                   // a plate of food
 
             // Variants of the most repeated types: other proportions, backs, legs or materials.
             new(FurnitureType.Chair, 0.45f, 0.5f, 1.05f, Variant: 1),          // high ladder back

@@ -46,6 +46,7 @@ public static class FurnitureMeshes
         // The hands of the clock wall's clocks, turned in the shader (see furniture.gdshader's clock_hand).
         HourHand,
         MinuteHand,
+        Food,
     }
 
     // Emission of a lit lamp shade.
@@ -615,6 +616,38 @@ public static class FurnitureMeshes
                 }
                 b.Cylinder(Part.LampShade, new(hw - 0.25f, 1.8f, 0), 0.24f, 0.13f, 0.3f);
                 break;
+            case FurnitureType.ShoppingCart:
+            {
+                // A wire basket on a wheeled chassis; the handle is at the back (-z).
+                var zBack = -hd + 0.14f;
+                foreach (var x in new[] { -hw + 0.04f, hw - 0.04f })
+                    foreach (var z in new[] { -hd + 0.1f, hd - 0.1f })
+                        b.Box(Part.Rubber, new Vector3(x - 0.02f, 0f, z - 0.045f), new Vector3(x + 0.02f, 0.1f, z + 0.045f));
+                b.Box(Part.LightSteel, new Vector3(-hw + 0.02f, 0.1f, -hd + 0.06f), new Vector3(-hw + 0.06f, 0.14f, hd - 0.06f));
+                b.Box(Part.LightSteel, new Vector3(hw - 0.06f, 0.1f, -hd + 0.06f), new Vector3(hw - 0.02f, 0.14f, hd - 0.06f));
+                b.Box(Part.LightSteel, new Vector3(-hw + 0.06f, 0.2f, zBack), new Vector3(hw - 0.06f, 0.215f, hd - 0.06f));
+                b.Box(Part.LightSteel, new Vector3(-hw, 0.42f, zBack), new Vector3(hw, 0.44f, hd));
+                foreach (var x in new[] { -hw, hw - 0.03f })
+                    foreach (var z in new[] { zBack, hd - 0.03f })
+                        b.Box(Part.LightSteel, new Vector3(x, 0.44f, z), new Vector3(x + 0.03f, 0.9f, z + 0.03f));
+                b.Box(Part.LightSteel, new Vector3(-hw, 0.9f, zBack), new Vector3(hw, 0.93f, zBack + 0.03f));
+                b.Box(Part.LightSteel, new Vector3(-hw, 0.9f, hd - 0.03f), new Vector3(hw, 0.93f, hd));
+                b.Box(Part.LightSteel, new Vector3(-hw, 0.9f, zBack + 0.03f), new Vector3(-hw + 0.03f, 0.93f, hd - 0.03f));
+                b.Box(Part.LightSteel, new Vector3(hw - 0.03f, 0.9f, zBack + 0.03f), new Vector3(hw, 0.93f, hd - 0.03f));
+                b.Box(Part.LightSteel, new Vector3(-hw, 0.64f, zBack + 0.03f), new Vector3(-hw + 0.015f, 0.66f, hd - 0.03f));
+                b.Box(Part.LightSteel, new Vector3(hw - 0.015f, 0.64f, zBack + 0.03f), new Vector3(hw, 0.66f, hd - 0.03f));
+                b.Box(Part.LightSteel, new Vector3(-hw + 0.03f, 0.64f, hd - 0.015f), new Vector3(hw - 0.03f, 0.66f, hd));
+                b.Box(Part.LightSteel, new Vector3(-hw + 0.03f, 0.64f, zBack), new Vector3(hw - 0.03f, 0.66f, zBack + 0.015f));
+                foreach (var x in new[] { -hw + 0.03f, hw - 0.06f })
+                    b.Box(Part.DarkSteel, new Vector3(x, 0.14f, -hd + 0.03f), new Vector3(x + 0.03f, 0.97f, -hd + 0.06f));
+                b.Box(Part.Rubber, new Vector3(-hw + 0.03f, 0.97f, -hd + 0.01f), new Vector3(hw - 0.03f, 1f, -hd + 0.08f));
+                break;
+            }
+            case FurnitureType.MealPlate:
+                // A plate of food: store-style meatballs, hot dogs and buns, as a mound.
+                b.Cylinder(Part.Ceramic, Vector3.Zero, hw * 0.8f, hw, 0.02f, 16);
+                b.Cylinder(Part.Food, new Vector3(0f, 0.02f, 0f), hw * 0.6f, hw * 0.4f, 0.03f, 12);
+                break;
             default:
                 b.Box(Part.Maple, new Vector3(-hw, 0f, -hd), new Vector3(hw, h, hd));
                 break;
@@ -964,6 +997,7 @@ public static class FurnitureMeshes
             [Part.Water] = Plain(new Color(0.16f, 0.3f, 0.33f), 0.04f),
             [Part.HourHand] = Hand(1),
             [Part.MinuteHand] = Hand(2),
+            [Part.Food] = Plain(new Color(0.62f, 0.36f, 0.16f), 0.65f),
         };
         return _materials;
     }

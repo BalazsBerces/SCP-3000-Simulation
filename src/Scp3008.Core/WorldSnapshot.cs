@@ -19,6 +19,7 @@ namespace Scp3008.Core;
 /// <param name="Pillars">The identical concrete Pillars on the layout's grid (9 or 4), marked by grid coordinate; never light or power sources.</param>
 /// <param name="Sectors">The equal Sectors of the layout's grid, row by row from the north-west; a Pillar stands in each one or, on the four-Pillar large layouts, in some of them.</param>
 /// <param name="Landmarks">The world's Landmarks, indexed by <see cref="Landmark.Id"/>; their Furniture is in <see cref="Furniture"/>, after the Displays' pieces.</param>
+/// <param name="PointsOfInterest">The world's Points of interest, indexed by <see cref="PointOfInterest.Id"/>; their Furniture is in <see cref="Furniture"/>, after the Landmarks' pieces.</param>
 /// <param name="LandmarkShowcase">Whether this is the Landmark showcase (every Landmark in a row, no Displays) rather than a normal Store.</param>
 public sealed record WorldSnapshot(
     int Seed,
@@ -35,6 +36,7 @@ public sealed record WorldSnapshot(
     IReadOnlyList<Pillar> Pillars,
     IReadOnlyList<Sector> Sectors,
     IReadOnlyList<Landmark> Landmarks,
+    IReadOnlyList<PointOfInterest> PointsOfInterest,
     bool LandmarkShowcase = false)
 {
     /// <summary>How a department cell is laid out; coordinates wrap.</summary>

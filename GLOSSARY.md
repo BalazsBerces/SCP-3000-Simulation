@@ -50,6 +50,9 @@ _Avoid_: Test map, gallery level
 A small, distinctive place of the Store found only up close, such as a working restroom or a Ball pit; a Sector may hold several.
 _Avoid_: Landmark (huge, far-visible)
 
+**Common Points of interest**:
+Five kinds, each made only of Furniture and planned before the Displays, which keep clear of them: the **Restroom** (1–3 per Sector), the **Canteen** (3–4 per Store, in Restaurant/food market Departments), the **Set dinner table** (2–3 per Sector), the **Lost and found desk** (about one per Sector) and the **Shopping cart graveyard** (2–4 per Store). At most one per Department cell; none overlaps a Landmark, a Pillar or its walkway ring. No real store brand appears in their names, food or signage. The Landmark showcase has none.
+
 **Ball pit**:
 One of the three modest bouncy castles filled with balls in every Store; a Point of interest. Harmless while the Store is open; at Closing time the Staff pass from any Ball pit to any other. Villagers cannot.
 _Avoid_: Ball-pit sea, portal
