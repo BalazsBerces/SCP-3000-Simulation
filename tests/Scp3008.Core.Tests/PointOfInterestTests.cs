@@ -38,6 +38,8 @@ public class PointOfInterestTests
         Assert.NotEmpty(first.PointsOfInterest);
         Assert.Equal(first.PointsOfInterest, second.PointsOfInterest);
         Assert.Equal(first.Furniture.Where(p => p.PointOfInterestId >= 0), second.Furniture.Where(p => p.PointOfInterestId >= 0));
+        Assert.NotEmpty(first.TankFish);
+        Assert.Equal(first.TankFish, second.TankFish);
     }
 
     [Fact]
@@ -67,7 +69,7 @@ public class PointOfInterestTests
         // The rare ones, per Store.
         Assert.Equal(3, pois.Count(p => p.Type == PointOfInterestType.BallPit));
         foreach (var type in new[] { PointOfInterestType.ArmchairHenge, PointOfInterestType.ExitSign, PointOfInterestType.MannequinCrowd,
-                     PointOfInterestType.DoorToNowhere, PointOfInterestType.DisplayAquarium })
+                     PointOfInterestType.DoorToNowhere, PointOfInterestType.AquariumAisle })
             Assert.InRange(pois.Count(p => p.Type == type), 1, 2);
         Assert.All(pois.Where(p => p.Type == PointOfInterestType.Canteen),
             p => Assert.Equal(DepartmentType.RestaurantAndFoodMarket, snapshot.Departments.At(p.Centre).Type));
@@ -161,7 +163,7 @@ public class PointOfInterestTests
         Assert.Superset(new HashSet<FurnitureType> { FurnitureType.ExitSign }, Types(PointOfInterestType.ExitSign));
         Assert.Superset(new HashSet<FurnitureType> { FurnitureType.Mannequin }, Types(PointOfInterestType.MannequinCrowd));
         Assert.Superset(new HashSet<FurnitureType> { FurnitureType.DoorFrame, FurnitureType.ShelfUnit }, Types(PointOfInterestType.DoorToNowhere));
-        Assert.Superset(new HashSet<FurnitureType> { FurnitureType.Aquarium }, Types(PointOfInterestType.DisplayAquarium));
+        Assert.Superset(new HashSet<FurnitureType> { FurnitureType.FishTank, FurnitureType.TankRack }, Types(PointOfInterestType.AquariumAisle));
         // The rare Furniture is found nowhere else.
         foreach (var (furniture, kind) in new[]
                  {
@@ -169,7 +171,7 @@ public class PointOfInterestTests
                      (FurnitureType.PlaySlide, PointOfInterestType.BallPit), (FurnitureType.FoamStep, PointOfInterestType.BallPit),
                      (FurnitureType.PlayBall, PointOfInterestType.BallPit), (FurnitureType.ExitSign, PointOfInterestType.ExitSign),
                      (FurnitureType.Mannequin, PointOfInterestType.MannequinCrowd), (FurnitureType.DoorFrame, PointOfInterestType.DoorToNowhere),
-                     (FurnitureType.Aquarium, PointOfInterestType.DisplayAquarium),
+                     (FurnitureType.FishTank, PointOfInterestType.AquariumAisle), (FurnitureType.TankRack, PointOfInterestType.AquariumAisle),
                  })
             foreach (var snapshot in snapshots)
                 Assert.All(snapshot.Furniture.Where(p => p.Type == furniture),
@@ -254,7 +256,7 @@ public class PointOfInterestTests
             Assert.InRange(inPool.Count, 300, 2000);
             Assert.All(inPool, b => Assert.InRange(b.Elevation, 0.2f, poolSpec.Height - FurnitureCatalog.Spec(b).Height));
             Assert.True(inPool.Select(b => b.Tint).Distinct().Count() >= 6, "The balls should come in many colours.");
-            Assert.InRange(spilled.Count, 5, 30);
+            Assert.InRange(spilled.Count, 8, 20);
             Assert.All(spilled, b => Assert.Equal(0f, b.Elevation));
         }
     }
@@ -265,6 +267,65 @@ public class PointOfInterestTests
         IEnumerable<FurniturePiece> Balls(WorldSnapshot s) => s.Furniture.Where(p => p.Type == FurnitureType.PlayBall);
         Assert.Equal(Balls(Generate(42)), Balls(Generate(42)));
         Assert.NotEqual(Balls(Generate(42)).Select(b => (b.Position, b.Tint)), Balls(Generate(43)).Select(b => (b.Position, b.Tint)));
+    }
+
+    [Theory]
+    [MemberData(nameof(LayoutsAndSeeds))]
+    public void Each_aquarium_aisle_is_a_row_of_racked_tanks_in_three_sizes_with_three_kinds_of_fish_and_the_count_is_unchanged(PillarLayout layout, int seed)
+    {
+        var snapshot = Generate(seed, layout);
+        var aisles = snapshot.PointsOfInterest.Where(p => p.Type == PointOfInterestType.AquariumAisle).ToList();
+        Assert.InRange(aisles.Count, 1, 2);
+        var fish = snapshot.TankFish.ToDictionary(f => f.TankId, f => f.Kind);
+        foreach (var aisle in aisles)
+        {
+            Assert.Equal(new Vector2(12f, 6f), new Vector2(MathF.Max(aisle.Size.X, aisle.Size.Y), MathF.Min(aisle.Size.X, aisle.Size.Y)));
+            var pieces = PiecesOf(snapshot, aisle).ToList();
+            Assert.All(pieces, p => Assert.Contains(p.Type, new[] { FurnitureType.FishTank, FurnitureType.TankRack, FurnitureType.HallBench }));
+            var racks = pieces.Where(p => p.Type == FurnitureType.TankRack).ToList();
+            var tanks = pieces.Where(p => p.Type == FurnitureType.FishTank).ToList();
+            Assert.InRange(racks.Count, 4, 12);
+            // Tanks of at least three sizes: small and medium ones on the racks' shelves, one or two large ones on the floor at the end.
+            Assert.True(tanks.Select(t => t.Variant).Distinct().Count() >= 3, "The tanks should come in at least three sizes.");
+            Assert.True(tanks.Select(t => FurnitureCatalog.Spec(t).Width).Distinct().Count() >= 3);
+            var large = tanks.Where(t => t.Variant == FurnitureCatalog.LargeFishTank).ToList();
+            Assert.InRange(large.Count, 1, 2);
+            Assert.All(large, t => Assert.Equal(0f, t.Elevation));
+            var racked = tanks.Where(t => t.Variant != FurnitureCatalog.LargeFishTank).ToList();
+            Assert.True(racked.Count >= 3 * racks.Count, $"Only {racked.Count} small tanks on {racks.Count} racks.");
+            Assert.All(racked, t =>
+            {
+                Assert.Contains(t.Elevation, FurnitureCatalog.TankRackLevels);
+                Assert.Contains(racks, r =>
+                {
+                    var delta = snapshot.Space.Delta(r.Position, t.Position);
+                    var spec = FurnitureCatalog.Spec(r);
+                    var turned = MathF.Abs(MathF.Sin(r.Rotation)) > 0.5f;
+                    var half = turned ? new Vector2(spec.Depth, spec.Width) / 2f : new Vector2(spec.Width, spec.Depth) / 2f;
+                    return MathF.Abs(delta.X) < half.X && MathF.Abs(delta.Y) < half.Y && t.Rotation == r.Rotation;
+                });
+            });
+            // Every tank holds live fish of one kind (Goods, not Furniture); at least three kinds in the aisle, and
+            // neighbouring tanks on a shelf hold different kinds.
+            Assert.All(tanks, t => Assert.True(fish.ContainsKey(t.Id), $"Tank {t.Id} has no fish."));
+            Assert.True(tanks.Select(t => fish[t.Id]).Distinct().Count() >= 3, "The aisle should hold at least three kinds of fish.");
+            foreach (var a in racked)
+                foreach (var b in racked.Where(b => b.Id > a.Id && b.Elevation == a.Elevation))
+                    if (snapshot.Space.Delta(a.Position, b.Position).Length() < 1.1f)
+                        Assert.NotEqual(fish[a.Id], fish[b.Id]);
+        }
+        // Only tanks hold fish.
+        Assert.All(snapshot.TankFish, f => Assert.Equal(FurnitureType.FishTank, snapshot.Furniture[f.TankId].Type));
+        Assert.Equal(snapshot.Furniture.Count(p => p.Type == FurnitureType.FishTank), snapshot.TankFish.Count);
+    }
+
+    [Fact]
+    public void There_is_no_display_aquarium_any_more_and_fish_are_goods_not_furniture()
+    {
+        Assert.DoesNotContain("DisplayAquarium", Enum.GetNames<PointOfInterestType>());
+        Assert.DoesNotContain("Aquarium", Enum.GetNames<FurnitureType>());
+        Assert.All(Enum.GetNames<FishKind>(), kind => Assert.DoesNotContain(kind, Enum.GetNames<FurnitureType>()));
+        Assert.True(Enum.GetValues<FishKind>().Length >= 3);
     }
 
     [Fact]

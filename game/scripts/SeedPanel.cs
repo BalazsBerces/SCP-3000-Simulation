@@ -309,7 +309,7 @@ public static class PointOfInterestNames
         PointOfInterestType.ExitSign => "EXIT sign",
         PointOfInterestType.MannequinCrowd => "Mannequins",
         PointOfInterestType.DoorToNowhere => "Door to nowhere",
-        PointOfInterestType.DisplayAquarium => "Aquarium",
+        PointOfInterestType.AquariumAisle => "Aquarium aisle",
         _ => type.ToString(),
     };
 }

@@ -50,18 +50,23 @@ public static class FurnitureMeshes
         MinuteHand,
         Food,
         // The rare Points of interest (ticket 08b): the Ball pit's balls, the EXIT sign's green panel and white
-        // letters, the display aquarium's water and fish, the mannequins' bare plastic.
+        // letters, the mannequins' bare plastic.
         Balls,
         SignPanel,
         SignLetters,
-        AquariumWater,
-        Fish,
         MannequinSkin,
         // The Ball pit (ticket 08g): the vinyl-covered foam padding in the piece's colour, the red trim cushions,
         // and the dark bed between the balls.
         Padding,
         PaddingTrim,
         BallBed,
+        // The Aquarium aisle (ticket 08h): a tank's glowing blue background, its fish (swum in the shader, see
+        // furniture_fish.gdshader), its glass (furniture_glass.gdshader), gravel and plants.
+        TankWater,
+        Fish,
+        TankGlass,
+        Gravel,
+        AquaticPlant,
     }
 
     // Emission of a lit lamp shade.
@@ -89,7 +94,7 @@ public static class FurnitureMeshes
     private static ShaderMaterial? _coarseMaterial;
 
     // Size of the part tables (part_albedo, part_surface, part_glow) in furniture.gdshader; at least the number of parts. Change both together.
-    internal const int PartSlots = 40;
+    internal const int PartSlots = 48;
 
     /// <summary>How brightly every lamp shade glows, from 0 (off) to 1 (lit).</summary>
     public static void SetLampGlow(float level)
@@ -276,10 +281,13 @@ public static class FurnitureMeshes
 
     /// <summary>
     /// Every pair of visible box faces of a Furniture type's full mesh that lie in one plane, face
-    /// the same way and overlap, so they z-fight: one line per pair, empty when there are none.
+    /// the same way and overlap, so they z-fight: one line per pair, empty when there are none (and for a
+    /// variant drawn from an external model, which has no boxes).
     /// </summary>
     public static IEnumerable<string> CoplanarFaces(FurnitureType type, int variant = 0) =>
-        Describe(type, variant, coarse: false).CoplanarFaces().Select(f => $"{type} {variant}: {f}");
+        FurnitureModels.Find(type, variant) is not null
+            ? []
+            : Describe(type, variant, coarse: false).CoplanarFaces().Select(f => $"{type} {variant}: {f}");
 
     private static Builder Describe(FurnitureType type, int variant, bool coarse)
     {
@@ -295,7 +303,12 @@ public static class FurnitureMeshes
         }
         if (type == FurnitureType.Mannequin)
         {
-            BuildMannequin(b, variant, w, d, h);
+            BuildMannequin(b, variant, h);
+            return b;
+        }
+        if (type is FurnitureType.FishTank or FurnitureType.TankRack)
+        {
+            BuildAquariumAisle(b, type, variant, w, d, h);
             return b;
         }
         if (variant > 0)
@@ -743,31 +756,6 @@ public static class FurnitureMeshes
                 foreach (var x in new[] { -hw, hw - 0.1f })
                     b.Box(Part.PaintedMetal, new Vector3(x, 0f, -hd), new Vector3(x + 0.1f, 0.04f, hd));
                 break;
-            case FurnitureType.Aquarium:
-            {
-                // A long tank of glowing water on a dark cabinet, with fish against the front and back glass.
-                b.Box(Part.Walnut, new Vector3(-hw, 0f, -hd), new Vector3(hw, 0.8f, hd));
-                b.Box(Part.AquariumWater, new Vector3(-hw + 0.05f, 0.8f, -hd + 0.05f), new Vector3(hw - 0.05f, h - 0.2f, hd - 0.05f));
-                foreach (var x in new[] { -hw, hw - 0.05f })
-                    foreach (var z in new[] { -hd, hd - 0.05f })
-                        b.Box(Part.DarkSteel, new Vector3(x, 0.8f, z), new Vector3(x + 0.05f, h - 0.15f, z + 0.05f));
-                b.Box(Part.DarkSteel, new Vector3(-hw, h - 0.15f, -hd), new Vector3(hw, h, hd));
-                b.Box(Part.Stone, new Vector3(-hw + 0.05f, 0.8f, hd - 0.05f), new Vector3(hw - 0.05f, 0.95f, hd - 0.04f));
-                for (var i = 0; i < 18; i++)
-                {
-                    var x = -hw + 0.3f + (w - 0.6f) * ((i * 0.618034f) % 1f);
-                    var y = 1.05f + (h - 1.45f) * ((i * 0.7548777f + 0.3f) % 1f);
-                    var size = 1.1f + 0.5f * ((i * 0.4142f) % 1f);
-                    var facing = i % 2 == 0 ? 1f : -1f;
-                    var z = i % 3 == 2 ? -hd + 0.03f : hd - 0.05f;
-                    // Body and tail, the tail behind the body.
-                    b.Box(Part.Fish, new Vector3(x - 0.09f * size, y - 0.04f * size, z), new Vector3(x + 0.09f * size, y + 0.04f * size, z + 0.02f));
-                    var tail = x - facing * 0.09f * size;
-                    b.Box(Part.Fish, new Vector3(Mathf.Min(tail, tail - facing * 0.05f * size), y - 0.05f * size, z),
-                        new Vector3(Mathf.Max(tail, tail - facing * 0.05f * size), y + 0.05f * size, z + 0.02f));
-                }
-                break;
-            }
             default:
                 b.Box(Part.Maple, new Vector3(-hw, 0f, -hd), new Vector3(hw, h, hd));
                 break;
@@ -839,6 +827,171 @@ public static class FurnitureMeshes
     }
 
     /// <summary>
+    /// The Aquarium aisle's Furniture. A tank (small, medium, or large on a cabinet of its own): black frames, glass panes,
+    /// a glowing blue background on the back glass, gravel with pebbles, stones and plants, a hood over the back of the top
+    /// and a glass lid and the water surface in front of it; its fish are drawn apart (<see cref="FishSchool"/>). A coarse tank is a block of
+    /// glowing water between its frames. The rack: four steel posts and the shelves at <see cref="FurnitureCatalog.TankRackLevels"/>.
+    /// </summary>
+    private static void BuildAquariumAisle(Builder b, FurnitureType type, int variant, float w, float d, float h)
+    {
+        var (hw, hd) = (w / 2f, d / 2f);
+        if (type == FurnitureType.TankRack)
+        {
+            const float Post = 0.035f, Shelf = 0.03f;
+            foreach (var x in new[] { -hw, hw - Post })
+                foreach (var z in new[] { -hd, hd - Post })
+                    b.Box(Part.DarkSteel, new Vector3(x, 0f, z), new Vector3(x + Post, h, z + Post));
+            foreach (var level in FurnitureCatalog.TankRackLevels)
+                b.Box(Part.DarkSteel, new Vector3(-hw, level - Shelf, -hd), new Vector3(hw, level, hd));
+            return;
+        }
+        var large = variant == FurnitureCatalog.LargeFishTank;
+        var (scale, glass, frame, bottom, top, back, gravel, waterline) = TankInside.Of(variant);
+        var panel = back + hd;
+        if (large)
+        {
+            b.Box(Part.Rubber, new Vector3(-hw + 0.03f, 0f, -hd + 0.03f), new Vector3(hw - 0.03f, 0.06f, hd - 0.03f));
+            b.Box(Part.Walnut, new Vector3(-hw, 0.06f, -hd), new Vector3(hw, bottom, hd));
+        }
+        b.Box(Part.Rubber, new Vector3(-hw, bottom, -hd), new Vector3(hw, bottom + frame, hd));
+        // The top frame around the lid, and the hood over the back with the light in it.
+        b.Box(Part.Rubber, new Vector3(-hw, top - frame, hd - frame), new Vector3(hw, top, hd));
+        b.Box(Part.Rubber, new Vector3(-hw, top - frame, -hd), new Vector3(hw, top, -hd + frame));
+        b.Box(Part.Rubber, new Vector3(-hw, top - frame, -hd + frame), new Vector3(-hw + frame, top, hd - frame));
+        b.Box(Part.Rubber, new Vector3(hw - frame, top - frame, -hd + frame), new Vector3(hw, top, hd - frame));
+        var hoodFront = -hd + d * 0.45f;
+        b.Box(Part.Rubber, new Vector3(-hw, top, -hd), new Vector3(hw, h, hoodFront));
+        var (y0, y1) = (bottom + frame, top - frame);
+        b.Box(Part.TankWater, new Vector3(-hw + glass, y0, -hd), new Vector3(hw - glass, y1, -hd + panel));
+        if (b.Coarse)
+        {
+            // From afar the tank is a block of glowing water.
+            b.Box(Part.TankWater, new Vector3(-hw, y0, -hd + panel), new Vector3(hw, y1, hd));
+            return;
+        }
+        b.Slab(Part.TankGlass, new Vector3(-hw, y0, hd), new Vector3(w, 0f, 0f), new Vector3(0f, y1 - y0, 0f), glass);
+        foreach (var x in new[] { -hw, hw - glass })
+            b.Slab(Part.TankGlass, new Vector3(x, y0, -hd), new Vector3(0f, 0f, d - glass), new Vector3(0f, y1 - y0, 0f), glass);
+        b.Slab(Part.TankGlass, new Vector3(-hw + frame, top, hoodFront), new Vector3(w - 2f * frame, 0f, 0f),
+            new Vector3(0f, 0f, hd - frame - hoodFront), glass);
+        b.Slab(Part.TankGlass, new Vector3(-hw + glass, waterline, back), new Vector3(w - 2f * glass, 0f, 0f),
+            new Vector3(0f, 0f, hd - glass - back), 0.002f);
+        // Gravel with pebbles on it, stones and plants towards the back.
+        b.Box(Part.Gravel, new Vector3(-hw + glass, y0, back), new Vector3(hw - glass, gravel, hd - glass));
+        var random = new Random(1009 + variant);
+        float Between(float from, float to) => from + (to - from) * random.NextSingle();
+        var (inX, inZ) = (hw - glass - 0.02f, (hd - glass - back) / 2f - 0.02f);
+        var midZ = (back + hd - glass) / 2f;
+        for (var i = 0; i < 16; i++)
+        {
+            var r = 0.01f * scale * Between(0.7f, 1.3f);
+            b.Ellipsoid(Part.Gravel, new Vector3(Between(-inX, inX), gravel, Between(midZ - inZ, midZ + inZ)), r, r * 0.6f, r, 5, 3);
+        }
+        for (var i = 0; i < (large ? 4 : 2) + variant % 2; i++)
+        {
+            var r = 0.05f * scale * Between(0.7f, 1.3f);
+            b.Ellipsoid(Part.Stone, new Vector3(Between(-inX + r, inX - r), gravel, Between(back + r, midZ)), r, r * 0.65f, r * 0.8f, 8, 5);
+        }
+        for (var i = 0; i < (large ? 14 : 7); i++)
+        {
+            var root = new Vector3(Between(-inX, inX), gravel - 0.005f, Between(back + 0.02f, midZ));
+            var tip = root + new Vector3(Between(-0.04f, 0.04f) * scale, (waterline - gravel) * Between(0.45f, 0.85f), Between(0f, 0.03f) * scale);
+            b.Tube(Part.AquaticPlant, root, tip, 0.008f * scale, 0.002f, 4);
+        }
+    }
+
+    // Where things stand inside a tank of each variant: the size of the fish and of the things in it against the medium
+    // tank's, the glass and frame thickness, the bottom and top of the frames, the front of the glowing back panel, the
+    // top of the gravel and the waterline.
+    private readonly record struct TankInside(float Scale, float Glass, float Frame, float Bottom, float Top, float Back, float Gravel, float Waterline)
+    {
+        public static TankInside Of(int variant)
+        {
+            var spec = FurnitureCatalog.Spec(FurnitureType.FishTank, variant);
+            var large = variant == FurnitureCatalog.LargeFishTank;
+            var scale = variant switch { 0 => 0.8f, 1 => 1f, _ => 1.8f };
+            var (glass, frame, bottom) = (large ? 0.01f : 0.006f, large ? 0.04f : 0.025f, large ? 0.8f : 0f);
+            var top = spec.Height - (large ? 0.1f : 0.05f);
+            return new(scale, glass, frame, bottom, top, -spec.Depth / 2f + 0.012f, bottom + frame + 0.03f * scale,
+                top - frame - 0.015f * scale);
+        }
+    }
+
+    private static readonly Dictionary<(int Variant, FishKind Kind), ArrayMesh> Schools = new();
+
+    /// <summary>
+    /// The fish of one kind in a tank of one variant, in the tank's frame, which furniture_fish.gdshader swims to and fro:
+    /// medium-tank numbers, fewer in a small tank and twice as many in a large one (one betta always). Drawn apart from the
+    /// tank mesh, so each tank draws only its own fish, and only up close; built once and shared.
+    /// </summary>
+    public static ArrayMesh FishSchool(int variant, FishKind kind)
+    {
+        if (Schools.TryGetValue((variant, kind), out var mesh))
+            return mesh;
+        var spec = FurnitureCatalog.Spec(FurnitureType.FishTank, variant);
+        var (hw, hd) = (spec.Width / 2f, spec.Depth / 2f);
+        var (scale, glass, _, _, _, back, gravel, waterline) = TankInside.Of(variant);
+        var b = new Builder(false, CoarseMinThickness, 0);
+        var random = new Random(2003 + variant * 16 + (int)kind);
+        float Between(float from, float to) => from + (to - from) * random.NextSingle();
+        var fish = Fishes[kind];
+        var count = kind == FishKind.Betta ? 1 : Math.Max(1, (int)MathF.Round(fish.Count * (variant switch { 0 => 0.7f, 1 => 1f, _ => 2f })));
+        var length = fish.Length * scale;
+        var (rx, ry, rz) = (length * fish.Body.X, length * fish.Body.Y, length * fish.Body.Z);
+        var reach = hw - glass - 0.01f - length * (0.5f + fish.Tail.X);
+        var (low, high) = (gravel + 0.02f + ry, waterline - 0.02f - ry - length * fish.Fin);
+        for (var i = 0; i < count; i++)
+        {
+            var range = reach * Between(0.3f, 0.85f);
+            var centre = new Vector3((reach - range) * Between(-1f, 1f), Between(low, Mathf.Max(low, high)),
+                Between(back + rz + length * 0.4f, hd - glass - rz - length * 0.4f));
+            b.Swim = new Color(random.NextSingle(), centre.Z, centre.X, range);
+            BuildFish(b, centre, length, rx, ry, rz, fish);
+        }
+        return Schools[(variant, kind)] = b.Commit();
+    }
+
+    // Each kind of fish: its length in a medium tank, its body's radii and its tail's length and height as fractions of
+    // its length, the height of its back and belly fins, and how many swim in a medium tank.
+    private sealed record FishShape(float Length, Vector3 Body, Vector2 Tail, float Fin, int Count);
+
+    private static readonly Dictionary<FishKind, FishShape> Fishes = new()
+    {
+        [FishKind.Goldfish] = new(0.07f, new(0.5f, 0.3f, 0.2f), new(0.4f, 0.55f), 0.15f, 5),
+        [FishKind.NeonTetra] = new(0.03f, new(0.5f, 0.17f, 0.11f), new(0.22f, 0.25f), 0.08f, 14),
+        [FishKind.Guppy] = new(0.035f, new(0.45f, 0.16f, 0.11f), new(0.45f, 0.5f), 0.1f, 9),
+        [FishKind.Angelfish] = new(0.06f, new(0.4f, 0.35f, 0.08f), new(0.2f, 0.3f), 0.6f, 3),
+        [FishKind.Discus] = new(0.09f, new(0.45f, 0.45f, 0.09f), new(0.12f, 0.22f), 0.08f, 3),
+        [FishKind.Betta] = new(0.055f, new(0.42f, 0.18f, 0.12f), new(0.6f, 0.8f), 0.35f, 1),
+        [FishKind.Zebrafish] = new(0.035f, new(0.5f, 0.15f, 0.1f), new(0.2f, 0.25f), 0.08f, 10),
+        [FishKind.Koi] = new(0.16f, new(0.5f, 0.18f, 0.15f), new(0.25f, 0.3f), 0.12f, 3),
+    };
+
+    /// <summary>One fish facing +X: its body, its tail and its back and belly fins.</summary>
+    private static void BuildFish(Builder b, Vector3 c, float length, float rx, float ry, float rz, FishShape fish)
+    {
+        var (segments, rings) = length < 0.05f ? (6, 4) : (8, 5);
+        b.Ellipsoid(Part.Fish, c, rx, ry, rz, segments, rings);
+        var root = c - new Vector3(rx * 0.85f, 0f, 0f);
+        var (tail, spread) = (length * fish.Tail.X, length * fish.Tail.Y / 2f);
+        b.Fin(Part.Fish, root, root + new Vector3(-tail, spread, 0f), root + new Vector3(-tail, -spread, 0f));
+        var fin = length * fish.Fin;
+        b.Fin(Part.Fish, c + new Vector3(rx * 0.4f, ry * 0.8f, 0f), c + new Vector3(-rx * 0.5f, ry * 0.8f, 0f), c + new Vector3(-rx * 0.6f, ry + fin, 0f));
+        b.Fin(Part.Fish, c + new Vector3(rx * 0.1f, -ry * 0.8f, 0f), c + new Vector3(-rx * 0.6f, -ry * 0.8f, 0f), c + new Vector3(-rx * 0.7f, -ry - fin * 0.7f, 0f));
+    }
+
+    /// <summary>The instance colour of a <see cref="FishSchool"/>: the colour of its kind of fish.</summary>
+    public static Color FishColour(FishKind kind) => FishColors[(int)kind];
+
+    // By FishKind: goldfish orange, neon tetra electric blue, guppy yellow-orange, angelfish silver, discus turquoise,
+    // betta crimson, zebrafish blue-grey, koi cream.
+    private static readonly Color[] FishColors =
+    [
+        new(1f, 0.45f, 0.05f), new(0.1f, 0.55f, 1f), new(1f, 0.72f, 0.15f), new(0.85f, 0.86f, 0.82f),
+        new(0.1f, 0.75f, 0.7f), new(0.8f, 0.05f, 0.12f), new(0.55f, 0.6f, 0.75f), new(0.97f, 0.92f, 0.82f),
+    ];
+
+    /// <summary>
     /// The Ball pit's Furniture: the pool (padded foam walls in the piece's vinyl colour under red trim cushions, padded
     /// corner bumpers, and a dark bed for the gaps between the balls), a length of net railing (padded posts and top bar,
     /// black net), the slide (ladder, deck and red chute), the foam step and one ball.
@@ -873,14 +1026,20 @@ public static class FurnitureMeshes
                 const float Post = 0.03f, Bar = 0.03f, Strand = 0.004f;
                 foreach (var x in new[] { -hw + Post, hw - Post })
                     b.Cylinder(Part.Padding, new Vector3(x, 0f, 0f), Post, Post, h, 10);
-                b.Tube(Part.Padding, new Vector3(-hw + 2f * Post, h - Bar, 0f), new Vector3(hw - 2f * Post, h - Bar, 0f), Bar, Bar, 10);
-                // The net: black strands every 10 cm both ways between the posts, the wall top and the bar (every 25 cm far off).
+                // Far off the top bar is a block as wide as the bar (a coarse tube would be narrower), so seen from above the railing keeps its width.
+                if (b.Coarse)
+                    b.Box(Part.Padding, new Vector3(-hw + 2f * Post, h - 2f * Bar, -Bar), new Vector3(hw - 2f * Post, h, Bar));
+                else
+                    b.Tube(Part.Padding, new Vector3(-hw + 2f * Post, h - Bar, 0f), new Vector3(hw - 2f * Post, h - Bar, 0f), Bar, Bar, 10);
+                // The net: black strands every 10 cm both ways between the posts, the wall top and the bar; far off a little
+                // thicker, so the coarse mesh keeps them (it leaves out thinner strips) and with them the railing's silhouette.
                 var (left, right, bottom, netTop) = (-hw + 2f * Post, hw - 2f * Post, 0.02f, h - 2f * Bar);
-                var step = b.Coarse ? 0.25f : 0.1f;
+                const float step = 0.1f;
+                var strand = b.Coarse ? 0.0065f : Strand;
                 for (var x = left + step; x < right - 0.02f; x += step)
-                    b.Box(Part.Rubber, new Vector3(x - Strand, bottom, -Strand), new Vector3(x + Strand, netTop, Strand));
+                    b.Box(Part.Rubber, new Vector3(x - strand, bottom, -strand), new Vector3(x + strand, netTop, strand));
                 for (var y = bottom; y < netTop - 0.02f; y += step)
-                    b.Box(Part.Rubber, new Vector3(left, y - Strand, -Strand * 0.8f), new Vector3(right, y + Strand, Strand * 0.8f));
+                    b.Box(Part.Rubber, new Vector3(left, y - strand, -strand * 0.8f), new Vector3(right, y + strand, strand * 0.8f));
                 break;
             }
             case FurnitureType.PlaySlide:
@@ -914,9 +1073,9 @@ public static class FurnitureMeshes
                 b.Box(Part.PaddingTrim, new Vector3(-hw - 0.01f, h - 0.06f, -hd - 0.01f), new Vector3(hw + 0.01f, h, hd + 0.01f));
                 break;
             case FurnitureType.PlayBall:
-                // Thousands are drawn, so few faces; far off a small block standing on the floor of the piece.
+                // Thousands are drawn, so few faces; far off a block around the ball, standing on the floor of the piece.
                 if (b.Coarse)
-                    b.Box(Part.Balls, new Vector3(-hw * 0.85f, 0f, -hd * 0.85f), new Vector3(hw * 0.85f, h * 0.9f, hd * 0.85f));
+                    b.Box(Part.Balls, new Vector3(-hw, 0f, -hd), new Vector3(hw, h, hd));
                 else
                     b.Ellipsoid(Part.Balls, new Vector3(0f, h / 2f, 0f), hw, h / 2f, hd, 8, 5);
                 break;
@@ -967,7 +1126,7 @@ public static class FurnitureMeshes
     /// 3 tall and slim, 4 short and broad, 5 missing its left arm. The figure is drawn for a 1.8 m standard
     /// and scaled to the variant's height and build.
     /// </summary>
-    private static void BuildMannequin(Builder b, int variant, float w, float d, float h)
+    private static void BuildMannequin(Builder b, int variant, float h)
     {
         var (kx, ky) = (variant switch { 3 => 0.92f, 4 => 1.2f, _ => 1f }, h / 1.8f);
         Vector3 P(Vector3 v) => new(v.X * kx, v.Y * ky, v.Z * kx);
@@ -1248,7 +1407,6 @@ public static class FurnitureMeshes
                 b.Box(part, new Vector3(lx - half, 0f, lz - half), new Vector3(lx + half, top, lz + half));
     }
 
-    /// <summary>Four corner posts flush with the footprint.</summary>
     /// <summary>Dev aid: draws every coarse mesh magenta, to show which level of detail is drawn.</summary>
     public static void ShowCoarseInMagenta(bool enabled)
     {
@@ -1338,14 +1496,32 @@ public static class FurnitureMeshes
             [Part.Balls] = Plain(Colors.White, 0.3f, tinted: true),
             [Part.SignPanel] = Steady(new Color(0.05f, 0.55f, 0.25f), 0.4f, new Color(0.1f, 0.85f, 0.35f), 2.5f),
             [Part.SignLetters] = Steady(new Color(0.95f, 0.97f, 0.95f), 0.4f, new Color(0.9f, 1f, 0.92f), 3f),
-            [Part.AquariumWater] = Steady(new Color(0.06f, 0.24f, 0.3f), 0.05f, new Color(0.15f, 0.5f, 0.65f), 0.6f),
-            [Part.Fish] = Plain(new Color(1f, 0.5f, 0.1f), 0.45f),
             [Part.MannequinSkin] = Plain(Colors.White, 0.3f, tinted: true),
             [Part.Padding] = Plain(Colors.White, 0.45f, tinted: true),
             [Part.PaddingTrim] = Plain(new Color(0.85f, 0.12f, 0.1f), 0.45f),
             [Part.BallBed] = Plain(new Color(0.16f, 0.12f, 0.14f), 0.6f),
+            [Part.TankWater] = Water(),
+            [Part.Fish] = Fish(),
+            [Part.TankGlass] = TankGlass(),
+            [Part.Gravel] = Plain(new Color(0.62f, 0.54f, 0.42f), 0.95f),
+            [Part.AquaticPlant] = Plain(new Color(0.2f, 0.52f, 0.16f), 0.6f),
         };
         return _materials;
+
+        // A tank's blue background, lit from within and rippling as if through moving water.
+        ShaderMaterial Water()
+        {
+            var material = new ShaderMaterial { Shader = GD.Load<Shader>("res://shaders/furniture_water.gdshader") };
+            material.SetShaderParameter("albedo_color", new Color(0.08f, 0.32f, 0.48f));
+            material.SetShaderParameter("roughness", 0.1f);
+            material.SetShaderParameter("emission_color", new Color(0.2f, 0.62f, 0.95f));
+            material.SetShaderParameter("emission_energy", 1.2f);
+            return material;
+        }
+        // A school of fish in its kind's colour (FishColour), which its shader swims.
+        ShaderMaterial Fish() => new() { Shader = GD.Load<Shader>("res://shaders/furniture_fish.gdshader") };
+        // Transparent, so a shader of its own; the coarse meshes draw no glass.
+        ShaderMaterial TankGlass() => new() { Shader = GD.Load<Shader>("res://shaders/furniture_glass.gdshader") };
     }
 
     /// <summary>
@@ -1366,6 +1542,8 @@ public static class FurnitureMeshes
         var glow = new Vector3[PartSlots];
         foreach (var (part, material) in Materials())
         {
+            if (part is Part.TankGlass or Part.Fish)
+                continue;
             // Every glowing part but the lamp shade (see emissive_part) glows steadily.
             if (part != Part.LampShade && (float)material.GetShaderParameter("emission_energy") > 0f)
             {
@@ -1428,6 +1606,12 @@ public static class FurnitureMeshes
 
         /// <summary>Height of the dial centre the clock hands turn about; full meshes carry it in the hands' UV2.y.</summary>
         public float Pivot { get; set; }
+
+        /// <summary>
+        /// The fish being built: its kind plus its phase (a fraction of a turn), the centre of its depth, the centre of its
+        /// swim along the width and how far it swims each way; full meshes carry it in the fish's CUSTOM0.
+        /// </summary>
+        public Color Swim { get; set; }
         private readonly Dictionary<Part, SurfaceTool> _surfaces = new();
         private readonly List<(Part Part, Vector3 Min, Vector3 Max)> _boxes = new();
         private Part _part;
@@ -1629,6 +1813,22 @@ public static class FurnitureMeshes
             Face(tool, corner + u, v, down, outU);
         }
 
+        /// <summary>A flat triangle seen from both sides, such as a fin; coarse meshes leave it out.</summary>
+        public void Fin(Part part, Vector3 a, Vector3 b, Vector3 c)
+        {
+            if (coarse)
+                return;
+            var tool = Surface(part);
+            var normal = (b - a).Cross(c - a).Normalized();
+            // Clockwise seen from the side each face faces, like the box faces.
+            Vertex(tool, a, normal, new Vector2(a.X, a.Y));
+            Vertex(tool, c, normal, new Vector2(c.X, c.Y));
+            Vertex(tool, b, normal, new Vector2(b.X, b.Y));
+            Vertex(tool, a, -normal, new Vector2(a.X, a.Y));
+            Vertex(tool, b, -normal, new Vector2(b.X, b.Y));
+            Vertex(tool, c, -normal, new Vector2(c.X, c.Y));
+        }
+
         /// <summary>A smooth ellipsoid with the given radii around <paramref name="centre"/>.</summary>
         public void Ellipsoid(Part part, Vector3 centre, float rx, float ry, float rz, int segments = 10, int rings = 6)
         {
@@ -1765,6 +1965,8 @@ public static class FurnitureMeshes
             {
                 tool = new SurfaceTool();
                 tool.Begin(Mesh.PrimitiveType.Triangles);
+                if (part == Part.Fish)
+                    tool.SetCustomFormat(0, SurfaceTool.CustomFormat.RgbaFloat);
                 _surfaces[part] = tool;
             }
             return tool;
@@ -1796,6 +1998,8 @@ public static class FurnitureMeshes
                 tool.SetUV2(new Vector2((int)_part, 0f));
             else if (_part is Part.HourHand or Part.MinuteHand)
                 tool.SetUV2(new Vector2(0f, Pivot));
+            else if (_part == Part.Fish)
+                tool.SetCustom(0, Swim);
             tool.AddVertex(position);
         }
     }

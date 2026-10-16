@@ -6,15 +6,15 @@ namespace Scp3008.Core.Generation;
 /// <param name="Quarters">Quarter turns from the Point of interest's own frame (its width east-west) to the Store.</param>
 internal sealed record PointOfInterestSite(int Id, PointOfInterestType Type, int SectorId, Vector2 Centre, Vector2 Size, int Quarters);
 
-/// <summary>The built Points of interest, their Furniture and the network the Ball pits make.</summary>
+/// <summary>The built Points of interest, their Furniture, the network the Ball pits make and the fish in the Aquarium aisles' tanks.</summary>
 internal sealed record PointOfInterestLayout(IReadOnlyList<PointOfInterest> PointsOfInterest, IReadOnlyList<FurniturePiece> Pieces,
-    BallPitNetwork BallPitNetwork);
+    BallPitNetwork BallPitNetwork, IReadOnlyList<TankFish> TankFish);
 
 /// <summary>
 /// Places and builds the Points of interest from the seed: the canteens (in Restaurant/food market
 /// Departments) and the cart graveyards, then, Sector by Sector, the dinner tables, restrooms and the lost and
 /// found desk, then the rare ones: three Ball pits (ball pools, in the Kids' area where there is room), one or two of each of
-/// the armchair henge, EXIT sign, mannequin crowd, door to nowhere and display aquarium. Each
+/// the armchair henge, EXIT sign, mannequin crowd, door to nowhere and Aquarium aisle. Each
 /// stands on a rectangle inside one department cell, turned by a quarter turn, clear of the Pillars and their
 /// walkway rings, the Landmarks and each other. The Displays then keep off them all. Each is built from its own random stream as individual Furniture.
 /// </summary>
@@ -46,7 +46,7 @@ internal static class PointOfInterestGenerator
         PointOfInterestType.ExitSign => new(6f, 6f),
         PointOfInterestType.MannequinCrowd => new(12f, 9f),
         PointOfInterestType.DoorToNowhere => new(5f, 11f),
-        PointOfInterestType.DisplayAquarium => new(9f, 5f),
+        PointOfInterestType.AquariumAisle => new(12f, 6f),
         _ => throw new ArgumentOutOfRangeException(nameof(type), type, null),
     };
 
@@ -122,7 +122,7 @@ internal static class PointOfInterestGenerator
         foreach (var type in new[]
                  {
                      PointOfInterestType.ArmchairHenge, PointOfInterestType.ExitSign, PointOfInterestType.MannequinCrowd,
-                     PointOfInterestType.DoorToNowhere, PointOfInterestType.DisplayAquarium,
+                     PointOfInterestType.DoorToNowhere, PointOfInterestType.AquariumAisle,
                  })
             for (var n = 1 + random.Next(2); n > 0; n--)
                 Place(type, 0, 0, side, side, (_, _) => true);
@@ -190,6 +190,7 @@ internal static class PointOfInterestGenerator
     {
         var pois = new List<PointOfInterest>();
         var pieces = new List<FurniturePiece>();
+        var fish = new List<TankFish>();
         foreach (var site in sites)
         {
             var builder = new PointOfInterestBuilder(space, site, SeededRandom.For(seed, BuildStream, site.Id));
@@ -205,14 +206,17 @@ internal static class PointOfInterestGenerator
                 case PointOfInterestType.ExitSign: BuildExitSign(builder); break;
                 case PointOfInterestType.MannequinCrowd: BuildMannequinCrowd(builder); break;
                 case PointOfInterestType.DoorToNowhere: BuildDoorToNowhere(builder); break;
-                case PointOfInterestType.DisplayAquarium: BuildAquarium(builder); break;
+                case PointOfInterestType.AquariumAisle: BuildAquariumAisle(builder); break;
             }
+            var first = firstPieceId + pieces.Count;
+            foreach (var (index, kind) in builder.Fish)
+                fish.Add(new TankFish(first + index, kind));
             foreach (var piece in builder.Pieces)
                 pieces.Add(piece with { Id = firstPieceId + pieces.Count });
             pois.Add(new PointOfInterest(site.Id, site.Type, site.SectorId, site.Centre, site.Size));
         }
         var network = new BallPitNetwork(pois.Where(p => p.Type == PointOfInterestType.BallPit).Select(p => p.Id).ToList().AsReadOnly());
-        return new PointOfInterestLayout(pois.AsReadOnly(), pieces.AsReadOnly(), network);
+        return new PointOfInterestLayout(pois.AsReadOnly(), pieces.AsReadOnly(), network, fish.AsReadOnly());
     }
 
     private const float Quarter = MathF.PI / 2f;
@@ -406,7 +410,8 @@ internal static class PointOfInterestGenerator
             (bench, new Vector2(0.65f, 0.25f)),
         ];
         var spilled = new List<Vector2>();
-        for (var tries = 0; spilled.Count < 8 + random.Next(13) && tries < 400; tries++)
+        var spill = 8 + random.Next(13);
+        for (var tries = 0; spilled.Count < spill && tries < 400; tries++)
         {
             // Most land near the pool, where they fell over the walls.
             var at = PoolCentre + new Vector2(random.Range(-hw - 1.2f, hw + 1.2f), random.Range(-hd - 1.2f, hd + 1.2f));
@@ -584,16 +589,51 @@ internal static class PointOfInterestGenerator
             b.Put(FurnitureType.Rug, new Vector2(0f, y), 0f, 0f, tint: tint);
     }
 
-    /// <summary>A huge glowing aquarium of live fish, with benches to watch it from, plants beside it and a box of fish food.</summary>
-    private static void BuildAquarium(PointOfInterestBuilder b)
+    /// <summary>
+    /// A pet-shop row of tanks: two rows of steel racks face each other across the aisle, medium tanks on their bottom shelves,
+    /// small ones on the top and either on the middle; one or two large tanks on their own cabinets close the east end, with a
+    /// bench to watch them from. Each tank gets its own kind of fish, in turn from a shuffled list along each shelf, so neighbours differ.
+    /// </summary>
+    private static void BuildAquariumAisle(PointOfInterestBuilder b)
     {
         var random = b.Random;
-        b.Put(FurnitureType.Aquarium, new Vector2(0f, -1.5f), 0f, 0f);
-        foreach (var x in new[] { -1.4f, 1.4f })
-            b.Put(FurnitureType.HallBench, new Vector2(x + random.Range(-0.2f, 0.2f), 1.4f), 0f, MathF.PI);
-        foreach (var x in new[] { -3.6f, 3.6f })
-            b.Put(FurnitureType.LargePlant, new Vector2(x, -1.6f), 0f, random.Range(-MathF.PI, MathF.PI), tint: random.Next(FurniturePalettes.TintCount));
-        b.Put(FurnitureType.FlatPackBox, new Vector2(random.Chance(0.5f) ? -3.3f : 3.3f, 1.5f), 0f, random.Range(-0.3f, 0.3f));
+        var rack = FurnitureCatalog.Spec(FurnitureType.TankRack);
+        var small = FurnitureCatalog.Spec(FurnitureType.FishTank, 0);
+        var medium = FurnitureCatalog.Spec(FurnitureType.FishTank, 1);
+        var large = FurnitureCatalog.Spec(FurnitureType.FishTank, FurnitureCatalog.LargeFishTank);
+        var kinds = Enum.GetValues<FishKind>().OrderBy(_ => random.Next(1 << 30)).ToArray();
+        var next = 0;
+        void Stock(FurnitureType type, Vector2 local, float elevation, float rotation, int variant)
+        {
+            if (b.Put(type, local, elevation, rotation, variant))
+                b.Stock(kinds[next++ % kinds.Length]);
+        }
+
+        const int racksPerRow = 4;
+        var west = -6f + 0.1f;
+        var middleMedium = Enumerable.Range(0, 2 * racksPerRow).Select(_ => random.Chance(0.5f)).ToArray();
+        foreach (var (y, rotation, row) in new[] { (-3f + rack.Depth / 2f + 0.05f, 0f, 0), (3f - rack.Depth / 2f - 0.05f, MathF.PI, 1) })
+        {
+            for (var i = 0; i < racksPerRow; i++)
+                b.Put(FurnitureType.TankRack, new Vector2(west + rack.Width * (i + 0.5f), y), 0f, rotation);
+            for (var level = 0; level < FurnitureCatalog.TankRackLevels.Count; level++)
+                for (var i = 0; i < racksPerRow; i++)
+                {
+                    var useMedium = level == 0 || (level == 1 && middleMedium[row * racksPerRow + i]);
+                    var spec = useMedium ? medium : small;
+                    var count = (int)(rack.Width / (spec.Width + 0.04f));
+                    var step = rack.Width / count;
+                    for (var t = 0; t < count; t++)
+                        Stock(FurnitureType.FishTank, new Vector2(west + rack.Width * i + step * (t + 0.5f), y),
+                            FurnitureCatalog.TankRackLevels[level], rotation, spec.Variant);
+                }
+        }
+
+        var x = 6f - large.Depth / 2f - 0.1f;
+        var ys = random.Chance(0.5f) ? new[] { 0f } : new[] { -large.Width / 2f - 0.1f, large.Width / 2f + 0.1f };
+        foreach (var y in ys)
+            Stock(FurnitureType.FishTank, new Vector2(x, y), 0f, Quarter, FurnitureCatalog.LargeFishTank);
+        b.Put(FurnitureType.HallBench, new Vector2(x - 2.4f + random.Range(-0.2f, 0.2f), 0f), 0f, -Quarter);
     }
 
 }
@@ -606,6 +646,12 @@ internal sealed class PointOfInterestBuilder(StoreSpace space, PointOfInterestSi
     public SeededRandom Random { get; } = random;
 
     public IReadOnlyList<FurniturePiece> Pieces => _pieces;
+
+    /// <summary>The fish stocked so far, by index into <see cref="Pieces"/> of the tank that holds them.</summary>
+    public List<(int PieceIndex, FishKind Kind)> Fish { get; } = [];
+
+    /// <summary>Stocks the last piece placed, a tank, with live fish of one kind.</summary>
+    public void Stock(FishKind kind) => Fish.Add((_pieces.Count - 1, kind));
 
     /// <summary>Places a piece with the centre of its base at a local position and elevation; false if it would stick out of the rectangle.</summary>
     public bool Put(FurnitureType type, Vector2 local, float elevation, float rotation, int variant = 0, float tilt = 0f, int tint = 0, float roll = 0f)

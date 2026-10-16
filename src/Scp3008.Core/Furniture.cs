@@ -87,7 +87,9 @@ public enum FurnitureType
     ExitSign,
     Mannequin,
     DoorFrame,
-    Aquarium,
+    // The Aquarium aisle's Furniture
+    FishTank,
+    TankRack,
     // The Ball pit's Furniture
     BallPool,
     NetRailing,
@@ -186,6 +188,12 @@ public static class FurnitureCatalog
         return random.Pick(specs).Variant;
     }
 
+    /// <summary>Heights above the floor of the shelves a <see cref="FurnitureType.TankRack"/> holds small and medium tanks on.</summary>
+    public static IReadOnlyList<float> TankRackLevels { get; } = [0.15f, 0.85f, 1.55f];
+
+    /// <summary>The <see cref="FurnitureType.FishTank"/> variant of the large tank that stands on its own cabinet rather than on a rack.</summary>
+    public const int LargeFishTank = 2;
+
     /// <summary>Heights above the floor of the beams a <see cref="FurnitureType.PalletRack"/> holds boxes on.</summary>
     public static IReadOnlyList<float> PalletRackLevels { get; } = [0.15f, 1.65f, 3.15f];
 
@@ -212,7 +220,7 @@ public static class FurnitureCatalog
     public static IReadOnlyList<FurnitureType> PointOfInterestTypes { get; } =
     [
         FurnitureType.ShoppingCart, FurnitureType.MealPlate, FurnitureType.ExitSign, FurnitureType.Mannequin,
-        FurnitureType.DoorFrame, FurnitureType.Aquarium, FurnitureType.BallPool, FurnitureType.NetRailing, FurnitureType.PlaySlide,
+        FurnitureType.DoorFrame, FurnitureType.FishTank, FurnitureType.TankRack, FurnitureType.BallPool, FurnitureType.NetRailing, FurnitureType.PlaySlide,
         FurnitureType.FoamStep, FurnitureType.PlayBall,
     ];
 
@@ -319,7 +327,8 @@ public static class FurnitureCatalog
             new(FurnitureType.ExitSign, 1.4f, 0.3f, 2.7f),                     // glowing EXIT sign with an arrow, high on two posts
             new(FurnitureType.Mannequin, 0.5f, 0.3f, 1.8f),                    // bare plastic shop mannequin, arms down, on a foot plate
             new(FurnitureType.DoorFrame, 1.3f, 0.3f, 2.3f),                    // free-standing door frame, no wall around it
-            new(FurnitureType.Aquarium, 5.0f, 1.6f, 2.4f),                     // huge glowing tank of live fish on a cabinet
+            new(FurnitureType.FishTank, 0.6f, 0.35f, 0.4f),                    // small glass tank of water, gravel, stones and plants, with a lid
+            new(FurnitureType.TankRack, 2.0f, 0.55f, 1.55f),                   // steel rack with three shelves of tanks (TankRackLevels)
             new(FurnitureType.BallPool, 5.0f, 3.2f, 0.6f),                     // low pool with padded foam walls and a padded floor
             new(FurnitureType.NetRailing, 1.0f, 0.06f, 0.9f),                  // one length of net railing between padded posts, on a pool wall
             new(FurnitureType.PlaySlide, 0.6f, 1.5f, 1.4f),                    // small kids' slide: ladder at the back, chute down to the front
@@ -327,6 +336,8 @@ public static class FurnitureCatalog
             new(FurnitureType.PlayBall, 0.08f, 0.08f, 0.08f),                  // one hollow plastic ball
 
             // Variants of the most repeated types: other proportions, backs, legs or materials.
+            new(FurnitureType.FishTank, 0.95f, 0.45f, 0.5f, Variant: 1),      // medium tank
+            new(FurnitureType.FishTank, 2.4f, 0.9f, 1.9f, Variant: 2),        // large tank on its own cabinet (LargeFishTank)
             new(FurnitureType.Mannequin, 0.75f, 0.35f, 1.8f, Variant: 1),      // one arm raised, the other hand on the hip
             new(FurnitureType.Mannequin, 0.5f, 0.75f, 1.8f, Variant: 2),       // mid-stride
             new(FurnitureType.Mannequin, 0.46f, 0.28f, 1.95f, Variant: 3),     // tall and slim, arms down

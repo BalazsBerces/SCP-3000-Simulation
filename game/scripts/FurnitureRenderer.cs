@@ -72,6 +72,7 @@ public partial class FurnitureRenderer : Node3D
             AddChild(instances);
             instances.SetInstances(snapshot.Space, group.Select(p => (Placement(p), Colour(snapshot, p))));
         }
+        AddFish(snapshot);
         FurnitureDetail.DrawBoth(3);
         GD.Print($"Furniture: {snapshot.Furniture.Count} pieces placed in {Time.GetTicksMsec() - started} ms; " +
                  $"Landmarks: {string.Join(", ", snapshot.Landmarks.Select(l => $"{l.Type} in {snapshot.Sectors[l.SectorId].Name} at {l.Centre.X:0},{l.Centre.Y:0}, {l.Height:0} m"))}.");
@@ -89,6 +90,35 @@ public partial class FurnitureRenderer : Node3D
             colour.A = (float)(offset.TotalSeconds / 86400.0);
         return colour;
     }
+
+    /// <summary>
+    /// The live fish in the Aquarium aisles' tanks (Goods, not Furniture): one instance group per tank size and kind of fish,
+    /// each tank drawing its own kind's school (<see cref="FurnitureMeshes.FishSchool"/>). Fish only show up close (out to
+    /// <see cref="FishDistance"/>), cast no shadow, and have no coarse mesh, so a coarse or overview view draws none.
+    /// </summary>
+    private void AddFish(WorldSnapshot snapshot)
+    {
+        var tanks = snapshot.Furniture.Where(p => p.Type == FurnitureType.FishTank).ToDictionary(p => p.Id);
+        foreach (var group in snapshot.TankFish.GroupBy(f => (tanks[f.TankId].Variant, f.Kind)))
+        {
+            var instances = new WrappedInstances
+            {
+                Name = $"Fish-{group.Key.Kind}-{group.Key.Variant}",
+                Rig = Rig,
+                FarDistance = FishDistance,
+                ViewReach = Visibility.PlacementReach(Rig, snapshot.Space.ChunkSize),
+                Mesh = FurnitureMeshes.FishSchool(group.Key.Variant, group.Key.Kind),
+                CoarseMesh = new ArrayMesh(),
+                CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+            };
+            AddChild(instances);
+            var colour = FurnitureMeshes.FishColour(group.Key.Kind);
+            instances.SetInstances(snapshot.Space, group.Select(f => (Placement(tanks[f.TankId]), colour)));
+        }
+    }
+
+    /// <summary>How far from the camera the fish in the tanks show, in metres; farther they are a few pixels at most.</summary>
+    private const float FishDistance = 60f;
 
     /// <summary>
     /// The piece's transform in world space. Core rotations turn east towards south, which is a

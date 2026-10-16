@@ -35,6 +35,7 @@ public sealed class Simulation : IDisposable
     private readonly IReadOnlyList<Landmark> _landmarks;
     private readonly IReadOnlyList<PointOfInterest> _pointsOfInterest;
     private readonly BallPitNetwork _ballPitNetwork;
+    private readonly IReadOnlyList<TankFish> _tankFish;
     private readonly Weather _weather;
     private long _tick;
     private SimulationSpeed _speed = SimulationSpeed.Normal;
@@ -76,6 +77,7 @@ public sealed class Simulation : IDisposable
         _landmarks = landmarks.Landmarks;
         _pointsOfInterest = pointsOfInterest.PointsOfInterest;
         _ballPitNetwork = pointsOfInterest.BallPitNetwork;
+        _tankFish = pointsOfInterest.TankFish;
         // Runtime randomness never comes from the Store seed (ADR 0003); it is unseeded unless a test fixes it.
         var runtimeSeed = config.RuntimeRngSeed ?? Random.Shared.Next();
         _weather = new Weather(_space, SeededRandom.For(runtimeSeed, WeatherStream));
@@ -326,6 +328,7 @@ public sealed class Simulation : IDisposable
         new(_config.Seed, _config.PillarLayout, new StoreClock(_tick), _space, _speed, _departments, _furniture.Pieces, _furniture.Displays, _furniture.Cells, Array.AsReadOnly(_weather.Snapshot()), _weather.Wind, _pillars, _sectors, _landmarks, _pointsOfInterest, _config.LandmarkShowcase)
         {
             BallPitNetwork = _ballPitNetwork,
+            TankFish = _tankFish,
             PointOfInterestShowcase = _config.PointOfInterestShowcase,
         };
 

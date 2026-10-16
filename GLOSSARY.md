@@ -104,7 +104,7 @@ A version of a Furniture type with its own proportions, silhouette or materials 
 Two or three related tint indices shared by the Furniture of a Display. Neighbouring rooms usually use different Palettes; wood and metal retain their textures.
 
 **Goods**:
-Small stock on shelves (food, batteries, bulbs, cables) taken as-is rather than placed in the world.
+Small stock on shelves (food, batteries, bulbs, cables) taken as-is rather than placed in the world. The live fish in an Aquarium aisle's tanks are Goods too; the tanks and racks are Furniture.
 _Avoid_: Loot, items
 
 **Material**:

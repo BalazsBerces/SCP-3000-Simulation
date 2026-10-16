@@ -30,17 +30,17 @@ uniform float metallic : hint_range(0.0, 1.0) = 0.0;
 uniform vec3 emission_color : source_color = vec3(0.0);
 uniform float emission_energy = 0.0;
 // Lamp shades glow as far as their own Lamp has come on; other glowing parts (the EXIT sign, the
-// aquarium water) glow steadily, day and night.
+// Aquarium aisle's tanks) glow steadily, day and night.
 uniform bool lamp_glow = true;
 // Coarse meshes draw all their parts in one surface: UV2.x holds each vertex's part, whose look
 // comes from these tables (linear albedo with the tint flag in alpha; roughness and metallic).
 // Their size is PartSlots in FurnitureMeshes.cs; change both together.
 uniform bool coarse_parts = false;
-uniform vec4 part_albedo[40];
-uniform vec2 part_surface[40];
+uniform vec4 part_albedo[48];
+uniform vec2 part_surface[48];
 uniform int emissive_part = -1;
 // The steady glow of each coarse part (linear colour times energy); black for parts that do not glow.
-uniform vec3 part_glow[40];
+uniform vec3 part_glow[48];
 // Dev aid (DevCapture --lod-debug): draws coarse meshes magenta, to show which level is drawn.
 uniform bool lod_debug = false;
 // A clock hand of the clock wall: 1 the hour hand, 2 the minute hand, 0 not a hand. A hand turns about the

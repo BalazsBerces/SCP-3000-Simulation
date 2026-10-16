@@ -35,9 +35,33 @@ public enum PointOfInterestType
     MannequinCrowd,
     /// <summary>A free-standing door frame through which the same aisle is seen; the source of the false "portal" Belief. 1–2 per Store.</summary>
     DoorToNowhere,
-    /// <summary>A huge display aquarium with live fish that Restock refills: fresh food and water; it glows in the dark. 1–2 per Store.</summary>
-    DisplayAquarium,
+    /// <summary>
+    /// A pet-shop row of tanks of different sizes on racks, with one or two large ones at its end, each tank with its own kind of live
+    /// fish (<see cref="TankFish"/>) that Restock refills: fresh food and water; it glows bluish in the dark. 1–2 per Store.
+    /// </summary>
+    AquariumAisle,
 }
+
+/// <summary>A kind of live fish kept in the tanks of an Aquarium aisle.</summary>
+public enum FishKind
+{
+    Goldfish,
+    NeonTetra,
+    Guppy,
+    Angelfish,
+    Discus,
+    Betta,
+    Zebrafish,
+    Koi,
+}
+
+/// <summary>
+/// The live fish in one tank of an Aquarium aisle: Goods, not Furniture (the tank is the Furniture), and food for whoever takes
+/// them. Restock refills them.
+/// </summary>
+/// <param name="TankId">The tank, a <see cref="FurnitureType.FishTank"/>, by <see cref="FurniturePiece.Id"/>.</param>
+/// <param name="Kind">The one kind of fish the tank holds.</param>
+public readonly record struct TankFish(int TankId, FishKind Kind);
 
 /// <summary>
 /// A small, distinctive place of the Store found only up close, made of individual Furniture: the pieces
