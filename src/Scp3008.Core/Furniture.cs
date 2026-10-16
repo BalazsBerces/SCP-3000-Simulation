@@ -118,8 +118,13 @@ public enum FurnitureType
 /// positive tips its front down, a quarter turn lays it on its front. Zero (upright) for Display Furniture;
 /// its corners are <see cref="FurnitureCatalog.Corners"/>.
 /// </param>
+/// <param name="Roll">
+/// How far the piece is rolled onto its side, in radians, about its depth axis through the centre of its base, applied
+/// before <paramref name="Tilt"/>: positive lifts its +width side, so a quarter turn stands it on its -width end (a sofa
+/// on end). Zero for everything but the Armchair henge's standing stones.
+/// </param>
 public readonly record struct FurniturePiece(int Id, FurnitureType Type, Vector2 Position, float Elevation, float Rotation,
-    int Variant = 0, int DisplayId = -1, int Tint = 0, int LandmarkId = -1, float Tilt = 0f, int PointOfInterestId = -1);
+    int Variant = 0, int DisplayId = -1, int Tint = 0, int LandmarkId = -1, float Tilt = 0f, int PointOfInterestId = -1, float Roll = 0f);
 
 /// <summary>The fixed properties of a Furniture type.</summary>
 /// <param name="Width">Size along the piece's width axis, in metres.</param>
@@ -215,12 +220,15 @@ public static class FurnitureCatalog
         var across = new Vector2(MathF.Cos(piece.Rotation), MathF.Sin(piece.Rotation));
         var front = new Vector2(-MathF.Sin(piece.Rotation), MathF.Cos(piece.Rotation));
         var (sin, cos) = MathF.SinCos(piece.Tilt);
+        var (rollSin, rollCos) = MathF.SinCos(piece.Roll);
         var corners = new Vector3[8];
         var i = 0;
-        foreach (var x in new[] { -spec.Width / 2f, spec.Width / 2f })
+        foreach (var localX in new[] { -spec.Width / 2f, spec.Width / 2f })
             foreach (var z in new[] { -spec.Depth / 2f, spec.Depth / 2f })
-                foreach (var y in new[] { 0f, spec.Height })
+                foreach (var localY in new[] { 0f, spec.Height })
                 {
+                    var x = localX * rollCos - localY * rollSin;
+                    var y = localX * rollSin + localY * rollCos;
                     var forward = z * cos + y * sin;
                     var up = y * cos - z * sin;
                     var floor = piece.Position + x * across + forward * front;

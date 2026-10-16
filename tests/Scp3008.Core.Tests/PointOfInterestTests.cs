@@ -247,6 +247,54 @@ public class PointOfInterestTests
         Assert.All(pits, id => Assert.Empty(sim.Snapshot.StaffExitsFrom(id)));
     }
 
+    [Theory]
+    [MemberData(nameof(LayoutsAndSeeds))]
+    public void Each_armchair_henge_is_a_26_m_stonehenge_of_sofas_and_armchairs_and_the_count_is_unchanged(PillarLayout layout, int seed)
+    {
+        var snapshot = Generate(seed, layout);
+        var henges = snapshot.PointsOfInterest.Where(p => p.Type == PointOfInterestType.ArmchairHenge).ToList();
+        Assert.InRange(henges.Count, 1, 2);
+        foreach (var henge in henges)
+        {
+            var pieces = PiecesOf(snapshot, henge).ToList();
+            Assert.All(pieces, p => Assert.True(p.Type is FurnitureType.Sofa or FurnitureType.Armchair, $"A {p.Type} in the henge."));
+            const float quarter = MathF.PI / 2f;
+            bool Near(float a, float b) => MathF.Abs(a - b) < 0.01f;
+
+            // The altar lies at the centre; everything is measured from it.
+            var altar = Assert.Single(pieces, p => Near(p.Tilt, -quarter));
+            float Distance(FurniturePiece p) => snapshot.Space.Delta(altar.Position, p.Position).Length();
+
+            // Standing stones: sofas on end. The outer circle is most of 28, one more stands alone as the heel stone.
+            var stones = pieces.Where(p => MathF.Abs(p.Roll) > 1f).ToList();
+            var heel = stones.OrderByDescending(Distance).First();
+            Assert.InRange(Distance(heel), 14.5f, 17f);
+            var circle = stones.Where(p => p.Id != heel.Id && Distance(p) > 10f).ToList();
+            Assert.InRange(circle.Count, 22, 25);
+            Assert.All(circle, p => Assert.InRange(Distance(p), 11.5f, 13.5f));
+            // About 26 m across, counting the outer edge of the ring.
+            Assert.InRange(circle.Max(p => Distance(p)) + circle.Min(p => Distance(p)), 24f, 27f);
+
+            // The lintels: a ring of them on the circle, and five trilithons' (four 5.4 m up, the middle one 8.1 m).
+            var lintels = pieces.Where(p => p.Type == FurnitureType.Sofa && p.Tilt == 0f && p.Roll == 0f && p.Elevation > 2f).ToList();
+            Assert.InRange(lintels.Count(p => Near(p.Elevation, 2.7f)), 12, 28);
+            Assert.Equal(4, lintels.Count(p => Near(p.Elevation, 5.4f)));
+            Assert.Equal(1, lintels.Count(p => Near(p.Elevation, 8.1f)));
+            // Each trilithon lintel rests on two stacked uprights below it.
+            foreach (var lintel in lintels.Where(p => p.Elevation > 5f))
+                Assert.Equal(2, stones.Count(u => Near(u.Elevation + 1.35f, lintel.Elevation) && Distance(u) < 8f &&
+                                                  snapshot.Space.Delta(u.Position, lintel.Position).Length() < 1.6f));
+
+            // The horseshoe of armchairs inside the trilithons.
+            var armchairs = pieces.Where(p => p.Type == FurnitureType.Armchair).ToList();
+            Assert.Equal(7, armchairs.Count);
+            Assert.All(armchairs, p => Assert.InRange(Distance(p), 3f, 4.3f));
+            // Gaps and fallen pieces: some of the ring is missing and something lies on the ground.
+            Assert.True(circle.Count < 28);
+            Assert.Contains(pieces, p => p.Type == FurnitureType.Sofa && p.Roll == 0f && p.Elevation < 1.2f && p.Id != altar.Id && Distance(p) > 8f);
+        }
+    }
+
     [Fact]
     public void The_landmark_showcase_has_none()
     {

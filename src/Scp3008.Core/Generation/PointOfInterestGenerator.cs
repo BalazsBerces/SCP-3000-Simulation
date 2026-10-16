@@ -42,7 +42,7 @@ internal static class PointOfInterestGenerator
         PointOfInterestType.LostAndFoundDesk => new(5f, 5f),
         PointOfInterestType.ShoppingCartGraveyard => new(8f, 6f),
         PointOfInterestType.BallPit => new(8f, 8f),
-        PointOfInterestType.ArmchairHenge => new(13f, 13f),
+        PointOfInterestType.ArmchairHenge => new(28f, 33f),
         PointOfInterestType.ExitSign => new(6f, 6f),
         PointOfInterestType.MannequinCrowd => new(12f, 9f),
         PointOfInterestType.DoorToNowhere => new(5f, 11f),
@@ -73,13 +73,17 @@ internal static class PointOfInterestGenerator
                 var quarters = random.Next(4);
                 var own = OwnSize(type);
                 var size = (quarters & 1) == 0 ? own : new Vector2(own.Y, own.X);
-                var slack = (new Vector2(cellSize) - size) / 2f - new Vector2(Clearance);
+                // A Point of interest bigger than a department cell (the Armchair henge) stands centred on its cell.
+                var slack = Vector2.Max(Vector2.Zero, (new Vector2(cellSize) - size) / 2f - new Vector2(Clearance));
                 var centre = new Vector2((cx + 0.5f) * cellSize, (cy + 0.5f) * cellSize)
                     + new Vector2(random.Range(-slack.X, slack.X), random.Range(-slack.Y, slack.Y));
                 if (!IsFree(space, pillars, landmarks, sites, centre, size))
                     continue;
                 var sector = sectors.First(s => centre.X >= s.Origin.X && centre.X < s.Origin.X + s.Size &&
                                                 centre.Y >= s.Origin.Y && centre.Y < s.Origin.Y + s.Size);
+                if (centre.X - size.X / 2f < sector.Origin.X || centre.X + size.X / 2f > sector.Origin.X + sector.Size ||
+                    centre.Y - size.Y / 2f < sector.Origin.Y || centre.Y + size.Y / 2f > sector.Origin.Y + sector.Size)
+                    continue;
                 sites.Add(new PointOfInterestSite(sites.Count, type, sector.Id, centre, size, quarters));
                 return true;
             }
@@ -357,46 +361,104 @@ internal static class PointOfInterestGenerator
     }
 
     /// <summary>
-    /// A ring of armchairs facing in, some pairs bridged by a sofa laid on their backs like a lintel, a horseshoe of
-    /// armchairs inside it, and a rug with a low table at the centre; one of the ring's chairs knocked over.
+    /// A copy of Stonehenge about 26 m across, built of sofas and armchairs only: an outer circle of sofas stood on end,
+    /// capped by lintel sofas laid across them, with a few gaps, a fallen upright and fallen lintels; inside it a
+    /// horseshoe of five trilithons (pairs of stacked upright sofas under a lintel sofa, the middle one the tallest) open
+    /// towards the entrance axis, an inner horseshoe of armchairs, an altar sofa at the centre and a lone leaning heel
+    /// stone on the entrance axis outside the ring.
     /// </summary>
     private static void BuildArmchairHenge(PointOfInterestBuilder b)
     {
         var random = b.Random;
         var tint = random.Next(FurniturePalettes.TintCount);
         int Tint() => random.Chance(0.7f) ? tint : random.Next(FurniturePalettes.TintCount);
-        const int ring = 12;
-        const float radius = 5.4f;
-        var start = random.Range(0f, MathF.Tau / ring);
-        static Vector2 At(float angle, float distance) => new(distance * MathF.Cos(angle), distance * MathF.Sin(angle));
-        // Every other pair of neighbouring chairs may carry a lintel.
-        var lintels = new HashSet<int>();
-        for (var pair = random.Next(2); pair < ring; pair += 2)
-            if (random.Chance(0.6f))
-                lintels.Add(pair);
-        var fallen = random.Next(ring);
-        for (var i = 0; i < ring; i++)
+        // The big sofa (variant 2) is the stone: 2.7 m long, so 2.7 m tall on end.
+        var stoneVariant = FurnitureCatalog.VariantCount(FurnitureType.Sofa) > 2 ? 2 : 0;
+        var stone = FurnitureCatalog.Spec(FurnitureType.Sofa, stoneVariant);
+        // The ring's centre, sat towards the back of the site so the heel stone fits in front on the +y entrance axis.
+        var centre = new Vector2(0f, -2.5f);
+        const int uprights = 28;
+        const float ringRadius = 12.4f;
+        static Vector2 At(Vector2 from, float angle, float distance) => from + new Vector2(distance * MathF.Cos(angle), distance * MathF.Sin(angle));
+
+        // A sofa stood on its end, its footprint centred on a spot, its across axis along `rotation`, with `lowerStones`
+        // of them below it. It is rolled about its base centre, so it is shifted back by half its height.
+        void Upright(Vector2 spot, float rotation, int lowerStones, float lean = 0f)
         {
-            var angle = start + i * MathF.Tau / ring;
-            // Facing the centre from the angle a: its front (-sin r, cos r) is (-cos a, -sin a), so r = a + π/2.
-            var knocked = i == fallen && !lintels.Contains(i) && !lintels.Contains((i + ring - 1) % ring);
-            b.Put(FurnitureType.Armchair, At(angle, radius), 0f, angle + Quarter, tilt: knocked ? Quarter : 0f, tint: Tint());
+            var shift = new Vector2(MathF.Cos(rotation), MathF.Sin(rotation)) * (stone.Height / 2f);
+            b.Put(FurnitureType.Sofa, spot + shift, lowerStones * stone.Width + stone.Width / 2f, rotation, stoneVariant,
+                tint: Tint(), roll: MathF.PI / 2f + lean);
         }
-        var lintel = FurnitureCatalog.VariantCount(FurnitureType.Sofa) > 2 ? 2 : 0;
-        var chairHeight = FurnitureCatalog.Spec(FurnitureType.Armchair).Height;
-        foreach (var pair in lintels)
+        void Lintel(Vector2 spot, float rotation, float elevation) =>
+            b.Put(FurnitureType.Sofa, spot, elevation, rotation, stoneVariant, tint: Tint());
+
+        // The outer circle: a few uprights missing, their lintels with them, one lying where it fell.
+        var missing = new HashSet<int>();
+        for (var tries = 0; missing.Count < 3 && tries < 100; tries++)
         {
-            var angle = start + (pair + 0.5f) * MathF.Tau / ring;
-            b.Put(FurnitureType.Sofa, At(angle, radius * MathF.Cos(MathF.PI / ring)), chairHeight, angle + Quarter, lintel, tint: Tint());
+            var i = random.Next(uprights);
+            if (!missing.Contains(i) && !missing.Contains((i + 1) % uprights) && !missing.Contains((i + uprights - 1) % uprights))
+                missing.Add(i);
         }
-        // The inner horseshoe, open towards the first chair of the ring.
-        for (var i = 0; i < 5; i++)
+        var noLintel = new HashSet<int>();
+        foreach (var i in missing)
         {
-            var angle = start + MathF.PI + (i - 2) * 0.55f;
-            b.Put(FurnitureType.Armchair, At(angle, 3f), 0f, angle + Quarter, tint: Tint());
+            noLintel.Add(i);
+            noLintel.Add((i + uprights - 1) % uprights);
         }
-        b.Put(FurnitureType.Rug, Vector2.Zero, 0f, start, tint: tint);
-        b.Put(FurnitureType.CoffeeTable, Vector2.Zero, 0f, start + Quarter);
+        for (var n = 3; n > 0; n--)
+            noLintel.Add(random.Next(uprights));
+        var fallenUpright = missing.ElementAt(random.Next(missing.Count));
+        for (var i = 0; i < uprights; i++)
+        {
+            var angle = i * MathF.Tau / uprights + random.Range(-0.01f, 0.01f);
+            if (missing.Contains(i))
+            {
+                if (i == fallenUpright)
+                {
+                    var side = random.Chance(0.5f) ? 1f : -1f;
+                    b.Put(FurnitureType.Sofa, At(centre, angle, ringRadius + side * 2.2f), 0f, angle + Quarter + random.Range(-0.4f, 0.4f),
+                        stoneVariant, tint: Tint());
+                }
+                continue;
+            }
+            Upright(At(centre, angle, ringRadius), angle + Quarter, 0);
+        }
+        for (var i = 0; i < uprights; i++)
+        {
+            var angle = (i + 0.5f) * MathF.Tau / uprights;
+            if (!noLintel.Contains(i))
+                Lintel(At(centre, angle, ringRadius * MathF.Cos(MathF.PI / uprights)), angle + Quarter, stone.Width);
+            else if (missing.Contains((i + 1) % uprights) && random.Chance(0.6f))
+                // A fallen lintel, lying on its front inside the ring.
+                b.Put(FurnitureType.Sofa, At(centre, angle, ringRadius - 2.4f), 0f, angle + Quarter + random.Range(-0.3f, 0.3f), stoneVariant,
+                    MathF.PI / 2f, Tint());
+        }
+
+        // The horseshoe of five trilithons, open towards +y; the middle one (at the back, -y) is the tallest.
+        const float trilithonRadius = 6.6f;
+        for (var k = -2; k <= 2; k++)
+        {
+            var angle = -MathF.PI / 2f + k * 0.85f;
+            var heap = k == 0 ? 3 : 2;
+            var spot = At(centre, angle, trilithonRadius);
+            var along = new Vector2(-MathF.Sin(angle), MathF.Cos(angle));
+            foreach (var side in new[] { -0.85f, 0.85f })
+                for (var level = 0; level < heap; level++)
+                    Upright(spot + along * (side + random.Range(-0.03f, 0.03f)), angle + Quarter, level);
+            Lintel(spot, angle + Quarter, heap * stone.Width);
+        }
+
+        // The inner horseshoe of armchairs, facing the centre and open towards +y.
+        for (var i = 0; i < 7; i++)
+        {
+            var angle = -MathF.PI / 2f + (i - 3) * 0.5f;
+            b.Put(FurnitureType.Armchair, At(centre, angle, 3.6f), 0f, angle + Quarter, tint: Tint());
+        }
+        // The altar: a sofa on its back at the centre, across the entrance axis.
+        b.Put(FurnitureType.Sofa, centre + new Vector2(0f, stone.Height / 2f), 0f, 0f, stoneVariant, -MathF.PI / 2f, Tint());
+        // The heel stone, alone and leaning, on the entrance axis outside the ring.
+        Upright(centre + new Vector2(0f, 16f), MathF.PI, 0, random.Range(-0.12f, 0.12f));
     }
 
     /// <summary>A glowing EXIT sign at the mouth of a blind alcove of shelving, its arrow pointing sideways along shelving that leads nowhere.</summary>
@@ -488,11 +550,11 @@ internal sealed class PointOfInterestBuilder(StoreSpace space, PointOfInterestSi
     public IReadOnlyList<FurniturePiece> Pieces => _pieces;
 
     /// <summary>Places a piece with the centre of its base at a local position and elevation; false if it would stick out of the rectangle.</summary>
-    public bool Put(FurnitureType type, Vector2 local, float elevation, float rotation, int variant = 0, float tilt = 0f, int tint = 0)
+    public bool Put(FurnitureType type, Vector2 local, float elevation, float rotation, int variant = 0, float tilt = 0f, int tint = 0, float roll = 0f)
     {
         var turn = site.Quarters * MathF.PI / 2f;
         var piece = new FurniturePiece(0, type, site.Centre + LandmarkBuilder.Turn(local, site.Quarters), elevation,
-            (float)Math.IEEERemainder(rotation + turn, 2.0 * Math.PI), variant, Tint: tint, Tilt: tilt, PointOfInterestId: site.Id);
+            (float)Math.IEEERemainder(rotation + turn, 2.0 * Math.PI), variant, Tint: tint, Tilt: tilt, PointOfInterestId: site.Id, Roll: roll);
         var corners = FurnitureCatalog.Corners(piece);
         var lowest = corners.Min(c => c.Z);
         if (lowest < 0f)

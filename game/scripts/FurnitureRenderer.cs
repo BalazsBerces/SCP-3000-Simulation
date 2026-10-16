@@ -93,8 +93,9 @@ public partial class FurnitureRenderer : Node3D
     /// <summary>
     /// The piece's transform in world space. Core rotations turn east towards south, which is a
     /// clockwise turn seen from above, so the Godot yaw is its negative. A tipped-over piece (Landmark
-    /// Furniture) is first tilted about its width axis through its base, its front (+Z) going down.
+    /// Furniture) is first tilted about its width axis through its base, its front (+Z) going down; a rolled
+    /// piece (a standing stone of the Armchair henge) is first rolled about its depth axis, its +width side going up.
     /// </summary>
     public static Transform3D Placement(FurniturePiece piece) =>
-        new(new Basis(Vector3.Up, -piece.Rotation) * new Basis(Vector3.Right, piece.Tilt), piece.Position.ToWorld(piece.Elevation));
+        new(new Basis(Vector3.Up, -piece.Rotation) * new Basis(Vector3.Right, piece.Tilt) * new Basis(Vector3.Back, piece.Roll), piece.Position.ToWorld(piece.Elevation));
 }
