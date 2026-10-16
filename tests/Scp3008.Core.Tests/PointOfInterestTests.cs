@@ -156,7 +156,7 @@ public class PointOfInterestTests
         Assert.Superset(new HashSet<FurnitureType> { FurnitureType.DiningTable, FurnitureType.Chair, FurnitureType.MealPlate }, Types(PointOfInterestType.SetDinnerTable));
         Assert.Superset(new HashSet<FurnitureType> { FurnitureType.Desk, FurnitureType.FilingCabinet }, Types(PointOfInterestType.LostAndFoundDesk));
         Assert.Superset(new HashSet<FurnitureType> { FurnitureType.ShoppingCart }, Types(PointOfInterestType.ShoppingCartGraveyard));
-        Assert.Superset(new HashSet<FurnitureType> { FurnitureType.BouncyCastle }, Types(PointOfInterestType.BallPit));
+        Assert.Superset(new HashSet<FurnitureType> { FurnitureType.BallPool, FurnitureType.NetRailing, FurnitureType.PlaySlide, FurnitureType.PlayBall }, Types(PointOfInterestType.BallPit));
         Assert.Superset(new HashSet<FurnitureType> { FurnitureType.Armchair, FurnitureType.Sofa }, Types(PointOfInterestType.ArmchairHenge));
         Assert.Superset(new HashSet<FurnitureType> { FurnitureType.ExitSign }, Types(PointOfInterestType.ExitSign));
         Assert.Superset(new HashSet<FurnitureType> { FurnitureType.Mannequin }, Types(PointOfInterestType.MannequinCrowd));
@@ -165,7 +165,9 @@ public class PointOfInterestTests
         // The rare Furniture is found nowhere else.
         foreach (var (furniture, kind) in new[]
                  {
-                     (FurnitureType.BouncyCastle, PointOfInterestType.BallPit), (FurnitureType.ExitSign, PointOfInterestType.ExitSign),
+                     (FurnitureType.BallPool, PointOfInterestType.BallPit), (FurnitureType.NetRailing, PointOfInterestType.BallPit),
+                     (FurnitureType.PlaySlide, PointOfInterestType.BallPit), (FurnitureType.FoamStep, PointOfInterestType.BallPit),
+                     (FurnitureType.PlayBall, PointOfInterestType.BallPit), (FurnitureType.ExitSign, PointOfInterestType.ExitSign),
                      (FurnitureType.Mannequin, PointOfInterestType.MannequinCrowd), (FurnitureType.DoorFrame, PointOfInterestType.DoorToNowhere),
                      (FurnitureType.Aquarium, PointOfInterestType.DisplayAquarium),
                  })
@@ -215,13 +217,67 @@ public class PointOfInterestTests
     }
 
     [Theory]
-    [InlineData(PillarLayout.ThreeByThree, 3008)]
-    [InlineData(PillarLayout.TwoByTwo, 42)]
-    [InlineData(PillarLayout.DiamondLarge, 7)]
+    [MemberData(nameof(LayoutsAndSeeds))]
+    public void Each_ball_pit_is_a_padded_ball_pool_with_net_railing_a_step_and_a_slide_filled_with_hundreds_of_balls(PillarLayout layout, int seed)
+    {
+        var snapshot = Generate(seed, layout);
+        var pits = snapshot.PointsOfInterest.Where(p => p.Type == PointOfInterestType.BallPit).ToList();
+        Assert.Equal(3, pits.Count);
+        foreach (var pit in pits)
+        {
+            var pieces = PiecesOf(snapshot, pit).ToList();
+            Assert.All(pieces, p => Assert.Contains(p.Type, new[]
+            {
+                FurnitureType.BallPool, FurnitureType.NetRailing, FurnitureType.PlaySlide, FurnitureType.FoamStep, FurnitureType.PlayBall,
+                FurnitureType.ShoeCabinet, FurnitureType.HallBench,
+            }));
+            var pool = Assert.Single(pieces, p => p.Type == FurnitureType.BallPool);
+            var poolSpec = FurnitureCatalog.Spec(pool);
+            Assert.Single(pieces, p => p.Type == FurnitureType.PlaySlide);
+            Assert.Single(pieces, p => p.Type == FurnitureType.FoamStep);
+            // The railing stands on the pool's walls, round all four sides, with gaps for the step and the slide.
+            var railings = pieces.Where(p => p.Type == FurnitureType.NetRailing).ToList();
+            Assert.Equal(14, railings.Count);
+            Assert.All(railings, r => Assert.Equal(poolSpec.Height, r.Elevation));
+
+            bool InPool(FurniturePiece p)
+            {
+                var delta = snapshot.Space.Delta(pool.Position, p.Position);
+                var turned = MathF.Abs(MathF.Sin(pool.Rotation)) > 0.5f;
+                var half = turned ? new Vector2(poolSpec.Depth, poolSpec.Width) / 2f : new Vector2(poolSpec.Width, poolSpec.Depth) / 2f;
+                return MathF.Abs(delta.X) < half.X && MathF.Abs(delta.Y) < half.Y;
+            }
+            var balls = pieces.Where(p => p.Type == FurnitureType.PlayBall).ToList();
+            var inPool = balls.Where(InPool).ToList();
+            var spilled = balls.Where(b => !InPool(b)).ToList();
+            // Hundreds of balls fill the pool to below its rim, in many colours; a few lie on the floor round it.
+            Assert.InRange(inPool.Count, 300, 2000);
+            Assert.All(inPool, b => Assert.InRange(b.Elevation, 0.2f, poolSpec.Height - FurnitureCatalog.Spec(b).Height));
+            Assert.True(inPool.Select(b => b.Tint).Distinct().Count() >= 6, "The balls should come in many colours.");
+            Assert.InRange(spilled.Count, 5, 30);
+            Assert.All(spilled, b => Assert.Equal(0f, b.Elevation));
+        }
+    }
+
+    [Fact]
+    public void The_same_seed_gives_the_same_balls_and_another_seed_other_balls()
+    {
+        IEnumerable<FurniturePiece> Balls(WorldSnapshot s) => s.Furniture.Where(p => p.Type == FurnitureType.PlayBall);
+        Assert.Equal(Balls(Generate(42)), Balls(Generate(42)));
+        Assert.NotEqual(Balls(Generate(42)).Select(b => (b.Position, b.Tint)), Balls(Generate(43)).Select(b => (b.Position, b.Tint)));
+    }
+
+    [Fact]
+    public void There_is_no_bouncy_castle_any_more() =>
+        Assert.DoesNotContain("BouncyCastle", Enum.GetNames<FurnitureType>());
+
+    [Theory]
+    [MemberData(nameof(LayoutsAndSeeds))]
     public void The_three_ball_pits_are_one_network_the_staff_pass_through_only_at_closing_time(PillarLayout layout, int seed)
     {
         using var sim = Simulation.Create(new WorldConfig(seed, RuntimeRngSeed: 1, PillarLayout: layout));
         var pits = sim.Snapshot.PointsOfInterest.Where(p => p.Type == PointOfInterestType.BallPit).Select(p => p.Id).ToList();
+        Assert.Equal(3, pits.Count);
         Assert.Equal(pits, sim.Snapshot.BallPitNetwork.BallPitIds);
 
         void AdvanceTo(DayPhase phase)

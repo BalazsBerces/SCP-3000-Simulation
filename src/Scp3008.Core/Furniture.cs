@@ -84,11 +84,16 @@ public enum FurnitureType
     // Point of interest Furniture, found only in Points of interest
     ShoppingCart,
     MealPlate,
-    BouncyCastle,
     ExitSign,
     Mannequin,
     DoorFrame,
     Aquarium,
+    // The Ball pit's Furniture
+    BallPool,
+    NetRailing,
+    PlaySlide,
+    FoamStep,
+    PlayBall,
 }
 
 /// <summary>
@@ -206,8 +211,9 @@ public static class FurnitureCatalog
     /// <summary>The Furniture types found only in Points of interest, never on display.</summary>
     public static IReadOnlyList<FurnitureType> PointOfInterestTypes { get; } =
     [
-        FurnitureType.ShoppingCart, FurnitureType.MealPlate, FurnitureType.BouncyCastle, FurnitureType.ExitSign, FurnitureType.Mannequin,
-        FurnitureType.DoorFrame, FurnitureType.Aquarium,
+        FurnitureType.ShoppingCart, FurnitureType.MealPlate, FurnitureType.ExitSign, FurnitureType.Mannequin,
+        FurnitureType.DoorFrame, FurnitureType.Aquarium, FurnitureType.BallPool, FurnitureType.NetRailing, FurnitureType.PlaySlide,
+        FurnitureType.FoamStep, FurnitureType.PlayBall,
     ];
 
     /// <summary>
@@ -310,11 +316,15 @@ public static class FurnitureCatalog
             new(FurnitureType.BasinKerb, 2.0f, 0.5f, 0.6f),                    // straight stone kerb of a basin
             new(FurnitureType.ShoppingCart, 0.55f, 1.0f, 1.0f),                // wire basket on a wheeled chassis, handle at the back
             new(FurnitureType.MealPlate, 0.3f, 0.3f, 0.05f),                   // a plate of food
-            new(FurnitureType.BouncyCastle, 5.0f, 5.0f, 2.6f),                 // inflatable floor, corner towers and net walls, full of balls
             new(FurnitureType.ExitSign, 1.4f, 0.3f, 2.7f),                     // glowing EXIT sign with an arrow, high on two posts
             new(FurnitureType.Mannequin, 0.5f, 0.3f, 1.8f),                    // bare plastic shop mannequin, arms down, on a foot plate
             new(FurnitureType.DoorFrame, 1.3f, 0.3f, 2.3f),                    // free-standing door frame, no wall around it
             new(FurnitureType.Aquarium, 5.0f, 1.6f, 2.4f),                     // huge glowing tank of live fish on a cabinet
+            new(FurnitureType.BallPool, 5.0f, 3.2f, 0.6f),                     // low pool with padded foam walls and a padded floor
+            new(FurnitureType.NetRailing, 1.0f, 0.06f, 0.9f),                  // one length of net railing between padded posts, on a pool wall
+            new(FurnitureType.PlaySlide, 0.6f, 1.5f, 1.4f),                    // small kids' slide: ladder at the back, chute down to the front
+            new(FurnitureType.FoamStep, 1.0f, 0.5f, 0.3f),                     // padded foam step up to a pool wall
+            new(FurnitureType.PlayBall, 0.08f, 0.08f, 0.08f),                  // one hollow plastic ball
 
             // Variants of the most repeated types: other proportions, backs, legs or materials.
             new(FurnitureType.Mannequin, 0.75f, 0.35f, 1.8f, Variant: 1),      // one arm raised, the other hand on the hip

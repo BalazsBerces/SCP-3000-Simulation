@@ -20,7 +20,7 @@ public enum PointOfInterestType
     /// <summary>A corral of shopping carts: a metal source; carts speed up hauling. At most 4 per Store.</summary>
     ShoppingCartGraveyard,
     /// <summary>
-    /// A modest bouncy castle with net walls, full of balls. Exactly 3 per Store, one <see cref="BallPitNetwork"/>:
+    /// A ball pool like a store's kids' play area: padded walls, net railing, a slide and hundreds of balls (Furniture). Exactly 3 per Store, one <see cref="BallPitNetwork"/>:
     /// at Closing time the Staff pass from any Ball pit to any other; Villagers cannot.
     /// </summary>
     BallPit,

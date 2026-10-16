@@ -57,6 +57,11 @@ public static class FurnitureMeshes
         AquariumWater,
         Fish,
         MannequinSkin,
+        // The Ball pit (ticket 08g): the vinyl-covered foam padding in the piece's colour, the red trim cushions,
+        // and the dark bed between the balls.
+        Padding,
+        PaddingTrim,
+        BallBed,
     }
 
     // Emission of a lit lamp shade.
@@ -201,10 +206,12 @@ public static class FurnitureMeshes
             FurnitureType.Sofa or FurnitureType.Armchair or FurnitureType.Rug or FurnitureType.Bed
                 or FurnitureType.CushionBin or FurnitureType.BlanketStack or FurnitureType.CurtainRack
                 or FurnitureType.OfficeChair or FurnitureType.Parasol or FurnitureType.FrameDisplay or FurnitureType.Mattress => FabricColors,
-            FurnitureType.BunkBed or FurnitureType.BouncyCastle or FurnitureType.KidsTable or FurnitureType.KidsChair or FurnitureType.PlayCube or FurnitureType.ToyShelf => PlasticColors,
+            FurnitureType.BunkBed or FurnitureType.KidsTable or FurnitureType.KidsChair or FurnitureType.PlayCube or FurnitureType.ToyShelf => PlasticColors,
             FurnitureType.PottedPlant or FurnitureType.LargePlant or FurnitureType.PlanterBox => LeafColors,
             FurnitureType.FlatPackBox or FurnitureType.CardboardBox => CardboardColors,
             FurnitureType.Mannequin => MannequinColors,
+            FurnitureType.BallPool or FurnitureType.NetRailing or FurnitureType.PlaySlide or FurnitureType.FoamStep => PaddingColors,
+            FurnitureType.PlayBall => BallColors,
             _ => null,
         };
     }
@@ -224,6 +231,22 @@ public static class FurnitureMeshes
         new(0.92f, 0.9f, 0.85f), new(0.88f, 0.86f, 0.8f), new(0.95f, 0.94f, 0.91f), new(0.85f, 0.8f, 0.7f),
         new(0.78f, 0.76f, 0.72f), new(0.7f, 0.69f, 0.66f), new(0.9f, 0.78f, 0.7f), new(0.8f, 0.66f, 0.54f),
         new(0.6f, 0.58f, 0.52f), new(0.36f, 0.36f, 0.37f), new(0.15f, 0.15f, 0.16f), new(0.82f, 0.82f, 0.78f),
+    ];
+
+    // Play-area vinyl, tint 0 to 11: bright blues, greens, yellows, orange and purple, never the red of the trim.
+    private static readonly Color[] PaddingColors =
+    [
+        new(0.1f, 0.35f, 0.8f), new(0.2f, 0.6f, 0.9f), new(1f, 0.78f, 0.1f), new(0.15f, 0.6f, 0.3f),
+        new(0.1f, 0.3f, 0.65f), new(0.45f, 0.75f, 0.25f), new(0.95f, 0.55f, 0.1f), new(0.5f, 0.3f, 0.7f),
+        new(0.1f, 0.55f, 0.6f), new(0.95f, 0.85f, 0.25f), new(0.25f, 0.45f, 0.85f), new(0.3f, 0.7f, 0.55f),
+    ];
+
+    // Ball-pit balls, tint 0 to 11: the primary play colours, red, yellow, blue and green the most common.
+    private static readonly Color[] BallColors =
+    [
+        new(0.9f, 0.1f, 0.1f), new(1f, 0.85f, 0.05f), new(0.1f, 0.3f, 0.9f), new(0.1f, 0.7f, 0.2f),
+        new(1f, 0.5f, 0.05f), new(1f, 0.45f, 0.7f), new(0.55f, 0.25f, 0.8f), new(0.3f, 0.75f, 0.95f),
+        new(0.9f, 0.1f, 0.1f), new(1f, 0.85f, 0.05f), new(0.1f, 0.3f, 0.9f), new(0.1f, 0.7f, 0.2f),
     ];
 
     private static readonly Color[] PlasticColors =
@@ -692,8 +715,8 @@ public static class FurnitureMeshes
                 b.Cylinder(Part.Ceramic, Vector3.Zero, hw * 0.8f, hw, 0.02f, 16);
                 b.Cylinder(Part.Food, new Vector3(0f, 0.02f, 0f), hw * 0.6f, hw * 0.4f, 0.03f, 12);
                 break;
-            case FurnitureType.BouncyCastle:
-                BuildBouncyCastle(b, hw, hd);
+            case FurnitureType.BallPool or FurnitureType.NetRailing or FurnitureType.PlaySlide or FurnitureType.FoamStep or FurnitureType.PlayBall:
+                BuildBallPit(b, type, hw, hd, h);
                 break;
             case FurnitureType.ExitSign:
             {
@@ -816,51 +839,87 @@ public static class FurnitureMeshes
     }
 
     /// <summary>
-    /// The Ball pit: an inflated floor, walls and corner towers in the piece's plastic colour with red tower tops, net
-    /// walls up to an open rim and a layer of balls; open at the front, and from above, so the balls show.
+    /// The Ball pit's Furniture: the pool (padded foam walls in the piece's vinyl colour under red trim cushions, padded
+    /// corner bumpers, and a dark bed for the gaps between the balls), a length of net railing (padded posts and top bar,
+    /// black net), the slide (ladder, deck and red chute), the foam step and one ball.
     /// </summary>
-    private static void BuildBouncyCastle(Builder b, float hw, float hd)
+    private static void BuildBallPit(Builder b, FurnitureType type, float hw, float hd, float h)
     {
-        const float Floor = 0.45f, Wall = 0.35f, WallTop = 1.2f, FrontTop = 0.9f, Canopy = 2.1f, Door = 0.8f;
-        b.Box(Part.Plastic, new Vector3(-hw, 0f, -hd), new Vector3(hw, Floor, hd));
-        foreach (var x in new[] { -hw + 0.4f, hw - 0.4f })
-            foreach (var z in new[] { -hd + 0.4f, hd - 0.4f })
+        switch (type)
+        {
+            case FurnitureType.BallPool:
             {
-                b.Cylinder(Part.Plastic, new Vector3(x, Floor, z), 0.4f, 0.4f, 2.3f - Floor);
-                b.Cylinder(Part.Balls, new Vector3(x, 2.3f, z), 0.42f, 0.04f, 0.3f);
+                // The core's ball fill (PointOfInterestGenerator.BallFill) is 0.4 m; the bed shows a little above it between the balls.
+                const float Wall = 0.25f, Cushion = 0.08f, Over = 0.02f, Bed = 0.43f;
+                var top = h - Cushion;
+                foreach (var z in new[] { -hd, hd - Wall })
+                {
+                    b.Box(Part.Padding, new Vector3(-hw, 0f, z), new Vector3(hw, top, z + Wall));
+                    b.Box(Part.PaddingTrim, new Vector3(-hw - Over, top, z - Over), new Vector3(hw + Over, h, z + Wall + Over));
+                }
+                foreach (var x in new[] { -hw, hw - Wall })
+                {
+                    b.Box(Part.Padding, new Vector3(x, 0f, -hd + Wall), new Vector3(x + Wall, top, hd - Wall));
+                    b.Box(Part.PaddingTrim, new Vector3(x - Over, top, -hd + Wall + Over), new Vector3(x + Wall + Over, h, hd - Wall - Over));
+                }
+                b.Box(Part.BallBed, new Vector3(-hw + Wall, 0f, -hd + Wall), new Vector3(hw - Wall, Bed, hd - Wall));
+                foreach (var x in new[] { -hw + 0.12f, hw - 0.12f })
+                    foreach (var z in new[] { -hd + 0.12f, hd - 0.12f })
+                        b.Cylinder(Part.PaddingTrim, new Vector3(x, 0f, z), 0.17f, 0.17f, h + 0.06f, 16);
+                break;
             }
-        b.Box(Part.Plastic, new Vector3(-hw + 0.4f, Floor, -hd), new Vector3(hw - 0.4f, WallTop, -hd + Wall));
-        b.Box(Part.Plastic, new Vector3(-hw, Floor, -hd + 0.4f), new Vector3(-hw + Wall, WallTop, hd - 0.4f));
-        b.Box(Part.Plastic, new Vector3(hw - Wall, Floor, -hd + 0.4f), new Vector3(hw, WallTop, hd - 0.4f));
-        b.Box(Part.Plastic, new Vector3(-hw + 0.4f, Floor, hd - Wall), new Vector3(-Door, FrontTop, hd));
-        b.Box(Part.Plastic, new Vector3(Door, Floor, hd - Wall), new Vector3(hw - 0.4f, FrontTop, hd));
-        b.Box(Part.Plastic, new Vector3(-hw + 0.4f, Canopy, -hd), new Vector3(hw - 0.4f, Canopy + 0.15f, -hd + Wall));
-        b.Box(Part.Plastic, new Vector3(-hw + 0.4f, Canopy, hd - Wall), new Vector3(hw - 0.4f, Canopy + 0.15f, hd));
-        b.Box(Part.Plastic, new Vector3(-hw, Canopy, -hd + 0.4f), new Vector3(-hw + Wall, Canopy + 0.15f, hd - 0.4f));
-        b.Box(Part.Plastic, new Vector3(hw - Wall, Canopy, -hd + 0.4f), new Vector3(hw, Canopy + 0.15f, hd - 0.4f));
-        // The net: strands along the middle of each wall, from its top to the canopy; none across the doorway.
-        void Net(float from, float to, float bottom, bool alongX, float at)
-        {
-            for (var t = from; t <= to + 0.01f; t += 0.2f)
-                b.Box(Part.Rubber, alongX ? new Vector3(t - 0.012f, bottom, at - 0.015f) : new Vector3(at - 0.015f, bottom, t - 0.012f),
-                    alongX ? new Vector3(t + 0.012f, Canopy, at + 0.015f) : new Vector3(at + 0.015f, Canopy, t + 0.012f));
-            for (var y = bottom + 0.2f; y < Canopy - 0.05f; y += 0.2f)
-                b.Box(Part.Rubber, alongX ? new Vector3(from, y - 0.01f, at - 0.01f) : new Vector3(at - 0.01f, y - 0.01f, from),
-                    alongX ? new Vector3(to, y + 0.01f, at + 0.01f) : new Vector3(at + 0.01f, y + 0.01f, to));
-        }
-        Net(-hw + 0.8f, hw - 0.8f, WallTop, true, -hd + Wall / 2f);
-        Net(-hd + 0.8f, hd - 0.8f, WallTop, false, -hw + Wall / 2f);
-        Net(-hd + 0.8f, hd - 0.8f, WallTop, false, hw - Wall / 2f);
-        Net(-hw + 0.8f, -Door, FrontTop, true, hd - Wall / 2f);
-        Net(Door, hw - 0.8f, FrontTop, true, hd - Wall / 2f);
-        b.Box(Part.Balls, new Vector3(-hw + Wall, Floor, -hd + Wall), new Vector3(hw - Wall, 0.75f, hd - Wall));
-        // Loose balls on top, in other colours; each sits a hair higher than the last, so none share a top face.
-        Part[] colours = [Part.RackUpright, Part.RackBeam, Part.Ceramic, Part.Fish];
-        for (var i = 0; i < 40; i++)
-        {
-            var x = -hw + 0.45f + (2f * hw - 0.9f) * ((i * 0.618034f) % 1f);
-            var z = -hd + 0.45f + (2f * hd - 0.9f) * ((i * 0.7548777f + 0.3f) % 1f);
-            b.Box(colours[i % colours.Length], new Vector3(x - 0.055f, 0.7f, z - 0.055f), new Vector3(x + 0.055f, 0.8f + 0.002f * i, z + 0.055f));
+            case FurnitureType.NetRailing:
+            {
+                const float Post = 0.03f, Bar = 0.03f, Strand = 0.004f;
+                foreach (var x in new[] { -hw + Post, hw - Post })
+                    b.Cylinder(Part.Padding, new Vector3(x, 0f, 0f), Post, Post, h, 10);
+                b.Tube(Part.Padding, new Vector3(-hw + 2f * Post, h - Bar, 0f), new Vector3(hw - 2f * Post, h - Bar, 0f), Bar, Bar, 10);
+                // The net: black strands every 10 cm both ways between the posts, the wall top and the bar (every 25 cm far off).
+                var (left, right, bottom, netTop) = (-hw + 2f * Post, hw - 2f * Post, 0.02f, h - 2f * Bar);
+                var step = b.Coarse ? 0.25f : 0.1f;
+                for (var x = left + step; x < right - 0.02f; x += step)
+                    b.Box(Part.Rubber, new Vector3(x - Strand, bottom, -Strand), new Vector3(x + Strand, netTop, Strand));
+                for (var y = bottom; y < netTop - 0.02f; y += step)
+                    b.Box(Part.Rubber, new Vector3(left, y - Strand, -Strand * 0.8f), new Vector3(right, y + Strand, Strand * 0.8f));
+                break;
+            }
+            case FurnitureType.PlaySlide:
+            {
+                // The back 45 cm is the deck over its ladder, with side rails; the chute runs from the deck down past the
+                // front of the piece, clearing the 0.6 m pool wall it stands against, to a lip 0.4 m beyond the front.
+                const float Deck = 1.1f, Lip = 0.68f, Post = 0.03f;
+                var deckFront = -hd + 0.45f;
+                foreach (var x in new[] { -hw, hw - 2f * Post })
+                {
+                    b.Box(Part.Padding, new Vector3(x, 0f, -hd), new Vector3(x + 2f * Post, h, -hd + 2f * Post));
+                    b.Box(Part.Padding, new Vector3(x, 0f, deckFront - 2f * Post), new Vector3(x + 2f * Post, h, deckFront));
+                    b.Box(Part.Padding, new Vector3(x, h - 0.05f, -hd + 2f * Post), new Vector3(x + 2f * Post, h, deckFront - 2f * Post));
+                    // Two legs under the middle of the chute, outside the pool wall.
+                    b.Box(Part.Padding, new Vector3(x, 0f, 0.15f), new Vector3(x + 2f * Post, 0.8f, 0.15f + 2f * Post));
+                }
+                for (var y = 0.25f; y < Deck - 0.1f; y += 0.25f)
+                    b.Box(Part.PaddingTrim, new Vector3(-hw + 2f * Post, y, -hd + 0.01f), new Vector3(hw - 2f * Post, y + 0.04f, -hd + 2f * Post - 0.01f));
+                b.Box(Part.Padding, new Vector3(-hw + 2f * Post, Deck - 0.06f, -hd + 2f * Post), new Vector3(hw - 2f * Post, Deck, deckFront - 2f * Post));
+                // The chute: a red slab with low sides, from the deck's front edge down to a flat lip at the front.
+                var slope = new Vector3(0f, Lip - Deck, hd + 0.1f - deckFront);
+                var across = new Vector3(2f * hw - 0.06f, 0f, 0f);
+                b.Slab(Part.PaddingTrim, new Vector3(-hw + 0.03f, Deck, deckFront), across, slope, 0.04f);
+                b.Slab(Part.PaddingTrim, new Vector3(-hw + 0.03f, Lip, hd + 0.1f), across, new Vector3(0f, 0f, 0.3f), 0.04f);
+                foreach (var x in new[] { -hw + 0.03f, hw - 0.06f })
+                    b.Slab(Part.PaddingTrim, new Vector3(x, Deck + 0.12f, deckFront), new Vector3(0.03f, 0f, 0f), slope, 0.12f);
+                break;
+            }
+            case FurnitureType.FoamStep:
+                b.Box(Part.Padding, new Vector3(-hw, 0f, -hd), new Vector3(hw, h - 0.06f, hd));
+                b.Box(Part.PaddingTrim, new Vector3(-hw - 0.01f, h - 0.06f, -hd - 0.01f), new Vector3(hw + 0.01f, h, hd + 0.01f));
+                break;
+            case FurnitureType.PlayBall:
+                // Thousands are drawn, so few faces; far off a small block standing on the floor of the piece.
+                if (b.Coarse)
+                    b.Box(Part.Balls, new Vector3(-hw * 0.85f, 0f, -hd * 0.85f), new Vector3(hw * 0.85f, h * 0.9f, hd * 0.85f));
+                else
+                    b.Ellipsoid(Part.Balls, new Vector3(0f, h / 2f, 0f), hw, h / 2f, hd, 8, 5);
+                break;
         }
     }
 
@@ -1276,12 +1335,15 @@ public static class FurnitureMeshes
             [Part.HourHand] = Hand(1),
             [Part.MinuteHand] = Hand(2),
             [Part.Food] = Plain(new Color(0.62f, 0.36f, 0.16f), 0.65f),
-            [Part.Balls] = Plain(new Color(0.85f, 0.16f, 0.14f), 0.4f),
+            [Part.Balls] = Plain(Colors.White, 0.3f, tinted: true),
             [Part.SignPanel] = Steady(new Color(0.05f, 0.55f, 0.25f), 0.4f, new Color(0.1f, 0.85f, 0.35f), 2.5f),
             [Part.SignLetters] = Steady(new Color(0.95f, 0.97f, 0.95f), 0.4f, new Color(0.9f, 1f, 0.92f), 3f),
             [Part.AquariumWater] = Steady(new Color(0.06f, 0.24f, 0.3f), 0.05f, new Color(0.15f, 0.5f, 0.65f), 0.6f),
             [Part.Fish] = Plain(new Color(1f, 0.5f, 0.1f), 0.45f),
             [Part.MannequinSkin] = Plain(Colors.White, 0.3f, tinted: true),
+            [Part.Padding] = Plain(Colors.White, 0.45f, tinted: true),
+            [Part.PaddingTrim] = Plain(new Color(0.85f, 0.12f, 0.1f), 0.45f),
+            [Part.BallBed] = Plain(new Color(0.16f, 0.12f, 0.14f), 0.6f),
         };
         return _materials;
     }
@@ -1539,6 +1601,32 @@ public static class FurnitureMeshes
                 Vertex(tool, b1, -axis, new Vector2(d1.X, d1.Z) * radiusFrom);
                 Vertex(tool, b0, -axis, new Vector2(d0.X, d0.Z) * radiusFrom);
             }
+        }
+
+        /// <summary>
+        /// A slanted slab: the parallelogram from <paramref name="corner"/> spanning <paramref name="u"/> and
+        /// <paramref name="v"/> as its top face, <paramref name="thickness"/> thick below it, closed on all sides.
+        /// </summary>
+        public void Slab(Part part, Vector3 corner, Vector3 u, Vector3 v, float thickness)
+        {
+            var tool = Surface(part);
+            var up = u.Cross(v).Normalized();
+            if (up.Y < 0f)
+                up = -up;
+            var down = -up * thickness;
+            // Each side faces away from the opposite side: along the in-plane perpendicular of its edge.
+            var outU = up.Cross(v).Normalized();
+            if (outU.Dot(u) < 0f)
+                outU = -outU;
+            var outV = up.Cross(u).Normalized();
+            if (outV.Dot(v) < 0f)
+                outV = -outV;
+            Face(tool, corner, u, v, up);
+            Face(tool, corner + down, u, v, -up);
+            Face(tool, corner, u, down, -outV);
+            Face(tool, corner + v, u, down, outV);
+            Face(tool, corner, v, down, -outU);
+            Face(tool, corner + u, v, down, outU);
         }
 
         /// <summary>A smooth ellipsoid with the given radii around <paramref name="centre"/>.</summary>

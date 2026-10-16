@@ -13,7 +13,7 @@ internal sealed record PointOfInterestLayout(IReadOnlyList<PointOfInterest> Poin
 /// <summary>
 /// Places and builds the Points of interest from the seed: the canteens (in Restaurant/food market
 /// Departments) and the cart graveyards, then, Sector by Sector, the dinner tables, restrooms and the lost and
-/// found desk, then the rare ones: three Ball pits (in the Kids' area where there is room), one or two of each of
+/// found desk, then the rare ones: three Ball pits (ball pools, in the Kids' area where there is room), one or two of each of
 /// the armchair henge, EXIT sign, mannequin crowd, door to nowhere and display aquarium. Each
 /// stands on a rectangle inside one department cell, turned by a quarter turn, clear of the Pillars and their
 /// walkway rings, the Landmarks and each other. The Displays then keep off them all. Each is built from its own random stream as individual Furniture.
@@ -341,23 +341,81 @@ internal static class PointOfInterestGenerator
                 b.Put(FurnitureType.ShoppingCart, new Vector2(x, 2.2f), 0f, random.Range(-0.5f, 0.5f));
     }
 
-    /// <summary>A bouncy castle full of balls, with play cubes strewn before its open front, a toy chest and a shoe cabinet beside it.</summary>
+    /// <summary>The Ball pit pool's centre in its Point of interest's frame, north of the middle so the step and bench fit in front.</summary>
+    private static readonly Vector2 PoolCentre = new(0f, -0.6f);
+
+    /// <summary>Thickness of the pool's padded walls.</summary>
+    private const float PoolWall = 0.25f;
+
+    /// <summary>Height of the ball fill in the pool, below the wall top: the bottom of the top layer of balls.</summary>
+    private const float BallFill = 0.4f;
+
+    /// <summary>
+    /// A ball pool like a store's kids' play area: a low pool with padded foam walls, net railing on the walls, a gap
+    /// with a foam step at the front (south), a small slide down into it through a gap in the west railing, and a layer
+    /// of coloured balls filling it, each its own piece, with a few spilled on the floor around; a shoe cabinet and a
+    /// bench for the grown-ups stand by.
+    /// </summary>
     private static void BuildBallPit(PointOfInterestBuilder b)
     {
         var random = b.Random;
-        b.Put(FurnitureType.BouncyCastle, new Vector2(0f, -1f), 0f, 0f, tint: random.Next(FurniturePalettes.TintCount));
-        // One play cube to a metre-wide slot, so they never overlap however they are turned.
-        var slots = new List<float> { -2f, -1f, 0f, 1f, 2f };
-        for (var i = 3 + random.Next(3); i > 0; i--)
-        {
-            var slot = random.Next(slots.Count);
-            b.Put(FurnitureType.PlayCube, new Vector2(slots[slot] + random.Range(-0.1f, 0.1f), random.Range(2.3f, 3.4f)), 0f,
-                random.Range(-0.8f, 0.8f), tint: random.Next(FurniturePalettes.TintCount));
-            slots.RemoveAt(slot);
-        }
+        var pool = FurnitureCatalog.Spec(FurnitureType.BallPool);
+        var (hw, hd) = (pool.Width / 2f, pool.Depth / 2f);
+        b.Put(FurnitureType.BallPool, PoolCentre, 0f, 0f, tint: random.Next(FurniturePalettes.TintCount));
+        // Net railing on the wall tops, one metre a length: five along the back, four along the front round the
+        // entrance gap, three along the east wall and two along the west round the slide.
+        var railTint = random.Next(FurniturePalettes.TintCount);
+        foreach (var x in new[] { -2f, -1f, 0f, 1f, 2f })
+            b.Put(FurnitureType.NetRailing, PoolCentre + new Vector2(x, -hd + PoolWall / 2f), pool.Height, 0f, tint: railTint);
+        foreach (var x in new[] { -2f, -1f, 1f, 2f })
+            b.Put(FurnitureType.NetRailing, PoolCentre + new Vector2(x, hd - PoolWall / 2f), pool.Height, 0f, tint: railTint);
+        foreach (var y in new[] { -1f, 0f, 1f })
+            b.Put(FurnitureType.NetRailing, PoolCentre + new Vector2(hw - PoolWall / 2f, y), pool.Height, Quarter, tint: railTint);
+        foreach (var y in new[] { -1f, 1f })
+            b.Put(FurnitureType.NetRailing, PoolCentre + new Vector2(-hw + PoolWall / 2f, y), pool.Height, Quarter, tint: railTint);
+        b.Put(FurnitureType.FoamStep, PoolCentre + new Vector2(0f, hd + 0.25f), 0f, 0f, tint: random.Next(FurniturePalettes.TintCount));
+        // The slide stands against the outside of the west wall; its chute (not part of its footprint) runs east over the wall into the balls.
+        var slide = FurnitureCatalog.Spec(FurnitureType.PlaySlide);
+        var slideCentre = PoolCentre + new Vector2(-hw - slide.Depth / 2f, 0f);
+        b.Put(FurnitureType.PlaySlide, slideCentre, 0f, -Quarter, tint: random.Next(FurniturePalettes.TintCount));
         var side = random.Chance(0.5f) ? 1f : -1f;
-        b.Put(FurnitureType.ToyChest, new Vector2(3.3f * side, random.Range(-2.5f, 0f)), 0f, side * Quarter, tint: random.Next(FurniturePalettes.TintCount));
-        b.Put(FurnitureType.ShoeCabinet, new Vector2(-3.4f * side, 2.6f), 0f, -side * Quarter);
+        var cabinet = new Vector2(2.9f * side, -3.6f);
+        b.Put(FurnitureType.ShoeCabinet, cabinet, 0f, 0f);
+        var bench = new Vector2(random.Range(1.4f, 2.4f) * side, 3.5f);
+        b.Put(FurnitureType.HallBench, bench, 0f, MathF.PI);
+
+        // The top layer of balls, rows staggered like packed balls, each a little jostled and heaped.
+        const float spacing = 0.1f, rowSpacing = 0.087f;
+        var ball = FurnitureCatalog.Spec(FurnitureType.PlayBall).Width;
+        var inner = new Vector2(hw - PoolWall - ball / 2f - 0.01f, hd - PoolWall - ball / 2f - 0.01f);
+        var row = 0;
+        for (var y = -inner.Y; y <= inner.Y; y += rowSpacing, row++)
+            for (var x = -inner.X + (row % 2) * spacing / 2f; x <= inner.X; x += spacing)
+            {
+                var at = new Vector2(Math.Clamp(x + random.Range(-0.01f, 0.01f), -inner.X, inner.X), Math.Clamp(y + random.Range(-0.01f, 0.01f), -inner.Y, inner.Y));
+                b.Put(FurnitureType.PlayBall, PoolCentre + at, BallFill + random.Range(0f, 0.04f), random.Range(-MathF.PI, MathF.PI), tint: random.Next(FurniturePalettes.TintCount));
+            }
+
+        // A few spilled on the floor round the pool, clear of the step, slide, cabinet, bench and each other.
+        (Vector2 Centre, Vector2 Half)[] taken =
+        [
+            (PoolCentre, new Vector2(hw, hd) + new Vector2(0.05f)),
+            (PoolCentre + new Vector2(0f, hd + 0.25f), new Vector2(0.55f, 0.3f)),
+            (slideCentre, new Vector2(slide.Depth / 2f, slide.Width / 2f) + new Vector2(0.05f)),
+            (cabinet, new Vector2(0.45f, 0.25f)),
+            (bench, new Vector2(0.65f, 0.25f)),
+        ];
+        var spilled = new List<Vector2>();
+        for (var tries = 0; spilled.Count < 8 + random.Next(13) && tries < 400; tries++)
+        {
+            // Most land near the pool, where they fell over the walls.
+            var at = PoolCentre + new Vector2(random.Range(-hw - 1.2f, hw + 1.2f), random.Range(-hd - 1.2f, hd + 1.2f));
+            if (taken.Any(t => MathF.Abs(at.X - t.Centre.X) < t.Half.X && MathF.Abs(at.Y - t.Centre.Y) < t.Half.Y)
+                || spilled.Any(s => Vector2.Distance(s, at) < ball * 1.1f)
+                || !b.Put(FurnitureType.PlayBall, at, 0f, random.Range(-MathF.PI, MathF.PI), tint: random.Next(FurniturePalettes.TintCount)))
+                continue;
+            spilled.Add(at);
+        }
     }
 
     /// <summary>

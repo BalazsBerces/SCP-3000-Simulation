@@ -45,8 +45,10 @@ public class FurnitureRebalanceTests(ITestOutputHelper output)
         sim.Advance(TimeSpan.FromSeconds(1));
         var snapshot = sim.Snapshot;
         var lamps = snapshot.Furniture.Where(p => p.DisplayId >= 0 && FurnitureCatalog.Spec(p).IsLamp).ToList();
-        var share = lamps.Count / (double)snapshot.Furniture.Count;
-        output.WriteLine($"{seed} / {layout.Name()}: {snapshot.Furniture.Count} Furniture, {lamps.Count} Lamps, {share:P4} Lamp pieces");
+        // The Ball pits' thousands of little balls are left out: they would dilute the share without changing how often a Lamp is seen.
+        var pieces = snapshot.Furniture.Count(p => p.Type != FurnitureType.PlayBall);
+        var share = lamps.Count / (double)pieces;
+        output.WriteLine($"{seed} / {layout.Name()}: {pieces} Furniture (without balls), {lamps.Count} Lamps, {share:P4} Lamp pieces");
         Assert.InRange(share, 0.03, 0.04);
         Assert.Equal(new HashSet<FurnitureType> { FurnitureType.TableLamp, FurnitureType.FloorLamp, FurnitureType.DeskLamp, FurnitureType.ArcLamp },
             lamps.Select(p => p.Type).ToHashSet());
