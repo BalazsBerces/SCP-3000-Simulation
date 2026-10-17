@@ -1,6 +1,6 @@
 # Furniture and props come from downloaded models, not generated geometry
 
-Every Furniture type, prop and surface the game draws (in Points of interest, Landmarks, Departments or anywhere else) uses a real, downloaded model or texture when a usable one exists. We search the sources already in use, in this order:
+Every Furniture type, prop and surface the game draws (in Points of interest, Landmarks, Departments or anywhere else) uses a real, downloaded model or texture when a usable one exists. First reuse a model or texture already in `game/assets/models` or `game/assets/textures`; only for items that have no suitable one yet do we search the sources already in use, in this order:
 
 - **Poly Haven** (polyhaven.com, CC0): models and textures, through its API
 - **ambientCG** (ambientcg.com, CC0): textures
