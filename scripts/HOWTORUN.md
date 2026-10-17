@@ -12,7 +12,7 @@ F4 toggles the Store overview.
 
 # How to run the ticket runners
 
-Run them from the repo root. The working tree must be clean before a ticket starts (`.claude\` excepted). Ctrl+C stops a runner. `-Max N` runs N tickets, and without it the runner works through all of them. Each script's header has the details. Logs go to `.ticket-logs\`.
+Run them from the repo root. Ctrl+C stops a runner. Uncommitted work may be in the tree: a ticket leaves it alone and keeps it out of its commit. A ticket that stops unfinished leaves its own work uncommitted, and the next attempt at that ticket takes it over (no reset or commit needed). `-Max N` runs N tickets, and without it the runner works through all of them. Each script's header has the details. Logs go to `.ticket-logs\`.
 
 ## v4 (current): Gemini on easy tickets, Codex on hard and stage-end tickets
 

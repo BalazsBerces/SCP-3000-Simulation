@@ -27,6 +27,8 @@ if ($step -eq 'done') {
   $msgFile = Join-Path $StubState 'commit-msg.txt'
   Set-Content -Path $msgFile -Value "$title`n`nCloses #$issue`n`n$co"
   git add -A -- . ':!.claude'
+  # Like a real agent, leave the uncommitted work that was there before the ticket out of its commit.
+  if ($prompt -match '(\.ticket-logs/\S+-preexisting\.txt)') { $pre = @(Get-Content $Matches[1] | Where-Object { $_ }); if ($pre.Count) { git reset -q -- $pre } }
   git commit -q -F $msgFile
   git push -q origin main
   & (Join-Path $PSScriptRoot 'gh.ps1') issue close $issue | Out-Null

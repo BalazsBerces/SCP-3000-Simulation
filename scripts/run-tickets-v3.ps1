@@ -182,7 +182,23 @@ function Resolve-Tool([string]$Name) {
   $c.Source
 }
 
-function Get-DirtyPaths { @(git status --porcelain -uall -- . ':!.claude') | Where-Object { $_ } }
+# Uncommitted paths outside .claude/, each with a fingerprint of its content ('deleted' when it is gone).
+function Get-DirtyState {
+  $state = @{}
+  git -c core.quotepath=false status --porcelain -uall -- . ':!.claude' | Where-Object { $_ } | ForEach-Object {
+    $p = $_.Substring(3)
+    if ($p -match ' -> (.+)$') { $p = $Matches[1] }
+    $p = $p.Trim('"')
+    $state[$p] = if (Test-Path -LiteralPath $p -PathType Leaf) { (Get-FileHash -LiteralPath $p -Algorithm SHA1).Hash } else { 'deleted' }
+  }
+  $state
+}
+
+# The paths the ticket changed: uncommitted now, and not uncommitted with the same content when it started.
+function Get-TicketPaths($Baseline) {
+  $now = Get-DirtyState
+  @($now.Keys | Where-Object { -not $Baseline.ContainsKey($_) -or $Baseline[$_] -ne $now[$_] } | Sort-Object)
+}
 
 # ---------------------------------------------------------------------------------------------------
 # Picking the ticket and its agent
@@ -249,10 +265,20 @@ function Get-ReviewRule($t) {
 
 function Get-Prompt($t, $choice, [string]$Head) {
   $closing = ".ticket-logs/$($t.Label)-closing.md"
+  $preFile = ".ticket-logs/$($t.Label)-preexisting.txt"
+  $stageRule = if ($script:preexisting.Count) { "stage only the files you changed for this ticket, by name (never git add -A or git add .)" }
+    else { 'stage everything except the .claude/ directory' }
+  # Uncommitted work already in the tree is someone else's; the runner keeps it out of the ticket's commit.
+  $preRule = if ($script:preexisting.Count) {
+    "`nThe uncommitted paths listed in $preFile were already there when you started: someone else's work in progress. Never stage, commit, revert, stash or delete them; if this ticket must change one of them, it becomes part of the ticket.`n"
+  } else { "`n" }
+  if ($script:resumed.Count) {
+    $preRule += "An earlier attempt at this ticket stopped unfinished and left its work uncommitted in the paths listed in .ticket-logs/$($t.Label)-unfinished.txt. Check that work first, then build on it or replace it; it is part of this ticket.`n"
+  }
   if ($choice.Agent -eq 'claude') {
     $finish = @"
 7. On success:
-   - stage everything except the .claude/ directory;
+   - $stageRule;
    - commit to main with the message "$($t.Title)", a blank line, "Closes #$($t.Issue)", a blank line, and "Co-Authored-By: Claude $(Get-ClaudeName $choice.Model) 5.5 <noreply@anthropic.com>";
    - push to origin main;
    - make sure issue #$($t.Issue) is closed;
@@ -282,7 +308,7 @@ Project rules for this run:
 1. This is an unattended run. Nobody will answer questions, so make reasonable decisions yourself and record them.
 2. Implement ONLY this ticket so that every acceptance criterion is met. Follow the spec's architecture: the engine-independent C# simulation core behind one facade, and the Godot presentation layer that only reads from it.
 3. Test seam: facade-level tests (scenario -> advance time -> assert on snapshot/events). Run the core tests in Release (dotnet test tests/Scp3008.Core.Tests -c Release --filter FullyQualifiedName~<ClassName>): the generation tests run about 5x faster than in Debug. $suiteRule Also build the Godot project with the console executable in headless mode. Godot 4.7.2 .NET is NOT on PATH; find it with a glob under %LOCALAPPDATA%\Microsoft\WinGet\Packages\GodotEngine.GodotEngine.Mono*\ (use the *_console.exe). Everything must pass.
-   Godot runs: only the build (--build-solutions --quit) may run --headless. Screenshots, colour checks and anything else that reads rendered pixels need a window, because headless Godot draws nothing and waits forever. Start every Godot run with a time limit (for example Start-Process -PassThru, then WaitForExit(300000) and kill it on timeout); a run that hits the limit is a failure to fix, not something to wait for.
+   Godot runs: the game's own options (--model-check=..., --capture=... and the rest in game/scripts/DevCapture.cs) go after a separate --, or Godot ignores them and just runs the game. Only the build (--build-solutions --quit) may run --headless. Screenshots, colour checks and anything else that reads rendered pixels need a window, because headless Godot draws nothing and waits forever. Start every Godot run with a time limit (for example Start-Process -PassThru, then WaitForExit(300000) and kill it on timeout); a run that hits the limit is a failure to fix, not something to wait for.
 4. For criteria that cannot be checked automatically (visuals, audio, fps), verify what you can (for example, run the game or the benchmark and capture a screenshot or fps numbers), and list what still needs human review. A check that fails is a failure to fix, never "could not run".
 5. Use the glossary vocabulary. If a new domain term is settled, add it to GLOSSARY.md. Write an ADR only for decisions that are hard to reverse, surprising, and the result of a real trade-off. Keep files UTF-8 and leave existing non-ASCII characters (such as × and ±) intact.
 $(Get-ReviewRule $t)
@@ -290,7 +316,7 @@ $finish
 9. Keep the context small; everything in it is re-read on every later turn:
    - write the full output of test runs, builds, Godot runs and benchmarks to a file under .ticket-logs/ and print only the summary and failures;
    - capture screenshots at most 1280 px wide, look at each one once, and do not reread images you already judged.
-Never modify issue #1 or other tickets, never force-push, and never rewrite history.
+${preRule}Never modify issue #1 or other tickets, never force-push, and never rewrite history.
 End your final message with exactly one line: TICKET_DONE or TICKET_BLOCKED: <reason>.
 "@
 }
@@ -522,14 +548,20 @@ function Add-IssueComment($t, [string]$Body) {
 
 # Commits Gemini's work (after a green gate), pushes, comments and closes the issue.
 function Complete-GeminiTicket($t, [string]$Head) {
-  # Gemini must not commit; if it did anyway, its commits are folded into the ticket commit.
-  $now = (git rev-parse HEAD).Trim()
-  if ($now -ne $Head) { Write-Host '  Gemini committed despite the rules; folding its commits into the ticket commit.' -ForegroundColor Yellow; git reset -q --soft $Head }
+  # Commits made meanwhile stay as they are: someone may work in the same tree while the ticket runs.
+  if ((git rev-parse HEAD).Trim() -ne $Head) { Write-Host '  HEAD moved during the ticket; the ticket commit goes on top.' -ForegroundColor Yellow }
   $msgFile = Join-Path $logDir "$($t.Label)-commit-msg.txt"
   Write-Utf8 $msgFile "$($t.Title)`n`nCloses #$($t.Issue)`n`nCo-Authored-By: Gemini ($GeminiModel) <noreply@google.com>`n"
-  git add -A -- . ':!.claude'
-  git commit -q -F $msgFile
-  if ($LASTEXITCODE -ne 0) { throw 'git commit failed.' }
+  # Only the ticket's own paths: uncommitted work that was there before it stays uncommitted.
+  $paths = @(Get-TicketPaths $script:baseline)
+  if ($paths.Count) {
+    $specFile = Join-Path $logDir "$($t.Label)-paths.txt"
+    Write-Utf8 $specFile (($paths -join "`n") + "`n")
+    git --literal-pathspecs add -A --pathspec-from-file=$specFile
+    if ($LASTEXITCODE -ne 0) { throw 'git add failed.' }
+    git --literal-pathspecs commit -q -F $msgFile --pathspec-from-file=$specFile
+    if ($LASTEXITCODE -ne 0) { throw 'git commit failed.' }
+  } else { Write-Host '  The ticket left no uncommitted change of its own; nothing to commit.' -ForegroundColor Yellow }
   git push -q origin main
   if ($LASTEXITCODE -ne 0) { throw 'git push failed.' }
   $closing = Join-Path $logDir "$($t.Label)-closing.md"
@@ -617,11 +649,17 @@ while ($true) {
   Write-Host "`n=== $($t.Title)  (#$($t.Issue), $difficulty$(if ($t.IsStageEnd) { ', stage end + review' }), $what) ===" -ForegroundColor Cyan
   if ($DryRun) { Write-Host 'Dry run: nothing started.' -ForegroundColor Yellow; break }
 
-  # Gemini's work is committed with 'git add -A', so nothing else may be lying around.
-  $dirty = @(Get-DirtyPaths)
-  if ($dirty.Count) {
-    Write-Host "The working tree has uncommitted changes; commit, stash or clean them first:`n$($dirty -join "`n")" -ForegroundColor Red
-    exit 1
+  # Uncommitted work already in the tree stays out of the ticket: out of its commit and its clean-tree check.
+  $baseline = Get-DirtyState
+  # Paths an earlier, unfinished attempt at this ticket left behind belong to this ticket again.
+  $unfinishedFile = Join-Path $logDir "$($t.Label)-unfinished.txt"
+  $script:resumed = @(if (Test-Path $unfinishedFile) { Get-Content $unfinishedFile -Encoding UTF8 | Where-Object { $_ -and $baseline.ContainsKey($_) } })
+  foreach ($p in $script:resumed) { $baseline.Remove($p) }
+  if ($script:resumed.Count) { Write-Host "  An earlier attempt left $($script:resumed.Count) uncommitted path(s); this attempt takes them over." -ForegroundColor DarkCyan }
+  $script:preexisting = @($baseline.Keys | Sort-Object)
+  if ($script:preexisting.Count) {
+    Write-Utf8 (Join-Path $logDir "$($t.Label)-preexisting.txt") (($script:preexisting -join "`n") + "`n")
+    Write-Host "  $($script:preexisting.Count) uncommitted path(s) already in the tree; the ticket leaves them alone." -ForegroundColor DarkCyan
   }
 
   $stats = New-Stats
@@ -643,13 +681,15 @@ while ($true) {
   }
 
   $state = gh issue view $t.Issue -R $Repo --json state --jq '.state'
-  $dirty = @(Get-DirtyPaths)
+  $dirty = @(Get-TicketPaths $baseline)
   git fetch -q origin
   $unpushed = git rev-list --count origin/main..main
   $minutes = ((Get-Date) - $started).TotalMinutes
 
   if ($state -ne 'CLOSED' -or $dirty.Count -or [int]$unpushed -gt 0) {
     Add-CsvRow $t $choice $stats $minutes 'unfinished'
+    # The half-done work stays uncommitted; the next attempt at this ticket takes it over.
+    if ($dirty.Count) { Write-Utf8 $unfinishedFile (($dirty -join "`n") + "`n") }
     Write-Host "Ticket $($t.Label) did not finish cleanly (issue: $state, uncommitted changes: $($dirty.Count -gt 0), unpushed commits: $unpushed)." -ForegroundColor Red
     Write-Host "Agent's last message:`n$final" -ForegroundColor Red
     Write-Host "Logs: $logDir"
@@ -657,6 +697,7 @@ while ($true) {
   }
 
   Add-CsvRow $t $choice $stats $minutes 'done'
+  Remove-Item -LiteralPath $unfinishedFile -ErrorAction SilentlyContinue
   Write-Host ("Ticket {0} done in {1:N0} min." -f $t.Label, $minutes) -ForegroundColor Green
   $done++
 

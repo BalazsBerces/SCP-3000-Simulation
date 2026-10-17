@@ -6,6 +6,7 @@ $a = @($args | ForEach-Object { "$_" })
 $prompt = $a[-1]
 $resume = Get-ArgAfter $a '--resume'
 $sc = Get-Scenario
+Add-Content -Path (Join-Path $StubState 'claude-prompts.txt') -Value $prompt
 Write-Call ("claude resume=$resume effort=$(Get-ArgAfter $a '--effort') model=$(Get-ArgAfter $a '--model') prompt=" + (($prompt -split "`n")[0]))
 
 function Emit($o) { $o | ConvertTo-Json -Compress -Depth 10 }
@@ -47,6 +48,8 @@ if ($first -like '/implement*') {
     $msgFile = Join-Path $StubState 'commit-msg.txt'
     Set-Content -Path $msgFile -Value "$title`n`nCloses #$issue`n`n$co"
     git add -A -- . ':!.claude'
+    # Like a real agent, leave the uncommitted work that was there before the ticket out of its commit.
+    if ($prompt -match '(\.ticket-logs/\S+-preexisting\.txt)') { $pre = @(Get-Content $Matches[1] | Where-Object { $_ }); if ($pre.Count) { git reset -q -- $pre } }
     git commit -q -F $msgFile
     git push -q origin main
     & (Join-Path $PSScriptRoot 'gh.ps1') issue close $issue | Out-Null

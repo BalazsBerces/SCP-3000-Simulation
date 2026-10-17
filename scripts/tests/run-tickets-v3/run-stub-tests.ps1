@@ -166,6 +166,8 @@ Invoke-Scenario 'gemini-red-twice-stops' @{ exec = @('red', 'red') } -Assert {
   Should ((Get-Issue $r 67).state -eq 'OPEN') 'issue closed on red work'
   Should (Test-Comment $r 67 'still red') 'no blocker comment'
   Should ($r.Csv[-1].result -eq 'unfinished') "CSV result $($r.Csv[-1].result)"
+  Should ((Get-Content (Join-Path $r.Fx.Repo '.ticket-logs/08j-unfinished.txt') -ErrorAction SilentlyContinue) -contains 'src/impl.txt') 'the unfinished work was not recorded for the next attempt'
+  Should ([bool]($r.Status -match 'src/impl.txt')) 'the unfinished work was not left in the tree'
 }
 
 Invoke-Scenario 'gemini-blocked' @{ exec = @('blocked') } -Assert {
@@ -177,8 +179,11 @@ Invoke-Scenario 'gemini-blocked' @{ exec = @('blocked') } -Assert {
 
 Invoke-Scenario 'gemini-commits-itself' @{ exec = @('commit') } -Assert {
   param($r)
-  Assert-Committed $r 'Co-Authored-By: Gemini'
-  Should (-not (($r.OriginLog -join "`n") -match 'executor commit')) "Gemini's own commit reached origin"
+  # Commits made during a ticket stay as they are; the ticket had nothing left of its own to commit.
+  Should ($r.Exit -eq 0) "runner exit $($r.Exit)"
+  Should ((Get-Issue $r 67).state -eq 'CLOSED') 'issue 67 not closed'
+  Should (($r.OriginLog -join "`n") -match 'executor commit') "Gemini's own commit did not reach origin"
+  Should (-not $r.Status.Count) "working tree not clean: $($r.Status -join '; ')"
 }
 
 Invoke-Scenario 'gemini-provider-retry' @{ exec = @('provider', 'done') } -Assert {
@@ -202,10 +207,22 @@ Invoke-Scenario 'claude-usage-limit-resume' @{ limitOnImplement = $true } -Gh (N
   Should ((Get-Calls $r 'claude resume=sess-0 *usage limit interrupted*').Count -eq 1) 'the session was not resumed after the limit'
 }
 
-Invoke-Scenario 'dirty-tree-refuses' -Setup { param($fx) Set-Content (Join-Path $fx.Repo 'leftover.txt') 'x' } -Assert {
+# Uncommitted work already in the tree (a new file and an edited one) stays uncommitted and out of the ticket.
+$dirtySetup = { param($fx) Set-Content (Join-Path $fx.Repo 'leftover.txt') 'x'; Set-Content (Join-Path $fx.Repo 'Scp3008.sln') 'edited by hand' }
+function Assert-DirtyKeptOut($r, [string]$CoAuthor) {
+  Assert-Committed $r $CoAuthor | Where-Object { $_ -notlike 'working tree not clean*' }
+  # Assert-Committed wants a clean tree; here exactly the two pre-existing paths must still be uncommitted.
+  Should (@($r.Status | Where-Object { $_ -match 'leftover\.txt|Scp3008\.sln' }).Count -eq 2 -and $r.Status.Count -eq 2) "uncommitted after the ticket: $($r.Status -join '; ')"
+  Should (-not (git -C $r.Fx.Origin show --name-only --format= main | Where-Object { $_ -match 'leftover|Scp3008\.sln' })) 'pre-existing work reached the ticket commit'
+  Should ($r.Out -match '2 uncommitted path\(s\) already in the tree') 'the runner did not report the pre-existing work'
+}
+
+Invoke-Scenario 'dirty-tree-gemini' -Setup $dirtySetup -Assert { param($r) Assert-DirtyKeptOut $r 'Co-Authored-By: Gemini' }
+
+Invoke-Scenario 'dirty-tree-claude' -Gh (New-Gh @('hard')) -Setup $dirtySetup -Assert {
   param($r)
-  Should ($r.Exit -ne 0) 'runner started on a dirty tree'
-  Should ((Get-Calls $r 'exec *').Count -eq 0 -and (Get-Calls $r 'claude *').Count -eq 0) 'an agent ran on a dirty tree'
+  Assert-DirtyKeptOut $r 'Co-Authored-By: Claude Sonnet 5.5'
+  Should ((Get-Content (Join-Path $r.Fx.Repo '.ticket-logs/08j-preexisting.txt')) -join ',' -eq 'leftover.txt,Scp3008.sln') 'the pre-existing list is wrong'
 }
 
 Invoke-Scenario 'dry-run' -RunnerArgs @('-DryRun') -Assert {
@@ -213,6 +230,21 @@ Invoke-Scenario 'dry-run' -RunnerArgs @('-DryRun') -Assert {
   Should ($r.Exit -eq 0) "dry run exit $($r.Exit)"
   Should ($r.Out -match 'Gemini gemini-3.8-flash-high') 'dry run did not name the agent'
   Should ((Get-Calls $r 'exec *').Count -eq 0 -and (Get-Calls $r 'claude *').Count -eq 0 -and (Get-Calls $r 'dotnet *').Count -eq 0) 'the dry run ran something'
+}
+
+# An earlier attempt stopped unfinished: its work is still uncommitted and listed; this attempt takes it over.
+Invoke-Scenario 'unfinished-work-taken-over' -Gh (New-Gh @('hard')) -RunnerArgs @() -Setup {
+  param($fx)
+  Set-Content (Join-Path $fx.Repo 'src\impl.txt') 'half done'
+  New-Item -ItemType Directory -Force (Join-Path $fx.Repo '.ticket-logs') | Out-Null
+  Set-Content (Join-Path $fx.Repo '.ticket-logs\08j-unfinished.txt') 'src/impl.txt'
+} -Assert {
+  param($r)
+  Assert-Committed $r 'Co-Authored-By: Claude Sonnet 5.5'
+  Should ($r.Out -match 'An earlier attempt left 1 uncommitted path') 'the runner did not take over the earlier work'
+  Should (-not (Test-Path (Join-Path $r.Fx.Repo '.ticket-logs\08j-preexisting.txt'))) 'the earlier work was treated as someone else''s'
+  Should (-not (Test-Path (Join-Path $r.Fx.Repo '.ticket-logs\08j-unfinished.txt'))) 'the take-over list survived a finished ticket'
+  Should ("$(Get-Content (Join-Path $r.Fx.State 'claude-prompts.txt') -Raw)" -match 'An earlier attempt at this ticket stopped unfinished') 'the agent was not told about the earlier work'
 }
 
 $failed = @($results | Where-Object { -not $_.Ok })
