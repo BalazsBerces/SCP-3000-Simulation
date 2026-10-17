@@ -6,7 +6,7 @@ $a = @($args | ForEach-Object { "$_" })
 $prompt = $a[-1]
 $resume = Get-ArgAfter $a '--resume'
 $sc = Get-Scenario
-Write-Call ("claude resume=$resume effort=$(Get-ArgAfter $a '--effort') prompt=" + (($prompt -split "`n")[0]))
+Write-Call ("claude resume=$resume effort=$(Get-ArgAfter $a '--effort') model=$(Get-ArgAfter $a '--model') prompt=" + (($prompt -split "`n")[0]))
 
 function Emit($o) { $o | ConvertTo-Json -Compress -Depth 10 }
 $session = if ($resume) { $resume } else { 'sess-' + (Get-NextIndex 'claude') }
@@ -15,7 +15,8 @@ Emit @{ type = 'rate_limit_event'; rate_limit_info = @{ status = 'allowed'; unif
 
 $pending = Join-Path $StubState 'pending-prompt.txt'
 if ($prompt -like 'The usage limit interrupted you*') { $prompt = Get-Content $pending -Raw }
-elseif ($sc.limitOnPlan -and $prompt -like '/plan-ticket*' -and -not (Test-Path (Join-Path $StubState 'limited'))) {
+elseif ((($sc.limitOnPlan -and $prompt -like '/plan-ticket*') -or ($sc.limitOnImplement -and $prompt -like '/implement*')) -and
+  -not (Test-Path (Join-Path $StubState 'limited'))) {
   Set-Content -Path $pending -Value $prompt -NoNewline
   Set-Content -Path (Join-Path $StubState 'limited') -Value 1
   Emit @{ type = 'rate_limit_event'; rate_limit_info = @{ status = 'rejected'; resetsAt = [DateTimeOffset]::UtcNow.ToUnixTimeSeconds() } }
@@ -34,7 +35,24 @@ function Write-LockedTest([bool]$Wrong) {
   Set-Content -Path $locked -Value "public class AcceptanceTests { /* expects good: $mark */ }"
 }
 
-if ($first -like '/plan-ticket*--amend*') {
+if ($first -like '/implement*') {
+  # v3: the whole ticket in one session, committed, pushed and closed by the agent.
+  $label = $tok[2]
+  $issue = if ($prompt -match 'GitHub issue #(\d+)') { $Matches[1] }
+  if ((Get-Step 'implement' 'done') -eq 'done') {
+    Set-Content -Path (Join-Path (Get-Location) 'src\impl.txt') -Value "good $label claude"
+    # The runner swaps double quotes for single quotes in the prompt.
+    $title = if ($prompt -match "message '([^']+)'") { $Matches[1] } else { 'untitled' }
+    $co = if ($prompt -match "'(Co-Authored-By: [^']+)'") { $Matches[1] } else { '' }
+    $msgFile = Join-Path $StubState 'commit-msg.txt'
+    Set-Content -Path $msgFile -Value "$title`n`nCloses #$issue`n`n$co"
+    git add -A -- . ':!.claude'
+    git commit -q -F $msgFile
+    git push -q origin main
+    & (Join-Path $PSScriptRoot 'gh.ps1') issue close $issue | Out-Null
+    $final = "Implemented.`nTICKET_DONE"
+  } else { $final = "Cannot do it.`nTICKET_BLOCKED: stub blocker" }
+} elseif ($first -like '/plan-ticket*--amend*') {
   if ($sc.amendFix) { Write-LockedTest $false; $final = "I corrected the acceptance test.`nAMEND_CHANGED: fixed the expected value" }
   else { $final = "The test is right; implement the plan.`nAMEND_CONFIRMED: the test is right" }
 } elseif ($first -like '/plan-ticket*') {

@@ -44,8 +44,14 @@ switch ($tool) {
 $outcome = Get-Step 'exec' 'done'
 Write-Call "exec $name session=$session outcome=$outcome msg=$msg"
 $sid = if ($session) { $session } else { "$tool-ses-$(Get-NextIndex 'sid')" }
-$label = (Get-ChildItem (Join-Path (Get-Location) '.ticket-work') -Directory | Select-Object -First 1).Name
-$work = Join-Path (Get-Location) ".ticket-work\$label"
+# v2 works from .ticket-work/<label>; v3 has none and names the ticket in its first prompt only.
+$workRoot = Join-Path (Get-Location) '.ticket-work'
+$labelFile = Join-Path $StubState 'exec-label.txt'
+if (Test-Path $workRoot) { $label = (Get-ChildItem $workRoot -Directory | Select-Object -First 1).Name }
+elseif ($msg -match '^/implement ticket (\S+)') { $label = $Matches[1]; Set-Content -Path $labelFile -Value $label }
+else { $label = (Get-Content $labelFile -ErrorAction SilentlyContinue | Select-Object -First 1) }
+$work = Join-Path $workRoot $label
+$v3 = -not (Test-Path $work)
 
 function Emit($o) { [Console]::Out.WriteLine(($o | ConvertTo-Json -Compress -Depth 10)) }
 function Emit-Start {
@@ -79,6 +85,13 @@ function Write-Work([string]$Impl, [string]$Last, [switch]$NoCapture) {
   New-Item -ItemType Directory -Force (Split-Path -Parent $implPath) | Out-Null
   # The label makes every ticket's change differ, so consecutive tickets each have something to commit.
   Set-Content -Path $implPath -Value "$Impl $label"
+  if ($v3) {
+    # v3: the closing comment the runner posts after its checks.
+    $logs = Join-Path (Get-Location) '.ticket-logs'
+    New-Item -ItemType Directory -Force $logs | Out-Null
+    Set-Content -Path (Join-Path $logs "$label-closing.md") -Value "Stub closing comment for $label"
+    return
+  }
   Set-Content -Path (Join-Path $work 'REPORT.md') -Value "# Report`nChanges: src/impl.txt`n$Last"
   if (-not $NoCapture) {
     Get-Content (Join-Path $work 'captures.txt') | Where-Object { $_.Trim() } | ForEach-Object {

@@ -14,6 +14,18 @@ F4 toggles the Store overview.
 
 From the repo root. `-Max N` runs N tickets; without it, all of them. Details are in each script's header.
 
+## v3 (v1 with more models: easy tickets on Gemini, hard and stage-end tickets on Sonnet)
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\run-tickets-v3.ps1 -DryRun            # show the next ticket and its agent
+powershell -ExecutionPolicy Bypass -File .\scripts\run-tickets-v3.ps1 -Max 1
+powershell -ExecutionPolicy Bypass -File .\scripts\run-tickets-v3.ps1 -NoStagePause      # don't pause at stage ends
+powershell -ExecutionPolicy Bypass -File .\scripts\run-tickets-v3.ps1 -EasyAgent claude  # easy tickets on Sonnet too
+```
+
+Ctrl+C stops it. The working tree must be clean before it starts. Per ticket: one CSV row in `.ticket-logs\v3-runs.csv`.
+Tests: `scripts\tests\run-tickets-v3\run-stub-tests.ps1`.
+
 ## v2 (Opus plans and reviews, Nemotron/Gemini/Codex implement)
 
 ```powershell
