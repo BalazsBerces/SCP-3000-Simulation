@@ -1,0 +1,488 @@
+{
+ "accessors": [
+  {
+   "bufferView": 2,
+   "componentType": 5126,
+   "count": 181,
+   "max": [
+    0.9120219945907593,
+    1.0,
+    1.206574559211731
+   ],
+   "min": [
+    -0.7620811462402344,
+    -1.0,
+    -0.8213425874710083
+   ],
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 2,
+   "byteOffset": 2172,
+   "componentType": 5126,
+   "count": 181,
+   "max": [
+    0.9999174475669861,
+    1.0,
+    1.0
+   ],
+   "min": [
+    -1.0,
+    -1.0,
+    -0.19350877404212952
+   ],
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 1,
+   "componentType": 5126,
+   "count": 181,
+   "max": [
+    0.960944414138794,
+    0.9323863983154297
+   ],
+   "min": [
+    0.005444593261927366,
+    0.007680452894419432
+   ],
+   "type": "VEC2"
+  },
+  {
+   "bufferView": 0,
+   "componentType": 5125,
+   "count": 744,
+   "type": "SCALAR"
+  },
+  {
+   "bufferView": 2,
+   "byteOffset": 4344,
+   "componentType": 5126,
+   "count": 224,
+   "max": [
+    0.8248223066329956,
+    1.0,
+    -0.620895504951477
+   ],
+   "min": [
+    -0.7620811462402344,
+    -1.0,
+    -0.8213425874710083
+   ],
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 2,
+   "byteOffset": 7032,
+   "componentType": 5126,
+   "count": 224,
+   "max": [
+    0.9999998211860657,
+    1.0,
+    1.888401612859525e-08
+   ],
+   "min": [
+    -8.104447033474571e-07,
+    -1.0,
+    -1.0
+   ],
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 1,
+   "byteOffset": 1448,
+   "componentType": 5126,
+   "count": 224,
+   "max": [
+    0.9945554137229919,
+    0.9576993584632874
+   ],
+   "min": [
+    0.010618200525641441,
+    0.005444593261927366
+   ],
+   "type": "VEC2"
+  },
+  {
+   "bufferView": 0,
+   "byteOffset": 2976,
+   "componentType": 5125,
+   "count": 756,
+   "type": "SCALAR"
+  },
+  {
+   "bufferView": 2,
+   "byteOffset": 9720,
+   "componentType": 5126,
+   "count": 416,
+   "max": [
+    0.31268423795700073,
+    0.8781794905662537,
+    0.8248935341835022
+   ],
+   "min": [
+    -0.29011815786361694,
+    -0.8772832155227661,
+    -0.8439452052116394
+   ],
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 2,
+   "byteOffset": 14712,
+   "componentType": 5126,
+   "count": 416,
+   "max": [
+    0.9773240089416504,
+    0.9995638132095337,
+    0.9578611254692078
+   ],
+   "min": [
+    -0.9773244857788086,
+    -0.999678909778595,
+    -0.8362262845039368
+   ],
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 1,
+   "byteOffset": 3240,
+   "componentType": 5126,
+   "count": 416,
+   "max": [
+    0.6654698252677917,
+    0.6010818481445312
+   ],
+   "min": [
+    0.3680589497089386,
+    0.005444612354040146
+   ],
+   "type": "VEC2"
+  },
+  {
+   "bufferView": 0,
+   "byteOffset": 6000,
+   "componentType": 5125,
+   "count": 1572,
+   "type": "SCALAR"
+  }
+ ],
+ "asset": {
+  "extras": {
+   "author": "Carolyn Wong (https://sketchfab.com/carolynw)",
+   "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+   "source": "https://sketchfab.com/3d-models/paper-towel-dispenser-15c4a2aa81994874a8dfc8038339b08d",
+   "title": "Paper Towel Dispenser"
+  },
+  "generator": "Sketchfab-16.10.0",
+  "version": "2.0"
+ },
+ "bufferViews": [
+  {
+   "buffer": 0,
+   "byteLength": 12288,
+   "name": "floatBufferViews",
+   "target": 34963
+  },
+  {
+   "buffer": 0,
+   "byteLength": 6568,
+   "byteOffset": 12288,
+   "byteStride": 8,
+   "name": "floatBufferViews",
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteLength": 19704,
+   "byteOffset": 18856,
+   "byteStride": 12,
+   "name": "floatBufferViews",
+   "target": 34962
+  }
+ ],
+ "buffers": [
+  {
+   "uri": "paper_towel_dispenser.bin",
+   "byteLength": 38560
+  }
+ ],
+ "materials": [
+  {
+   "doubleSided": true,
+   "name": "Dispenser",
+   "pbrMetallicRoughness": {
+    "baseColorTexture": {
+     "index": 0
+    },
+    "metallicRoughnessTexture": {
+     "index": 1
+    }
+   },
+   "normalTexture": {
+    "index": 2
+   }
+  },
+  {
+   "doubleSided": true,
+   "name": "Dispenser_Bottom",
+   "pbrMetallicRoughness": {
+    "baseColorTexture": {
+     "index": 3
+    },
+    "metallicRoughnessTexture": {
+     "index": 4
+    }
+   },
+   "normalTexture": {
+    "index": 5
+   }
+  },
+  {
+   "doubleSided": true,
+   "name": "Paper_Towel",
+   "pbrMetallicRoughness": {
+    "baseColorTexture": {
+     "index": 6
+    },
+    "metallicRoughnessTexture": {
+     "index": 7
+    }
+   },
+   "normalTexture": {
+    "index": 8
+   }
+  }
+ ],
+ "meshes": [
+  {
+   "name": "Paper Towel Dispenser_Dispenser_0",
+   "primitives": [
+    {
+     "attributes": {
+      "NORMAL": 1,
+      "POSITION": 0,
+      "TEXCOORD_0": 2
+     },
+     "indices": 3,
+     "material": 0,
+     "mode": 4
+    }
+   ]
+  },
+  {
+   "name": "Paper Towel Dispenser_Dispenser Bottom_0",
+   "primitives": [
+    {
+     "attributes": {
+      "NORMAL": 5,
+      "POSITION": 4,
+      "TEXCOORD_0": 6
+     },
+     "indices": 7,
+     "material": 1,
+     "mode": 4
+    }
+   ]
+  },
+  {
+   "name": "Paper Towel_Paper Towel_0",
+   "primitives": [
+    {
+     "attributes": {
+      "NORMAL": 9,
+      "POSITION": 8,
+      "TEXCOORD_0": 10
+     },
+     "indices": 11,
+     "material": 2,
+     "mode": 4
+    }
+   ]
+  }
+ ],
+ "nodes": [
+  {
+   "children": [
+    1
+   ],
+   "matrix": [
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    2.220446049250313e-16,
+    -1.0,
+    0.0,
+    0.0,
+    1.0,
+    2.220446049250313e-16,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0
+   ],
+   "name": "Sketchfab_model"
+  },
+  {
+   "children": [
+    2
+   ],
+   "matrix": [
+    0.009999999776482582,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.009999999776482582,
+    0.0,
+    0.0,
+    -0.009999999776482582,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0
+   ],
+   "name": "4b2d8642b7b146708b753422f1e7791b.fbx"
+  },
+  {
+   "children": [
+    3,
+    6
+   ],
+   "name": "RootNode"
+  },
+  {
+   "children": [
+    4,
+    5
+   ],
+   "matrix": [
+    100.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    -1.629206793918314e-05,
+    -99.99999999999868,
+    0.0,
+    0.0,
+    99.99999999999868,
+    -1.629206793918314e-05,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0
+   ],
+   "name": "Paper Towel Dispenser"
+  },
+  {
+   "mesh": 0,
+   "name": "Paper Towel Dispenser_Dispenser_0"
+  },
+  {
+   "mesh": 1,
+   "name": "Paper Towel Dispenser_Dispenser Bottom_0"
+  },
+  {
+   "children": [
+    7
+   ],
+   "matrix": [
+    100.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    -1.629206793918314e-05,
+    -99.99999999999868,
+    0.0,
+    0.0,
+    99.99999999999868,
+    -1.629206793918314e-05,
+    0.0,
+    79.23582458496094,
+    -95.53009033203125,
+    0.09229672700166702,
+    1.0
+   ],
+   "name": "Paper Towel"
+  },
+  {
+   "mesh": 2,
+   "name": "Paper Towel_Paper Towel_0"
+  }
+ ],
+ "scene": 0,
+ "scenes": [
+  {
+   "name": "Sketchfab_Scene",
+   "nodes": [
+    0
+   ]
+  }
+ ],
+ "images": [
+  {
+   "uri": "textures/paper_towel_dispenser_material0_albedo.jpg"
+  },
+  {
+   "uri": "textures/paper_towel_dispenser_material0_orm.jpg"
+  },
+  {
+   "uri": "textures/paper_towel_dispenser_material0_normal.jpg"
+  },
+  {
+   "uri": "textures/paper_towel_dispenser_material1_albedo.jpg"
+  },
+  {
+   "uri": "textures/paper_towel_dispenser_material1_orm.jpg"
+  },
+  {
+   "uri": "textures/paper_towel_dispenser_material1_normal.jpg"
+  },
+  {
+   "uri": "textures/paper_towel_dispenser_material2_albedo.jpg"
+  },
+  {
+   "uri": "textures/paper_towel_dispenser_material2_orm.jpg"
+  },
+  {
+   "uri": "textures/paper_towel_dispenser_material2_normal.jpg"
+  }
+ ],
+ "textures": [
+  {
+   "source": 0
+  },
+  {
+   "source": 1
+  },
+  {
+   "source": 2
+  },
+  {
+   "source": 3
+  },
+  {
+   "source": 4
+  },
+  {
+   "source": 5
+  },
+  {
+   "source": 6
+  },
+  {
+   "source": 7
+  },
+  {
+   "source": 8
+  }
+ ]
+}

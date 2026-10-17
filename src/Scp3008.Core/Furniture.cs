@@ -121,6 +121,29 @@ public enum FurnitureType
     Spill,
     /// <summary>A hand-written note.</summary>
     Note,
+    // The Restroom's Furniture (ticket 08j)
+    /// <summary>Wall partition between restroom stalls.</summary>
+    StallPartition,
+    /// <summary>Restroom stall door (can be closed, ajar, or hanging off).</summary>
+    StallDoor,
+    /// <summary>Wall-mounted electric hand dryer.</summary>
+    HandDryer,
+    /// <summary>Wall-mounted paper towel dispenser.</summary>
+    PaperTowelDispenser,
+    /// <summary>Wall-mounted fold-down baby-changing station.</summary>
+    BabyChangingTable,
+    /// <summary>Restroom sign with generic store icons.</summary>
+    RestroomSign,
+    /// <summary>Worn folding plastic out-of-order / wet-floor caution sign.</summary>
+    OutOfOrderSign,
+    /// <summary>Long mirror above washbasins (variant 0: intact, variant 1: cracked).</summary>
+    RestroomMirror,
+    /// <summary>Tiled perimeter wall segment of the restroom.</summary>
+    TiledWall,
+    /// <summary>Tiled floor covering of the restroom.</summary>
+    TiledFloor,
+    /// <summary>Discarded paper towel or paper scrap on the floor.</summary>
+    LitterPaper,
 }
 
 /// <summary>
@@ -250,6 +273,9 @@ public static class FurnitureCatalog
         FurnitureType.HotFoodCounter, FurnitureType.DessertCounter, FurnitureType.TrayRail, FurnitureType.TrayStation,
         FurnitureType.CoffeeMachine, FurnitureType.Till, FurnitureType.TrayTrolley, FurnitureType.HighChair,
         FurnitureType.MenuBoard, FurnitureType.Tray, FurnitureType.Spill, FurnitureType.Note,
+        FurnitureType.StallPartition, FurnitureType.StallDoor, FurnitureType.HandDryer, FurnitureType.PaperTowelDispenser,
+        FurnitureType.BabyChangingTable, FurnitureType.RestroomSign, FurnitureType.OutOfOrderSign, FurnitureType.RestroomMirror,
+        FurnitureType.TiledWall, FurnitureType.TiledFloor, FurnitureType.LitterPaper,
     ];
 
     /// <summary>
@@ -374,8 +400,21 @@ public static class FurnitureCatalog
             new(FurnitureType.Tray, 0.45f, 0.35f, 0.02f),                     // serving tray
             new(FurnitureType.Spill, 0.8f, 0.6f, 0.005f, IsFloorCovering: true), // spilled drink or food on the floor
             new(FurnitureType.Note, 0.21f, 0.15f, 0.01f),                     // folded hand-written note
+            // Restroom Furniture (ticket 08j)
+            new(FurnitureType.StallPartition, 0.04f, 1.6f, 2.0f),
+            new(FurnitureType.StallDoor, 0.85f, 0.04f, 1.9f),
+            new(FurnitureType.HandDryer, 0.28f, 0.20f, 0.32f),
+            new(FurnitureType.PaperTowelDispenser, 0.30f, 0.18f, 0.40f),
+            new(FurnitureType.BabyChangingTable, 0.88f, 0.55f, 0.50f),
+            new(FurnitureType.RestroomSign, 0.40f, 0.05f, 0.30f),
+            new(FurnitureType.OutOfOrderSign, 0.30f, 0.36f, 0.63f),
+            new(FurnitureType.RestroomMirror, 2.4f, 0.04f, 1.0f),
+            new(FurnitureType.TiledWall, 2.6f, 0.15f, 2.8f),
+            new(FurnitureType.TiledFloor, 10.4f, 6.0f, 0.005f, IsFloorCovering: true),
+            new(FurnitureType.LitterPaper, 0.30f, 0.30f, 0.005f, IsFloorCovering: true),
 
             // Variants of the most repeated types: other proportions, backs, legs or materials.
+            new(FurnitureType.RestroomMirror, 2.4f, 0.04f, 1.0f, Variant: 1), // cracked mirror
             new(FurnitureType.FishTank, 0.95f, 0.45f, 0.5f, Variant: 1),      // medium tank
             new(FurnitureType.FishTank, 2.4f, 0.9f, 1.9f, Variant: 2),        // large tank on its own cabinet (LargeFishTank)
             new(FurnitureType.Mannequin, 0.75f, 0.35f, 1.8f, Variant: 1),      // one arm raised, the other hand on the hip

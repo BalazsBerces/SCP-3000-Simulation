@@ -68,6 +68,11 @@ public static class FurnitureModels
         new(FurnitureType.Chair, 2, "GreenChair_01", 0f, ChairBudget, false, "Kirill Sannikov", "CC0", "https://polyhaven.com/a/GreenChair_01"),
         new(FurnitureType.Toilet, 0, "toilet", 0f, BathroomBudget, false, "loafbrr_1", "CC0", "https://opengameart.org/content/toilets"),
         new(FurnitureType.VanityUnit, 0, "washbasin", 0f, BathroomBudget, false, "loafbrr_1", "CC0", "https://opengameart.org/content/toilets"),
+        new(FurnitureType.OutOfOrderSign, 0, "WetFloorSign_01", 0f, 5000, false, "Fran Calvente", "CC0", "https://polyhaven.com/a/WetFloorSign_01"),
+        new(FurnitureType.HandDryer, 0, "hand_dryer", 0f, 5000, false, "Sousinho", "CC-BY", "https://sketchfab.com/3d-models/hand-dryer-67031384356e40dc96ec1d4fb61a18fd"),
+        new(FurnitureType.PaperTowelDispenser, 0, "paper_towel_dispenser", 0f, 5000, false, "Carolyn Wong", "CC-BY", "https://sketchfab.com/3d-models/paper-towel-dispenser-15c4a2aa81994874a8dfc8038339b08d"),
+        new(FurnitureType.BabyChangingTable, 0, "baby_changing_station", 0f, 5000, false, "JakeBradley", "CC-BY", "https://sketchfab.com/3d-models/baby-changing-station-8d9e952dc3c34536b30337450c29300f"),
+        new(FurnitureType.RestroomSign, 0, "restroom_sign", 0f, 5000, false, "Ellis Fossett", "CC-BY", "https://sketchfab.com/3d-models/restroom-sign-562555b57b5540ed81e25593a2d62791"),
     ];
 
     /// <summary>The licences external models may have.</summary>

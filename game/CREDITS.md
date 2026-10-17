@@ -15,6 +15,11 @@ Fetched by `scripts/fetch-models.py` into `game/assets/models`; each is fitted t
 - Chair, carver variant with arms: [Green Chair 01](https://polyhaven.com/a/GreenChair_01) by Kirill Sannikov, Poly Haven, CC0 (`models/GreenChair_01`)
 - Toilet: [Toilets pack: Toilet_Elongated_C](https://opengameart.org/content/toilets) by loafbrr_1, OpenGameArt, CC0 (`models/toilet`)
 - Vanity unit (pedestal washbasin): [Toilets pack: Sink_C](https://opengameart.org/content/toilets) by loafbrr_1, OpenGameArt, CC0 (`models/washbasin`)
+- Out-of-order sign: [Wet Floor Sign 01](https://polyhaven.com/a/WetFloorSign_01) by Fran Calvente, Poly Haven, CC0 (`models/WetFloorSign_01`)
+- Hand dryer: [Hand Dryer](https://sketchfab.com/3d-models/hand-dryer-67031384356e40dc96ec1d4fb61a18fd) by Sousinho, Sketchfab, CC-BY ([CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)) (`models/hand_dryer`)
+- Paper towel dispenser: [Paper Towel Dispenser](https://sketchfab.com/3d-models/paper-towel-dispenser-15c4a2aa81994874a8dfc8038339b08d) by Carolyn Wong, Sketchfab, CC-BY ([CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)) (`models/paper_towel_dispenser`)
+- Baby-changing table: [Baby Changing Station](https://sketchfab.com/3d-models/baby-changing-station-8d9e952dc3c34536b30337450c29300f) by JakeBradley, Sketchfab, CC-BY ([CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)) (`models/baby_changing_station`)
+- Restroom sign: [Restroom Sign](https://sketchfab.com/3d-models/restroom-sign-562555b57b5540ed81e25593a2d62791) by Ellis Fossett, Sketchfab, CC-BY ([CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)) (`models/restroom_sign`)
 
 ## Textures
 

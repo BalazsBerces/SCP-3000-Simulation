@@ -46,6 +46,12 @@ public enum PointOfInterestType
     /// showcase; it replaces the Canteen in the Store generator in ticket 08m.
     /// </summary>
     Cafeteria,
+    /// <summary>
+    /// A recognisable store restroom (10.4 × 6 m, tiled surfaces, stalls with doors, washbasins with mirror, hand dryers,
+    /// baby-changing table, out-of-order sign). For now only in the Point of interest showcase; it replaces the old
+    /// Restroom in the Store generator in ticket 08m.
+    /// </summary>
+    StoreRestroom,
 }
 
 /// <summary>A kind of live fish kept in the tanks of an Aquarium aisle.</summary>

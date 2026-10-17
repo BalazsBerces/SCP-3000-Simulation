@@ -327,6 +327,16 @@ public static class FurnitureMeshes
             BuildCafeteria(b, type, w, d, h);
             return b;
         }
+        if (type is FurnitureType.StallPartition or FurnitureType.StallDoor
+            or FurnitureType.HandDryer or FurnitureType.PaperTowelDispenser
+            or FurnitureType.BabyChangingTable or FurnitureType.RestroomSign
+            or FurnitureType.OutOfOrderSign or FurnitureType.RestroomMirror
+            or FurnitureType.TiledWall or FurnitureType.TiledFloor
+            or FurnitureType.LitterPaper)
+        {
+            BuildRestroom(b, type, variant, w, d, h);
+            return b;
+        }
         if (variant > 0)
         {
             BuildVariant(b, type, variant, w, d, h);
@@ -1146,6 +1156,72 @@ public static class FurnitureMeshes
                 b.Box(Part.Spill, new Vector3(-hw, 0f, -hd), new Vector3(hw, h, hd));
                 break;
             case FurnitureType.Note:
+                b.Box(Part.Paper, new Vector3(-hw, 0f, -hd), new Vector3(hw, Mathf.Max(h, 0.0105f), hd));
+                break;
+        }
+    }
+
+    private static void BuildRestroom(Builder b, FurnitureType type, int variant, float w, float d, float h)
+    {
+        var (hw, hd) = (w / 2f, d / 2f);
+        switch (type)
+        {
+            case FurnitureType.TiledFloor:
+                b.Box(Part.Ceramic, new Vector3(-hw, 0f, -hd), new Vector3(hw, h, hd));
+                break;
+            case FurnitureType.TiledWall:
+                b.Box(Part.DarkSteel, new Vector3(-hw, 0f, -hd), new Vector3(hw, 0.08f, hd));
+                b.Box(Part.Ceramic, new Vector3(-hw, 0.08f, -hd), new Vector3(hw, h, hd));
+                break;
+            case FurnitureType.StallPartition:
+                foreach (var z in new[] { -hd + 0.25f, hd - 0.25f })
+                    b.Box(Part.Chrome, new Vector3(-hw, 0f, z - 0.025f), new Vector3(hw, 0.20f, z + 0.025f));
+                b.Box(Part.LightSteel, new Vector3(-hw, 0.20f, -hd), new Vector3(hw, h - 0.05f, hd));
+                b.Box(Part.Chrome, new Vector3(-hw, h - 0.05f, -hd), new Vector3(hw, h, hd));
+                break;
+            case FurnitureType.StallDoor:
+                b.Box(Part.Chrome, new Vector3(-hw + 0.01f, 0f, -hd), new Vector3(-hw + 0.05f, 0.15f, hd));
+                b.Box(Part.LightSteel, new Vector3(-hw + 0.01f, 0.15f, -hd), new Vector3(hw - 0.01f, h - 0.05f, hd));
+                b.Box(Part.Chrome, new Vector3(-hw + 0.01f, h - 0.05f, -hd), new Vector3(-hw + 0.05f, h, hd));
+                if (!b.Coarse)
+                    b.Box(Part.Chrome, new Vector3(hw - 0.12f, 0.90f, -hd - 0.015f), new Vector3(hw - 0.06f, 1.05f, hd + 0.015f));
+                break;
+            case FurnitureType.RestroomMirror:
+                b.Box(Part.Chrome, new Vector3(-hw, 0f, -hd), new Vector3(hw, h, -hd + 0.015f));
+                b.Box(Part.Glass, new Vector3(-hw + 0.02f, 0.02f, -hd + 0.015f), new Vector3(hw - 0.02f, h - 0.02f, hd));
+                if (variant == 1 && !b.Coarse)
+                {
+                    b.Box(Part.DarkSteel, new Vector3(-0.4f, 0.2f, hd - 0.002f), new Vector3(0.5f, 0.75f, hd + 0.001f));
+                    b.Box(Part.DarkSteel, new Vector3(0.2f, 0.6f, hd - 0.002f), new Vector3(0.7f, 0.95f, hd + 0.001f));
+                }
+                break;
+            case FurnitureType.OutOfOrderSign:
+                b.Box(Part.Plastic, new Vector3(-hw, 0f, 0.06f), new Vector3(hw, h - 0.04f, hd));
+                b.Box(Part.Plastic, new Vector3(-hw, 0f, -hd), new Vector3(hw, h - 0.04f, -0.06f));
+                b.Box(Part.Plastic, new Vector3(-hw, h - 0.04f, -0.06f), new Vector3(hw, h, 0.06f));
+                break;
+            case FurnitureType.HandDryer:
+                b.Box(Part.LightSteel, new Vector3(-hw, 0.05f, -hd), new Vector3(hw, h, hd - 0.03f));
+                b.Box(Part.Chrome, new Vector3(-0.08f, 0f, -0.05f), new Vector3(0.08f, 0.08f, hd));
+                break;
+            case FurnitureType.PaperTowelDispenser:
+                b.Box(Part.LightSteel, new Vector3(-hw, 0.03f, -hd), new Vector3(hw, h, hd));
+                b.Box(Part.Paper, new Vector3(-0.10f, 0f, -0.04f), new Vector3(0.10f, 0.03f, 0.04f));
+                if (!b.Coarse)
+                    b.Box(Part.Glass, new Vector3(-0.015f, 0.15f, hd - 0.005f), new Vector3(0.015f, 0.35f, hd + 0.002f));
+                break;
+            case FurnitureType.BabyChangingTable:
+                b.Box(Part.Plastic, new Vector3(-hw, 0f, -hd), new Vector3(hw, h, -hd + 0.10f));
+                b.Box(Part.Plastic, new Vector3(-hw + 0.04f, 0.08f, -hd + 0.10f), new Vector3(hw - 0.04f, 0.22f, hd));
+                b.Box(Part.Plastic, new Vector3(-hw + 0.04f, 0.22f, -hd + 0.10f), new Vector3(-hw + 0.08f, 0.30f, hd));
+                b.Box(Part.Plastic, new Vector3(hw - 0.08f, 0.22f, -hd + 0.10f), new Vector3(hw - 0.04f, 0.30f, hd));
+                break;
+            case FurnitureType.RestroomSign:
+                b.Box(Part.SignPanel, new Vector3(-hw, 0f, -hd), new Vector3(hw, h, hd));
+                if (!b.Coarse)
+                    b.Box(Part.SignLetters, new Vector3(-hw + 0.03f, 0.03f, hd - 0.002f), new Vector3(hw - 0.03f, h - 0.03f, hd + 0.002f));
+                break;
+            case FurnitureType.LitterPaper:
                 b.Box(Part.Paper, new Vector3(-hw, 0f, -hd), new Vector3(hw, Mathf.Max(h, 0.0105f), hd));
                 break;
         }

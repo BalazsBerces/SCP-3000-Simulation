@@ -311,6 +311,7 @@ public static class PointOfInterestNames
         PointOfInterestType.DoorToNowhere => "Door to nowhere",
         PointOfInterestType.AquariumAisle => "Aquarium aisle",
         PointOfInterestType.Cafeteria => "Cafeteria",
+        PointOfInterestType.StoreRestroom => "Restroom",
         _ => type.ToString(),
     };
 }

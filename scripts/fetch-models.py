@@ -45,6 +45,11 @@ MODELS = [
     ("GreenChair_01", "polyhaven", "GreenChair_01", "Green Chair 01", "Chair, carver variant with arms"),
     ("toilet", "toilets", "Toilet_Elongated_C", "Toilets pack: Toilet_Elongated_C", "Toilet"),
     ("washbasin", "toilets", "Sink_C", "Toilets pack: Sink_C", "Vanity unit (pedestal washbasin)"),
+    ("WetFloorSign_01", "polyhaven", "WetFloorSign_01", "Wet Floor Sign 01", "Out-of-order sign"),
+    ("hand_dryer", "sketchfab", "67031384356e40dc96ec1d4fb61a18fd", "Hand Dryer", "Hand dryer"),
+    ("paper_towel_dispenser", "sketchfab", "15c4a2aa81994874a8dfc8038339b08d", "Paper Towel Dispenser", "Paper towel dispenser"),
+    ("baby_changing_station", "sketchfab", "8d9e952dc3c34536b30337450c29300f", "Baby Changing Station", "Baby-changing table"),
+    ("restroom_sign", "sketchfab", "562555b57b5540ed81e25593a2d62791", "Restroom Sign", "Restroom sign"),
 ]
 
 # Toilets pack material -> its texture folder in the pack.

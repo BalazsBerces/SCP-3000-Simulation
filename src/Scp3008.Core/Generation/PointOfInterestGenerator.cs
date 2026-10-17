@@ -48,6 +48,7 @@ internal static class PointOfInterestGenerator
         PointOfInterestType.DoorToNowhere => new(5f, 11f),
         PointOfInterestType.AquariumAisle => new(12f, 6f),
         PointOfInterestType.Cafeteria => new Vector2(24f, 20f),
+        PointOfInterestType.StoreRestroom => new Vector2(10.4f, 6.0f),
         _ => throw new ArgumentOutOfRangeException(nameof(type), type, null),
     };
 
@@ -139,8 +140,8 @@ internal static class PointOfInterestGenerator
     /// </summary>
     public static IReadOnlyList<PointOfInterestSite> Showcase(StoreSpace space, IReadOnlyList<Sector> sectors, IReadOnlyList<Pillar> pillars)
     {
-        // The Cafeteria stands in for the Canteen it replaces (ticket 08m moves the Store generator over too).
-        var kinds = Enum.GetValues<PointOfInterestType>().Where(k => k != PointOfInterestType.Canteen).ToList();
+        // The Cafeteria stands in for the Canteen, and StoreRestroom stands in for the Restroom (ticket 08m moves the Store generator over too).
+        var kinds = Enum.GetValues<PointOfInterestType>().Where(k => k != PointOfInterestType.Canteen && k != PointOfInterestType.Restroom).ToList();
         var length = kinds.Sum(k => OwnSize(k).X) + ShowcaseGap * (kinds.Count - 1);
         if (length > space.Size)
             throw new InvalidOperationException($"The showcase row ({length:0} m) is longer than the Store.");
@@ -211,6 +212,7 @@ internal static class PointOfInterestGenerator
                 case PointOfInterestType.DoorToNowhere: BuildDoorToNowhere(builder); break;
                 case PointOfInterestType.AquariumAisle: BuildAquariumAisle(builder); break;
                 case PointOfInterestType.Cafeteria: BuildCafeteria(builder); break;
+                case PointOfInterestType.StoreRestroom: BuildStoreRestroom(builder); break;
             }
             var first = firstPieceId + pieces.Count;
             foreach (var (index, kind) in builder.Fish)
@@ -229,6 +231,190 @@ internal static class PointOfInterestGenerator
 
     // In every build below the local frame has x east and y south, its origin at the centre of the rectangle;
     // a piece with rotation 0 faces south, π faces north, +π/2 faces west and -π/2 faces east.
+
+    /// <summary>
+    /// A recognisable, worn store restroom (10.4 × 6.0 m): tiled floor and perimeter walls with an entrance gap,
+    /// stalls with doors (some ajar, one hanging off), toilets inside stalls, a row of washbasins with a long mirror
+    /// (cracked mirror in variants), hand dryers, paper towel dispensers, a baby-changing table, restroom entrance sign,
+    /// an out-of-order caution sign, and discarded paper litter on the floor. 3 floor-plan variants chosen from seed.
+    /// </summary>
+    private static void BuildStoreRestroom(PointOfInterestBuilder b)
+    {
+        var random = b.Random;
+        // Tiled floor covering the entire 10.4 × 6.0 m room
+        b.Put(FurnitureType.TiledFloor, Vector2.Zero, 0f, 0f);
+
+        var plan = random.Next(3);
+        switch (plan)
+        {
+            case 0:
+            {
+                // Plan 0: North stalls (4 stalls), South washbasins, East baby-changing station, SE entrance
+                // Perimeter TiledWall segments (gap at South-East: x = 3.9)
+                foreach (var x in new[] { -3.9f, -1.3f, 1.3f, 3.9f })
+                    b.Put(FurnitureType.TiledWall, new Vector2(x, -2.925f), 0f, 0f);
+                foreach (var x in new[] { -3.9f, -1.3f, 1.3f })
+                    b.Put(FurnitureType.TiledWall, new Vector2(x, 2.925f), 0f, MathF.PI);
+                foreach (var y in new[] { -1.3f, 1.3f })
+                {
+                    b.Put(FurnitureType.TiledWall, new Vector2(-5.125f, y), 0f, Quarter);
+                    b.Put(FurnitureType.TiledWall, new Vector2(5.125f, y), 0f, -Quarter);
+                }
+
+                // Restroom sign beside entrance
+                b.Put(FurnitureType.RestroomSign, new Vector2(2.55f, 2.90f), 1.8f, 0f);
+
+                // 4 stalls along North wall (x = -4.5 to 0.5)
+                const float stallW = 1.25f;
+                var x0 = -4.5f;
+                for (var i = 0; i <= 4; i++)
+                    b.Put(FurnitureType.StallPartition, new Vector2(x0 + i * stallW, -2.05f), 0f, 0f);
+
+                for (var i = 0; i < 4; i++)
+                {
+                    var sx = x0 + (i + 0.5f) * stallW;
+                    b.Put(FurnitureType.Toilet, new Vector2(sx, -2.45f), 0f, 0f);
+                    if (i == 1)
+                        b.Put(FurnitureType.StallDoor, new Vector2(sx, -1.25f), 0f, 0.45f); // ajar
+                    else if (i == 2)
+                    {
+                        // hanging off broken
+                        b.Put(FurnitureType.StallDoor, new Vector2(sx, -1.25f), 0f, -0.25f, tilt: -0.18f, roll: 0.08f);
+                        b.Put(FurnitureType.OutOfOrderSign, new Vector2(sx, -0.55f), 0f, 0f);
+                    }
+                    else
+                        b.Put(FurnitureType.StallDoor, new Vector2(sx, -1.25f), 0f, 0f); // closed
+                }
+
+                // Row of 3 washbasins along South wall
+                foreach (var vx in new[] { -3.6f, -2.6f, -1.6f })
+                    b.Put(FurnitureType.VanityUnit, new Vector2(vx, 2.55f), 0f, MathF.PI);
+                // Long mirror above washbasins (variant 1: cracked)
+                b.Put(FurnitureType.RestroomMirror, new Vector2(-2.6f, 2.82f), 1.1f, MathF.PI, variant: 1);
+                // Hand dryer & paper towel dispenser
+                b.Put(FurnitureType.HandDryer, new Vector2(-0.8f, 2.80f), 1.15f, MathF.PI);
+                b.Put(FurnitureType.PaperTowelDispenser, new Vector2(-0.3f, 2.80f), 1.20f, MathF.PI);
+
+                // Baby-changing table on East wall
+                b.Put(FurnitureType.BabyChangingTable, new Vector2(4.80f, -1.0f), 0.85f, Quarter);
+
+                // Discarded paper litter on floor
+                b.Put(FurnitureType.LitterPaper, new Vector2(-0.5f, 2.0f), 0f, 0.5f);
+                b.Put(FurnitureType.LitterPaper, new Vector2(-0.8f, 1.6f), 0f, -0.3f);
+                b.Put(FurnitureType.LitterPaper, new Vector2(-1.2f, -0.1f), 0f, 1.2f);
+                break;
+            }
+            case 1:
+            {
+                // Plan 1: West stalls (3 stalls), East washbasins, South baby-changing station, North entrance
+                // Perimeter TiledWall segments (gap at North: x = 1.3)
+                foreach (var x in new[] { -3.9f, -1.3f, 3.9f })
+                    b.Put(FurnitureType.TiledWall, new Vector2(x, -2.925f), 0f, 0f);
+                foreach (var x in new[] { -3.9f, -1.3f, 1.3f, 3.9f })
+                    b.Put(FurnitureType.TiledWall, new Vector2(x, 2.925f), 0f, MathF.PI);
+                foreach (var y in new[] { -1.3f, 1.3f })
+                {
+                    b.Put(FurnitureType.TiledWall, new Vector2(-5.125f, y), 0f, Quarter);
+                    b.Put(FurnitureType.TiledWall, new Vector2(5.125f, y), 0f, -Quarter);
+                }
+
+                // Restroom sign beside entrance
+                b.Put(FurnitureType.RestroomSign, new Vector2(0f, -2.90f), 1.8f, MathF.PI);
+
+                // 3 stalls along West wall (y = -1.8 to 1.2, facing East)
+                const float stallH = 1.5f;
+                var y0 = -2.55f;
+                for (var i = 0; i <= 3; i++)
+                    b.Put(FurnitureType.StallPartition, new Vector2(-4.25f, y0 + i * stallH), 0f, Quarter);
+
+                for (var i = 0; i < 3; i++)
+                {
+                    var sy = y0 + (i + 0.5f) * stallH;
+                    b.Put(FurnitureType.Toilet, new Vector2(-4.65f, sy), 0f, -Quarter);
+                    if (i == 1)
+                    {
+                        // hanging off broken
+                        b.Put(FurnitureType.StallDoor, new Vector2(-3.45f, sy), 0f, -Quarter, tilt: 0.18f, roll: -0.06f);
+                        b.Put(FurnitureType.OutOfOrderSign, new Vector2(-2.65f, sy), 0f, -Quarter);
+                    }
+                    else if (i == 2)
+                        b.Put(FurnitureType.StallDoor, new Vector2(-3.45f, sy), 0f, -Quarter + 0.4f); // ajar
+                    else
+                        b.Put(FurnitureType.StallDoor, new Vector2(-3.45f, sy), 0f, -Quarter); // closed
+                }
+
+                // Row of 3 washbasins along East wall
+                foreach (var vy in new[] { -1.2f, -0.2f, 0.8f })
+                    b.Put(FurnitureType.VanityUnit, new Vector2(4.75f, vy), 0f, Quarter);
+                // Mirror above washbasins (variant 0: intact)
+                b.Put(FurnitureType.RestroomMirror, new Vector2(5.02f, -0.2f), 1.1f, Quarter, variant: 0);
+                // Hand dryer & paper towel dispenser
+                b.Put(FurnitureType.HandDryer, new Vector2(5.00f, 1.7f), 1.15f, Quarter);
+                b.Put(FurnitureType.PaperTowelDispenser, new Vector2(5.00f, 2.2f), 1.20f, Quarter);
+
+                // Baby-changing table on South wall
+                b.Put(FurnitureType.BabyChangingTable, new Vector2(2.0f, 2.50f), 0.85f, MathF.PI);
+
+                // Discarded paper litter on floor
+                b.Put(FurnitureType.LitterPaper, new Vector2(4.2f, 1.9f), 0f, 0.7f);
+                b.Put(FurnitureType.LitterPaper, new Vector2(3.8f, 1.5f), 0f, -0.4f);
+                b.Put(FurnitureType.LitterPaper, new Vector2(-2.2f, 0.0f), 0f, 1.1f);
+                break;
+            }
+            default:
+            {
+                // Plan 2: Split stalls (2 North, 2 South on West half), East washbasins, East entrance
+                // Perimeter TiledWall segments (gap at East wall center: y = 0)
+                foreach (var x in new[] { -3.9f, -1.3f, 1.3f, 3.9f })
+                {
+                    b.Put(FurnitureType.TiledWall, new Vector2(x, -2.925f), 0f, 0f);
+                    b.Put(FurnitureType.TiledWall, new Vector2(x, 2.925f), 0f, MathF.PI);
+                }
+                foreach (var y in new[] { -1.3f, 1.3f })
+                    b.Put(FurnitureType.TiledWall, new Vector2(-5.125f, y), 0f, Quarter);
+                // East wall segments leaving gap around y = 0
+                b.Put(FurnitureType.TiledWall, new Vector2(5.125f, -1.7f), 0f, -Quarter);
+                b.Put(FurnitureType.TiledWall, new Vector2(5.125f, 1.7f), 0f, -Quarter);
+
+                // Restroom sign beside entrance
+                b.Put(FurnitureType.RestroomSign, new Vector2(5.05f, -0.8f), 1.8f, Quarter);
+
+                // 2 North stalls (x = -4.0, -2.6)
+                foreach (var px in new[] { -4.7f, -3.3f, -1.9f })
+                    b.Put(FurnitureType.StallPartition, new Vector2(px, -2.05f), 0f, 0f);
+                b.Put(FurnitureType.Toilet, new Vector2(-4.0f, -2.45f), 0f, 0f);
+                b.Put(FurnitureType.StallDoor, new Vector2(-4.0f, -1.25f), 0f, 0f);
+                b.Put(FurnitureType.Toilet, new Vector2(-2.6f, -2.45f), 0f, 0f);
+                b.Put(FurnitureType.StallDoor, new Vector2(-2.6f, -1.25f), 0f, 0.35f); // ajar
+
+                // 2 South stalls (x = -4.0, -2.6)
+                foreach (var px in new[] { -4.7f, -3.3f, -1.9f })
+                    b.Put(FurnitureType.StallPartition, new Vector2(px, 2.05f), 0f, MathF.PI);
+                b.Put(FurnitureType.Toilet, new Vector2(-4.0f, 2.45f), 0f, MathF.PI);
+                // Hanging off broken
+                b.Put(FurnitureType.StallDoor, new Vector2(-4.0f, 1.25f), 0f, MathF.PI, tilt: -0.16f, roll: 0.06f);
+                b.Put(FurnitureType.OutOfOrderSign, new Vector2(-4.0f, 0.55f), 0f, MathF.PI);
+                b.Put(FurnitureType.Toilet, new Vector2(-2.6f, 2.45f), 0f, MathF.PI);
+                b.Put(FurnitureType.StallDoor, new Vector2(-2.6f, 1.25f), 0f, MathF.PI);
+
+                // 3 Washbasins along North-East wall
+                foreach (var vx in new[] { 1.0f, 2.0f, 3.0f })
+                    b.Put(FurnitureType.VanityUnit, new Vector2(vx, -2.55f), 0f, 0f);
+                // Mirror above washbasins (variant 1: cracked)
+                b.Put(FurnitureType.RestroomMirror, new Vector2(2.0f, -2.82f), 1.1f, 0f, variant: 1);
+                b.Put(FurnitureType.HandDryer, new Vector2(3.9f, -2.80f), 1.15f, 0f);
+                b.Put(FurnitureType.PaperTowelDispenser, new Vector2(4.4f, -2.80f), 1.20f, 0f);
+
+                // Baby-changing table on South-East wall
+                b.Put(FurnitureType.BabyChangingTable, new Vector2(2.0f, 2.50f), 0.85f, MathF.PI);
+
+                // Discarded paper litter on floor
+                b.Put(FurnitureType.LitterPaper, new Vector2(3.5f, -2.0f), 0f, 0.3f);
+                b.Put(FurnitureType.LitterPaper, new Vector2(-3.5f, 0.2f), 0f, -0.6f);
+                break;
+            }
+        }
+    }
 
     /// <summary>A row of stalls along the north wall, each with a toilet between partitions, and basins with mirrors along the south.</summary>
     private static void BuildRestroom(PointOfInterestBuilder b)
@@ -805,7 +991,7 @@ internal sealed class PointOfInterestBuilder(StoreSpace space, PointOfInterestSi
         }
         var half = site.Size / 2f;
         foreach (var corner in corners)
-            if (MathF.Abs(corner.X - site.Centre.X) > half.X || MathF.Abs(corner.Y - site.Centre.Y) > half.Y)
+            if (MathF.Abs(corner.X - site.Centre.X) > half.X + 1e-4f || MathF.Abs(corner.Y - site.Centre.Y) > half.Y + 1e-4f)
                 return false;
         _pieces.Add(piece with { Position = space.Wrap(piece.Position) });
         return true;
