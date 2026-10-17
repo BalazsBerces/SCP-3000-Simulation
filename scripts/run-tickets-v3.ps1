@@ -270,6 +270,10 @@ function Get-Prompt($t, $choice, [string]$Head) {
    naming the blocker and what is done so far; the runner posts it on the issue.
 "@
   }
+  # The gate runs the whole suite after Gemini; Claude commits itself, so it runs it once before that.
+  $suiteRule = if ($choice.Agent -eq 'gemini') {
+    'Run only the test classes this ticket adds or touches; never the whole suite, which the runner runs after you.'
+  } else { 'Run the whole core suite in Release once, just before you commit.' }
 @"
 /implement ticket $($t.Label) of the SCP-3008 simulation: GitHub issue #$($t.Issue) in $Repo.
 The spec is issue #1. Read the ticket (gh issue view $($t.Issue) --comments), GLOSSARY.md, every ADR in docs/adr/, and the existing code.
@@ -277,7 +281,8 @@ The spec is issue #1. Read the ticket (gh issue view $($t.Issue) --comments), GL
 Project rules for this run:
 1. This is an unattended run. Nobody will answer questions, so make reasonable decisions yourself and record them.
 2. Implement ONLY this ticket so that every acceptance criterion is met. Follow the spec's architecture: the engine-independent C# simulation core behind one facade, and the Godot presentation layer that only reads from it.
-3. Test seam: facade-level tests (scenario -> advance time -> assert on snapshot/events). Run the core tests in Release (dotnet test tests/Scp3008.Core.Tests -c Release --filter FullyQualifiedName~<ClassName>): the generation tests run about 5x faster than in Debug. Also build the Godot project with the console executable in headless mode. Godot 4.7.2 .NET is NOT on PATH; find it with a glob under %LOCALAPPDATA%\Microsoft\WinGet\Packages\GodotEngine.GodotEngine.Mono*\ (use the *_console.exe). Everything must pass.
+3. Test seam: facade-level tests (scenario -> advance time -> assert on snapshot/events). Run the core tests in Release (dotnet test tests/Scp3008.Core.Tests -c Release --filter FullyQualifiedName~<ClassName>): the generation tests run about 5x faster than in Debug. $suiteRule Also build the Godot project with the console executable in headless mode. Godot 4.7.2 .NET is NOT on PATH; find it with a glob under %LOCALAPPDATA%\Microsoft\WinGet\Packages\GodotEngine.GodotEngine.Mono*\ (use the *_console.exe). Everything must pass.
+   Godot runs: only the build (--build-solutions --quit) may run --headless. Screenshots, colour checks and anything else that reads rendered pixels need a window, because headless Godot draws nothing and waits forever. Start every Godot run with a time limit (for example Start-Process -PassThru, then WaitForExit(300000) and kill it on timeout); a run that hits the limit is a failure to fix, not something to wait for.
 4. For criteria that cannot be checked automatically (visuals, audio, fps), verify what you can (for example, run the game or the benchmark and capture a screenshot or fps numbers), and list what still needs human review. A check that fails is a failure to fix, never "could not run".
 5. Use the glossary vocabulary. If a new domain term is settled, add it to GLOSSARY.md. Write an ADR only for decisions that are hard to reverse, surprising, and the result of a real trade-off. Keep files UTF-8 and leave existing non-ASCII characters (such as × and ±) intact.
 $(Get-ReviewRule $t)
