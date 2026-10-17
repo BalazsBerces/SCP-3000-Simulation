@@ -337,6 +337,13 @@ public static class FurnitureMeshes
             BuildRestroom(b, type, variant, w, d, h);
             return b;
         }
+        if (type is FurnitureType.ServiceCounter or FurnitureType.ServiceBell
+            or FurnitureType.LabelledBox or FurnitureType.UnsortedCart
+            or FurnitureType.NoticeBoard or FurnitureType.LostAndFoundSign)
+        {
+            BuildLostAndFound(b, type, variant, w, d, h);
+            return b;
+        }
         if (variant > 0)
         {
             BuildVariant(b, type, variant, w, d, h);
@@ -1223,6 +1230,66 @@ public static class FurnitureMeshes
                 break;
             case FurnitureType.LitterPaper:
                 b.Box(Part.Paper, new Vector3(-hw, 0f, -hd), new Vector3(hw, Mathf.Max(h, 0.0105f), hd));
+                break;
+        }
+    }
+
+    private static void BuildLostAndFound(Builder b, FurnitureType type, int variant, float w, float d, float h)
+    {
+        var (hw, hd) = (w / 2f, d / 2f);
+        switch (type)
+        {
+            case FurnitureType.ServiceCounter:
+                b.Box(Part.DarkSteel, new Vector3(-hw, 0f, -hd + 0.05f), new Vector3(hw, 0.08f, hd - 0.05f));
+                b.Box(Part.Walnut, new Vector3(-hw, 0.08f, -hd + 0.04f), new Vector3(hw, h - 0.06f, hd - 0.04f));
+                b.Box(Part.Maple, new Vector3(-hw, h - 0.06f, -hd), new Vector3(hw, h, hd));
+                break;
+            case FurnitureType.ServiceBell:
+                b.Box(Part.DarkSteel, new Vector3(-hw, 0f, -hd), new Vector3(hw, 0.02f, hd));
+                b.Box(Part.Chrome, new Vector3(-hw + 0.015f, 0.02f, -hd + 0.015f), new Vector3(hw - 0.015f, h - 0.025f, hd - 0.015f));
+                b.Box(Part.Chrome, new Vector3(-0.015f, h - 0.025f, -0.015f), new Vector3(0.015f, h, 0.015f));
+                break;
+            case FurnitureType.LabelledBox:
+                if (variant == 1)
+                {
+                    b.Box(Part.Cardboard, new Vector3(-hw, 0f, -hd), new Vector3(hw, h * 0.70f, hd));
+                    b.Box(Part.Cardboard, new Vector3(-hw, h * 0.70f, -hd), new Vector3(-hw + 0.02f, h, hd));
+                    b.Box(Part.Cardboard, new Vector3(hw - 0.02f, h * 0.70f, -hd), new Vector3(hw, h, hd));
+                    b.Box(Part.Fabric, new Vector3(-hw + 0.04f, h * 0.50f, -hd + 0.04f), new Vector3(hw - 0.04f, h, hd - 0.04f));
+                }
+                else
+                {
+                    b.Box(Part.Cardboard, new Vector3(-hw, 0f, -hd), new Vector3(hw, h, hd));
+                    if (!b.Coarse)
+                    {
+                        b.Box(Part.Paper, new Vector3(-0.12f, 0.10f, hd), new Vector3(0.12f, 0.25f, hd + 0.003f));
+                        b.Box(Part.Paper, new Vector3(-0.03f, h, -hd), new Vector3(0.03f, h + 0.003f, hd));
+                    }
+                }
+                break;
+            case FurnitureType.UnsortedCart:
+                Legs(b, Part.Rubber, hw - 0.08f, hd - 0.08f, 0.08f, 0.04f);
+                b.Box(Part.LightSteel, new Vector3(-hw, 0.08f, -hd), new Vector3(hw, 0.12f, hd));
+                Posts(b, Part.LightSteel, hw - 0.03f, hd - 0.03f, h - 0.10f, 0.02f);
+                b.Box(Part.LightSteel, new Vector3(-hw + 0.03f, 0.48f, -hd + 0.03f), new Vector3(hw - 0.03f, 0.51f, hd - 0.03f));
+                b.Box(Part.LightSteel, new Vector3(-hw, h - 0.10f, -hd), new Vector3(hw, h - 0.07f, hd));
+                b.Box(Part.LightSteel, new Vector3(-hw, h - 0.07f, -hd - 0.08f), new Vector3(hw, h, -hd));
+                break;
+            case FurnitureType.NoticeBoard:
+                b.Box(Part.Pine, new Vector3(-hw, 0f, -hd), new Vector3(hw, h, hd));
+                b.Box(Part.Wool, new Vector3(-hw + 0.05f, 0.05f, hd - 0.015f), new Vector3(hw - 0.05f, h - 0.05f, hd + 0.005f));
+                if (!b.Coarse)
+                {
+                    b.Box(Part.Paper, new Vector3(-0.35f, 0.20f, hd + 0.005f), new Vector3(-0.15f, 0.45f, hd + 0.010f));
+                    b.Box(Part.Paper, new Vector3(-0.05f, 0.35f, hd + 0.005f), new Vector3(0.18f, 0.65f, hd + 0.010f));
+                    b.Box(Part.Paper, new Vector3(0.25f, 0.15f, hd + 0.005f), new Vector3(0.45f, 0.50f, hd + 0.010f));
+                }
+                break;
+            case FurnitureType.LostAndFoundSign:
+                b.Box(Part.DarkSteel, new Vector3(-hw, 0f, -hd), new Vector3(hw, h, hd));
+                b.Box(Part.SignPanel, new Vector3(-hw + 0.03f, 0.03f, -hd + 0.01f), new Vector3(hw - 0.03f, h - 0.03f, hd - 0.01f));
+                if (!b.Coarse)
+                    b.Box(Part.SignLetters, new Vector3(-hw + 0.08f, 0.12f, hd), new Vector3(hw - 0.08f, h - 0.12f, hd + 0.005f));
                 break;
         }
     }

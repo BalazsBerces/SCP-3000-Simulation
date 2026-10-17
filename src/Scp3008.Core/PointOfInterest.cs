@@ -52,6 +52,12 @@ public enum PointOfInterestType
     /// Restroom in the Store generator in ticket 08m.
     /// </summary>
     StoreRestroom,
+    /// <summary>
+    /// A recognisable store service point (6.5 × 5 m, service counter with bell, shelves of labelled boxes and bins,
+    /// rack of lost coats and umbrellas, cart of unsorted things, notice board of lost-item notes, sign, abandonment signs).
+    /// For now only in the Point of interest showcase; it replaces the old LostAndFoundDesk in the Store generator in ticket 08m.
+    /// </summary>
+    LostAndFound,
 }
 
 /// <summary>A kind of live fish kept in the tanks of an Aquarium aisle.</summary>

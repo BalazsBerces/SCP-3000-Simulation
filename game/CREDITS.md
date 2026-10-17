@@ -20,6 +20,12 @@ Fetched by `scripts/fetch-models.py` into `game/assets/models`; each is fitted t
 - Paper towel dispenser: [Paper Towel Dispenser](https://sketchfab.com/3d-models/paper-towel-dispenser-15c4a2aa81994874a8dfc8038339b08d) by Carolyn Wong, Sketchfab, CC-BY ([CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)) (`models/paper_towel_dispenser`)
 - Baby-changing table: [Baby Changing Station](https://sketchfab.com/3d-models/baby-changing-station-8d9e952dc3c34536b30337450c29300f) by JakeBradley, Sketchfab, CC-BY ([CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)) (`models/baby_changing_station`)
 - Restroom sign: [Restroom Sign](https://sketchfab.com/3d-models/restroom-sign-562555b57b5540ed81e25593a2d62791) by Ellis Fossett, Sketchfab, CC-BY ([CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)) (`models/restroom_sign`)
+- Labelled box of lost items: [Cardboard Box 01](https://polyhaven.com/a/cardboard_box_01) by Rahul Chaudhary, Poly Haven, CC0 (`models/cardboard_box_01`)
+- Cart of unsorted things: [Industrial Storage Cart](https://polyhaven.com/a/industrial_storage_cart) by Jule Bielitz, Poly Haven, CC0 (`models/industrial_storage_cart`)
+- Service counter bell: [Desk Bell](https://sketchfab.com/3d-models/desk-bell-cc21b304c4bb4750bdde7a8fb538b116) by ClintonAbbott.Art, Sketchfab, CC-BY ([CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)) (`models/desk_bell`)
+- Notice board of lost-item notes: [Notice board](https://sketchfab.com/3d-models/notice-board-9a2ae180dae541d2abfec62864dd9ef4) by Mehdi Shahsavan, Sketchfab, CC-BY ([CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)) (`models/notice_board`)
+- Lost and found sign: [Hospital hanging signage](https://sketchfab.com/3d-models/hospital-hanging-signage-74157aae9eb746d9a0cfe7f9c5c7f83f) by Sousinho, Sketchfab, CC-BY ([CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)) (`models/lost_and_found_sign`)
+- Service counter: [Small modern reception counter](https://sketchfab.com/3d-models/small-modern-reception-counter-c8392731f0da42d68042013df924ea66) by DZigner, Sketchfab, CC-BY ([CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)) (`models/service_counter`)
 
 ## Textures
 

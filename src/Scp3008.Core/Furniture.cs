@@ -144,6 +144,19 @@ public enum FurnitureType
     TiledFloor,
     /// <summary>Discarded paper towel or paper scrap on the floor.</summary>
     LitterPaper,
+    // The Lost and found's Furniture (ticket 08k)
+    /// <summary>Service counter where lost items are reported and claimed.</summary>
+    ServiceCounter,
+    /// <summary>Service counter call bell.</summary>
+    ServiceBell,
+    /// <summary>Labelled cardboard storage box of lost items (variant 0: closed, variant 1: spilled open).</summary>
+    LabelledBox,
+    /// <summary>Mobile utility cart holding unsorted lost items.</summary>
+    UnsortedCart,
+    /// <summary>Notice board displaying notes and inquiries about lost items.</summary>
+    NoticeBoard,
+    /// <summary>Store service sign marking the Lost and found service point.</summary>
+    LostAndFoundSign,
 }
 
 /// <summary>
@@ -276,6 +289,8 @@ public static class FurnitureCatalog
         FurnitureType.StallPartition, FurnitureType.StallDoor, FurnitureType.HandDryer, FurnitureType.PaperTowelDispenser,
         FurnitureType.BabyChangingTable, FurnitureType.RestroomSign, FurnitureType.OutOfOrderSign, FurnitureType.RestroomMirror,
         FurnitureType.TiledWall, FurnitureType.TiledFloor, FurnitureType.LitterPaper,
+        FurnitureType.ServiceCounter, FurnitureType.ServiceBell, FurnitureType.LabelledBox, FurnitureType.UnsortedCart,
+        FurnitureType.NoticeBoard, FurnitureType.LostAndFoundSign,
     ];
 
     /// <summary>
@@ -412,8 +427,16 @@ public static class FurnitureCatalog
             new(FurnitureType.TiledWall, 2.6f, 0.15f, 2.8f),
             new(FurnitureType.TiledFloor, 10.4f, 6.0f, 0.005f, IsFloorCovering: true),
             new(FurnitureType.LitterPaper, 0.30f, 0.30f, 0.005f, IsFloorCovering: true),
+            // Lost and found Furniture (ticket 08k)
+            new(FurnitureType.ServiceCounter, 2.2f, 0.8f, 1.05f),
+            new(FurnitureType.ServiceBell, 0.12f, 0.12f, 0.10f),
+            new(FurnitureType.LabelledBox, 0.50f, 0.40f, 0.35f),
+            new(FurnitureType.UnsortedCart, 0.90f, 0.60f, 0.95f),
+            new(FurnitureType.NoticeBoard, 1.20f, 0.05f, 0.80f),
+            new(FurnitureType.LostAndFoundSign, 0.80f, 0.06f, 0.40f),
 
             // Variants of the most repeated types: other proportions, backs, legs or materials.
+            new(FurnitureType.LabelledBox, 0.50f, 0.40f, 0.35f, Variant: 1), // open / spilled box
             new(FurnitureType.RestroomMirror, 2.4f, 0.04f, 1.0f, Variant: 1), // cracked mirror
             new(FurnitureType.FishTank, 0.95f, 0.45f, 0.5f, Variant: 1),      // medium tank
             new(FurnitureType.FishTank, 2.4f, 0.9f, 1.9f, Variant: 2),        // large tank on its own cabinet (LargeFishTank)

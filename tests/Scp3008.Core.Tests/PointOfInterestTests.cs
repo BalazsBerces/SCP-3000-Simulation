@@ -429,9 +429,31 @@ public class PointOfInterestTests
         Assert.False(snapshot.LandmarkShowcase);
         Assert.Empty(snapshot.Landmarks);
         Assert.Empty(snapshot.Displays);
-        Assert.Equal(Enum.GetValues<PointOfInterestType>().Where(t => t != PointOfInterestType.Canteen && t != PointOfInterestType.Restroom).Order(), snapshot.PointsOfInterest.Select(p => p.Type).Order());
+        Assert.Equal(Enum.GetValues<PointOfInterestType>().Where(t => t != PointOfInterestType.Canteen && t != PointOfInterestType.Restroom && t != PointOfInterestType.LostAndFoundDesk).Order(), snapshot.PointsOfInterest.Select(p => p.Type).Order());
         Assert.All(snapshot.PointsOfInterest, poi => Assert.NotEmpty(PiecesOf(snapshot, poi)));
         Assert.All(snapshot.Furniture, piece => Assert.True(piece.PointOfInterestId >= 0));
+    }
+
+    [Theory]
+    [MemberData(nameof(LayoutsAndSeeds))]
+    public void Every_lost_and_found_piece_in_the_showcase_stays_inside_its_rectangle_and_on_the_floor_or_a_surface(PillarLayout layout, int seed)
+    {
+        using var sim = Simulation.Create(new WorldConfig(seed, RuntimeRngSeed: 1, PillarLayout: layout, PointOfInterestShowcase: true));
+        var snapshot = sim.Snapshot;
+        var laf = Assert.Single(snapshot.PointsOfInterest, p => p.Type == PointOfInterestType.LostAndFound);
+        var pieces = PiecesOf(snapshot, laf).ToList();
+        Assert.NotEmpty(pieces);
+        foreach (var piece in pieces)
+        {
+            var corners = FurnitureCatalog.Corners(piece);
+            Assert.True(corners.Min(c => c.Z) >= -0.001f, $"Piece {piece.Type} lowest corner below floor.");
+            foreach (var corner in corners)
+            {
+                var delta = snapshot.Space.Delta(laf.Centre, new Vector2(corner.X, corner.Y));
+                Assert.True(MathF.Abs(delta.X) <= laf.Size.X / 2f + 0.01f && MathF.Abs(delta.Y) <= laf.Size.Y / 2f + 0.01f,
+                    $"A {piece.Type} of the LostAndFound sticks out of it.");
+            }
+        }
     }
 
     [Theory]

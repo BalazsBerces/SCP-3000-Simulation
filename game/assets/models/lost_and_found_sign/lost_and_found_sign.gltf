@@ -1,0 +1,521 @@
+{
+ "accessors": [
+  {
+   "bufferView": 2,
+   "componentType": 5126,
+   "count": 180,
+   "max": [
+    0.02649099938571453,
+    0.026763999834656715,
+    0.49024999141693115
+   ],
+   "min": [
+    -0.02649099938571453,
+    -0.02676299959421158,
+    -0.2088250070810318
+   ],
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 2,
+   "byteOffset": 2160,
+   "componentType": 5126,
+   "count": 180,
+   "max": [
+    0.9898216128349304,
+    1.0,
+    1.0
+   ],
+   "min": [
+    -0.9898216128349304,
+    -1.0,
+    -1.0
+   ],
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 3,
+   "componentType": 5126,
+   "count": 180,
+   "max": [
+    0.999988317489624,
+    0.9898213744163513,
+    0.00013474375009536743,
+    1.0
+   ],
+   "min": [
+    -0.9999985098838806,
+    -0.9898165464401245,
+    -1.0,
+    1.0
+   ],
+   "type": "VEC4"
+  },
+  {
+   "bufferView": 1,
+   "componentType": 5126,
+   "count": 180,
+   "max": [
+    0.10504599660634995,
+    0.3767620027065277
+   ],
+   "min": [
+    0.0019529999699443579,
+    0.04373300075531006
+   ],
+   "type": "VEC2"
+  },
+  {
+   "bufferView": 0,
+   "componentType": 5125,
+   "count": 516,
+   "type": "SCALAR"
+  },
+  {
+   "bufferView": 2,
+   "byteOffset": 4320,
+   "componentType": 5126,
+   "count": 180,
+   "max": [
+    0.02649099938571453,
+    0.026763999834656715,
+    0.49024999141693115
+   ],
+   "min": [
+    -0.02649099938571453,
+    -0.02676299959421158,
+    -0.2088250070810318
+   ],
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 2,
+   "byteOffset": 6480,
+   "componentType": 5126,
+   "count": 180,
+   "max": [
+    0.9898216128349304,
+    1.0,
+    1.0
+   ],
+   "min": [
+    -0.9898216128349304,
+    -1.0,
+    -1.0
+   ],
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 3,
+   "byteOffset": 2880,
+   "componentType": 5126,
+   "count": 180,
+   "max": [
+    0.999988317489624,
+    0.9898213744163513,
+    0.00013474375009536743,
+    1.0
+   ],
+   "min": [
+    -0.9999985098838806,
+    -0.9898165464401245,
+    -1.0,
+    1.0
+   ],
+   "type": "VEC4"
+  },
+  {
+   "bufferView": 1,
+   "byteOffset": 1440,
+   "componentType": 5126,
+   "count": 180,
+   "max": [
+    0.10504599660634995,
+    0.3767620027065277
+   ],
+   "min": [
+    0.0019529999699443579,
+    0.04373300075531006
+   ],
+   "type": "VEC2"
+  },
+  {
+   "bufferView": 0,
+   "byteOffset": 2064,
+   "componentType": 5125,
+   "count": 516,
+   "type": "SCALAR"
+  },
+  {
+   "bufferView": 2,
+   "byteOffset": 8640,
+   "componentType": 5126,
+   "count": 385,
+   "max": [
+    0.033587001264095306,
+    2.1254520416259766,
+    0.2214989960193634
+   ],
+   "min": [
+    -0.03169500082731247,
+    -2.1254520416259766,
+    -0.27158600091934204
+   ],
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 2,
+   "byteOffset": 13260,
+   "componentType": 5126,
+   "count": 385,
+   "max": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "min": [
+    -1.0,
+    -1.0,
+    -1.0
+   ],
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 3,
+   "byteOffset": 5760,
+   "componentType": 5126,
+   "count": 385,
+   "max": [
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ],
+   "min": [
+    -1.0,
+    -1.0,
+    -1.0,
+    1.0
+   ],
+   "type": "VEC4"
+  },
+  {
+   "bufferView": 1,
+   "byteOffset": 2880,
+   "componentType": 5126,
+   "count": 385,
+   "max": [
+    0.9980469942092896,
+    0.9959279894828796
+   ],
+   "min": [
+    0.0019529999699443579,
+    0.0019529999699443579
+   ],
+   "type": "VEC2"
+  },
+  {
+   "bufferView": 0,
+   "byteOffset": 4128,
+   "componentType": 5125,
+   "count": 816,
+   "type": "SCALAR"
+  }
+ ],
+ "asset": {
+  "extras": {
+   "author": "Sousinho (https://sketchfab.com/sousinho)",
+   "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+   "source": "https://sketchfab.com/3d-models/hospital-hanging-signage-74157aae9eb746d9a0cfe7f9c5c7f83f",
+   "title": "Hospital hanging signage"
+  },
+  "generator": "Sketchfab-14.34.0",
+  "version": "2.0"
+ },
+ "bufferViews": [
+  {
+   "buffer": 0,
+   "byteLength": 7392,
+   "name": "floatBufferViews",
+   "target": 34963
+  },
+  {
+   "buffer": 0,
+   "byteLength": 5960,
+   "byteOffset": 7392,
+   "byteStride": 8,
+   "name": "floatBufferViews",
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteLength": 17880,
+   "byteOffset": 13352,
+   "byteStride": 12,
+   "name": "floatBufferViews",
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteLength": 11920,
+   "byteOffset": 31232,
+   "byteStride": 16,
+   "name": "floatBufferViews",
+   "target": 34962
+  }
+ ],
+ "buffers": [
+  {
+   "uri": "lost_and_found_sign.bin",
+   "byteLength": 43152
+  }
+ ],
+ "images": [
+  {
+   "uri": "textures/M_signage_1_1001_baseColor.jpg"
+  },
+  {
+   "uri": "textures/M_signage_1_1001_metallicRoughness.jpg"
+  },
+  {
+   "uri": "textures/M_signage_1_1001_normal.jpg"
+  }
+ ],
+ "materials": [
+  {
+   "doubleSided": true,
+   "name": "M_signage_1_1001",
+   "normalTexture": {
+    "index": 2
+   },
+   "occlusionTexture": {
+    "index": 1
+   },
+   "pbrMetallicRoughness": {
+    "baseColorTexture": {
+     "index": 0
+    },
+    "metallicRoughnessTexture": {
+     "index": 1
+    }
+   }
+  }
+ ],
+ "meshes": [
+  {
+   "name": "defaultMaterial",
+   "primitives": [
+    {
+     "attributes": {
+      "NORMAL": 1,
+      "POSITION": 0,
+      "TANGENT": 2,
+      "TEXCOORD_0": 3
+     },
+     "indices": 4,
+     "material": 0,
+     "mode": 4
+    }
+   ]
+  },
+  {
+   "name": "defaultMaterial",
+   "primitives": [
+    {
+     "attributes": {
+      "NORMAL": 6,
+      "POSITION": 5,
+      "TANGENT": 7,
+      "TEXCOORD_0": 8
+     },
+     "indices": 9,
+     "material": 0,
+     "mode": 4
+    }
+   ]
+  },
+  {
+   "name": "defaultMaterial",
+   "primitives": [
+    {
+     "attributes": {
+      "NORMAL": 11,
+      "POSITION": 10,
+      "TANGENT": 12,
+      "TEXCOORD_0": 13
+     },
+     "indices": 14,
+     "material": 0,
+     "mode": 4
+    }
+   ]
+  }
+ ],
+ "nodes": [
+  {
+   "children": [
+    1
+   ],
+   "matrix": [
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    2.220446049250313e-16,
+    -1.0,
+    0.0,
+    0.0,
+    1.0,
+    2.220446049250313e-16,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0
+   ],
+   "name": "Sketchfab_model"
+  },
+  {
+   "children": [
+    2,
+    4,
+    6
+   ],
+   "matrix": [
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    -4.371139006309477e-08,
+    0.999999999999999,
+    0.0,
+    0.0,
+    -0.999999999999999,
+    -4.371139006309477e-08,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0
+   ],
+   "name": "Collada visual scene group"
+  },
+  {
+   "children": [
+    3
+   ],
+   "matrix": [
+    100.0,
+    9e-06,
+    0.0,
+    0.0,
+    0.0,
+    -1.6e-05,
+    -100.0,
+    0.0,
+    -9e-06,
+    100.0,
+    -1.6e-05,
+    0.0,
+    0.0,
+    20.822878,
+    -163.390244,
+    1.0
+   ],
+   "name": "SM_signage_wire.004"
+  },
+  {
+   "mesh": 0,
+   "name": "defaultMaterial"
+  },
+  {
+   "children": [
+    5
+   ],
+   "matrix": [
+    100.0,
+    9e-06,
+    0.0,
+    0.0,
+    0.0,
+    -1.6e-05,
+    -100.0,
+    0.0,
+    -9e-06,
+    100.0,
+    -1.6e-05,
+    0.0,
+    0.0,
+    20.822878,
+    162.378738,
+    1.0
+   ],
+   "name": "SM_signage_wire"
+  },
+  {
+   "mesh": 1,
+   "name": "defaultMaterial"
+  },
+  {
+   "children": [
+    7
+   ],
+   "matrix": [
+    100.0,
+    9e-06,
+    0.0,
+    0.0,
+    0.0,
+    -1.6e-05,
+    -100.0,
+    0.0,
+    -9e-06,
+    100.0,
+    -1.6e-05,
+    0.0,
+    0.0,
+    -22.209524,
+    0.0,
+    1.0
+   ],
+   "name": "SM_signage"
+  },
+  {
+   "mesh": 2,
+   "name": "defaultMaterial"
+  }
+ ],
+ "samplers": [
+  {
+   "magFilter": 9729,
+   "minFilter": 9987,
+   "wrapS": 10497,
+   "wrapT": 10497
+  }
+ ],
+ "scene": 0,
+ "scenes": [
+  {
+   "name": "Sketchfab_Scene",
+   "nodes": [
+    0
+   ]
+  }
+ ],
+ "textures": [
+  {
+   "sampler": 0,
+   "source": 0
+  },
+  {
+   "sampler": 0,
+   "source": 1
+  },
+  {
+   "sampler": 0,
+   "source": 2
+  }
+ ]
+}

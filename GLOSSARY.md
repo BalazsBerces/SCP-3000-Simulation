@@ -65,6 +65,10 @@ _Avoid_: Canteen, Restaurant (that is a Department type)
 A worn, recognisable store restroom: tiled surfaces, stalls with doors (some ajar, one hanging off broken), toilets, a row of washbasins with a long mirror (sometimes cracked), electric hand dryers, paper towel dispensers, a baby-changing table, entrance signage, an out-of-order caution sign and paper litter on the floor. A small water source.
 _Avoid_: Bathroom (that is a Department type), WC, toilet (that is a single Furniture piece)
 
+**Lost and found**:
+A recognisable store service point: a service counter with a bell, shelves of labelled boxes and bins, a rack of lost coats and umbrellas, a cart of unsorted things, a notice board of lost-item notes, and a generic store sign; left abandoned with spilled boxes, a toppled pile, items on the counter and a hand-written "back in 5 min" note. A source of rare, random Goods.
+_Avoid_: Lost and found desk (that is the old single-desk version)
+
 **Ball pit**:
 One of the three ball pools in every Store, like a store's kids' play area: padded walls, a net railing, a slide and hundreds of coloured balls; a Point of interest. Harmless while the Store is open; at Closing time the Staff pass from any Ball pit to any other. Villagers cannot.
 _Avoid_: Ball-pit sea, portal

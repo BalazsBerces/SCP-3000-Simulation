@@ -312,6 +312,7 @@ public static class PointOfInterestNames
         PointOfInterestType.AquariumAisle => "Aquarium aisle",
         PointOfInterestType.Cafeteria => "Cafeteria",
         PointOfInterestType.StoreRestroom => "Restroom",
+        PointOfInterestType.LostAndFound => "Lost and found",
         _ => type.ToString(),
     };
 }

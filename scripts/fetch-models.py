@@ -50,6 +50,12 @@ MODELS = [
     ("paper_towel_dispenser", "sketchfab", "15c4a2aa81994874a8dfc8038339b08d", "Paper Towel Dispenser", "Paper towel dispenser"),
     ("baby_changing_station", "sketchfab", "8d9e952dc3c34536b30337450c29300f", "Baby Changing Station", "Baby-changing table"),
     ("restroom_sign", "sketchfab", "562555b57b5540ed81e25593a2d62791", "Restroom Sign", "Restroom sign"),
+    ("cardboard_box_01", "polyhaven", "cardboard_box_01", "Cardboard Box 01", "Labelled box of lost items"),
+    ("industrial_storage_cart", "polyhaven", "industrial_storage_cart", "Industrial Storage Cart", "Cart of unsorted things"),
+    ("desk_bell", "sketchfab", "cc21b304c4bb4750bdde7a8fb538b116", "Desk Bell", "Service counter bell"),
+    ("notice_board", "sketchfab", "9a2ae180dae541d2abfec62864dd9ef4", "Notice board", "Notice board of lost-item notes"),
+    ("lost_and_found_sign", "sketchfab", "74157aae9eb746d9a0cfe7f9c5c7f83f", "Hospital hanging signage", "Lost and found sign"),
+    ("service_counter", "sketchfab", "c8392731f0da42d68042013df924ea66", "Small modern reception counter", "Service counter"),
 ]
 
 # Toilets pack material -> its texture folder in the pack.

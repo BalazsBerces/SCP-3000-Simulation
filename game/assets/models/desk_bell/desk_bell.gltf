@@ -1,0 +1,371 @@
+{
+ "accessors": [
+  {
+   "bufferView": 2,
+   "componentType": 5126,
+   "count": 418,
+   "max": [
+    0.9267770051956177,
+    0.9267770051956177,
+    0.9924520254135132
+   ],
+   "min": [
+    -0.9267770051956177,
+    -0.9267770051956177,
+    0.007073000073432922
+   ],
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 2,
+   "byteOffset": 5016,
+   "componentType": 5126,
+   "count": 418,
+   "max": [
+    0.9997043609619141,
+    0.9997043609619141,
+    1.0
+   ],
+   "min": [
+    -0.9997043609619141,
+    -0.9997043609619141,
+    -1.0
+   ],
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 3,
+   "componentType": 5126,
+   "count": 418,
+   "max": [
+    0.9987596869468689,
+    0.9991511702537537,
+    0.998308002948761,
+    1.0
+   ],
+   "min": [
+    -0.9796446561813354,
+    -0.9732728004455566,
+    -0.9983081817626953,
+    -1.0
+   ],
+   "type": "VEC4"
+  },
+  {
+   "bufferView": 1,
+   "componentType": 5126,
+   "count": 418,
+   "max": [
+    0.9996730089187622,
+    1.0
+   ],
+   "min": [
+    0.0,
+    0.0
+   ],
+   "type": "VEC2"
+  },
+  {
+   "bufferView": 0,
+   "componentType": 5125,
+   "count": 2016,
+   "type": "SCALAR"
+  },
+  {
+   "bufferView": 2,
+   "byteOffset": 10032,
+   "componentType": 5126,
+   "count": 214,
+   "max": [
+    0.17033199965953827,
+    0.17033199965953827,
+    1.179608941078186
+   ],
+   "min": [
+    -0.17033199965953827,
+    -0.17033199965953827,
+    0.7467010021209717
+   ],
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 2,
+   "byteOffset": 12600,
+   "componentType": 5126,
+   "count": 214,
+   "max": [
+    0.9997010231018066,
+    0.9997010231018066,
+    1.0
+   ],
+   "min": [
+    -0.9997010231018066,
+    -0.9997010231018066,
+    -1.0
+   ],
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 3,
+   "byteOffset": 6688,
+   "componentType": 5126,
+   "count": 214,
+   "max": [
+    0.9997072815895081,
+    0.9999887347221375,
+    0.9936547875404358,
+    1.0
+   ],
+   "min": [
+    -0.991986095905304,
+    -0.9611812829971313,
+    -0.9936553239822388,
+    1.0
+   ],
+   "type": "VEC4"
+  },
+  {
+   "bufferView": 1,
+   "byteOffset": 3344,
+   "componentType": 5126,
+   "count": 214,
+   "max": [
+    1.925806999206543,
+    0.9656400084495544
+   ],
+   "min": [
+    1.0174050331115723,
+    0.08956900238990784
+   ],
+   "type": "VEC2"
+  },
+  {
+   "bufferView": 0,
+   "byteOffset": 8064,
+   "componentType": 5125,
+   "count": 1056,
+   "type": "SCALAR"
+  }
+ ],
+ "asset": {
+  "extras": {
+   "author": "ClintonAbbott.Art (https://sketchfab.com/clintonabbott.art)",
+   "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+   "source": "https://sketchfab.com/3d-models/desk-bell-cc21b304c4bb4750bdde7a8fb538b116",
+   "title": "Desk Bell"
+  },
+  "generator": "Sketchfab-12.63.0",
+  "version": "2.0"
+ },
+ "bufferViews": [
+  {
+   "buffer": 0,
+   "byteLength": 12288,
+   "name": "floatBufferViews",
+   "target": 34963
+  },
+  {
+   "buffer": 0,
+   "byteLength": 5056,
+   "byteOffset": 12288,
+   "byteStride": 8,
+   "name": "floatBufferViews",
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteLength": 15168,
+   "byteOffset": 17344,
+   "byteStride": 12,
+   "name": "floatBufferViews",
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteLength": 10112,
+   "byteOffset": 32512,
+   "byteStride": 16,
+   "name": "floatBufferViews",
+   "target": 34962
+  }
+ ],
+ "buffers": [
+  {
+   "uri": "desk_bell.bin",
+   "byteLength": 42624
+  }
+ ],
+ "images": [
+  {
+   "uri": "textures/aiStandardSurface1SG_baseColor.jpg"
+  },
+  {
+   "uri": "textures/aiStandardSurface1SG_metallicRoughness.jpg"
+  },
+  {
+   "uri": "textures/aiStandardSurface1SG_normal.jpg"
+  },
+  {
+   "uri": "textures/aiStandardSurface2SG_baseColor.jpg"
+  },
+  {
+   "uri": "textures/aiStandardSurface2SG_metallicRoughness.jpg"
+  },
+  {
+   "uri": "textures/aiStandardSurface2SG_normal.jpg"
+  }
+ ],
+ "materials": [
+  {
+   "doubleSided": true,
+   "name": "aiStandardSurface1SG",
+   "normalTexture": {
+    "index": 2,
+    "scale": 0.8986411556698863
+   },
+   "pbrMetallicRoughness": {
+    "baseColorTexture": {
+     "index": 0
+    },
+    "metallicRoughnessTexture": {
+     "index": 1
+    },
+    "roughnessFactor": 0.11388491421305746
+   }
+  },
+  {
+   "doubleSided": true,
+   "name": "aiStandardSurface2SG",
+   "normalTexture": {
+    "index": 5
+   },
+   "pbrMetallicRoughness": {
+    "baseColorTexture": {
+     "index": 3
+    },
+    "metallicRoughnessTexture": {
+     "index": 4
+    },
+    "roughnessFactor": 0.12641098409600138
+   }
+  }
+ ],
+ "meshes": [
+  {
+   "name": "Object_0",
+   "primitives": [
+    {
+     "attributes": {
+      "NORMAL": 1,
+      "POSITION": 0,
+      "TANGENT": 2,
+      "TEXCOORD_0": 3
+     },
+     "indices": 4,
+     "material": 0,
+     "mode": 4
+    }
+   ]
+  },
+  {
+   "name": "Object_1",
+   "primitives": [
+    {
+     "attributes": {
+      "NORMAL": 6,
+      "POSITION": 5,
+      "TANGENT": 7,
+      "TEXCOORD_0": 8
+     },
+     "indices": 9,
+     "material": 1,
+     "mode": 4
+    }
+   ]
+  }
+ ],
+ "nodes": [
+  {
+   "children": [
+    1
+   ],
+   "matrix": [
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    2.220446049250313e-16,
+    -1.0,
+    0.0,
+    0.0,
+    1.0,
+    2.220446049250313e-16,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0
+   ],
+   "name": "Sketchfab_model"
+  },
+  {
+   "children": [
+    2,
+    3
+   ],
+   "name": "Desk_Bell.obj.cleaner.materialmerger.gles"
+  },
+  {
+   "mesh": 0,
+   "name": "Object_2"
+  },
+  {
+   "mesh": 1,
+   "name": "Object_3"
+  }
+ ],
+ "samplers": [
+  {
+   "magFilter": 9729,
+   "minFilter": 9987,
+   "wrapS": 10497,
+   "wrapT": 10497
+  }
+ ],
+ "scene": 0,
+ "scenes": [
+  {
+   "name": "Sketchfab_Scene",
+   "nodes": [
+    0
+   ]
+  }
+ ],
+ "textures": [
+  {
+   "sampler": 0,
+   "source": 0
+  },
+  {
+   "sampler": 0,
+   "source": 1
+  },
+  {
+   "sampler": 0,
+   "source": 2
+  },
+  {
+   "sampler": 0,
+   "source": 3
+  },
+  {
+   "sampler": 0,
+   "source": 4
+  },
+  {
+   "sampler": 0,
+   "source": 5
+  }
+ ]
+}

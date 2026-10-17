@@ -73,6 +73,12 @@ public static class FurnitureModels
         new(FurnitureType.PaperTowelDispenser, 0, "paper_towel_dispenser", 0f, 5000, false, "Carolyn Wong", "CC-BY", "https://sketchfab.com/3d-models/paper-towel-dispenser-15c4a2aa81994874a8dfc8038339b08d"),
         new(FurnitureType.BabyChangingTable, 0, "baby_changing_station", 0f, 5000, false, "JakeBradley", "CC-BY", "https://sketchfab.com/3d-models/baby-changing-station-8d9e952dc3c34536b30337450c29300f"),
         new(FurnitureType.RestroomSign, 0, "restroom_sign", 0f, 5000, false, "Ellis Fossett", "CC-BY", "https://sketchfab.com/3d-models/restroom-sign-562555b57b5540ed81e25593a2d62791"),
+        new(FurnitureType.LabelledBox, 0, "cardboard_box_01", 0f, 20000, false, "Rahul Chaudhary", "CC0", "https://polyhaven.com/a/cardboard_box_01"),
+        new(FurnitureType.UnsortedCart, 0, "industrial_storage_cart", 0f, 20000, false, "Jule Bielitz", "CC0", "https://polyhaven.com/a/industrial_storage_cart"),
+        new(FurnitureType.ServiceBell, 0, "desk_bell", 0f, 5000, false, "ClintonAbbott.Art", "CC-BY", "https://sketchfab.com/3d-models/desk-bell-cc21b304c4bb4750bdde7a8fb538b116"),
+        new(FurnitureType.NoticeBoard, 0, "notice_board", 0f, 5000, false, "Mehdi Shahsavan", "CC-BY", "https://sketchfab.com/3d-models/notice-board-9a2ae180dae541d2abfec62864dd9ef4"),
+        new(FurnitureType.LostAndFoundSign, 0, "lost_and_found_sign", 90f, 5000, false, "Sousinho", "CC-BY", "https://sketchfab.com/3d-models/hospital-hanging-signage-74157aae9eb746d9a0cfe7f9c5c7f83f"),
+        new(FurnitureType.ServiceCounter, 0, "service_counter", 0f, 5000, false, "DZigner", "CC-BY", "https://sketchfab.com/3d-models/small-modern-reception-counter-c8392731f0da42d68042013df924ea66"),
     ];
 
     /// <summary>The licences external models may have.</summary>
@@ -248,7 +254,8 @@ public static class FurnitureModels
             {
                 // Opaque parts only (ADR 0005); transparent parts are small details.
                 if ((instance.GetActiveMaterial(s) ?? mesh.SurfaceGetMaterial(s)) is not BaseMaterial3D material
-                    || material.Transparency != BaseMaterial3D.TransparencyEnum.Disabled)
+                    || material.Transparency != BaseMaterial3D.TransparencyEnum.Disabled
+                    || (mesh is ArrayMesh am && am.SurfaceGetPrimitiveType(s) != Mesh.PrimitiveType.Triangles))
                     continue;
                 var part = parts.FirstOrDefault(p => p.Material == material);
                 if (part is null)
@@ -266,6 +273,8 @@ public static class FurnitureModels
         var tangents = arrays[(int)Mesh.ArrayType.Tangent].AsFloat32Array();
         var uvs = arrays[(int)Mesh.ArrayType.TexUV].AsVector2Array();
         var indices = arrays[(int)Mesh.ArrayType.Index].AsInt32Array();
+        if (indices.Length % 3 != 0 || (indices.Length == 0 && positions.Length % 3 != 0))
+            return;
         var first = part.Positions.Count;
         var normalBasis = transform.Basis.Inverse().Transposed();
         for (var i = 0; i < positions.Length; i++)

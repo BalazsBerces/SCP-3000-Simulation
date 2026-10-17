@@ -49,6 +49,7 @@ internal static class PointOfInterestGenerator
         PointOfInterestType.AquariumAisle => new(12f, 6f),
         PointOfInterestType.Cafeteria => new Vector2(24f, 20f),
         PointOfInterestType.StoreRestroom => new Vector2(10.4f, 6.0f),
+        PointOfInterestType.LostAndFound => new Vector2(6.5f, 5.0f),
         _ => throw new ArgumentOutOfRangeException(nameof(type), type, null),
     };
 
@@ -140,8 +141,8 @@ internal static class PointOfInterestGenerator
     /// </summary>
     public static IReadOnlyList<PointOfInterestSite> Showcase(StoreSpace space, IReadOnlyList<Sector> sectors, IReadOnlyList<Pillar> pillars)
     {
-        // The Cafeteria stands in for the Canteen, and StoreRestroom stands in for the Restroom (ticket 08m moves the Store generator over too).
-        var kinds = Enum.GetValues<PointOfInterestType>().Where(k => k != PointOfInterestType.Canteen && k != PointOfInterestType.Restroom).ToList();
+        // The Cafeteria stands in for the Canteen, StoreRestroom stands in for the Restroom, and LostAndFound stands in for LostAndFoundDesk (ticket 08m moves the Store generator over too).
+        var kinds = Enum.GetValues<PointOfInterestType>().Where(k => k != PointOfInterestType.Canteen && k != PointOfInterestType.Restroom && k != PointOfInterestType.LostAndFoundDesk).ToList();
         var length = kinds.Sum(k => OwnSize(k).X) + ShowcaseGap * (kinds.Count - 1);
         if (length > space.Size)
             throw new InvalidOperationException($"The showcase row ({length:0} m) is longer than the Store.");
@@ -213,6 +214,7 @@ internal static class PointOfInterestGenerator
                 case PointOfInterestType.AquariumAisle: BuildAquariumAisle(builder); break;
                 case PointOfInterestType.Cafeteria: BuildCafeteria(builder); break;
                 case PointOfInterestType.StoreRestroom: BuildStoreRestroom(builder); break;
+                case PointOfInterestType.LostAndFound: BuildLostAndFoundServicePoint(builder); break;
             }
             var first = firstPieceId + pieces.Count;
             foreach (var (index, kind) in builder.Fish)
@@ -498,6 +500,143 @@ internal static class PointOfInterestGenerator
         SeatsAround(b, table, variant, plates: true, sideSeats: 2);
         b.Put(FurnitureType.Sideboard, new Vector2(0f, -2.1f), 0f, 0f);
         b.Put(FurnitureType.MealPlate, new Vector2(random.Range(-0.5f, 0.5f), -2.1f), FurnitureCatalog.Spec(FurnitureType.Sideboard).Height, 0f);
+    }
+
+    /// <summary>
+    /// A recognisable store service point (6.5 × 5.0 m): service counter with a call bell, shelves of labelled boxes and bins,
+    /// a rack of lost coats and umbrellas, a cart of unsorted things, a notice board of lost-item notes, and a generic store
+    /// service sign; left abandoned with spilled open boxes, a toppled pile of boxes, items left on the counter, and a
+    /// hand-written "back in 5 min" note. 3 floor-plan variants driven by seed.
+    /// </summary>
+    private static void BuildLostAndFoundServicePoint(PointOfInterestBuilder b)
+    {
+        var random = b.Random;
+        var plan = random.Next(3);
+        const float counterHeight = 1.05f;
+
+        switch (plan)
+        {
+            case 0:
+            {
+                // Plan 0: Front-facing service point (North shelving & notice board, South-central service counter)
+                // North wall shelves (y = -2.15)
+                b.Put(FurnitureType.ShelfUnit, new Vector2(-1.5f, -2.15f), 0f, 0f);
+                b.Put(FurnitureType.LabelledBox, new Vector2(-1.8f, -2.15f), 0.45f, 0f);
+                b.Put(FurnitureType.LabelledBox, new Vector2(-1.2f, -2.15f), 0.45f, 0.1f);
+                b.Put(FurnitureType.LabelledBox, new Vector2(-1.5f, -2.15f), 0.95f, -0.1f);
+
+                b.Put(FurnitureType.ShelfUnit, new Vector2(1.2f, -2.15f), 0f, 0f);
+                b.Put(FurnitureType.LabelledBox, new Vector2(0.8f, -2.15f), 0.45f, 0f);
+                b.Put(FurnitureType.LabelledBox, new Vector2(1.5f, -2.15f), 0.45f, -0.15f);
+                b.Put(FurnitureType.LabelledBox, new Vector2(1.1f, -2.15f), 0.95f, 0.1f);
+
+                // Notice board between shelves on North wall
+                b.Put(FurnitureType.NoticeBoard, new Vector2(-0.15f, -2.42f), 1.2f, 0f);
+
+                // Storage bin beside east shelf
+                b.Put(FurnitureType.CushionBin, new Vector2(2.6f, -2.0f), 0f, 0f, tint: random.Next(FurniturePalettes.TintCount));
+
+                // West side: coat rack and unsorted cart
+                b.Put(FurnitureType.CoatRack, new Vector2(-2.7f, -1.0f), 0f, 0f);
+                b.Put(FurnitureType.UnsortedCart, new Vector2(-2.4f, 1.2f), 0f, 0.25f);
+
+                // Central service counter
+                b.Put(FurnitureType.ServiceCounter, new Vector2(-0.2f, 0.4f), 0f, 0f);
+                b.Put(FurnitureType.OfficeChair, new Vector2(-0.2f, -0.4f), 0f, 0.1f);
+
+                // Items on counter
+                b.Put(FurnitureType.ServiceBell, new Vector2(-0.9f, 0.4f), counterHeight, 0f);
+                b.Put(FurnitureType.Note, new Vector2(0.2f, 0.4f), counterHeight, 0.15f);
+
+                // Sign above counter
+                b.Put(FurnitureType.LostAndFoundSign, new Vector2(-0.2f, 0.4f), 2.3f, 0f);
+
+                // East floor abandonment: toppled pile and spilled open box
+                b.Put(FurnitureType.LabelledBox, new Vector2(2.0f, 0.4f), 0f, 0.1f);
+                b.Put(FurnitureType.LabelledBox, new Vector2(2.0f, 0.4f), 0.35f, -0.1f);
+                b.Put(FurnitureType.LabelledBox, new Vector2(1.4f, 0.5f), 0f, 0.4f, tilt: 0.38f, roll: -0.15f);
+                b.Put(FurnitureType.LabelledBox, new Vector2(2.2f, 1.4f), 0f, -0.5f, variant: 1);
+                break;
+            }
+            case 1:
+            {
+                // Plan 1: L-shaped service point (West back shelves, South counter facing east)
+                // West wall shelves (x = -2.85)
+                b.Put(FurnitureType.ShelfUnit, new Vector2(-2.85f, -1.1f), 0f, Quarter);
+                b.Put(FurnitureType.LabelledBox, new Vector2(-2.85f, -1.4f), 0.45f, Quarter);
+                b.Put(FurnitureType.LabelledBox, new Vector2(-2.85f, -0.8f), 0.45f, Quarter + 0.1f);
+                b.Put(FurnitureType.LabelledBox, new Vector2(-2.85f, -1.1f), 0.95f, Quarter - 0.15f);
+
+                b.Put(FurnitureType.ShelfUnit, new Vector2(-2.85f, 1.0f), 0f, Quarter);
+                b.Put(FurnitureType.LabelledBox, new Vector2(-2.85f, 0.7f), 0.45f, Quarter);
+                b.Put(FurnitureType.LabelledBox, new Vector2(-2.85f, 1.3f), 0.45f, Quarter - 0.1f);
+                b.Put(FurnitureType.LabelledBox, new Vector2(-2.85f, 1.0f), 0.95f, Quarter + 0.1f);
+
+                b.Put(FurnitureType.CushionBin, new Vector2(-2.6f, -2.0f), 0f, 0f, tint: random.Next(FurniturePalettes.TintCount));
+
+                // North wall: notice board, coat rack, and unsorted cart
+                b.Put(FurnitureType.NoticeBoard, new Vector2(-0.5f, -2.42f), 1.2f, 0f);
+                b.Put(FurnitureType.CoatRack, new Vector2(1.2f, -2.0f), 0f, 0f);
+                b.Put(FurnitureType.UnsortedCart, new Vector2(2.3f, -1.6f), 0f, -Quarter);
+
+                // Counter facing East (rotation -Quarter)
+                b.Put(FurnitureType.ServiceCounter, new Vector2(-0.8f, 0.5f), 0f, -Quarter);
+                b.Put(FurnitureType.OfficeChair, new Vector2(-1.6f, 0.5f), 0f, -Quarter);
+
+                // Items on counter
+                b.Put(FurnitureType.ServiceBell, new Vector2(-0.8f, -0.1f), counterHeight, -Quarter);
+                b.Put(FurnitureType.Note, new Vector2(-0.8f, 0.8f), counterHeight, -Quarter + 0.2f);
+
+                // Sign above counter
+                b.Put(FurnitureType.LostAndFoundSign, new Vector2(-0.8f, 0.5f), 2.3f, -Quarter);
+
+                // Abandonment: toppled pile and spilled open box
+                b.Put(FurnitureType.LabelledBox, new Vector2(1.0f, 0.4f), 0f, 0.2f);
+                b.Put(FurnitureType.LabelledBox, new Vector2(1.0f, 0.4f), 0.35f, -0.1f);
+                b.Put(FurnitureType.LabelledBox, new Vector2(0.4f, 0.5f), 0f, -0.4f, tilt: -0.35f, roll: 0.2f);
+                b.Put(FurnitureType.LabelledBox, new Vector2(1.2f, 1.4f), 0f, 0.4f, variant: 1);
+                break;
+            }
+            default:
+            {
+                // Plan 2: Centred counter island with East/West dual storage racks
+                // West and East storage racks
+                b.Put(FurnitureType.ShelfUnit, new Vector2(-2.85f, -0.5f), 0f, Quarter);
+                b.Put(FurnitureType.LabelledBox, new Vector2(-2.85f, -0.8f), 0.45f, Quarter);
+                b.Put(FurnitureType.LabelledBox, new Vector2(-2.85f, -0.2f), 0.45f, Quarter + 0.1f);
+                b.Put(FurnitureType.LabelledBox, new Vector2(-2.85f, -0.5f), 0.95f, Quarter - 0.1f);
+
+                b.Put(FurnitureType.ShelfUnit, new Vector2(2.85f, -0.5f), 0f, -Quarter);
+                b.Put(FurnitureType.LabelledBox, new Vector2(2.85f, -0.8f), 0.45f, -Quarter);
+                b.Put(FurnitureType.LabelledBox, new Vector2(2.85f, -0.2f), 0.45f, -Quarter - 0.1f);
+                b.Put(FurnitureType.LabelledBox, new Vector2(2.85f, -0.5f), 0.95f, -Quarter + 0.1f);
+
+                b.Put(FurnitureType.CushionBin, new Vector2(2.6f, 1.4f), 0f, 0f, tint: random.Next(FurniturePalettes.TintCount));
+
+                // North wall
+                b.Put(FurnitureType.NoticeBoard, new Vector2(0f, -2.42f), 1.2f, 0f);
+                b.Put(FurnitureType.CoatRack, new Vector2(-1.6f, -2.0f), 0f, 0f);
+                b.Put(FurnitureType.UnsortedCart, new Vector2(1.6f, -1.8f), 0f, 0.2f);
+
+                // Central counter
+                b.Put(FurnitureType.ServiceCounter, new Vector2(0f, 0.3f), 0f, 0f);
+                b.Put(FurnitureType.OfficeChair, new Vector2(0f, -0.5f), 0f, 0.1f);
+
+                // Items on counter
+                b.Put(FurnitureType.ServiceBell, new Vector2(0.8f, 0.3f), counterHeight, 0f);
+                b.Put(FurnitureType.Note, new Vector2(-0.3f, 0.3f), counterHeight, -0.15f);
+
+                // Sign above counter
+                b.Put(FurnitureType.LostAndFoundSign, new Vector2(0f, 0.3f), 2.3f, 0f);
+
+                // Abandonment: toppled pile and spilled open box
+                b.Put(FurnitureType.LabelledBox, new Vector2(-1.7f, 0.9f), 0f, 0f);
+                b.Put(FurnitureType.LabelledBox, new Vector2(-1.7f, 0.9f), 0.35f, 0.2f);
+                b.Put(FurnitureType.LabelledBox, new Vector2(-1.1f, 1.0f), 0f, 0.3f, tilt: 0.4f, roll: 0.18f);
+                b.Put(FurnitureType.LabelledBox, new Vector2(1.6f, 1.2f), 0f, -0.3f, variant: 1);
+                break;
+            }
+        }
     }
 
     /// <summary>A desk with the staff's chair before shelves and cabinets of what has been found, and boxes of it on the floor.</summary>
