@@ -11,7 +11,7 @@ All textures are CC0 (public domain), downscaled to 512 px.
 - floor layer Showrooms: laminate_floor_02 from Poly Haven
 - floor layer LightingAndElectrical: granite_tile from Poly Haven
 - floor layer SelfServeWarehouse: concrete_floor_worn_001 from Poly Haven
-- floor layer BathroomsAndKitchens: marble_tiles from Poly Haven
+- floor layer BathroomsAndKitchens: [interior_tiles](https://polyhaven.com/a/interior_tiles) from Poly Haven (CC0)
 - floor layer PlantSection: patio_tiles from Poly Haven
 - floor layer KidsArea: old_linoleum_flooring_01 from Poly Haven
 - `pine_*`: [coated_pine](https://polyhaven.com/a/coated_pine) from Poly Haven (CC0)
