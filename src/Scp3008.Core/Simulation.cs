@@ -36,6 +36,7 @@ public sealed class Simulation : IDisposable
     private readonly IReadOnlyList<PointOfInterest> _pointsOfInterest;
     private readonly BallPitNetwork _ballPitNetwork;
     private readonly IReadOnlyList<TankFish> _tankFish;
+    private readonly IReadOnlyList<CounterMeal> _counterMeals;
     private readonly Weather _weather;
     private long _tick;
     private SimulationSpeed _speed = SimulationSpeed.Normal;
@@ -78,6 +79,7 @@ public sealed class Simulation : IDisposable
         _pointsOfInterest = pointsOfInterest.PointsOfInterest;
         _ballPitNetwork = pointsOfInterest.BallPitNetwork;
         _tankFish = pointsOfInterest.TankFish;
+        _counterMeals = pointsOfInterest.CounterMeals;
         // Runtime randomness never comes from the Store seed (ADR 0003); it is unseeded unless a test fixes it.
         var runtimeSeed = config.RuntimeRngSeed ?? Random.Shared.Next();
         _weather = new Weather(_space, SeededRandom.For(runtimeSeed, WeatherStream));
@@ -329,6 +331,7 @@ public sealed class Simulation : IDisposable
         {
             BallPitNetwork = _ballPitNetwork,
             TankFish = _tankFish,
+            CounterMeals = _counterMeals,
             PointOfInterestShowcase = _config.PointOfInterestShowcase,
         };
 

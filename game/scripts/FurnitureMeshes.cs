@@ -67,6 +67,14 @@ public static class FurnitureMeshes
         TankGlass,
         Gravel,
         AquaticPlant,
+        // The Cafeteria (ticket 08i): mash and lingonberries beside the meatballs (Food), almond cake, the dark menu
+        // boards, a note's paper and a spill's glossy puddle.
+        Mash,
+        Lingonberry,
+        Cake,
+        MenuPanel,
+        Paper,
+        Spill,
     }
 
     // Emission of a lit lamp shade.
@@ -309,6 +317,14 @@ public static class FurnitureMeshes
         if (type is FurnitureType.FishTank or FurnitureType.TankRack)
         {
             BuildAquariumAisle(b, type, variant, w, d, h);
+            return b;
+        }
+        if (type is FurnitureType.HotFoodCounter or FurnitureType.DessertCounter or FurnitureType.TrayRail
+            or FurnitureType.TrayStation or FurnitureType.CoffeeMachine or FurnitureType.Till
+            or FurnitureType.TrayTrolley or FurnitureType.HighChair or FurnitureType.MenuBoard
+            or FurnitureType.Tray or FurnitureType.Spill or FurnitureType.Note)
+        {
+            BuildCafeteria(b, type, w, d, h);
             return b;
         }
         if (variant > 0)
@@ -897,6 +913,241 @@ public static class FurnitureMeshes
             var root = new Vector3(Between(-inX, inX), gravel - 0.005f, Between(back + 0.02f, midZ));
             var tip = root + new Vector3(Between(-0.04f, 0.04f) * scale, (waterline - gravel) * Between(0.45f, 0.85f), Between(0f, 0.03f) * scale);
             b.Tube(Part.AquaticPlant, root, tip, 0.008f * scale, 0.002f, 4);
+        }
+    }
+
+    /// <summary>
+    /// Procedural meshes for the Cafeteria (ticket 08i): hot food and dessert counters, tray rail and station, coffee machine,
+    /// till, tray trolleys, high chairs, menu boards, trays, spills and notes. Untinted materials only. Customer side is at +Z.
+    /// </summary>
+    private static void BuildCafeteria(Builder b, FurnitureType type, float w, float d, float h)
+    {
+        var (hw, hd) = (w / 2f, d / 2f);
+        switch (type)
+        {
+            case FurnitureType.HotFoodCounter:
+            {
+                // Steel counter body
+                b.Box(Part.LightSteel, new Vector3(-hw, 0f, -hd), new Vector3(hw, 0.9f, hd));
+
+                // Three food wells across the top (0.55 × 0.45, 0.02 thick)
+                foreach (var cx in new[] { -0.6f, 0.0f, 0.6f })
+                    b.Box(Part.LightSteel, new Vector3(cx - 0.275f, 0.9f, -0.225f), new Vector3(cx + 0.275f, 0.92f, 0.225f));
+
+                // Food in wells: left Food (meatballs), middle Mash, right Lingonberry
+                b.Box(Part.Food, new Vector3(-0.6f - 0.24f, 0.92f, -0.19f), new Vector3(-0.6f + 0.24f, 0.97f, 0.19f));
+                b.Cylinder(Part.Food, new Vector3(-0.7f, 0.97f, -0.05f), 0.04f, 0.04f, 0.04f, 6);
+                b.Cylinder(Part.Food, new Vector3(-0.55f, 0.97f, 0.05f), 0.04f, 0.04f, 0.04f, 6);
+                b.Cylinder(Part.Food, new Vector3(-0.6f, 0.97f, -0.08f), 0.035f, 0.035f, 0.04f, 6);
+
+                b.Box(Part.Mash, new Vector3(-0.24f, 0.92f, -0.19f), new Vector3(0.24f, 0.98f, 0.19f));
+                b.Cylinder(Part.Mash, new Vector3(0f, 0.98f, 0f), 0.15f, 0.10f, 0.03f, 8);
+
+                b.Box(Part.Lingonberry, new Vector3(0.6f - 0.24f, 0.92f, -0.19f), new Vector3(0.6f + 0.24f, 0.97f, 0.19f));
+                b.Cylinder(Part.Lingonberry, new Vector3(0.6f, 0.97f, 0f), 0.14f, 0.08f, 0.02f, 8);
+
+                // Chrome posts supporting sneeze guard at x = ±(hw - 0.08)
+                foreach (var x in new[] { -hw + 0.08f, hw - 0.08f })
+                    b.Box(Part.Chrome, new Vector3(x - 0.015f, 0.9f, hd - 0.08f), new Vector3(x + 0.015f, h - 0.02f, hd - 0.05f));
+
+                // Chrome top bar connecting posts
+                b.Box(Part.Chrome, new Vector3(-hw + 0.065f, h - 0.02f, hd - 0.08f), new Vector3(hw - 0.065f, h, hd - 0.05f));
+
+                // Glass sneeze guard pane between the posts
+                b.Box(Part.Glass, new Vector3(-hw + 0.096f, 0.98f, hd - 0.075f), new Vector3(hw - 0.096f, 1.32f, hd - 0.065f));
+                b.Box(Part.Glass, new Vector3(-hw + 0.096f, 1.25f, -0.1f), new Vector3(hw - 0.096f, 1.27f, hd - 0.075f));
+                break;
+            }
+            case FurnitureType.DessertCounter:
+            {
+                // Steel base
+                b.Box(Part.LightSteel, new Vector3(-hw, 0f, -hd), new Vector3(hw, 0.7f, hd));
+                // Steel top
+                b.Box(Part.LightSteel, new Vector3(-hw, h - 0.05f, -hd), new Vector3(hw, h, hd));
+
+                // Glass cabinet
+                b.Box(Part.Glass, new Vector3(-hw + 0.03f, 0.7f, -hd + 0.03f), new Vector3(hw - 0.03f, h - 0.05f, hd - 0.03f));
+
+                // Chrome shelves inside cabinet
+                foreach (var y in new[] { 0.95f, 1.20f })
+                {
+                    b.Box(Part.Chrome, new Vector3(-hw + 0.05f, y, -hd + 0.05f), new Vector3(hw - 0.05f, y + 0.02f, hd - 0.05f));
+                    foreach (var cx in new[] { -0.5f, 0.0f, 0.5f })
+                    {
+                        b.Cylinder(Part.Ceramic, new Vector3(cx, y + 0.02f, 0f), 0.12f, 0.12f, 0.01f, 8);
+                        b.Cylinder(Part.Cake, new Vector3(cx, y + 0.03f, 0f), 0.10f, 0.10f, 0.06f, 8);
+                    }
+                }
+                break;
+            }
+            case FurnitureType.TrayRail:
+            {
+                // Three Chrome tubes along width at y 0.87-0.90
+                b.Box(Part.Chrome, new Vector3(-hw, 0.87f, -0.135f), new Vector3(hw, 0.9f, -0.105f));
+                b.Box(Part.Chrome, new Vector3(-hw, 0.87f, -0.015f), new Vector3(hw, 0.9f, 0.015f));
+                b.Box(Part.Chrome, new Vector3(-hw, 0.87f, 0.105f), new Vector3(hw, 0.9f, 0.135f));
+
+                // Four Chrome legs to the floor at x = ±(hw - 0.1), z = ±0.12
+                foreach (var lx in new[] { -hw + 0.1f, hw - 0.1f })
+                {
+                    foreach (var lz in new[] { -0.12f, 0.12f })
+                        b.Box(Part.Chrome, new Vector3(lx - 0.015f, 0f, lz - 0.015f), new Vector3(lx + 0.015f, 0.87f, lz + 0.015f));
+                    // Cross support connecting leg pair
+                    b.Box(Part.Chrome, new Vector3(lx - 0.015f, 0.84f, -0.12f), new Vector3(lx + 0.015f, 0.87f, 0.12f));
+                }
+                break;
+            }
+            case FurnitureType.TrayStation:
+            {
+                // Maple cabinet
+                b.Box(Part.Maple, new Vector3(-hw, 0f, -hd), new Vector3(hw, 0.85f, hd));
+
+                // Stack of DarkSteel trays on left
+                b.Box(Part.DarkSteel, new Vector3(-0.3f - 0.225f, 0.85f, -0.175f), new Vector3(-0.3f + 0.225f, 1.10f, 0.175f));
+
+                // Four LightSteel cutlery bins on right with Chrome handles
+                for (var i = 0; i < 4; i++)
+                {
+                    var x0 = 0.04f + i * 0.12f;
+                    var bx = x0 + 0.055f;
+                    b.Box(Part.LightSteel, new Vector3(x0, 0.85f, -0.125f), new Vector3(x0 + 0.11f, 0.95f, 0.125f));
+                    b.Box(Part.Chrome, new Vector3(bx - 0.008f, 0.95f, -0.01f), new Vector3(bx + 0.008f, 1.05f, 0.01f));
+                }
+                break;
+            }
+            case FurnitureType.CoffeeMachine:
+            {
+                // DarkSteel body
+                b.Box(Part.DarkSteel, new Vector3(-hw, 0f, -hd), new Vector3(hw, h, hd - 0.1f));
+
+                // Chrome drip tray
+                b.Box(Part.Chrome, new Vector3(-hw + 0.02f, 0f, hd - 0.1f), new Vector3(hw - 0.02f, 0.06f, hd));
+
+                // Chrome upper front panel
+                b.Box(Part.Chrome, new Vector3(-hw + 0.02f, 0.35f, hd - 0.1f), new Vector3(hw - 0.02f, h - 0.01f, hd - 0.02f));
+
+                // Dispensing spout
+                b.Box(Part.Chrome, new Vector3(-0.03f, 0.30f, hd - 0.08f), new Vector3(0.03f, 0.35f, hd - 0.04f));
+
+                // Ceramic cup on drip tray
+                b.Cylinder(Part.Ceramic, new Vector3(0f, 0.06f, hd - 0.05f), 0.04f, 0.035f, 0.09f, 8);
+                break;
+            }
+            case FurnitureType.Till:
+            {
+                // Maple counter
+                b.Box(Part.Maple, new Vector3(-hw, 0f, -hd), new Vector3(hw, 0.95f, hd));
+
+                // DarkSteel cash drawer and till body
+                b.Box(Part.DarkSteel, new Vector3(-0.25f, 0.95f, -0.2f), new Vector3(0.15f, 1.02f, 0.15f));
+
+                // Screen facing cashier (-Z)
+                b.Box(Part.DarkSteel, new Vector3(-0.15f, 1.02f, -0.15f), new Vector3(0.05f, 1.10f, -0.05f));
+
+                // Card reader on short post
+                b.Cylinder(Part.Chrome, new Vector3(0.35f, 0.95f, 0.15f), 0.02f, 0.02f, 0.08f, 6);
+                b.Box(Part.DarkSteel, new Vector3(0.30f, 1.03f, 0.10f), new Vector3(0.40f, 1.08f, 0.20f));
+                break;
+            }
+            case FurnitureType.TrayTrolley:
+            {
+                // Rubber wheels at 4 corners
+                foreach (var lx in new[] { -hw + 0.035f, hw - 0.035f })
+                    foreach (var lz in new[] { -hd + 0.035f, hd - 0.035f })
+                        b.Box(Part.Rubber, new Vector3(lx - 0.025f, 0f, lz - 0.025f), new Vector3(lx + 0.025f, 0.08f, lz + 0.025f));
+
+                // Chrome corner posts
+                foreach (var lx in new[] { -hw + 0.035f, hw - 0.035f })
+                    foreach (var lz in new[] { -hd + 0.035f, hd - 0.035f })
+                        b.Box(Part.Chrome, new Vector3(lx - 0.015f, 0.08f, lz - 0.015f), new Vector3(lx + 0.015f, h - 0.03f, lz + 0.015f));
+
+                // Top frame
+                b.Box(Part.Chrome, new Vector3(-hw + 0.02f, h - 0.03f, -hd + 0.02f), new Vector3(hw - 0.02f, h, -hd + 0.05f));
+                b.Box(Part.Chrome, new Vector3(-hw + 0.02f, h - 0.03f, hd - 0.05f), new Vector3(hw - 0.02f, h, hd - 0.02f));
+                b.Box(Part.Chrome, new Vector3(-hw + 0.02f, h - 0.03f, -hd + 0.05f), new Vector3(-hw + 0.05f, h, hd - 0.05f));
+                b.Box(Part.Chrome, new Vector3(hw - 0.05f, h - 0.03f, -hd + 0.05f), new Vector3(hw - 0.02f, h, hd - 0.05f));
+
+                // Seven tray runners along depth
+                for (var i = 0; i < 7; i++)
+                {
+                    var y = 0.25f + i * 0.18f;
+                    b.Box(Part.LightSteel, new Vector3(-hw + 0.02f, y, -hd + 0.04f), new Vector3(-hw + 0.06f, y + 0.02f, hd - 0.04f));
+                    b.Box(Part.LightSteel, new Vector3(hw - 0.06f, y, -hd + 0.04f), new Vector3(hw - 0.02f, y + 0.02f, hd - 0.04f));
+                    if (i is 1 or 3 or 5)
+                        b.Box(Part.DarkSteel, new Vector3(-hw + 0.05f, y + 0.02f, -hd + 0.06f), new Vector3(hw - 0.05f, y + 0.035f, hd - 0.06f));
+                    if (i == 3)
+                        b.Cylinder(Part.Ceramic, new Vector3(0f, y + 0.035f, 0f), 0.10f, 0.10f, 0.02f, 8);
+                }
+                break;
+            }
+            case FurnitureType.HighChair:
+            {
+                // Four splayed Maple legs as stepped boxes inset at top
+                foreach (var sideX in new[] { -1f, 1f })
+                    foreach (var sideZ in new[] { -1f, 1f })
+                    {
+                        var x1 = sideX * (hw - 0.045f);
+                        var z1 = sideZ * (hd - 0.045f);
+                        var x2 = sideX * (hw - 0.075f);
+                        var z2 = sideZ * (hd - 0.075f);
+                        var x3 = sideX * 0.17f;
+                        var z3 = sideZ * 0.17f;
+
+                        b.Box(Part.Maple, new Vector3(x1 - 0.02f, 0f, z1 - 0.02f), new Vector3(x1 + 0.02f, 0.2f, z1 + 0.02f));
+                        b.Box(Part.Maple, new Vector3(x2 - 0.02f, 0.2f, z2 - 0.02f), new Vector3(x2 + 0.02f, 0.4f, z2 + 0.02f));
+                        b.Box(Part.Maple, new Vector3(x3 - 0.02f, 0.4f, z3 - 0.02f), new Vector3(x3 + 0.02f, 0.6f, z3 + 0.02f));
+                    }
+
+                // Maple seat
+                b.Box(Part.Maple, new Vector3(-0.20f, 0.57f, -0.20f), new Vector3(0.20f, 0.60f, 0.15f));
+
+                // Back upright posts to h (1.0)
+                b.Box(Part.Maple, new Vector3(-0.19f, 0.60f, -0.20f), new Vector3(-0.16f, h, -0.17f));
+                b.Box(Part.Maple, new Vector3(0.16f, 0.60f, -0.20f), new Vector3(0.19f, h, -0.17f));
+                b.Box(Part.Maple, new Vector3(-0.16f, h - 0.06f, -0.20f), new Vector3(0.16f, h, -0.17f));
+                b.Box(Part.Maple, new Vector3(-0.16f, 0.78f, -0.20f), new Vector3(0.16f, 0.82f, -0.18f));
+
+                // Tray arms and front tray at 0.78
+                b.Box(Part.Maple, new Vector3(-0.19f, 0.75f, -0.17f), new Vector3(-0.16f, 0.78f, 0.15f));
+                b.Box(Part.Maple, new Vector3(0.16f, 0.75f, -0.17f), new Vector3(0.19f, 0.78f, 0.15f));
+                b.Box(Part.Maple, new Vector3(-0.24f, 0.75f, 0.08f), new Vector3(0.24f, 0.78f, 0.25f));
+
+                // Foot rest
+                b.Box(Part.Maple, new Vector3(-0.18f, 0.24f, 0.12f), new Vector3(0.18f, 0.26f, 0.18f));
+                break;
+            }
+            case FurnitureType.MenuBoard:
+            {
+                // Two DarkSteel posts (0.06 × 0.06) from 0 to h at x = ±(hw - 0.1)
+                foreach (var x in new[] { -hw + 0.1f, hw - 0.1f })
+                    b.Box(Part.DarkSteel, new Vector3(x - 0.03f, 0f, -0.045f), new Vector3(x + 0.03f, h, 0.045f));
+
+                // MenuPanel board (1.7 to h - 0.01 to avoid top coplanar face with posts)
+                b.Box(Part.MenuPanel, new Vector3(-hw, 1.7f, -0.025f), new Vector3(hw, h - 0.01f, 0.025f));
+                break;
+            }
+            case FurnitureType.Tray:
+            {
+                if (b.Coarse)
+                {
+                    b.Box(Part.DarkSteel, new Vector3(-hw, 0f, -hd), new Vector3(hw, h, hd));
+                }
+                else
+                {
+                    b.Box(Part.DarkSteel, new Vector3(-hw, 0f, -hd), new Vector3(hw, 0.012f, hd));
+                    b.Box(Part.DarkSteel, new Vector3(-hw, 0.012f, hd - 0.015f), new Vector3(hw, h, hd));
+                    b.Box(Part.DarkSteel, new Vector3(-hw, 0.012f, -hd), new Vector3(hw, h, -hd + 0.015f));
+                    b.Box(Part.DarkSteel, new Vector3(-hw, 0.012f, -hd + 0.015f), new Vector3(-hw + 0.015f, h, hd - 0.015f));
+                    b.Box(Part.DarkSteel, new Vector3(hw - 0.015f, 0.012f, -hd + 0.015f), new Vector3(hw, h, hd - 0.015f));
+                }
+                break;
+            }
+            case FurnitureType.Spill:
+                b.Box(Part.Spill, new Vector3(-hw, 0f, -hd), new Vector3(hw, h, hd));
+                break;
+            case FurnitureType.Note:
+                b.Box(Part.Paper, new Vector3(-hw, 0f, -hd), new Vector3(hw, Mathf.Max(h, 0.0105f), hd));
+                break;
         }
     }
 
@@ -1505,6 +1756,12 @@ public static class FurnitureMeshes
             [Part.TankGlass] = TankGlass(),
             [Part.Gravel] = Plain(new Color(0.62f, 0.54f, 0.42f), 0.95f),
             [Part.AquaticPlant] = Plain(new Color(0.2f, 0.52f, 0.16f), 0.6f),
+            [Part.Mash] = Plain(new Color(0.93f, 0.86f, 0.62f), 0.8f),
+            [Part.Lingonberry] = Plain(new Color(0.62f, 0.05f, 0.09f), 0.4f),
+            [Part.Cake] = Plain(new Color(0.86f, 0.64f, 0.3f), 0.7f),
+            [Part.MenuPanel] = Plain(new Color(0.1f, 0.1f, 0.11f), 0.8f),
+            [Part.Paper] = Plain(new Color(0.96f, 0.95f, 0.9f), 0.9f),
+            [Part.Spill] = Plain(new Color(0.42f, 0.24f, 0.1f), 0.08f),
         };
         return _materials;
 

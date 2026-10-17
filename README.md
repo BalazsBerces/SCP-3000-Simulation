@@ -92,6 +92,7 @@ bright a Lamp is now, and `ClockReading(clock)` what a clock on the clock wall s
 common and rare Points of interest, whose Furniture carries a `PointOfInterestId`. `BallPitNetwork` holds the three Ball pits, and `StaffExitsFrom(id)` returns the
 Ball pits the Staff can pass to from one: the other two at Closing time, none while the Store is open.
 `TankFish` lists the live fish in each tank of the Aquarium aisles (one kind per tank, by the tank's Furniture id): Goods, not Furniture.
+`CounterMeals` lists the meals on each Cafeteria serving counter (meatballs at the hot food counters, almond cake at the dessert counter, by the counter's Furniture id): Goods, not Furniture.
 `WorldConfig.LandmarkShowcase` builds a Store with every Landmark side by side and no Points of interest; `WorldConfig.PointOfInterestShowcase` builds one with every Point of interest side by side and no Landmarks.
 `ScenarioBuilder.RemoveFurniture` lets tests take Furniture away.
 

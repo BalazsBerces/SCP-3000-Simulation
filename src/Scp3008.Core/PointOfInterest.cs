@@ -40,6 +40,12 @@ public enum PointOfInterestType
     /// fish (<see cref="TankFish"/>) that Restock refills: fresh food and water; it glows bluish in the dark. 1–2 per Store.
     /// </summary>
     AquariumAisle,
+    /// <summary>
+    /// A large self-service dining hall like a Scandinavian furniture store's restaurant (24 × 20 m): a tray line past hot food
+    /// and dessert counters to a till along one wall, and a big dining zone left mid-meal. For now only in the Point of interest
+    /// showcase; it replaces the Canteen in the Store generator in ticket 08m.
+    /// </summary>
+    Cafeteria,
 }
 
 /// <summary>A kind of live fish kept in the tanks of an Aquarium aisle.</summary>
@@ -62,6 +68,18 @@ public enum FishKind
 /// <param name="TankId">The tank, a <see cref="FurnitureType.FishTank"/>, by <see cref="FurniturePiece.Id"/>.</param>
 /// <param name="Kind">The one kind of fish the tank holds.</param>
 public readonly record struct TankFish(int TankId, FishKind Kind);
+
+/// <summary>A meal a Cafeteria serves (Goods, not Furniture); eating it comes with the Villager needs.</summary>
+public enum MealKind
+{
+    /// <summary>Meatballs with mash and lingonberry, at a hot food counter.</summary>
+    Meatballs,
+    /// <summary>Almond cake, at the chilled dessert counter.</summary>
+    AlmondCake,
+}
+
+/// <summary>A meal a Cafeteria's serving counter holds (Goods, not Furniture), by the counter's Furniture id.</summary>
+public readonly record struct CounterMeal(int CounterId, MealKind Kind);
 
 /// <summary>
 /// A small, distinctive place of the Store found only up close, made of individual Furniture: the pieces

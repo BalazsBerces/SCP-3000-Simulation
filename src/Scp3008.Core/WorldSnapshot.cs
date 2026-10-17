@@ -55,6 +55,9 @@ public sealed record WorldSnapshot(
     /// <summary>The live fish in every tank of the Aquarium aisles, one entry per <see cref="FurnitureType.FishTank"/>, in tank order.</summary>
     public IReadOnlyList<TankFish> TankFish { get; init; } = Array.Empty<TankFish>();
 
+    /// <summary>The meals on the Cafeterias' serving counters, one entry per <see cref="FurnitureType.HotFoodCounter"/> and <see cref="FurnitureType.DessertCounter"/>, in counter order.</summary>
+    public IReadOnlyList<CounterMeal> CounterMeals { get; init; } = Array.Empty<CounterMeal>();
+
     /// <summary>The Store's three Ball pits as the one network the Staff pass through at Closing time.</summary>
     public BallPitNetwork BallPitNetwork { get; init; } = BallPitNetwork.None;
 

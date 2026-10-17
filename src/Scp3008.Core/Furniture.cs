@@ -96,6 +96,31 @@ public enum FurnitureType
     PlaySlide,
     FoamStep,
     PlayBall,
+    // The Cafeteria's Furniture
+    /// <summary>Steel serving counter with heated wells of food behind a glass sneeze guard.</summary>
+    HotFoodCounter,
+    /// <summary>Chilled serving counter, a glass-fronted cabinet of cakes.</summary>
+    DessertCounter,
+    /// <summary>Steel tube rail customers slide their trays along.</summary>
+    TrayRail,
+    /// <summary>Stack of trays with cutlery bins.</summary>
+    TrayStation,
+    /// <summary>Coffee machine, stood on a counter.</summary>
+    CoffeeMachine,
+    /// <summary>Checkout counter with a till.</summary>
+    Till,
+    /// <summary>Tray-return trolley with shelves of used trays.</summary>
+    TrayTrolley,
+    /// <summary>Children's high chair.</summary>
+    HighChair,
+    /// <summary>Board of dish names high on two posts.</summary>
+    MenuBoard,
+    /// <summary>Serving tray.</summary>
+    Tray,
+    /// <summary>Spilled drink or food on the floor.</summary>
+    Spill,
+    /// <summary>A hand-written note.</summary>
+    Note,
 }
 
 /// <summary>
@@ -222,6 +247,9 @@ public static class FurnitureCatalog
         FurnitureType.ShoppingCart, FurnitureType.MealPlate, FurnitureType.ExitSign, FurnitureType.Mannequin,
         FurnitureType.DoorFrame, FurnitureType.FishTank, FurnitureType.TankRack, FurnitureType.BallPool, FurnitureType.NetRailing, FurnitureType.PlaySlide,
         FurnitureType.FoamStep, FurnitureType.PlayBall,
+        FurnitureType.HotFoodCounter, FurnitureType.DessertCounter, FurnitureType.TrayRail, FurnitureType.TrayStation,
+        FurnitureType.CoffeeMachine, FurnitureType.Till, FurnitureType.TrayTrolley, FurnitureType.HighChair,
+        FurnitureType.MenuBoard, FurnitureType.Tray, FurnitureType.Spill, FurnitureType.Note,
     ];
 
     /// <summary>
@@ -334,6 +362,18 @@ public static class FurnitureCatalog
             new(FurnitureType.PlaySlide, 0.6f, 1.5f, 1.4f),                    // small kids' slide: ladder at the back, chute down to the front
             new(FurnitureType.FoamStep, 1.0f, 0.5f, 0.3f),                     // padded foam step up to a pool wall
             new(FurnitureType.PlayBall, 0.08f, 0.08f, 0.08f),                  // one hollow plastic ball
+            new(FurnitureType.HotFoodCounter, 2.0f, 0.8f, 1.35f),             // steel counter, heated wells of food, glass sneeze guard
+            new(FurnitureType.DessertCounter, 2.0f, 0.8f, 1.45f),             // chilled glass-fronted cabinet of cakes on a steel base
+            new(FurnitureType.TrayRail, 2.0f, 0.35f, 0.9f),                   // steel tube rail on legs before the counters
+            new(FurnitureType.TrayStation, 1.2f, 0.6f, 1.1f),                 // stacked trays and cutlery bins
+            new(FurnitureType.CoffeeMachine, 0.45f, 0.5f, 0.65f),             // coffee machine, stood on a counter
+            new(FurnitureType.Till, 1.2f, 0.7f, 1.1f),                        // checkout counter with a till
+            new(FurnitureType.TrayTrolley, 0.6f, 0.75f, 1.6f),                // tray-return trolley, shelves of used trays
+            new(FurnitureType.HighChair, 0.55f, 0.55f, 1.0f),                 // children's high chair
+            new(FurnitureType.MenuBoard, 2.0f, 0.12f, 2.6f),                  // dark board (1.7–2.6 m) of dish names on two posts
+            new(FurnitureType.Tray, 0.45f, 0.35f, 0.02f),                     // serving tray
+            new(FurnitureType.Spill, 0.8f, 0.6f, 0.005f, IsFloorCovering: true), // spilled drink or food on the floor
+            new(FurnitureType.Note, 0.21f, 0.15f, 0.01f),                     // folded hand-written note
 
             // Variants of the most repeated types: other proportions, backs, legs or materials.
             new(FurnitureType.FishTank, 0.95f, 0.45f, 0.5f, Variant: 1),      // medium tank

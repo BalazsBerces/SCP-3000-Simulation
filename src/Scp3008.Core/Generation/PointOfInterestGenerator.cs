@@ -6,9 +6,9 @@ namespace Scp3008.Core.Generation;
 /// <param name="Quarters">Quarter turns from the Point of interest's own frame (its width east-west) to the Store.</param>
 internal sealed record PointOfInterestSite(int Id, PointOfInterestType Type, int SectorId, Vector2 Centre, Vector2 Size, int Quarters);
 
-/// <summary>The built Points of interest, their Furniture, the network the Ball pits make and the fish in the Aquarium aisles' tanks.</summary>
+/// <summary>The built Points of interest, their Furniture, the network the Ball pits make, the fish in the Aquarium aisles' tanks and the meals on the Cafeterias' counters.</summary>
 internal sealed record PointOfInterestLayout(IReadOnlyList<PointOfInterest> PointsOfInterest, IReadOnlyList<FurniturePiece> Pieces,
-    BallPitNetwork BallPitNetwork, IReadOnlyList<TankFish> TankFish);
+    BallPitNetwork BallPitNetwork, IReadOnlyList<TankFish> TankFish, IReadOnlyList<CounterMeal> CounterMeals);
 
 /// <summary>
 /// Places and builds the Points of interest from the seed: the canteens (in Restaurant/food market
@@ -47,6 +47,7 @@ internal static class PointOfInterestGenerator
         PointOfInterestType.MannequinCrowd => new(12f, 9f),
         PointOfInterestType.DoorToNowhere => new(5f, 11f),
         PointOfInterestType.AquariumAisle => new(12f, 6f),
+        PointOfInterestType.Cafeteria => new Vector2(24f, 20f),
         _ => throw new ArgumentOutOfRangeException(nameof(type), type, null),
     };
 
@@ -133,12 +134,13 @@ internal static class PointOfInterestGenerator
     private const float ShowcaseGap = 6f;
 
     /// <summary>
-    /// The Point of interest showcase: every kind once, unturned, side by side along x in a row centred on the Store, on
+    /// The Point of interest showcase: every kind once except the Canteen, which the Cafeteria replaces, unturned, side by side along x in a row centred on the Store, on
     /// the row nearest the middle of the Store that keeps clear of every Pillar and its walkway ring.
     /// </summary>
     public static IReadOnlyList<PointOfInterestSite> Showcase(StoreSpace space, IReadOnlyList<Sector> sectors, IReadOnlyList<Pillar> pillars)
     {
-        var kinds = Enum.GetValues<PointOfInterestType>().ToList();
+        // The Cafeteria stands in for the Canteen it replaces (ticket 08m moves the Store generator over too).
+        var kinds = Enum.GetValues<PointOfInterestType>().Where(k => k != PointOfInterestType.Canteen).ToList();
         var length = kinds.Sum(k => OwnSize(k).X) + ShowcaseGap * (kinds.Count - 1);
         if (length > space.Size)
             throw new InvalidOperationException($"The showcase row ({length:0} m) is longer than the Store.");
@@ -191,6 +193,7 @@ internal static class PointOfInterestGenerator
         var pois = new List<PointOfInterest>();
         var pieces = new List<FurniturePiece>();
         var fish = new List<TankFish>();
+        var meals = new List<CounterMeal>();
         foreach (var site in sites)
         {
             var builder = new PointOfInterestBuilder(space, site, SeededRandom.For(seed, BuildStream, site.Id));
@@ -207,16 +210,19 @@ internal static class PointOfInterestGenerator
                 case PointOfInterestType.MannequinCrowd: BuildMannequinCrowd(builder); break;
                 case PointOfInterestType.DoorToNowhere: BuildDoorToNowhere(builder); break;
                 case PointOfInterestType.AquariumAisle: BuildAquariumAisle(builder); break;
+                case PointOfInterestType.Cafeteria: BuildCafeteria(builder); break;
             }
             var first = firstPieceId + pieces.Count;
             foreach (var (index, kind) in builder.Fish)
                 fish.Add(new TankFish(first + index, kind));
+            foreach (var (index, kind) in builder.Meals)
+                meals.Add(new CounterMeal(first + index, kind));
             foreach (var piece in builder.Pieces)
                 pieces.Add(piece with { Id = firstPieceId + pieces.Count });
             pois.Add(new PointOfInterest(site.Id, site.Type, site.SectorId, site.Centre, site.Size));
         }
         var network = new BallPitNetwork(pois.Where(p => p.Type == PointOfInterestType.BallPit).Select(p => p.Id).ToList().AsReadOnly());
-        return new PointOfInterestLayout(pois.AsReadOnly(), pieces.AsReadOnly(), network, fish.AsReadOnly());
+        return new PointOfInterestLayout(pois.AsReadOnly(), pieces.AsReadOnly(), network, fish.AsReadOnly(), meals.AsReadOnly());
     }
 
     private const float Quarter = MathF.PI / 2f;
@@ -636,6 +642,131 @@ internal static class PointOfInterestGenerator
         b.Put(FurnitureType.HallBench, new Vector2(x - 2.4f + random.Range(-0.2f, 0.2f), 0f), 0f, -Quarter);
     }
 
+    /// <summary>
+    /// A large self-service dining hall: a serving line along one wall (trays, two hot food counters, a dessert counter, coffee,
+    /// a till, then tray trolleys and high chairs) with menu boards behind its counters, and a dining zone of tables left mid-meal.
+    /// The seed picks the wall (north, west or east) and the tables (rectangular, round or long).
+    /// </summary>
+    private static void BuildCafeteria(PointOfInterestBuilder b)
+    {
+        var random = b.Random;
+        var plan = random.Next(3);
+        // The serving line runs from a corner along u, with its pieces facing n, into the hall.
+        var (corner, u, n) = plan switch
+        {
+            0 => (new Vector2(-12f, -10f), new Vector2(1f, 0f), new Vector2(0f, 1f)),
+            1 => (new Vector2(-12f, -10f), new Vector2(0f, 1f), new Vector2(1f, 0f)),
+            _ => (new Vector2(12f, 10f), new Vector2(0f, -1f), new Vector2(-1f, 0f)),
+        };
+        var facing = MathF.Atan2(-n.X, n.Y);
+        Vector2 Along(float s, float d) => corner + u * s + n * d;
+        bool Line(FurnitureType type, float s, float d, float elevation = 0f) => b.Put(type, Along(s, d), elevation, facing);
+
+        Line(FurnitureType.TrayStation, 1.6f, 0.6f);
+        foreach (var (type, s, meal) in new[]
+        {
+            (FurnitureType.HotFoodCounter, 3.25f, MealKind.Meatballs),
+            (FurnitureType.HotFoodCounter, 5.3f, MealKind.Meatballs),
+            (FurnitureType.DessertCounter, 7.35f, MealKind.AlmondCake),
+        })
+        {
+            if (Line(type, s, 0.7f))
+                b.Serve(meal);
+            Line(FurnitureType.TrayRail, s, 1.295f);
+            Line(FurnitureType.MenuBoard, s, 0.16f);
+        }
+        Line(FurnitureType.Counter, 9.4f, 0.65f);
+        Line(FurnitureType.CoffeeMachine, 8.95f, 0.6f, FurnitureCatalog.Spec(FurnitureType.Counter).Height);
+        Line(FurnitureType.Till, 12f, 0.65f);
+        var trolleys = 2 + random.Next(2);
+        for (var i = 0; i < trolleys; i++)
+            Line(FurnitureType.TrayTrolley, 14f + 0.9f * i, 0.5f);
+        var highChairs = 2 + random.Next(2);
+        for (var i = 0; i < highChairs; i++)
+            Line(FurnitureType.HighChair, 16.8f + 0.7f * i, 0.5f);
+
+        // The dining zone: the rest of the hall past the customers' lane before the line (up to 2.6 m from the wall).
+        var (min, max) = plan switch
+        {
+            0 => (new Vector2(-11.2f, -6.6f), new Vector2(11.2f, 9.6f)),
+            1 => (new Vector2(-8.6f, -9.6f), new Vector2(11.6f, 9.6f)),
+            _ => (new Vector2(-11.6f, -9.6f), new Vector2(8.6f, 9.6f)),
+        };
+        var tableVariant = plan;
+        var table = FurnitureCatalog.Spec(FurnitureType.DiningTable, tableVariant);
+        var sideSeats = tableVariant == 1 ? 1 : 2;
+        var pitch = new Vector2(table.Width + 0.9f, table.Depth + 2.2f);
+        var extent = max - min;
+        var columns = (int)MathF.Floor(extent.X / pitch.X);
+        var rows = (int)MathF.Floor(extent.Y / pitch.Y);
+        var origin = min + (extent - new Vector2(columns * pitch.X, rows * pitch.Y)) / 2f;
+        var abandoned = random.Next(columns * rows);
+        var tables = new List<Vector2>();
+        for (var row = 0; row < rows; row++)
+            for (var column = 0; column < columns; column++)
+            {
+                var at = origin + new Vector2(pitch.X * (column + 0.5f), pitch.Y * (row + 0.5f));
+                b.Put(FurnitureType.DiningTable, at, 0f, 0f, tableVariant);
+                LeftSeats(b, at, tableVariant, sideSeats, forced: tables.Count == abandoned);
+                tables.Add(at);
+            }
+
+        var spills = 2 + random.Next(3);
+        for (var i = 0; i < spills; i++)
+            b.Put(FurnitureType.Spill, new Vector2(random.Range(min.X + 0.5f, max.X - 0.5f), random.Range(min.Y + 0.5f, max.Y - 0.5f)),
+                0f, random.Range(0f, 2f * MathF.PI));
+        var notes = 1 + random.Next(2);
+        for (var i = 0; i < notes; i++)
+        {
+            var at = tables[random.Next(tables.Count)];
+            b.Put(FurnitureType.Note, at + new Vector2(random.Range(-0.3f, 0.3f), random.Range(-0.15f, 0.15f)), table.Height,
+                random.Range(0f, 2f * MathF.PI));
+        }
+    }
+
+    /// <summary>
+    /// The chairs of a Cafeteria table left mid-meal: some pushed back, some knocked over onto their backs, and perhaps a meal left
+    /// on its tray before one of them. A forced table always has a knocked-over chair and a meal left.
+    /// </summary>
+    private static void LeftSeats(PointOfInterestBuilder b, Vector2 table, int variant, int sideSeats, bool forced)
+    {
+        var random = b.Random;
+        var spec = FurnitureCatalog.Spec(FurnitureType.DiningTable, variant);
+        var trayHeight = FurnitureCatalog.Spec(FurnitureType.Tray).Height;
+        var edge = spec.Depth / 2f + 0.27f;
+        var left = forced || random.Chance(0.45f);
+        var mealSeat = forced ? 0 : random.Next(2 * sideSeats);
+        var seat = 0;
+        for (var i = 0; i < sideSeats; i++)
+        {
+            var x = (i - (sideSeats - 1) / 2f) * (spec.Width / sideSeats);
+            foreach (var side in new[] { -1f, 1f })
+            {
+                // The north chair (side -1) faces south (0), the south chair north (π).
+                var rotation = side < 0f ? 0f : MathF.PI;
+                var offset = new Vector2(x, side * edge);
+                var tilt = 0f;
+                if ((forced && seat == 0) || random.Chance(0.12f))
+                    tilt = -Quarter;
+                else if (random.Chance(0.3f))
+                {
+                    offset.Y += side * 0.25f;
+                    rotation += random.Range(-0.35f, 0.35f);
+                }
+                else
+                    rotation += random.Range(-0.08f, 0.08f);
+                b.Put(FurnitureType.Chair, table + offset, 0f, rotation, tilt: tilt);
+                if (left && seat == mealSeat)
+                {
+                    var plate = table + new Vector2(x, side * 0.24f);
+                    b.Put(FurnitureType.Tray, plate, spec.Height, 0f);
+                    b.Put(FurnitureType.MealPlate, plate, spec.Height + trayHeight, 0f);
+                }
+                seat++;
+            }
+        }
+    }
+
 }
 
 /// <summary>Places the Furniture of one Point of interest in its own frame, keeping every piece inside its rectangle.</summary>
@@ -652,6 +783,12 @@ internal sealed class PointOfInterestBuilder(StoreSpace space, PointOfInterestSi
 
     /// <summary>Stocks the last piece placed, a tank, with live fish of one kind.</summary>
     public void Stock(FishKind kind) => Fish.Add((_pieces.Count - 1, kind));
+
+    /// <summary>The meals served so far, by index into <see cref="Pieces"/> of the counter that holds them.</summary>
+    public List<(int PieceIndex, MealKind Kind)> Meals { get; } = [];
+
+    /// <summary>Serves a meal on the last piece placed, a serving counter.</summary>
+    public void Serve(MealKind kind) => Meals.Add((_pieces.Count - 1, kind));
 
     /// <summary>Places a piece with the centre of its base at a local position and elevation; false if it would stick out of the rectangle.</summary>
     public bool Put(FurnitureType type, Vector2 local, float elevation, float rotation, int variant = 0, float tilt = 0f, int tint = 0, float roll = 0f)

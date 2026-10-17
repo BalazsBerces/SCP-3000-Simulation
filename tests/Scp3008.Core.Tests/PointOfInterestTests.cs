@@ -420,7 +420,7 @@ public class PointOfInterestTests
 
     [Theory]
     [MemberData(nameof(LayoutsAndSeeds))]
-    public void The_point_of_interest_showcase_has_every_kind_once_with_no_displays_or_landmarks(PillarLayout layout, int seed)
+    public void The_point_of_interest_showcase_has_every_kind_but_the_canteen_once_with_no_displays_or_landmarks(PillarLayout layout, int seed)
     {
         using var sim = Simulation.Create(new WorldConfig(seed, RuntimeRngSeed: 1, PillarLayout: layout, PointOfInterestShowcase: true));
         var snapshot = sim.Snapshot;
@@ -429,9 +429,31 @@ public class PointOfInterestTests
         Assert.False(snapshot.LandmarkShowcase);
         Assert.Empty(snapshot.Landmarks);
         Assert.Empty(snapshot.Displays);
-        Assert.Equal(Enum.GetValues<PointOfInterestType>().Order(), snapshot.PointsOfInterest.Select(p => p.Type).Order());
+        Assert.Equal(Enum.GetValues<PointOfInterestType>().Where(t => t != PointOfInterestType.Canteen).Order(), snapshot.PointsOfInterest.Select(p => p.Type).Order());
         Assert.All(snapshot.PointsOfInterest, poi => Assert.NotEmpty(PiecesOf(snapshot, poi)));
         Assert.All(snapshot.Furniture, piece => Assert.True(piece.PointOfInterestId >= 0));
+    }
+
+    [Theory]
+    [MemberData(nameof(LayoutsAndSeeds))]
+    public void Every_cafeteria_piece_in_the_showcase_stays_inside_its_rectangle_and_on_the_floor_or_a_table(PillarLayout layout, int seed)
+    {
+        using var sim = Simulation.Create(new WorldConfig(seed, RuntimeRngSeed: 1, PillarLayout: layout, PointOfInterestShowcase: true));
+        var snapshot = sim.Snapshot;
+        var cafeteria = Assert.Single(snapshot.PointsOfInterest, p => p.Type == PointOfInterestType.Cafeteria);
+        var pieces = PiecesOf(snapshot, cafeteria).ToList();
+        Assert.NotEmpty(pieces);
+        foreach (var piece in pieces)
+        {
+            var corners = FurnitureCatalog.Corners(piece);
+            Assert.True(corners.Min(c => c.Z) >= -0.001f, $"Piece {piece.Type} lowest corner below floor.");
+            foreach (var corner in corners)
+            {
+                var delta = snapshot.Space.Delta(cafeteria.Centre, new Vector2(corner.X, corner.Y));
+                Assert.True(MathF.Abs(delta.X) <= cafeteria.Size.X / 2f + 0.01f && MathF.Abs(delta.Y) <= cafeteria.Size.Y / 2f + 0.01f,
+                    $"A {piece.Type} of the Cafeteria sticks out of it.");
+            }
+        }
     }
 
     [Fact]

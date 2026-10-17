@@ -310,6 +310,7 @@ public static class PointOfInterestNames
         PointOfInterestType.MannequinCrowd => "Mannequins",
         PointOfInterestType.DoorToNowhere => "Door to nowhere",
         PointOfInterestType.AquariumAisle => "Aquarium aisle",
+        PointOfInterestType.Cafeteria => "Cafeteria",
         _ => type.ToString(),
     };
 }
