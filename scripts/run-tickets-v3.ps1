@@ -392,6 +392,23 @@ function Sync-GeminiSkills {
   $script:skillsSynced = $true
 }
 
+# agy streams no text while it works, only tool calls; show what each one touches: the file or the command.
+function Get-ToolDetail($Parameters) {
+  if (-not $Parameters) { return '' }
+  $props = @($Parameters.PSObject.Properties)
+  $p = @($props | Where-Object { $_.Name -in 'AbsolutePath', 'TargetFile', 'CommandLine' }) + @($props | Where-Object { $_.Value -is [string] })
+  if (-not $p.Count) { return '' }
+  $v = ("$($p[0].Value)" -replace '\s+', ' ').Trim()
+  # Paths relative to the repository root.
+  if ($p[0].Name -ne 'CommandLine') {
+    $v = $v.Replace('/', '\')
+    $prefix = $root.TrimEnd('\') + '\'
+    if ($v.StartsWith($prefix, [StringComparison]::OrdinalIgnoreCase)) { $v = $v.Substring($prefix.Length) }
+  }
+  if ($v.Length -gt 110) { $v = $v.Substring(0, 107) + '...' }
+  "  $v"
+}
+
 # One agy process. Status: done | blocked | timeout | exhausted | provider | nomarker.
 function Invoke-Gemini($t, $stats, [string]$Message) {
   $stats.GeminiRuns++
@@ -406,7 +423,7 @@ function Invoke-Gemini($t, $stats, [string]$Message) {
     if ($ev.event -eq 'step_update') {
       $u = $ev.step_update
       if ($u.conversation_id) { $stats.GeminiSession = $u.conversation_id }
-      if ($u.step_type -eq 'tool' -and $u.state -eq 'ACTIVE') { Write-Host "  - $($u.tool_name)" -ForegroundColor DarkGray }
+      if ($u.step_type -eq 'tool' -and $u.state -eq 'ACTIVE') { Write-Host "  - $($u.tool_name)$(Get-ToolDetail $u.tool_info.parameters)" -ForegroundColor DarkGray }
     } elseif ($ev.event -eq 'result') {
       $r = $ev.result
       if ($r.conversation_id) { $stats.GeminiSession = $r.conversation_id }
