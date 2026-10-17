@@ -559,9 +559,9 @@ function Complete-GeminiTicket($t, [string]$Head) {
   if ($paths.Count) {
     $specFile = Join-Path $logDir "$($t.Label)-paths.txt"
     Write-Utf8 $specFile (($paths -join "`n") + "`n")
-    git --literal-pathspecs add -A --pathspec-from-file=$specFile
+    git -c core.safecrlf=false --literal-pathspecs add -A --pathspec-from-file=$specFile
     if ($LASTEXITCODE -ne 0) { throw 'git add failed.' }
-    git --literal-pathspecs commit -q -F $msgFile --pathspec-from-file=$specFile
+    git -c core.safecrlf=false --literal-pathspecs commit -q -F $msgFile --pathspec-from-file=$specFile
     if ($LASTEXITCODE -ne 0) { throw 'git commit failed.' }
   } else { Write-Host '  The ticket left no uncommitted change of its own; nothing to commit.' -ForegroundColor Yellow }
   git push -q origin main
