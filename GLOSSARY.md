@@ -55,7 +55,11 @@ A small, distinctive place of the Store found only up close, such as a working r
 _Avoid_: Landmark (huge, far-visible)
 
 **Common Points of interest**:
-Five kinds, each made only of Furniture and planned before the Displays, which keep clear of them: the **Restroom** (1–3 per Sector), the **Canteen** (3–4 per Store, in Restaurant/food market Departments), the **Set dinner table** (2–3 per Sector), the **Lost and found desk** (about one per Sector) and the **Shopping cart graveyard** (2–4 per Store). At most one per Department cell; none overlaps a Landmark, a Pillar or its walkway ring. No real store brand appears in their names, food or signage. The Landmark showcase has none.
+Five kinds, each made only of Furniture and planned before the Displays, which keep clear of them: the **Restroom** (1–3 per Sector), the **Cafeteria** (2–3 per Store, in Restaurant/food market Departments), the **Set dinner table** (2–3 per Sector), the **Lost and found desk** (about one per Sector) and the **Shopping cart graveyard** (2–4 per Store). At most one per Department cell (a Cafeteria takes a 2 × 2 block of cells of one Department); none overlaps a Landmark, a Pillar or its walkway ring. No real store brand appears in their names, food or signage. The Landmark showcase has none.
+
+**Cafeteria**:
+A large self-service dining hall like a Scandinavian furniture store's restaurant, unmistakable without any brand name, logo or brand colours: a tray line past serving counters, a till, a big dining zone. A large food source: its meals (meatballs with mash and lingonberry, almond cake) are Goods.
+_Avoid_: Canteen, Restaurant (that is a Department type)
 
 **Ball pit**:
 One of the three ball pools in every Store, like a store's kids' play area: padded walls, a net railing, a slide and hundreds of coloured balls; a Point of interest. Harmless while the Store is open; at Closing time the Staff pass from any Ball pit to any other. Villagers cannot.
@@ -104,7 +108,7 @@ A version of a Furniture type with its own proportions, silhouette or materials 
 Two or three related tint indices shared by the Furniture of a Display. Neighbouring rooms usually use different Palettes; wood and metal retain their textures.
 
 **Goods**:
-Small stock on shelves (food, batteries, bulbs, cables) taken as-is rather than placed in the world. The live fish in an Aquarium aisle's tanks are Goods too; the tanks and racks are Furniture.
+Small stock on shelves (food, batteries, bulbs, cables) taken as-is rather than placed in the world. The live fish in an Aquarium aisle's tanks and a Cafeteria's meals are Goods too; the tanks, racks and counters are Furniture.
 _Avoid_: Loot, items
 
 **Material**:
