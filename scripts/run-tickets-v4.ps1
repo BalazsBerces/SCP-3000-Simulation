@@ -10,8 +10,8 @@
          easy, not a stage end      -> Gemini ($GeminiModel) with the Claude skills synced to ~/.gemini/config/skills
          hard, unlabelled           -> Codex ($CodexModel, -Effort) with its own skills in ~/.codex/skills
          stage end (any difficulty) -> Codex ($CodexModel, -StageEffort); it also reviews the whole stage
-       When Gemini is out of quota, its tickets go to Claude ($EasyModel) for the rest of the run; when Codex is,
-       its tickets go to Claude ($HardModel). -HardAgent claude restores v3 (hard tickets on Claude).
+       When Gemini or Codex runs out of quota, the run stops; the ticket's work stays for its next attempt.
+       -HardAgent claude restores v3 (hard tickets on Claude).
     3a. Codex or Claude: like v1, the agent implements, tests, commits to main, pushes and closes the issue.
     3b. Gemini: the agent implements and tests but never commits (its global settings deny git). Then this
         script checks the work (dotnet build, the whole core test suite in Release, the headless Godot build);
@@ -37,7 +37,7 @@ param(
   # Hard, unlabelled and stage-end tickets: 'codex', or 'claude' to run them on $HardModel.
   [ValidateSet('codex', 'claude')] [string]$HardAgent = 'codex',
   [string]$CodexModel = 'gpt-6.1-sol',
-  # Claude model for the hard tickets with -HardAgent claude, or once Codex is out of quota.
+  # Claude model for the hard tickets with -HardAgent claude.
   [string]$HardModel = 'sonnet',
   [ValidateSet('low', 'medium', 'high', 'xhigh', 'max')] [string]$Effort = 'medium',
   # Stage-end tickets, which also review the whole stage.
@@ -100,8 +100,6 @@ if (-not $GodotConsole) {
 }
 
 $QuotaPattern = '(?i)quota|resource.?exhausted|usage.?limit|insufficient|billing|credits?\b|limit (has been )?reached|plan limit'
-$geminiOut = $false
-$codexOut = $false
 $skillsSynced = $false
 $codexSkillsChecked = $false
 
@@ -250,11 +248,11 @@ function Get-NextTicket {
 # Agent 'gemini', 'codex' or 'claude', with the model and effort.
 function Get-Choice($t) {
   $isEasy = $t.Difficulty -eq 'easy' -and -not $t.IsStageEnd
-  if ($isEasy -and $EasyAgent -eq 'gemini' -and -not $script:geminiOut) {
+  if ($isEasy -and $EasyAgent -eq 'gemini') {
     return [pscustomobject]@{ Agent = 'gemini'; Model = $GeminiModel; Effort = '' }
   }
   $eff = if ($t.IsStageEnd) { $StageEffort } else { $Effort }
-  if (-not $isEasy -and $HardAgent -eq 'codex' -and -not $script:codexOut) {
+  if (-not $isEasy -and $HardAgent -eq 'codex') {
     return [pscustomobject]@{ Agent = 'codex'; Model = $CodexModel; Effort = $eff }
   }
   $model = if ($isEasy) { $EasyModel } else { $HardModel }
@@ -805,25 +803,13 @@ while ($true) {
   $log = Join-Path $logDir ('ticket-{0}-{1:yyyyMMdd-HHmmss}.jsonl' -f $t.Label, (Get-Date))
   if ($choice.Agent -eq 'gemini') {
     $final = Invoke-GeminiTicket $t $stats (Get-Prompt $t $choice $head) $head
-    if ($stats.GeminiQuota) {
-      # Out of quota: this ticket and the rest of the run's easy tickets go to Claude.
-      $script:geminiOut = $true
-      $choice = Get-Choice $t
-      Write-Host "  Gemini is out of quota; the ticket continues on Claude $($choice.Model) (effort $($choice.Effort))." -ForegroundColor Yellow
-      $prompt = (Get-Prompt $t $choice $head) + "`nGemini started this ticket and ran out of quota; the working tree may already hold part of its work. Check it and build on it or replace it."
-      $final = Invoke-ClaudeTicket $t $choice $stats $log $prompt
-    }
+    # Out of quota: the run stops below, and the ticket's work waits for its next attempt.
+    if ($stats.GeminiQuota) { Write-Host '  Gemini is out of quota; the run stops.' -ForegroundColor Yellow }
   } elseif ($choice.Agent -eq 'codex') {
     $run = Invoke-Codex $t $choice $stats $log (Get-Prompt $t $choice $head)
     $final = $run.Final
-    if ($run.Exhausted) {
-      # Out of quota: this ticket and the rest of the run's hard tickets go to Claude.
-      $script:codexOut = $true
-      $choice = Get-Choice $t
-      Write-Host "  Codex is out of quota; the ticket continues on Claude $($choice.Model) (effort $($choice.Effort))." -ForegroundColor Yellow
-      $prompt = (Get-Prompt $t $choice $head) + "`nCodex started this ticket and ran out of quota; the working tree may already hold part of its work. Check it and build on it or replace it."
-      $final = Invoke-ClaudeTicket $t $choice $stats $log $prompt
-    }
+    # Out of quota: the run stops below, and the ticket's work waits for its next attempt.
+    if ($run.Exhausted) { Write-Host '  Codex is out of quota; the run stops.' -ForegroundColor Yellow }
   } else {
     $final = Invoke-ClaudeTicket $t $choice $stats $log (Get-Prompt $t $choice $head)
   }

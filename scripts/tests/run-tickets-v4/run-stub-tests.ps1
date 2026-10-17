@@ -167,14 +167,12 @@ Invoke-Scenario 'stage-end-codex-reviews' -Gh (New-Gh @('easy') $true) -Assert {
   Should ((Get-Calls $r 'gh api -X PATCH repos/test/repo/milestones/1*').Count -eq 1) 'the milestone was not closed'
 }
 
-Invoke-Scenario 'codex-quota-falls-back-to-claude' @{ codex = @('quota') } -RunnerArgs @('-Max', '2') -Gh (New-Gh @('hard') $false 2) -Assert {
+Invoke-Scenario 'codex-quota-stops' @{ codex = @('quota') } -RunnerArgs @('-Max', '2') -Gh (New-Gh @('hard') $false 2) -Assert {
   param($r)
-  Should ($r.Exit -eq 0) "runner exit $($r.Exit)"
-  Should ((Get-Issue $r 67).state -eq 'CLOSED' -and (Get-Issue $r 68).state -eq 'CLOSED') 'tickets not closed'
+  Should ($r.Exit -eq 1) "runner exit $($r.Exit)"
+  Should ((Get-Issue $r 67).state -eq 'OPEN' -and (Get-Issue $r 68).state -eq 'OPEN') 'a ticket was closed'
   Should ((Get-Calls $r 'codex *').Count -eq 1) 'Codex was tried again after running out of quota'
-  Should ((Get-Calls $r 'claude * model=sonnet prompt=/implement ticket 08j*').Count -eq 1) '08j did not fall back to Claude'
-  Should ((Get-Calls $r 'claude * model=sonnet prompt=/implement ticket 08k*').Count -eq 1) '08k did not go to Claude'
-  Should (($r.OriginLog -join "`n") -match 'Co-Authored-By: Claude Sonnet 5.5') 'the fallback commit lacks the Claude co-author'
+  Should ((Get-Calls $r 'claude *').Count -eq 0) 'the ticket went to Claude'
 }
 
 Invoke-Scenario 'codex-blocked-stops' @{ codex = @('blocked') } -Gh (New-Gh @('hard')) -Assert {
@@ -248,13 +246,12 @@ Invoke-Scenario 'gemini-provider-retry' @{ exec = @('provider', 'done') } -Asser
   Should ((Get-Calls $r 'exec Gemini *').Count -eq 2) 'no retry after the provider error'
 }
 
-Invoke-Scenario 'gemini-quota-falls-back-to-claude' @{ exec = @('quota') } -RunnerArgs @('-Max', '2') -Gh (New-Gh @('easy') $false 2) -Assert {
+Invoke-Scenario 'gemini-quota-stops' @{ exec = @('quota') } -RunnerArgs @('-Max', '2') -Gh (New-Gh @('easy') $false 2) -Assert {
   param($r)
-  Should ($r.Exit -eq 0) "runner exit $($r.Exit)"
-  Should ((Get-Issue $r 67).state -eq 'CLOSED' -and (Get-Issue $r 68).state -eq 'CLOSED') 'tickets not closed'
+  Should ($r.Exit -eq 1) "runner exit $($r.Exit)"
+  Should ((Get-Issue $r 67).state -eq 'OPEN' -and (Get-Issue $r 68).state -eq 'OPEN') 'a ticket was closed'
   Should ((Get-Calls $r 'exec Gemini *').Count -eq 1) 'Gemini was tried again after running out of quota'
-  Should ((Get-Calls $r 'claude * model=sonnet prompt=/implement ticket 08j*').Count -eq 1) '08j did not fall back to Claude'
-  Should ((Get-Calls $r 'claude * model=sonnet prompt=/implement ticket 08k*').Count -eq 1) '08k did not go to Claude'
+  Should ((Get-Calls $r 'claude *').Count -eq 0) 'the ticket went to Claude'
 }
 
 Invoke-Scenario 'claude-usage-limit-resume' @{ limitOnImplement = $true } -Gh (New-Gh @('hard')) -RunnerArgs @('-HardAgent', 'claude') -Assert {

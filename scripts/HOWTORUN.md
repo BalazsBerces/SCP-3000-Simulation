@@ -26,7 +26,7 @@ powershell -ExecutionPolicy Bypass -File .\scripts\run-tickets-v4.ps1 -EasyAgent
 
 - **Codex:** implements, commits, pushes and closes the issue itself. It uses its own skills in `~/.codex/skills`, and the runner warns if one is missing or older than the Claude version.
 - **Gemini:** never commits. The runner checks its work first (build, the core tests in Release, the headless Godot build), then commits it.
-- **Out of quota:** the agent's tickets go to Sonnet for the rest of the run.
+- **Out of quota:** the run stops; the ticket's work stays uncommitted and its next attempt takes it over.
 - **Logs:** one CSV row per ticket in `.ticket-logs\v4-runs.csv`.
 - **Tests:** `scripts\tests\run-tickets-v4\run-stub-tests.ps1`.
 
