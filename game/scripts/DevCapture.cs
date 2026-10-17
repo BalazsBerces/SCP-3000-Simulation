@@ -94,7 +94,26 @@ public partial class DevCapture : Node
     private int _detailSwitches;
     private float? _overviewDistance;
 
-    public override void _Ready()
+    public override void _Ready() => Guarded(Configure);
+
+    public override void _Process(double delta) => Guarded(() => Advance(delta));
+
+    // A check or capture that throws would leave Godot running forever (it only quits when the run
+    // finishes), so in those runs report the error and quit with exit code 2. Normal runs are unchanged.
+    private void Guarded(Action action)
+    {
+        try
+        {
+            action();
+        }
+        catch (Exception error) when (OS.GetCmdlineUserArgs().Length > 0)
+        {
+            GD.PushError($"DevCapture failed: {error}");
+            GetTree().Quit(2);
+        }
+    }
+
+    private void Configure()
     {
         foreach (var arg in OS.GetCmdlineUserArgs())
         {
@@ -231,7 +250,7 @@ public partial class DevCapture : Node
         SetProcess(_overviewDistance is not null || _zoomSweepSeconds > 0 || _capturePath is not null || _fpsReport || _panVelocity != Vector3.Zero || _seedToEnter is not null || _layoutToChoose is not null);
     }
 
-    public override void _Process(double delta)
+    private void Advance(double delta)
     {
         // Runs after the rig has moved this frame (CameraRig.ProcessPriority).
         var step = (Rig.Focus - _lastFocus).Length();
