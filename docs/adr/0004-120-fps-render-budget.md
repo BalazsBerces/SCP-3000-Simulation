@@ -1,5 +1,13 @@
 # 120 fps render budget
 
+**Current budget** (the amendments below record how it got here):
+
+- **Gate:** at least 90 fps average and 60 fps 1% low at 1080p, MSAA 4x and TAA, on the reference machine.
+- **Target:** 120 fps average; every measurement reports whether it met it.
+- **Lights:** 256 clustered real lights, 64 of them cast shadows, chosen by distance from the camera. Every other Lamp is lit as a pool inside the materials ([ADR 0005](0005-lamp-pools-in-materials.md)).
+- **Shadows:** filtered blur (not PCSS), reach capped at 180 m, 0.4 s fade per shadow slot.
+- **Other:** no SDFGI, reduced-resolution volumetric fog, instanced Furniture, occlusion culling and LOD, simulation on its own thread.
+
 The target is at least 120 fps at 1080p on the reference machine (RTX 2070 Super, Ryzen 7 3700X, 16 GB). This rules out SDFGI and unlimited shadowed lights despite the lamp-heavy look: only a small budget of nearby lamps cast shadows, the rest are unshadowed clustered lights; volumetric fog runs at reduced resolution; Furniture is instanced; the short haze-limited view distance is exploited with occlusion culling and LOD; and the simulation runs on its own thread, decoupled from the frame rate.
 
 ## Amendment (ticket 05d): Lamp light budget
