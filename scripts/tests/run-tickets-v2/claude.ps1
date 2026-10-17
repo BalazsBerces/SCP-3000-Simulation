@@ -64,6 +64,10 @@ if ($first -like '/plan-ticket*--amend*') {
 } else { $final = 'unknown prompt' }
 
 Emit @{ type = 'assistant'; session_id = $session; message = @{ content = @(@{ type = 'text'; text = $final }) } }
-Emit @{ type = 'result'; session_id = $session; result = $final; num_turns = 3; duration_ms = 60000; total_cost_usd = 0.5
-  modelUsage = @{ 'claude-opus-5-5' = @{ inputTokens = 1000; cacheCreationInputTokens = 0; cacheReadInputTokens = 5000; outputTokens = 200 } } }
+# Like the real CLI, a resumed session reports the totals of the whole session, not just this call.
+$usageFile = Join-Path $StubState "usage-$session.txt"
+$k = if (Test-Path $usageFile) { [int](Get-Content $usageFile) + 1 } else { 1 }
+Set-Content -Path $usageFile -Value $k
+Emit @{ type = 'result'; session_id = $session; result = $final; num_turns = 3; duration_ms = 60000; total_cost_usd = 0.5 * $k
+  modelUsage = @{ 'claude-opus-5-5' = @{ inputTokens = 1000 * $k; cacheCreationInputTokens = 0; cacheReadInputTokens = 5000 * $k; outputTokens = 200 * $k } } }
 exit 0

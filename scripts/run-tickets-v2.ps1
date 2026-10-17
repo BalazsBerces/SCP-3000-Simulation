@@ -78,6 +78,9 @@ $emptyInput = Join-Path $logRoot 'empty-stdin.txt'
 if (-not (Test-Path $emptyInput)) { New-Item -ItemType File $emptyInput | Out-Null }
 $rotationFile = Join-Path $logRoot 'v2-rotation.json'
 $csvFile = Join-Path $logRoot 'v2-runs.csv'
+# The ticket in progress, for scripts/stop-tickets-v2.ps1. Removed when the ticket ends on its own; left behind
+# when the runner is interrupted (Ctrl+C, killed) or a ticket ends uncleanly.
+$currentFile = Join-Path $logRoot 'v2-current.json'
 $settingsFile = Join-Path $PSScriptRoot 'ticket-settings-v2.json'
 $utf8 = New-Object Text.UTF8Encoding $false
 
@@ -295,12 +298,25 @@ function Save-Rotation([string]$Turn) { Write-Utf8 $rotationFile (@{ last = $Tur
 # ---------------------------------------------------------------------------------------------------
 # Claude sessions (plan, amend, review)
 
-function Add-OpusStats($ctx, $result, $firstLimits, $lastLimits) {
+# A resumed session (amend, review and limit resumes continue the plan session) reports the totals of the whole
+# session, so per session the last totals are kept and only the growth since then belongs to a call.
+$sessionTotals = @{}
+
+function Get-OpusUsage([string]$SessionId, $result) {
+  $models = @($result.modelUsage.PSObject.Properties | ForEach-Object { $_.Value })
+  $sum = { param($name) [double]($models | Measure-Object -Property $name -Sum).Sum }
+  $now = @{ Tokens = (& $sum inputTokens) + (& $sum cacheCreationInputTokens) + (& $sum cacheReadInputTokens) + (& $sum outputTokens)
+    Output = (& $sum outputTokens); Cost = [double]$result.total_cost_usd }
+  $before = $null
+  if ($SessionId) { $before = $sessionTotals[$SessionId]; $sessionTotals[$SessionId] = $now }
+  # Totals below the last ones mean the CLI started counting afresh: then all of it is this call's.
+  if (-not $before -or $now.Tokens -lt $before.Tokens) { return $now }
+  @{ Tokens = $now.Tokens - $before.Tokens; Output = $now.Output - $before.Output; Cost = $now.Cost - $before.Cost }
+}
+
+function Add-OpusStats($ctx, $usage, $firstLimits, $lastLimits) {
   if (-not $ctx) { return }
-  if ($result) {
-    $models = @($result.modelUsage.PSObject.Properties | ForEach-Object { $_.Value })
-    foreach ($m in $models) { $ctx.OpusTokens += [double]$m.inputTokens + [double]$m.cacheCreationInputTokens + [double]$m.cacheReadInputTokens + [double]$m.outputTokens }
-  }
+  if ($usage) { $ctx.OpusTokens += $usage.Tokens }
   if ($firstLimits -and -not $ctx.LimitsBefore) { $ctx.LimitsBefore = $firstLimits }
   if ($lastLimits) { $ctx.LimitsAfter = $lastLimits }
 }
@@ -337,19 +353,18 @@ function Invoke-Claude {
     }
   }
   $exit = $LASTEXITCODE
+  $usage = $null
   if ($lastResult) {
-    Write-Host ('  turns: {0}, {1:N0} min, API-price equivalent: ${2:N2}' -f $turns, $minutes, $lastResult.total_cost_usd) -ForegroundColor DarkCyan
+    $usage = Get-OpusUsage $sessionId $lastResult
+    Write-Host ('  turns: {0}, {1:N0} min, API-price equivalent: ${2:N2}' -f $turns, $minutes, $usage.Cost) -ForegroundColor DarkCyan
     if ($lastLimits) {
       Write-Host ('  subscription limits: 5-hour {0:P0} -> {1:P0}, weekly {2:P0} -> {3:P0}' -f `
         $firstLimits.five_hour.utilization, $lastLimits.five_hour.utilization,
         $firstLimits.seven_day.utilization, $lastLimits.seven_day.utilization) -ForegroundColor DarkCyan
     }
-    $models = @($lastResult.modelUsage.PSObject.Properties | ForEach-Object { $_.Value })
-    $sum = { param($name) [double]($models | Measure-Object -Property $name -Sum).Sum }
-    $total = (& $sum inputTokens) + (& $sum cacheCreationInputTokens) + (& $sum cacheReadInputTokens) + (& $sum outputTokens)
-    Write-Host ('  tokens: {0:N1}M total, {1:N0}k output' -f ($total / 1e6), ((& $sum outputTokens) / 1e3)) -ForegroundColor DarkCyan
+    Write-Host ('  tokens: {0:N1}M total, {1:N0}k output' -f ($usage.Tokens / 1e6), ($usage.Output / 1e3)) -ForegroundColor DarkCyan
   }
-  Add-OpusStats $ctx $lastResult $firstLimits $lastLimits
+  Add-OpusStats $ctx $usage $firstLimits $lastLimits
   if ($exit -ne 0 -and -not $resetsAt) { throw "Claude exited with code $exit. Log: $Log" }
   [pscustomobject]@{ Final = $final; SessionId = $sessionId; ResetsAt = $resetsAt }
 }
@@ -447,7 +462,8 @@ An architect has read the ticket and the code and written an exact plan. Carry i
    LOCKED_TEST_SUSPECT: <file>:<test> - <why>
    in REPORT.md and in your final message, and stop.
 6. Run only the tests of the test classes you touch, for example
-   dotnet test tests/Scp3008.Core.Tests --filter FullyQualifiedName~<ClassName>
+   dotnet test tests/Scp3008.Core.Tests -c Release --filter FullyQualifiedName~<ClassName>
+   (Release: the generation tests run about 5x faster than in Debug.)
    Never run the whole test suite: the runner does that after you, with the build and the Godot build.
 7. Take the captures the plan lists (the paths are in .ticket-work/$l/captures.txt) and look at each one once.
 8. Do not run the benchmark unless the plan says so.
@@ -724,10 +740,11 @@ function Invoke-Gate($ctx) {
     return & $fail ("dotnet build failed ($($errors.Count) errors):`n" + ($errors -join "`n")) $onlyLocked
   }
 
-  # 4. The whole core test suite.
+  # 4. The whole core test suite, in Release: the generation-heavy tests run about 5x faster than in Debug.
+  #    That builds the core and the tests once more; the Debug build above already reported any compile errors.
   $testLog = Join-Path $ctx.Logs "gate-$n-test.log"
   $trxDir = Join-Path $ctx.Logs "gate-$n-results"
-  $tr = Invoke-Logged -File $dotnet -Arguments @('test', 'tests/Scp3008.Core.Tests', '--no-build', '-nologo', '--logger', "trx;LogFileName=gate-$n.trx", '--results-directory', $trxDir) `
+  $tr = Invoke-Logged -File $dotnet -Arguments @('test', 'tests/Scp3008.Core.Tests', '-c', 'Release', '-nologo', '--logger', "trx;LogFileName=gate-$n.trx", '--results-directory', $trxDir) `
     -WorkDir $ExecDir -OutFile $testLog -TimeoutMinutes $TestMinutes
   Add-Content -Path $log -Value "=== dotnet test: exit $($tr.ExitCode), $([int]$tr.Minutes) min (log $testLog)" -Encoding UTF8
   if ($tr.TimedOut) { return & $fail "The test run did not finish within $TestMinutes minutes (a hang counts as a failure). Look for an endless loop or a deadlock.`n$(Get-Tail $testLog 20)" $false }
@@ -919,7 +936,8 @@ function Stop-Ticket($ctx, [string]$Reason, [switch]$NoComment) {
   if (Test-Path (Join-Path $ExecDir '.git')) {
     try { $patch = New-WorkspacePatch $ctx (Join-Path $ctx.Logs ('blocked-{0:yyyyMMdd-HHmmss}.patch' -f (Get-Date))) -All } catch { }
   }
-  try { Reset-MainTree $ctx -IncludeLocked } catch { Write-Host "  Could not clean the main tree: $($_.Exception.Message)" -ForegroundColor Red }
+  try { Reset-MainTree $ctx -IncludeLocked; Remove-Item $currentFile -Force -ErrorAction SilentlyContinue }
+  catch { Write-Host "  Could not clean the main tree: $($_.Exception.Message)" -ForegroundColor Red }
   if (-not $NoComment) {
     $tried = if ($ctx.Tried.Count) { $ctx.Tried -join ', ' } else { 'none (stopped before execution)' }
     $gate = if ($ctx.LastGateSummary) { "`n`nLast gate summary:`n``````n$($ctx.LastGateSummary)`n``````" } else { '' }
@@ -992,6 +1010,8 @@ function Test-Committed($ctx, $review) {
 function Invoke-Ticket($ctx) {
   $t = $ctx.T
   $ctx.Baseline = @(Get-ChangedPaths)
+  Write-Utf8 $currentFile (@{ pid = $PID; label = $t.Label; issue = $t.Issue; title = $t.Title; started = (Get-Date).ToString('o')
+      head = (git -C $root rev-parse HEAD).Trim(); baseline = @($ctx.Baseline); rotationBefore = $ctx.RotationBefore } | ConvertTo-Json)
   if (Test-Path $ctx.Work) { Remove-Item $ctx.Work -Recurse -Force }
   New-Item -ItemType Directory -Force $ctx.Work, $ctx.Logs | Out-Null
 
@@ -1056,7 +1076,7 @@ $($review.Final)
 function New-TicketContext($t, $choice) {
   @{ T = $t; Turn = $choice.Turn; Chain = $choice.Chain; StageStart = $(if ($t.IsStageEnd) { Get-StageStart $t } else { '' })
     Work = (Join-Path $workRoot $t.Label); Logs = (Join-Path $logRoot $t.Label)
-    Baseline = @(); Locked = @(); LockedHash = @{}; PlanSession = $null; Sessions = @{}; ExecHead = ''
+    Baseline = @(); Locked = @(); LockedHash = @{}; PlanSession = $null; Sessions = @{}; ExecHead = ''; RotationBefore = $null
     Executor = ''; Tried = @(); Attempts = 0; FixRounds = 0; Amends = 0; Rejects = 0; ExecRuns = 0; GateRuns = 0
     LastGateLog = ''; LastGateSummary = ''; LastFailure = ''
     PlanMinutes = 0.0; ExecMinutes = 0.0; GateMinutes = 0.0; ReviewMinutes = 0.0
@@ -1094,11 +1114,13 @@ while ($true) {
     break
   }
 
+  $ctx.RotationBefore = if (Test-Path $rotationFile) { (Get-Content $rotationFile -Raw).Trim() } else { $null }
   Save-Rotation $choice.Turn
   $firstOfRun = $false
   # A crash (Claude exit code, usage limit too far away, git failure) still leaves the main tree clean.
   try { Invoke-Ticket $ctx }
   catch { Stop-Ticket $ctx "The runner stopped on an error: $($_.Exception.Message) ($($_.InvocationInfo.PositionMessage))" -NoComment }
+  Remove-Item $currentFile -Force -ErrorAction SilentlyContinue
   Write-Phase "Ticket $($t.Label) done (executor: $($ctx.Executor), fix rounds: $($ctx.FixRounds), amends: $($ctx.Amends), rejects: $($ctx.Rejects))." 'Green'
   $done++
 

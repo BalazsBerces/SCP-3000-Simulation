@@ -110,6 +110,7 @@ function Test-Approved($r, [string]$Verdict = 'APPROVE', [string]$By = 'Nemotron
   Should (Test-Path (Join-Path $r.Fx.Repo 'notes-baseline.txt')) 'the baseline file was removed'
   Should (-not (git -C $r.Fx.Origin ls-tree -r --name-only main | Where-Object { $_ -eq 'notes-baseline.txt' })) 'the baseline file was committed'
   Should ([bool](git -C $r.Fx.Origin ls-tree -r --name-only main | Where-Object { $_ -eq 'tests/Scp3008.Core.Tests/AcceptanceTests.cs' })) 'the locked acceptance test was not committed'
+  Should (-not (Test-Path (Join-Path $r.Fx.Repo '.ticket-logs\v2-current.json'))) 'v2-current.json left behind after a finished ticket'
 }
 function Test-Blocked($r, [switch]$BeforeExecution) {
   Should ($r.Exit -ne 0) 'exit code 0, expected non-zero'
@@ -118,6 +119,7 @@ function Test-Blocked($r, [switch]$BeforeExecution) {
   Should ($r.Csv.Count -ge 1 -and $r.Csv[-1].verdict -eq 'blocked') "CSV verdict is '$($r.Csv[-1].verdict)', expected blocked"
   Should (($r.Status -join ' ') -eq '?? notes-baseline.txt') "main tree is not back to the baseline: $($r.Status -join ', ')"
   Should (@($r.OriginLog | Where-Object { $_ -match 'Closes #66' }).Count -eq 0) 'something was committed'
+  Should (-not (Test-Path (Join-Path $r.Fx.Repo '.ticket-logs\v2-current.json'))) 'v2-current.json left behind after a blocked ticket'
   # Before any executor ran there is no workspace state to save.
   if (-not $BeforeExecution) {
     Should (@(Get-ChildItem (Join-Path $r.Fx.Repo '.ticket-logs\08i') -Filter 'blocked-*.patch' -ErrorAction SilentlyContinue).Count -ge 1) 'no blocked patch saved'
@@ -135,7 +137,8 @@ Invoke-Scenario 'green-approve' @{ exec = @('done'); review = @('APPROVE'); capt
   Should (@($r.Calls | Where-Object { $_ -like 'claude resume=sess-0 *prompt=/review-ticket 08i 66' }).Count -eq 1) 'the review did not resume the planning session'
   Should ((Get-Content (Join-Path $r.Fx.Repo '.ticket-logs\v2-rotation.json') -Raw) -match 'Nemotron') 'rotation not saved as Nemotron'
   Should ([int]$r.Csv[-1].exec_tokens_in -eq 100) "executor tokens not recorded: $($r.Csv[-1].exec_tokens_in)"
-  Should ([int]$r.Csv[-1].opus_tokens -gt 0) 'Opus tokens not recorded'
+  # Plan + review, 6200 tokens each; the review resumes the plan session, whose totals include the plan.
+  Should ([int]$r.Csv[-1].opus_tokens -eq 12400) "Opus tokens $($r.Csv[-1].opus_tokens), expected 12400 (plan + review, not counted twice)"
 }
 
 Invoke-Scenario 'done-with-exit-code-1' @{ exec = @('done-exit1') } -Assert {
