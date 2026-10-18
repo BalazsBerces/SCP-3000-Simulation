@@ -65,6 +65,8 @@ public static class FurnitureMeshes
         TankWater,
         Fish,
         TankGlass,
+        // The water body of a tank: faint, transparent blue (full meshes only).
+        TankVolume,
         Gravel,
         AquaticPlant,
         // The Cafeteria (ticket 08i): mash and lingonberries beside the meatballs (Food), almond cake, the dark menu
@@ -103,7 +105,7 @@ public static class FurnitureMeshes
     private static ShaderMaterial? _coarseMaterial;
 
     // Size of the part tables (part_albedo, part_surface, part_glow) in furniture.gdshader; at least the number of parts. Change both together.
-    internal const int PartSlots = 48;
+    internal const int PartSlots = 64;
 
     /// <summary>How brightly every lamp shade glows, from 0 (off) to 1 (lit).</summary>
     public static void SetLampGlow(float level)
@@ -912,6 +914,7 @@ public static class FurnitureMeshes
             new Vector3(0f, 0f, hd - frame - hoodFront), glass);
         b.Slab(Part.TankGlass, new Vector3(-hw + glass, waterline, back), new Vector3(w - 2f * glass, 0f, 0f),
             new Vector3(0f, 0f, hd - glass - back), 0.002f);
+        b.Box(Part.TankVolume, new Vector3(-hw + glass, y0, back), new Vector3(hw - glass, waterline, hd - glass));
         // Gravel with pebbles on it, stones and plants towards the back.
         b.Box(Part.Gravel, new Vector3(-hw + glass, y0, back), new Vector3(hw - glass, gravel, hd - glass));
         var random = new Random(1009 + variant);
@@ -974,8 +977,12 @@ public static class FurnitureMeshes
                 b.Box(Part.Chrome, new Vector3(-hw + 0.065f, h - 0.02f, hd - 0.08f), new Vector3(hw - 0.065f, h, hd - 0.05f));
 
                 // Glass sneeze guard pane between the posts
-                b.Box(Part.Glass, new Vector3(-hw + 0.096f, 0.98f, hd - 0.075f), new Vector3(hw - 0.096f, 1.32f, hd - 0.065f));
-                b.Box(Part.Glass, new Vector3(-hw + 0.096f, 1.25f, -0.1f), new Vector3(hw - 0.096f, 1.27f, hd - 0.075f));
+                // Clear glass (the tanks' glass shader), drawn by full meshes only: a coarse mesh draws no glass.
+                if (!b.Coarse)
+                {
+                    b.Box(Part.TankGlass, new Vector3(-hw + 0.096f, 0.98f, hd - 0.075f), new Vector3(hw - 0.096f, 1.32f, hd - 0.065f));
+                    b.Box(Part.TankGlass, new Vector3(-hw + 0.096f, 1.25f, -0.1f), new Vector3(hw - 0.096f, 1.27f, hd - 0.075f));
+                }
                 break;
             }
             case FurnitureType.DessertCounter:
@@ -986,7 +993,8 @@ public static class FurnitureMeshes
                 b.Box(Part.LightSteel, new Vector3(-hw, h - 0.05f, -hd), new Vector3(hw, h, hd));
 
                 // Glass cabinet
-                b.Box(Part.Glass, new Vector3(-hw + 0.03f, 0.7f, -hd + 0.03f), new Vector3(hw - 0.03f, h - 0.05f, hd - 0.03f));
+                if (!b.Coarse)
+                    b.Box(Part.TankGlass, new Vector3(-hw + 0.03f, 0.7f, -hd + 0.03f), new Vector3(hw - 0.03f, h - 0.05f, hd - 0.03f));
 
                 // Chrome shelves inside cabinet
                 foreach (var y in new[] { 0.95f, 1.20f })
@@ -1900,6 +1908,7 @@ public static class FurnitureMeshes
             [Part.TankWater] = Water(),
             [Part.Fish] = Fish(),
             [Part.TankGlass] = TankGlass(),
+            [Part.TankVolume] = new ShaderMaterial { Shader = GD.Load<Shader>("res://shaders/furniture_tank_water.gdshader") },
             [Part.Gravel] = Plain(new Color(0.62f, 0.54f, 0.42f), 0.95f),
             [Part.AquaticPlant] = Plain(new Color(0.2f, 0.52f, 0.16f), 0.6f),
             [Part.Mash] = Plain(new Color(0.93f, 0.86f, 0.62f), 0.8f),
@@ -1919,7 +1928,8 @@ public static class FurnitureMeshes
             material.SetShaderParameter("albedo_color", new Color(0.08f, 0.32f, 0.48f));
             material.SetShaderParameter("roughness", 0.1f);
             material.SetShaderParameter("emission_color", new Color(0.2f, 0.62f, 0.95f));
-            material.SetShaderParameter("emission_energy", 1.2f);
+            material.SetShaderParameter("emission_energy", 0.9f);
+            material.SetShaderParameter("panel_alpha", 0.28f);
             return material;
         }
         // A school of fish in its kind's colour (FishColour), which its shader swims.
@@ -1946,7 +1956,7 @@ public static class FurnitureMeshes
         var glow = new Vector3[PartSlots];
         foreach (var (part, material) in Materials())
         {
-            if (part is Part.TankGlass or Part.Fish)
+            if (part is Part.TankGlass or Part.TankVolume or Part.Fish)
                 continue;
             // Every glowing part but the lamp shade (see emissive_part) glows steadily.
             if (part != Part.LampShade && (float)material.GetShaderParameter("emission_energy") > 0f)

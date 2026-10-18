@@ -38,11 +38,11 @@ uniform bool lamp_glow = true;
 // comes from these tables (linear albedo with the tint flag in alpha; roughness and metallic).
 // Their size is PartSlots in FurnitureMeshes.cs; change both together.
 uniform bool coarse_parts = false;
-uniform vec4 part_albedo[48];
-uniform vec2 part_surface[48];
+uniform vec4 part_albedo[64];
+uniform vec2 part_surface[64];
 uniform int emissive_part = -1;
 // The steady glow of each coarse part (linear colour times energy); black for parts that do not glow.
-uniform vec3 part_glow[48];
+uniform vec3 part_glow[64];
 // Dev aid (DevCapture --lod-debug): draws coarse meshes magenta, to show which level is drawn.
 uniform bool lod_debug = false;
 // A clock hand of the clock wall: 1 the hour hand, 2 the minute hand, 0 not a hand. A hand turns about the
