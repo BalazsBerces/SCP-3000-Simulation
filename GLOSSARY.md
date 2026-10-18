@@ -119,6 +119,14 @@ Two or three related tint indices shared by the Furniture of a Display. Neighbou
 Small stock on shelves (food, batteries, bulbs, cables) taken as-is rather than placed in the world. The live fish in an Aquarium aisle's tanks and a Cafeteria's meals are Goods too; the tanks, racks and counters are Furniture.
 _Avoid_: Loot, items
 
+**Limbo**:
+The state of Goods untouched on the Store's own shelves and Displays: they never spoil there. Once a Villager takes food, it starts to spoil (fresh food fast, tinned and dry food slowly), and putting it back does not restore Limbo. Villages do not know this at first; they may learn it as a Belief.
+_Avoid_: Stasis, freshness, preservation
+
+**Fridge**:
+A piece of Furniture that keeps food from spoiling while powered. On display it runs on Store power; taken away from its display (to a Mess hall or Storehouse) it needs a Village power source, and without power it is only a cupboard.
+_Avoid_: Refrigerator, cooler
+
 **Material**:
 An abstract unit of one of eight kinds (wood/panel, metal, fabric, leather, foam, glass, electrics, plastic) obtained by disassembling Furniture and counted in a Village's stores.
 _Avoid_: Parts, components, scrap
@@ -222,16 +230,44 @@ A Villager's primary job (scavenger, builder, cook, guard, trader, farmer, night
 _Avoid_: Job, class, profession
 
 **Blueprint**:
-A plan for a structure (wall segment, tower, gate, keep, Pillar scaffold) made of slots that each demand a kind of Furniture by size and sturdiness, so the same Blueprint can be built from different Furniture.
+A plan for a structure (wall segment, tower, gate, keep, Pillar scaffold) made of slots that each demand a kind of Furniture by size and sturdiness, so the same Blueprint can be built from different Furniture. Each piece keeps its own look, so structures are a colourful patchwork, like a mixed Lego build; a Village's own colour comes from banners, draped fabrics and painted marks.
 _Avoid_: Template, recipe, design
+
+**Storehouse**:
+A structure a Village builds inside its walls to hold its stores (Goods, Materials and unused Gear) up to a capacity. Whatever does not fit lies in an open pile, where food spoils faster and Raiders take it more easily; a Band or a new Village keeps everything in such a pile. A Storehouse is a prime Raid target.
+_Avoid_: Warehouse (that is the Self-serve warehouse Department), depot, granary
+
+**Furniture yard**:
+The place where a Village keeps Furniture it has gathered but not yet built in. Each Village decides by its Personality and site whether it lies inside or outside the walls, and whether it gets its own barricade; outside, it keeps the inner Village uncrowded but is easier to raid.
+_Avoid_: Stockpile, lumber yard, depot
+
+**Keep**:
+The central, strongest structure of a Village, stacked from showroom pieces; the Villagers' last refuge in a Siege.
+_Avoid_: Tower, citadel, stronghold
+
+**Dwelling**:
+A tent (a clothes rack or metal frame hung with curtains, blankets and rugs, quick to put up) or a house (built by Blueprint from Furniture: wardrobes and bookcases as walls, tabletops as a roof, a wardrobe door), with a number of sleeping places. Villagers rest and keep their morale best in a house, then a tent, then a bed in the open, and worst on the bare floor. Whether a Dwelling is shared, personal or a family's follows the Village's Personality. Dwellings stand inside the walls, around the Keep.
+_Avoid_: Hut, home, shelter
+
+**Mess hall**:
+A Village's shared place for cooking and eating together; eating there together raises morale, cooks feed more people from fewer Goods, and news, Beliefs and Known map knowledge spread there.
+_Avoid_: Canteen (an old name for the Cafeteria), kitchen, dining room
 
 **Workshop**:
 A station built from Furniture inside a Village where Recipes that need it are made: a workbench (wood, metal), a sewing table (fabric, leather, foam) or an electrics bench (electrics, glass).
 _Avoid_: Crafting table, factory
 
 **Tier**:
-A stronger variant of a Blueprint whose slots demand sturdier Furniture plus Material reinforcement; structures are upgraded piece by piece.
+A stronger variant of a Blueprint whose slots demand sturdier Furniture plus Material reinforcement. Each piece is upgraded on its own, by swapping it for sturdier Furniture, Strapping it or Backfilling behind it, so a structure is patchy, with strong and weak spots; a structure reaches a Tier once all its pieces have.
 _Avoid_: Level, upgrade stage
+
+**Strapping**:
+Reinforcing a piece of a structure in place with Materials (metal straps, twisted cables, panels nailed on), visibly.
+_Avoid_: Weaving, plating
+
+**Backfill**:
+Soft or bulky stuff (mattresses, cardboard, foam) packed behind or between the pieces of a wall, absorbing Staff blows and muffling noise.
+_Avoid_: Padding, filling, insulation
 
 ### Threat
 
@@ -244,7 +280,7 @@ The body a killed Staff leaves behind. After a few hours it starts drawing other
 _Avoid_: Corpse, carcass
 
 **Belief**:
-A single claim a Village holds about Staff behaviour, with a confidence; it may be false. A Village's staff knowledge is the set of its Beliefs.
+A single claim a Band or Village holds about the Store's hidden rules (how the Staff behave, Limbo, Restock, the clock wall), with a confidence; it may be false. A Village's knowledge of the Store is the set of its Beliefs.
 _Avoid_: Fact, knowledge point, intel
 
 **Tidying**:
