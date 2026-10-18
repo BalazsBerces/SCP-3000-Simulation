@@ -443,7 +443,8 @@ public static class FurnitureModels
         // as votes for its part, light fabric or not, and to each voxel's surface normal.
         var votes = new Dictionary<int, float[]>();
         var surfaceNormals = new Dictionary<int, Vector3>();
-        var spacing = Mathf.Min(cell.X, Mathf.Min(cell.Y, cell.Z)) / 3f;
+        // A flat model (a rug) has one voxel on its thin axis, whose tiny cell would multiply the samples by thousands.
+        var spacing = Mathf.Min(n.X > 1 ? cell.X : CoarseCell, Mathf.Min(n.Y > 1 ? cell.Y : CoarseCell, n.Z > 1 ? cell.Z : CoarseCell)) / 3f;
         for (var s = 0; s < parts.Count; s++)
         {
             var part = parts[s];
