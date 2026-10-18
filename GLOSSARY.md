@@ -70,7 +70,7 @@ A recognisable store service point: a service counter with a bell, shelves of la
 _Avoid_: Lost and found desk (that is the old single-desk version)
 
 **Ball pit**:
-One of the three ball pools in every Store, like a store's kids' play area: padded walls, a net railing, a slide and hundreds of coloured balls; a Point of interest. Harmless while the Store is open; at Closing time the Staff pass from any Ball pit to any other. Villagers cannot.
+One of the three ball pools in every Store, like a store's kids' play area: padded walls, a net railing, a slide and hundreds of coloured balls; a Point of interest. Harmless while the Store is open; at Closing time the Staff pass from any Ball pit to any other, and new Staff come out of them. Villagers cannot pass.
 _Avoid_: Ball-pit sea, portal
 
 **Ball pit network**:
@@ -140,7 +140,7 @@ A known way to make a piece of Gear or a reinforcement from Materials, needing c
 _Avoid_: Technology, tech, blueprint (that is a structure plan)
 
 **Restock**:
-The Store's slow replenishment of Goods and Furniture, which keeps the world from running dry.
+The Store's slow replenishment of Goods and Furniture, which keeps the world from running dry. Each Goods kind and Furniture restock at their own rate; Furniture reappears only where no Villager can see.
 _Avoid_: Respawn, regeneration
 
 **Fog bank**:
@@ -272,7 +272,7 @@ _Avoid_: Padding, filling, insulation
 ### Threat
 
 **Staff**:
-The faceless, silent entities of the Store: dormant while the Store is open, hostile at Closing time. At Closing time noise draws them from afar and they notice a Villager only at close range; light does not affect them. Few at first, they grow in number over Store days and where more people live. A Staff can be killed only with great effort, and leaves Staff remains.
+The faceless, silent entities of the Store: dormant while the Store is open, hostile at Closing time. At Closing time noise draws them from afar and they notice a Villager only at close range; light does not affect them. Few at first, they grow in number over Store days and where more people live; new Staff come out of the Ball pits at Closing time. While the Store is open a Staff cannot be harmed: it gets up from any blow and goes back to standing. Only at Closing time can a Staff be killed, with great effort, and it leaves Staff remains.
 _Avoid_: Employees, monsters, enemies
 
 **Staff remains**:
@@ -284,7 +284,7 @@ A single claim a Band or Village holds about the Store's hidden rules (how the S
 _Avoid_: Fact, knowledge point, intel
 
 **Tidying**:
-Staff carrying displaced Furniture back to its original place at Closing time, when it is close and easy to return.
+Staff carrying displaced Furniture back to its original place at Closing time. Furniture built into a Village structure or lying behind a Village's walls is never Tidied; loose pieces, a Band's quick barricade and an unbarricaded Furniture yard outside the walls are.
 _Avoid_: Cleanup, reset
 
 **Horde**:
@@ -296,7 +296,7 @@ A Horde assaulting a Village's fortification at Closing time.
 _Avoid_: Raid (reserved for Village-on-Village attacks), attack
 
 **Horde night**:
-A periodic, escalating Closing time on which large Hordes besiege several Villages at once.
+A periodic, escalating Closing time on which large Hordes besiege several Villages at once. It is followed by a **calm stretch** of a few Store days with fewer, smaller Hordes and no Sieges.
 _Avoid_: Blood moon, wave night
 
 **Wounded**:

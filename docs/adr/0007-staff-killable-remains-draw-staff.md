@@ -9,4 +9,5 @@ Invulnerable Staff made late-game Villages feel static: past a certain wall Tier
 - Staff have health and can die; Sieges and Expeditions can end with Staff remains in the world, which the snapshot, save format and chronicle must carry.
 - Staff remains are a noise-like attraction source with a delay and growing strength; the Staff rules treat it alongside noise, and light still has no effect.
 - Villagers need a decision to haul remains away or use them as bait, which ties Staff remains to carrying, traps and Beliefs.
+- A Staff can be killed only at Closing time. While the Store is open it cannot be harmed and gets up from any blow, so Villages cannot pick off the dormant Staff in safety.
 - Killing must stay rare and expensive in tuning; if Villages start farming kills, the cost (weapons, wounds, noise, remains) is what to raise, not the killability.
