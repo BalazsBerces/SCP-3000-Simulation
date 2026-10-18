@@ -170,7 +170,7 @@ _Avoid_: Cycle, round, turn
 ### People
 
 **Village**:
-A survivor community together with the furniture fortification that always surrounds it; the fortification is part of the Village, not a separate thing.
+A survivor community together with the furniture fortification that always surrounds it; the fortification is part of the Village, not a separate thing. Its wall ring has an **outline**: round, square or freeform (following the ground and folding in shelving rows, Pillars or Landmarks), chosen by its Personality and site.
 _Avoid_: Castle, stronghold, camp, settlement
 
 **Villager**:
