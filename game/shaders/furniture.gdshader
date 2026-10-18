@@ -7,9 +7,9 @@ shader_type spatial;
 #include "res://shaders/ground.gdshaderinc"
 
 uniform vec4 albedo_color : source_color = vec4(1.0);
-uniform sampler2D albedo_texture : source_color, hint_default_white, filter_linear_mipmap, repeat_enable;
-uniform sampler2D normal_texture : hint_roughness_normal, filter_linear_mipmap, repeat_enable;
-uniform sampler2D roughness_texture : hint_roughness_r, filter_linear_mipmap, repeat_enable;
+uniform sampler2D albedo_texture : source_color, hint_default_white, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform sampler2D normal_texture : hint_roughness_normal, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform sampler2D roughness_texture : hint_roughness_r, filter_linear_mipmap_anisotropic, repeat_enable;
 // Textured parts have all three maps; coarse meshes leave out the normal map.
 uniform bool textured = false;
 uniform bool normal_enabled = false;

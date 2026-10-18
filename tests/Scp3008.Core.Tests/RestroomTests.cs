@@ -72,6 +72,50 @@ public class RestroomTests
         Assert.Contains(pieces, p => p.Type == FurnitureType.LitterPaper && p.Elevation == 0f);
     }
 
+    [Theory]
+    [InlineData(3008)]
+    [InlineData(42)]
+    [InlineData(7)]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    [InlineData(4)]
+    [InlineData(5)]
+    public void The_walls_close_the_room_except_for_one_doorway(int seed)
+    {
+        var (restroom, pieces) = RestroomOf(Showcase(seed));
+        // Each wall's span along its side, in metres from the room's centre; walls turned a quarter lie along y.
+        var spans = pieces.Where(p => p.Type == FurnitureType.TiledWall).Select(p =>
+        {
+            var length = FurnitureCatalog.Spec(p).Width;
+            var along = MathF.Abs(MathF.Sin(p.Rotation)) > 0.5f
+                ? p.Position.Y - restroom.Centre.Y : p.Position.X - restroom.Centre.X;
+            var side = MathF.Abs(MathF.Sin(p.Rotation)) > 0.5f
+                ? (p.Position.X > restroom.Centre.X ? "east" : "west")
+                : (p.Position.Y > restroom.Centre.Y ? "south" : "north");
+            return (side, from: along - length / 2f, to: along + length / 2f);
+        }).ToList();
+
+        float Gaps(string side, float start, float end)
+        {
+            var gap = 0f;
+            var at = start;
+            foreach (var (_, from, to) in spans.Where(w => w.side == side).OrderBy(w => w.from))
+            {
+                Assert.True(from >= at - 0.01f - 0f || to <= at + 0.01f, $"{side} walls overlap at {from:0.00}");
+                gap += MathF.Max(0f, from - at);
+                at = MathF.Max(at, to);
+            }
+            return gap + MathF.Max(0f, end - at);
+        }
+
+        // Front and back walls reach the corners, the side walls run between them.
+        var gaps = new[] { Gaps("north", -5.2f, 5.2f), Gaps("south", -5.2f, 5.2f), Gaps("west", -2.85f, 2.85f), Gaps("east", -2.85f, 2.85f) };
+        var open = gaps.Where(g => g > 0.01f).ToList();
+        Assert.True(open.Count <= 1, $"Gaps in more than one wall: {string.Join(", ", gaps.Select(g => g.ToString("0.00")))}");
+        Assert.All(open, g => Assert.InRange(g, 0.9f, 2.7f));
+    }
+
     [Fact]
     public void The_floor_plan_differs_between_seeds()
     {

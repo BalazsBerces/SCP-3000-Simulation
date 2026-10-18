@@ -230,6 +230,8 @@ internal static class PointOfInterestGenerator
     }
 
     private const float Quarter = MathF.PI / 2f;
+    // Centre of a side wall of the Store restroom: half of the 5.7 m between the front and back walls.
+    private const float SideWallY = 1.425f;
 
     // In every build below the local frame has x east and y south, its origin at the centre of the rectangle;
     // a piece with rotation 0 faces south, π faces north, +π/2 faces west and -π/2 faces east.
@@ -257,10 +259,11 @@ internal static class PointOfInterestGenerator
                     b.Put(FurnitureType.TiledWall, new Vector2(x, -2.925f), 0f, 0f);
                 foreach (var x in new[] { -3.9f, -1.3f, 1.3f })
                     b.Put(FurnitureType.TiledWall, new Vector2(x, 2.925f), 0f, MathF.PI);
-                foreach (var y in new[] { -1.3f, 1.3f })
+                // Side walls run between the front and back walls (variant 1 is half of the 5.7 m between them).
+                foreach (var y in new[] { -SideWallY, SideWallY })
                 {
-                    b.Put(FurnitureType.TiledWall, new Vector2(-5.125f, y), 0f, Quarter);
-                    b.Put(FurnitureType.TiledWall, new Vector2(5.125f, y), 0f, -Quarter);
+                    b.Put(FurnitureType.TiledWall, new Vector2(-5.125f, y), 0f, Quarter, variant: 1);
+                    b.Put(FurnitureType.TiledWall, new Vector2(5.125f, y), 0f, -Quarter, variant: 1);
                 }
 
                 // Restroom sign beside entrance
@@ -314,10 +317,11 @@ internal static class PointOfInterestGenerator
                     b.Put(FurnitureType.TiledWall, new Vector2(x, -2.925f), 0f, 0f);
                 foreach (var x in new[] { -3.9f, -1.3f, 1.3f, 3.9f })
                     b.Put(FurnitureType.TiledWall, new Vector2(x, 2.925f), 0f, MathF.PI);
-                foreach (var y in new[] { -1.3f, 1.3f })
+                // Side walls run between the front and back walls (variant 1 is half of the 5.7 m between them).
+                foreach (var y in new[] { -SideWallY, SideWallY })
                 {
-                    b.Put(FurnitureType.TiledWall, new Vector2(-5.125f, y), 0f, Quarter);
-                    b.Put(FurnitureType.TiledWall, new Vector2(5.125f, y), 0f, -Quarter);
+                    b.Put(FurnitureType.TiledWall, new Vector2(-5.125f, y), 0f, Quarter, variant: 1);
+                    b.Put(FurnitureType.TiledWall, new Vector2(5.125f, y), 0f, -Quarter, variant: 1);
                 }
 
                 // Restroom sign beside entrance
@@ -372,11 +376,11 @@ internal static class PointOfInterestGenerator
                     b.Put(FurnitureType.TiledWall, new Vector2(x, -2.925f), 0f, 0f);
                     b.Put(FurnitureType.TiledWall, new Vector2(x, 2.925f), 0f, MathF.PI);
                 }
-                foreach (var y in new[] { -1.3f, 1.3f })
-                    b.Put(FurnitureType.TiledWall, new Vector2(-5.125f, y), 0f, Quarter);
-                // East wall segments leaving gap around y = 0
-                b.Put(FurnitureType.TiledWall, new Vector2(5.125f, -1.7f), 0f, -Quarter);
-                b.Put(FurnitureType.TiledWall, new Vector2(5.125f, 1.7f), 0f, -Quarter);
+                foreach (var y in new[] { -SideWallY, SideWallY })
+                    b.Put(FurnitureType.TiledWall, new Vector2(-5.125f, y), 0f, Quarter, variant: 1);
+                // East wall: a doorway 1 m wide at y = 0 to 1, walls to the front and back walls on both sides of it
+                b.Put(FurnitureType.TiledWall, new Vector2(5.125f, -SideWallY), 0f, -Quarter, variant: 1);
+                b.Put(FurnitureType.TiledWall, new Vector2(5.125f, 1.925f), 0f, -Quarter, variant: 2);
 
                 // Restroom sign beside entrance
                 b.Put(FurnitureType.RestroomSign, new Vector2(5.05f, -0.8f), 1.8f, Quarter);

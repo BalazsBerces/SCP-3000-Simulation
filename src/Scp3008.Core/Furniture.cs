@@ -438,6 +438,8 @@ public static class FurnitureCatalog
             // Variants of the most repeated types: other proportions, backs, legs or materials.
             new(FurnitureType.LabelledBox, 0.50f, 0.40f, 0.35f, Variant: 1), // open / spilled box
             new(FurnitureType.RestroomMirror, 2.4f, 0.04f, 1.0f, Variant: 1), // cracked mirror
+            new(FurnitureType.TiledWall, 2.85f, 0.15f, 2.8f, Variant: 1),     // fills a side of the room between the front and back walls (5.7 m = two of them)
+            new(FurnitureType.TiledWall, 1.85f, 0.15f, 2.8f, Variant: 2),     // the rest of a side wall beside a 1 m doorway
             new(FurnitureType.FishTank, 0.95f, 0.45f, 0.5f, Variant: 1),      // medium tank
             new(FurnitureType.FishTank, 2.4f, 0.9f, 1.9f, Variant: 2),        // large tank on its own cabinet (LargeFishTank)
             new(FurnitureType.Mannequin, 0.75f, 0.35f, 1.8f, Variant: 1),      // one arm raised, the other hand on the hip

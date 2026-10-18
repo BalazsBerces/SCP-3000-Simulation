@@ -1941,7 +1941,8 @@ public static class FurnitureMeshes
             [Part.MenuPanel] = Plain(new Color(0.1f, 0.1f, 0.11f), 0.8f),
             [Part.Paper] = Plain(new Color(0.96f, 0.95f, 0.9f), 0.9f),
             [Part.Spill] = Plain(new Color(0.42f, 0.24f, 0.1f), 0.08f),
-            [Part.Tiles] = Textured("tiles", 2f, Colors.White),
+            // Large white bathroom tiles (ambientCG Tiles002): four to the repeat, 0.3 m each, with wide grout lines that do not shimmer.
+            [Part.Tiles] = Textured("restroom_tiles", 1.2f, Colors.White),
             [Part.Sauce] = ModelFoodMaterial("meatballs", "sauce"),
             [Part.CakeSlice] = ModelFoodMaterial("cake_slice", "cake_slice"),
             [Part.Plate] = ModelFoodMaterial("whole_cake", "plate"),
