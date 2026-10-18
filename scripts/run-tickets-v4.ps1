@@ -31,6 +31,16 @@
 #>
 param(
   [string]$Repo = 'BalazsBerces/SCP-3000-Simulation',
+  # Project name in the prompt, the spec issue, and the files the project keeps its language and decisions in.
+  [string]$Project = 'SCP-3008 simulation',
+  [int]$SpecIssue = 1,
+  [string]$GlossaryFile = 'GLOSSARY.md',
+  [string]$AdrDir = 'docs/adr',
+  # Project-specific rules (architecture, test and build commands, tools), added to the prompt as they are.
+  # {GodotRunSeconds} in it is replaced by that parameter.
+  [string]$ProjectRules = 'docs/ticket-rules.md',
+  # Where agents propose new project rules; the runner never adds this file to the prompt.
+  [string]$ProposedRules = 'docs/ticket-rules-proposed.md',
   [int]$Max = 0,
   [switch]$NoStagePause,
   [switch]$DryRun,
@@ -319,29 +329,34 @@ function Get-Prompt($t, $choice, [string]$Head) {
   # The gate runs the whole suite after Gemini; Codex and Claude commit themselves, so they run it once before that.
   $suiteRule = if ($choice.Agent -eq 'gemini') {
     'Run only the test classes this ticket adds or touches; never the whole suite, which the runner runs after you.'
-  } else { 'Run the whole core suite in Release once, just before you commit.' }
+  } else { 'Run the whole test suite once, just before you commit.' }
+  $rulesPath = Join-Path $root $ProjectRules
+  $projectRules = if (Test-Path $rulesPath) {
+    "Rules of this project (from $ProjectRules; they add to the rules above):`n" +
+    ((Get-Content $rulesPath -Raw -Encoding UTF8).Replace('{GodotRunSeconds}', "$GodotRunSeconds").Trim()) + "`n"
+  } else { '' }
   # Codex has no slash commands: it reads the same skills as files from its own skills directory.
   $start = if ($choice.Agent -eq 'codex') {
-    "Use the implement skill to implement ticket $($t.Label) of the SCP-3008 simulation: GitHub issue #$($t.Issue) in $Repo.`n" +
+    "Use the implement skill to implement ticket $($t.Label) of the ${Project}: GitHub issue #$($t.Issue) in $Repo.`n" +
     "Read the implement skill's SKILL.md in $CodexSkillsDir and follow it. A /name in these instructions or in a skill (/tdd, /spec-review) means: read $CodexSkillsDir\<name>\SKILL.md and follow it."
-  } else { "/implement ticket $($t.Label) of the SCP-3008 simulation: GitHub issue #$($t.Issue) in $Repo." }
+  } else { "/implement ticket $($t.Label) of the ${Project}: GitHub issue #$($t.Issue) in $Repo." }
 @"
 $start
-The spec is issue #1. Read the ticket (gh issue view $($t.Issue) --comments), GLOSSARY.md, every ADR in docs/adr/, and the existing code.
+The spec is issue #$SpecIssue. Read the ticket (gh issue view $($t.Issue) --comments), $GlossaryFile, every ADR in $AdrDir/, and the existing code.
 
-Project rules for this run:
+Rules for this run:
 1. This is an unattended run. Nobody will answer questions, so make reasonable decisions yourself and record them.
-2. Implement ONLY this ticket so that every acceptance criterion is met. Follow the spec's architecture: the engine-independent C# simulation core behind one facade, and the Godot presentation layer that only reads from it.
-3. Test seam: facade-level tests (scenario -> advance time -> assert on snapshot/events). Run the core tests in Release (dotnet test tests/Scp3008.Core.Tests -c Release --filter FullyQualifiedName~<ClassName>): the generation tests run about 5x faster than in Debug. $suiteRule Also build the Godot project with the console executable in headless mode. Godot 4.7.2 .NET is NOT on PATH; find it with a glob under %LOCALAPPDATA%\Microsoft\WinGet\Packages\GodotEngine.GodotEngine.Mono*\ (use the *_console.exe). Everything must pass.
-   Godot runs: the game's own options (--model-check=..., --capture=... and the rest in game/scripts/DevCapture.cs) go after a separate --, or Godot ignores them and just runs the game. Only the build (--build-solutions --quit) may run --headless. Screenshots, colour checks and anything else that reads rendered pixels need a window, because headless Godot draws nothing and waits forever. Start every Godot run with a time limit (for example Start-Process -PassThru, then WaitForExit(300000) and kill it on timeout); a run that hits the limit is a failure to fix, not something to wait for. The runner kills any Godot run of yours that is still alive after $GodotRunSeconds seconds; a Godot that dies that way hung.
-4. For criteria that cannot be checked automatically (visuals, audio, fps), verify what you can (for example, run the game or the benchmark and capture a screenshot or fps numbers), and list what still needs human review. A check that fails is a failure to fix, never "could not run".
-5. Use the glossary vocabulary. If a new domain term is settled, add it to GLOSSARY.md. Write an ADR only for decisions that are hard to reverse, surprising, and the result of a real trade-off. Keep files UTF-8 and leave existing non-ASCII characters (such as × and ±) intact.
+2. Implement ONLY this ticket so that every acceptance criterion is met. Follow the spec's architecture.
+3. Test through the project's public seam. $suiteRule Also run the project's build. Everything must pass.
+4. For criteria that cannot be checked automatically (visuals, audio, fps), verify what you can (for example, run the app or the benchmark and capture a screenshot or fps numbers), and list what still needs human review. A check that fails is a failure to fix, never "could not run".
+5. Use the glossary vocabulary. If a new domain term is settled, add it to $GlossaryFile. Write an ADR in $AdrDir/ only for decisions that are hard to reverse, surprising, and the result of a real trade-off. Keep files UTF-8 and leave existing non-ASCII characters intact.
 $(Get-ReviewRule $t $choice)
 $finish
 9. Keep the context small; everything in it is re-read on every later turn:
    - write the full output of test runs, builds, Godot runs and benchmarks to a file under .ticket-logs/ and print only the summary and failures;
    - capture screenshots at most 1280 px wide, look at each one once, and do not reread images you already judged.
-${preRule}Never modify issue #1 or other tickets, never force-push, and never rewrite history.
+${projectRules}${preRule}If you hit a problem that cost you real time and that another ticket would likely hit too (you worked around a tool, a path, a missing step), write the rule that would have prevented it: at most two sentences, the cause and the fix. Append it to $ProposedRules as a line "- <ticket>: <rule>" and repeat it in your closing comment as a line starting with "Suggested rule:". Do not edit $ProjectRules; a human decides what moves there. Skip this if nothing like that happened.
+Never modify issue #$SpecIssue or other tickets, never force-push, and never rewrite history.
 End your final message with exactly one line: TICKET_DONE or TICKET_BLOCKED: <reason>.
 "@
 }
