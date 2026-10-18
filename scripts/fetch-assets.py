@@ -38,6 +38,7 @@ FLOORS = [
 
 # Furniture materials: (name used by the game, source, asset id).
 MATERIALS = [
+    ("tiles", "polyhaven", "floor_tiles_06"),
     ("oak", "polyhaven", "oak_veneer_01"),
     ("walnut", "polyhaven", "walnut_veneer"),
     ("maple", "polyhaven", "white_maple_veneer"),

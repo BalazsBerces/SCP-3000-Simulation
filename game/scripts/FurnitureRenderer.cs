@@ -73,7 +73,9 @@ public partial class FurnitureRenderer : Node3D
             instances.SetInstances(snapshot.Space, group.Select(p => (Placement(p), Colour(snapshot, p))));
         }
         AddFish(snapshot);
-        AddMenus(snapshot);
+        var details = new PointOfInterestDetails { Rig = Rig };
+        AddChild(details);
+        details.Build(snapshot);
         FurnitureDetail.DrawBoth(3);
         GD.Print($"Furniture: {snapshot.Furniture.Count} pieces placed in {Time.GetTicksMsec() - started} ms; " +
                  $"Landmarks: {string.Join(", ", snapshot.Landmarks.Select(l => $"{l.Type} in {snapshot.Sectors[l.SectorId].Name} at {l.Centre.X:0},{l.Centre.Y:0}, {l.Height:0} m"))}.");
@@ -120,45 +122,6 @@ public partial class FurnitureRenderer : Node3D
 
     /// <summary>How far from the camera the fish in the tanks show, in metres; farther they are a few pixels at most.</summary>
     private const float FishDistance = 60f;
-
-    /// <summary>
-    /// The dish names on the Cafeterias' menu boards: three made-up, Swedish-sounding names per board (no real product names), as
-    /// labels on the board's face. They show only close (out to <see cref="MenuDistance"/>) and are not wrapped across a seam.
-    /// </summary>
-    private void AddMenus(WorldSnapshot snapshot)
-    {
-        foreach (var board in snapshot.Furniture.Where(p => p.Type == FurnitureType.MenuBoard))
-        {
-            var spec = FurnitureCatalog.Spec(board);
-            var placement = Placement(board);
-            for (var row = 0; row < 3; row++)
-            {
-                var label = new Label3D
-                {
-                    Text = Dishes[(board.Id + row) % Dishes.Length],
-                    FontSize = 48,
-                    PixelSize = 0.0025f,
-                    OutlineSize = 0,
-                    Modulate = new Color(0.97f, 0.95f, 0.88f),
-                    Shaded = false,
-                    DoubleSided = false,
-                    VisibilityRangeEnd = MenuDistance,
-                };
-                AddChild(label);
-                label.Transform = placement * new Transform3D(Basis.Identity, new Vector3(0f, spec.Height - 0.2f - 0.25f * row, spec.Depth / 2f + 0.01f));
-            }
-        }
-    }
-
-    /// <summary>How far from the camera the menu boards' dish names show, in metres.</summary>
-    private const float MenuDistance = 40f;
-
-    /// <summary>Made-up dish names in a Swedish style; none is a real product name.</summary>
-    private static readonly string[] Dishes =
-    [
-        "Bullbo med mos och lingon", "Mandelkaka Snöfrid", "Laxlåda Fjällvik", "Kåltrumma Ärtsvik",
-        "Kaffe Mörkbrön", "Ostbit Hägervall", "Kanelgrott", "Smörgåsklump",
-    ];
 
     /// <summary>
     /// The piece's transform in world space. Core rotations turn east towards south, which is a

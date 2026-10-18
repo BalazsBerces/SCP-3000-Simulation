@@ -1,5 +1,7 @@
 # Texture credits
 
+- `tiles_*`: [floor_tiles_06](https://polyhaven.com/a/floor_tiles_06) from Poly Haven (CC0), reused for the Restroom floor and walls.
+
 All textures are CC0 (public domain), downscaled to 512 px.
 
 - `oak_*`: oak_veneer_01 from Poly Haven

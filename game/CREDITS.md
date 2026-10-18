@@ -6,6 +6,8 @@ External assets in the game. Only CC0 (public domain) and CC-BY licences are use
 
 Fetched by `scripts/fetch-models.py` into `game/assets/models`; each is fitted to the core's size of its Furniture type.
 
+Models are simplified for rendering and textures resized. The EXIT sign has added support posts; its transparent cover is omitted when drawing the opaque Furniture. Generic service lettering and lost-item notes overlay the downloaded sign and notice-board frames.
+
 - Armchair: [Arm Chair 01](https://polyhaven.com/a/ArmChair_01) by Kirill Sannikov, Poly Haven, CC0 (`models/ArmChair_01`)
 - Sofa and its large three-seat variant: [Modern Minimalist Fabric Sofa](https://sketchfab.com/3d-models/modern-minimalist-fabric-sofa-be39bf64cf4c4a02b55a0ef1d40e1fbb) by Sempay_3D, Sketchfab, CC-BY ([CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)) (`models/fabric_sofa`)
 - Sofa, two-seat loveseat variant: [Modern Fabric Sofa - Low Poly / Game Ready](https://sketchfab.com/3d-models/modern-fabric-sofa-low-poly-game-ready-5a1ccfe43ffd4f1883abe4dca7d2b3bb) by Renend Studio, Sketchfab, CC-BY ([CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)) (`models/fabric_loveseat`)

@@ -17,6 +17,7 @@ The game maps each model to a Furniture type and variant and fits it to the core
 """
 
 import io
+import copy
 import json
 import os
 import pathlib
@@ -110,6 +111,14 @@ def sketchfab_token():
     return token
 
 
+def flat_texture(target, gltf, name, colour):
+    uri = f"textures/{name}.jpg"
+    Image.new("RGB", (4, 4), colour).save(target / uri, quality=95)
+    gltf.setdefault("images", []).append({"uri": uri})
+    gltf.setdefault("textures", []).append({"source": len(gltf["images"]) - 1})
+    return {"index": len(gltf["textures"]) - 1}
+
+
 def sketchfab(folder, uid):
     info = json.loads(get(f"https://api.sketchfab.com/v3/models/{uid}"))
     licence = {"by": "CC-BY", "cc0": "CC0"}.get(info["license"]["slug"])
@@ -132,25 +141,18 @@ def sketchfab(folder, uid):
             image.pop("mimeType", None)
         # The game wants albedo, normal and roughness maps on every material: missing ones become
         # small flat maps of the material's own factors (a flat normal map changes nothing).
-        def flat(name, colour):
-            uri = f"textures/{name}.jpg"
-            Image.new("RGB", (4, 4), colour).save(target / uri, quality=95)
-            gltf.setdefault("images", []).append({"uri": uri})
-            gltf.setdefault("textures", []).append({"source": len(gltf["images"]) - 1})
-            return {"index": len(gltf["textures"]) - 1}
-
         for index, material in enumerate(gltf["materials"]):
             material.pop("alphaMode", None)
             pbr = material.setdefault("pbrMetallicRoughness", {})
             tag = f"{folder}_material{index}"
             if "baseColorTexture" not in pbr:
                 factor = pbr.pop("baseColorFactor", [1.0, 1.0, 1.0, 1.0])
-                pbr["baseColorTexture"] = flat(f"{tag}_albedo", tuple(round(255 * c ** (1 / 2.2)) for c in factor[:3]))
+                pbr["baseColorTexture"] = flat_texture(target, gltf, f"{tag}_albedo", tuple(round(255 * c ** (1 / 2.2)) for c in factor[:3]))
             if "metallicRoughnessTexture" not in pbr:
                 roughness, metallic = pbr.pop("roughnessFactor", 1.0), pbr.pop("metallicFactor", 1.0)
-                pbr["metallicRoughnessTexture"] = flat(f"{tag}_orm", (255, round(255 * roughness), round(255 * metallic)))
+                pbr["metallicRoughnessTexture"] = flat_texture(target, gltf, f"{tag}_orm", (255, round(255 * roughness), round(255 * metallic)))
             if "normalTexture" not in material:
-                material["normalTexture"] = flat(f"{tag}_normal", (128, 128, 255))
+                material["normalTexture"] = flat_texture(target, gltf, f"{tag}_normal", (128, 128, 255))
         gltf["buffers"] = [{"uri": f"{folder}.bin", "byteLength": len(archive.read("scene.bin"))}]
         (target / f"{folder}.bin").write_bytes(archive.read("scene.bin"))
         (target / f"{folder}.gltf").write_text(json.dumps(gltf, indent=1), encoding="utf-8")
@@ -161,6 +163,17 @@ def sketchfab_exit_sign(folder, uid):
     author, url, licence = sketchfab(folder, uid)
     target = OUT / folder
     gltf = json.loads((target / f"{folder}.gltf").read_text(encoding="utf-8"))
+    # The source uses the same blended material for the glazing and the printed sign.
+    # Keep the cover transparent so the opaque import does not hide the sign's face.
+    if not any(m.get("name") == "ExitSignGlazing" for m in gltf["materials"]):
+        glazing = copy.deepcopy(gltf["materials"][0])
+        glazing["name"] = "ExitSignGlazing"
+        glazing["alphaMode"] = "BLEND"
+        glazing.setdefault("pbrMetallicRoughness", {})["baseColorFactor"] = [1, 1, 1, 0.1]
+        gltf["materials"].append(glazing)
+        for primitive in gltf["meshes"][0]["primitives"]:
+            primitive["material"] = len(gltf["materials"]) - 1
+        (target / f"{folder}.gltf").write_text(json.dumps(gltf, indent=1), encoding="utf-8")
     # Check if support posts already added
     if any(m.get("name") == "Posts" for m in gltf.get("meshes", [])):
         return author, url, licence
@@ -200,21 +213,14 @@ def sketchfab_exit_sign(folder, uid):
     append_mesh((-16.0, 0.0, -95.5), (-12.0, 2.5, -86.1))
     append_mesh((12.0, 0.0, -95.5), (16.0, 2.5, -86.1))
 
-    def flat_tex(name, col):
-        uri = f"textures/{name}.jpg"
-        Image.new("RGB", (4, 4), col).save(target / uri, quality=95)
-        gltf.setdefault("images", []).append({"uri": uri})
-        gltf.setdefault("textures", []).append({"source": len(gltf["images"]) - 1})
-        return {"index": len(gltf["textures"]) - 1}
-
     post_mat_idx = len(gltf["materials"])
     gltf["materials"].append({
         "name": "SteelPost",
         "pbrMetallicRoughness": {
-            "baseColorTexture": flat_tex("exit_sign_post_albedo", (45, 45, 50)),
-            "metallicRoughnessTexture": flat_tex("exit_sign_post_orm", (255, round(255 * 0.4), round(255 * 0.8))),
+            "baseColorTexture": flat_texture(target, gltf, "exit_sign_post_albedo", (45, 45, 50)),
+            "metallicRoughnessTexture": flat_texture(target, gltf, "exit_sign_post_orm", (255, round(255 * 0.4), round(255 * 0.8))),
         },
-        "normalTexture": flat_tex("exit_sign_post_normal", (128, 128, 255)),
+        "normalTexture": flat_texture(target, gltf, "exit_sign_post_normal", (128, 128, 255)),
     })
 
     while len(bin_data) % 4 != 0:
@@ -356,6 +362,8 @@ def main():
         "## Furniture models",
         "",
         "Fetched by `scripts/fetch-models.py` into `game/assets/models`; each is fitted to the core's size of its Furniture type.",
+        "",
+        "Models are simplified for rendering and textures resized. The EXIT sign has added support posts; its transparent cover is omitted when drawing the opaque Furniture. Generic service lettering and lost-item notes overlay the downloaded sign and notice-board frames.",
         "",
     ]
     for folder, source, asset, title, used_for in MODELS:

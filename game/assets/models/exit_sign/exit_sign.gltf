@@ -395,6 +395,39 @@
    "normalTexture": {
     "index": 6
    }
+  },
+  {
+   "doubleSided": true,
+   "emissiveFactor": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "emissiveTexture": {
+    "index": 2
+   },
+   "name": "ExitSignGlazing",
+   "normalTexture": {
+    "index": 3
+   },
+   "occlusionTexture": {
+    "index": 1
+   },
+   "pbrMetallicRoughness": {
+    "baseColorTexture": {
+     "index": 0
+    },
+    "metallicRoughnessTexture": {
+     "index": 1
+    },
+    "baseColorFactor": [
+     1,
+     1,
+     1,
+     0.1
+    ]
+   },
+   "alphaMode": "BLEND"
   }
  ],
  "meshes": [
@@ -409,7 +442,7 @@
       "TEXCOORD_0": 3
      },
      "indices": 4,
-     "material": 0,
+     "material": 2,
      "mode": 4
     }
    ]

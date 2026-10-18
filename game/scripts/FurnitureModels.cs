@@ -28,9 +28,9 @@ public static class FurnitureModels
         string Author, string Licence, string Source);
 
     // Fewer triangles for the types repeated most (chairs come in sets around every table).
-    private const int ChairBudget = 5000;
-    private const int SeatBudget = 12000;
-    private const int SofaBudget = 20000;
+    private const int ChairBudget = 1500;
+    private const int SeatBudget = 3500;
+    private const int SofaBudget = 4500;
     private const int BathroomBudget = 8000;
 
     // The coarse mesh's voxel size, in metres (see Proxy): it is drawn only from the switch zoom
@@ -80,14 +80,14 @@ public static class FurnitureModels
         new(FurnitureType.LostAndFoundSign, 0, "lost_and_found_sign", 90f, 5000, false, "Sousinho", "CC-BY", "https://sketchfab.com/3d-models/hospital-hanging-signage-74157aae9eb746d9a0cfe7f9c5c7f83f"),
         new(FurnitureType.ServiceCounter, 0, "service_counter", 0f, 5000, false, "DZigner", "CC-BY", "https://sketchfab.com/3d-models/small-modern-reception-counter-c8392731f0da42d68042013df924ea66"),
         new(FurnitureType.DiningTable, 0, "dining_table", 0f, 10000, false, "Aron Łyczek", "CC0", "https://polyhaven.com/a/dining_table"),
-        new(FurnitureType.DiningTable, 1, "round_wooden_table_01", 0f, 12000, false, "Ulan Cabanilla", "CC0", "https://polyhaven.com/a/round_wooden_table_01"),
+        new(FurnitureType.DiningTable, 1, "round_wooden_table_01", 0f, 2000, false, "Ulan Cabanilla", "CC0", "https://polyhaven.com/a/round_wooden_table_01"),
         new(FurnitureType.DiningTable, 2, "painted_wooden_table", 0f, 10000, false, "Kirill Sannikov", "CC0", "https://polyhaven.com/a/painted_wooden_table"),
-        new(FurnitureType.Sideboard, 0, "modern_wooden_cabinet", 0f, 25000, false, "Patrik Pangerl", "CC0", "https://polyhaven.com/a/modern_wooden_cabinet"),
-        new(FurnitureType.ShelfUnit, 0, "steel_frame_shelves_01", 0f, 10000, false, "James Ray Cock", "CC0", "https://polyhaven.com/a/steel_frame_shelves_01"),
-        new(FurnitureType.ShoppingCart, 0, "shopping_cart", 0f, 12000, false, "Sebastian ramirez muñoz", "CC-BY", "https://sketchfab.com/3d-models/shopping-cart-8b2de85475184aa3a7fa9f244307dadf"),
-        new(FurnitureType.MealPlate, 0, "meal_plate", 0f, 5000, false, "_dark_alice_", "CC-BY", "https://sketchfab.com/3d-models/plate-of-food-49a9493f884d405997d0f021639b22cf"),
-        new(FurnitureType.Rug, 0, "rug", 0f, 5000, true, "mfb64", "CC-BY", "https://sketchfab.com/3d-models/kuuma-ye-rug-by-kristiina-lassus-5f5de1ba643746fc9da76d2cac94fbb3"),
-        new(FurnitureType.DoorFrame, 0, "door_frame", 0f, 15000, false, "witnessk", "CC-BY", "https://sketchfab.com/3d-models/door-with-frame-2f2f149f3ec44d658a02c1f924dfa449"),
+        new(FurnitureType.Sideboard, 0, "modern_wooden_cabinet", 0f, 1200, false, "Patrik Pangerl", "CC0", "https://polyhaven.com/a/modern_wooden_cabinet"),
+        new(FurnitureType.ShelfUnit, 0, "steel_frame_shelves_01", 0f, 1500, false, "James Ray Cock", "CC0", "https://polyhaven.com/a/steel_frame_shelves_01"),
+        new(FurnitureType.ShoppingCart, 0, "shopping_cart", 0f, 3500, false, "Sebastian ramirez muñoz", "CC-BY", "https://sketchfab.com/3d-models/shopping-cart-8b2de85475184aa3a7fa9f244307dadf"),
+        new(FurnitureType.MealPlate, 0, "meal_plate", 0f, 2000, false, "_dark_alice_", "CC-BY", "https://sketchfab.com/3d-models/plate-of-food-49a9493f884d405997d0f021639b22cf"),
+        new(FurnitureType.Rug, 0, "rug", 0f, 1200, true, "mfb64", "CC-BY", "https://sketchfab.com/3d-models/kuuma-ye-rug-by-kristiina-lassus-5f5de1ba643746fc9da76d2cac94fbb3"),
+        new(FurnitureType.DoorFrame, 0, "door_frame", 0f, 3000, false, "witnessk", "CC-BY", "https://sketchfab.com/3d-models/door-with-frame-2f2f149f3ec44d658a02c1f924dfa449"),
         new(FurnitureType.ExitSign, 0, "exit_sign", 0f, 5000, false, "tboiston", "CC-BY", "https://sketchfab.com/3d-models/exit-sign-46b52e08b8b64b81ad9ff5fb752bcc06"),
     ];
 
@@ -157,6 +157,8 @@ public static class FurnitureModels
 
         var levels = parts.Select(ComponentLevels).ToList();
 
+        DropSmallestPieces(parts, levels, model.TriangleBudget);
+
         // Over budget: the base level is the most detailed simplified level that fits.
         var total = parts.Sum(p => p.Indices.Count / 3);
         var fraction = Math.Min(1f, (float)model.TriangleBudget / total);
@@ -171,6 +173,35 @@ public static class FurnitureModels
         for (var s = 0; s < parts.Count; s++)
             fullMesh.SurfaceSetName(s, parts[s].Name);
         return (fullMesh, CoarseMesh(model, parts));
+    }
+
+    /// <summary>
+    /// A model whose pieces are still over budget at their simplest (a cabinet with many small
+    /// bevelled details) loses its smallest pieces, by bounding-box volume, until it fits.
+    /// </summary>
+    private static void DropSmallestPieces(List<Part> parts, List<List<int[][]>> levels, int budget)
+    {
+        var floor = levels.Sum(l => l.Sum(p => p[^1].Length / 3));
+        if (floor <= budget)
+            return;
+        var pieces = levels.SelectMany((list, s) => list.Select(piece => (Part: s, Piece: piece, Volume: Volume(parts[s], piece[0]))))
+            .OrderBy(p => p.Volume).ToList();
+        foreach (var (part, piece, _) in pieces)
+        {
+            if (floor <= budget)
+                break;
+            floor -= piece[^1].Length / 3;
+            levels[part].Remove(piece);
+        }
+    }
+
+    /// <summary>The volume of the bounding box around the triangles of <paramref name="indices"/>.</summary>
+    private static float Volume(Part part, int[] indices)
+    {
+        var box = new Aabb(part.Positions[indices[0]], Vector3.Zero);
+        foreach (var i in indices)
+            box = box.Expand(part.Positions[i]);
+        return box.Size.X * box.Size.Y * box.Size.Z;
     }
 
     /// <summary>
@@ -346,6 +377,7 @@ public static class FurnitureModels
         var (positions, normals, parts2) = Proxy(parts, images, model.Tinted);
         var albedo = new Vector4[FurnitureMeshes.PartSlots];
         var surface = new Vector2[FurnitureMeshes.PartSlots];
+        var glow = new Vector3[FurnitureMeshes.PartSlots];
         for (var s = 0; s < parts.Count; s++)
         {
             var part = parts[s];
@@ -361,6 +393,13 @@ public static class FurnitureModels
             if (part.Material.NormalEnabled && part.Material.NormalTexture is not null)
                 roughness = Mathf.Min(1f, Mathf.Sqrt(roughness * roughness + NormalSpread * NormalSpread));
             surface[s] = new Vector2(roughness, part.Material.Metallic * (Orm(part.Material) ? packed.B : 1f));
+            if (part.Material.EmissionEnabled)
+            {
+                var emission = part.Material.Emission.SrgbToLinear() * part.Material.EmissionEnergyMultiplier;
+                if (Decompressed(part.Material.EmissionTexture) is { } emissionImage)
+                    emission *= Average(part, emissionImage, srgb: true);
+                glow[s] = new Vector3(emission.R, emission.G, emission.B);
+            }
         }
         var arrays = new Godot.Collections.Array();
         arrays.Resize((int)Mesh.ArrayType.Max);
@@ -375,7 +414,7 @@ public static class FurnitureModels
         material.SetShaderParameter("coarse_parts", true);
         material.SetShaderParameter("part_albedo", albedo);
         material.SetShaderParameter("part_surface", surface);
-        material.SetShaderParameter("part_glow", new Vector3[FurnitureMeshes.PartSlots]);
+        material.SetShaderParameter("part_glow", glow);
         material.SetShaderParameter("lod_debug", _coarseInMagenta);
         CoarseMaterials.Add(material);
         mesh.SurfaceSetMaterial(0, material);
@@ -546,6 +585,17 @@ public static class FurnitureModels
         material.SetShaderParameter("textured", source.AlbedoTexture is not null);
         material.SetShaderParameter("orm", Orm(source));
         material.SetShaderParameter("normal_enabled", source.NormalEnabled && source.NormalTexture is not null);
+        if (source.EmissionEnabled)
+        {
+            material.SetShaderParameter("emission_color", source.Emission);
+            material.SetShaderParameter("emission_energy", source.EmissionEnergyMultiplier);
+            material.SetShaderParameter("lamp_glow", false);
+            if (source.EmissionTexture is { } emission)
+            {
+                material.SetShaderParameter("emission_textured", true);
+                material.SetShaderParameter("emission_texture", emission);
+            }
+        }
         foreach (var (name, texture) in new[] { ("albedo_texture", source.AlbedoTexture), ("roughness_texture", source.RoughnessTexture), ("normal_texture", source.NormalTexture) })
             if (texture is not null)
                 material.SetShaderParameter(name, texture);

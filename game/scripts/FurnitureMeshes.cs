@@ -75,6 +75,7 @@ public static class FurnitureMeshes
         MenuPanel,
         Paper,
         Spill,
+        Tiles,
     }
 
     // Emission of a lit lamp shade.
@@ -141,7 +142,9 @@ public static class FurnitureMeshes
             FurnitureType.DisplayCabinet when variant == 1 => [],
             FurnitureType.DisplayCabinet => Across(-hd + 0.015f, 0.1f),
             FurnitureType.Bookcase => Across(-hd + 0.005f, 0f),
-            FurnitureType.ShelfUnit => Across(-hd + 0.0075f, 0.1f),
+            // The downloaded steel-frame shelves have no back panel: a solid occluder here
+            // would hide Furniture through their open shelves.
+            FurnitureType.ShelfUnit => [],
             FurnitureType.GroceryShelf => Across(0f, 0f),
             _ => [],
         };
@@ -1174,11 +1177,11 @@ public static class FurnitureMeshes
         switch (type)
         {
             case FurnitureType.TiledFloor:
-                b.Box(Part.Ceramic, new Vector3(-hw, 0f, -hd), new Vector3(hw, h, hd));
+                b.Box(Part.Tiles, new Vector3(-hw, 0f, -hd), new Vector3(hw, h, hd));
                 break;
             case FurnitureType.TiledWall:
                 b.Box(Part.DarkSteel, new Vector3(-hw, 0f, -hd), new Vector3(hw, 0.08f, hd));
-                b.Box(Part.Ceramic, new Vector3(-hw, 0.08f, -hd), new Vector3(hw, h, hd));
+                b.Box(Part.Tiles, new Vector3(-hw, 0.08f, -hd), new Vector3(hw, h, hd));
                 break;
             case FurnitureType.StallPartition:
                 foreach (var z in new[] { -hd + 0.25f, hd - 0.25f })
@@ -1198,8 +1201,8 @@ public static class FurnitureMeshes
                 b.Box(Part.Glass, new Vector3(-hw + 0.02f, 0.02f, -hd + 0.015f), new Vector3(hw - 0.02f, h - 0.02f, hd));
                 if (variant == 1 && !b.Coarse)
                 {
-                    b.Box(Part.DarkSteel, new Vector3(-0.4f, 0.2f, hd - 0.002f), new Vector3(0.5f, 0.75f, hd + 0.001f));
-                    b.Box(Part.DarkSteel, new Vector3(0.2f, 0.6f, hd - 0.002f), new Vector3(0.7f, 0.95f, hd + 0.001f));
+                    b.Tube(Part.DarkSteel, new(-0.4f, 0.2f, hd + 0.002f), new(0.5f, 0.75f, hd + 0.002f), 0.002f, 0.002f);
+                    b.Tube(Part.DarkSteel, new(0.2f, 0.6f, hd + 0.002f), new(0.7f, 0.95f, hd + 0.002f), 0.002f, 0.002f);
                 }
                 break;
             case FurnitureType.OutOfOrderSign:
@@ -1905,6 +1908,7 @@ public static class FurnitureMeshes
             [Part.MenuPanel] = Plain(new Color(0.1f, 0.1f, 0.11f), 0.8f),
             [Part.Paper] = Plain(new Color(0.96f, 0.95f, 0.9f), 0.9f),
             [Part.Spill] = Plain(new Color(0.42f, 0.24f, 0.1f), 0.08f),
+            [Part.Tiles] = Textured("tiles", 2f, Colors.White),
         };
         return _materials;
 
@@ -2346,6 +2350,11 @@ public static class FurnitureMeshes
             var mesh = new ArrayMesh();
             foreach (var (part, tool) in _surfaces)
             {
+                // A box fully enclosed by another part may have created a surface without faces.
+                var arrays = tool.CommitToArrays();
+                if (arrays.Count == 0 || arrays[(int)Mesh.ArrayType.Vertex].VariantType == Variant.Type.Nil
+                    || arrays[(int)Mesh.ArrayType.Vertex].AsVector3Array().Length == 0)
+                    continue;
                 if (!coarse)
                     tool.GenerateTangents();
                 tool.Commit(mesh);

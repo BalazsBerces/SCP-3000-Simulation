@@ -55,3 +55,7 @@ Not run (no rendering-path change beyond one Point of interest's procedural mesh
 - Hall atmosphere: Verify that the hall reads as a Scandinavian furniture-store self-service restaurant without brand cues (no IKEA blue/yellow or logos).
 - Dish names: Verify that the made-up dish names ("Bullbo med mos och lingon", "Mandelkaka Snöfrid", "Laxlåda Fjällvik", etc.) read naturally and are not real registered product names.
 - Menu labels: Confirm legibility of white-ish text on dark boards at eye level.
+
+## Stage review follow-up (08l)
+
+The notes now display handwriting, and menu lettering follows the Furniture across Store seams. The serving counters, tray rail/station/trolleys, coffee machine, till, high chairs, menu boards, trays, spills and note paper remain fitted procedural meshes; they reuse the project's wood PBR textures and steel/glass/ceramic materials. The dining tables/chairs/plates are downloaded models after 08l. The build-only status is unchanged. See [stage review](ticket-08l-verification.md#stage-review) for findings and verification.

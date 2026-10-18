@@ -29,6 +29,8 @@ uniform float roughness : hint_range(0.0, 1.0) = 1.0;
 uniform float metallic : hint_range(0.0, 1.0) = 0.0;
 uniform vec3 emission_color : source_color = vec3(0.0);
 uniform float emission_energy = 0.0;
+uniform sampler2D emission_texture : source_color, hint_default_white, filter_linear_mipmap, repeat_enable;
+uniform bool emission_textured = false;
 // Lamp shades glow as far as their own Lamp has come on; other glowing parts (the EXIT sign, the
 // Aquarium aisle's tanks) glow steadily, day and night.
 uniform bool lamp_glow = true;
@@ -77,6 +79,9 @@ void fragment() {
 	float surface_roughness = roughness;
 	float surface_metallic = metallic;
 	vec3 emission = emission_color * emission_energy;
+	if (emission_textured) {
+		emission *= texture(emission_texture, UV).rgb;
+	}
 	// A glowing shade glows as far as its own Lamp has come on (shade_level stays 1 for steady glows).
 	emission *= shade_level;
 	bool tint = tinted;

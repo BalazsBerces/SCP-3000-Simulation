@@ -66,3 +66,7 @@
 
 - Visual appearance and layout of the counter, notice board, and shelving in the showcase scene.
 - Signs of abandonment readability: hand-written note on counter, toppled boxes, open box, and wire cart.
+
+## Stage review follow-up (08l)
+
+The downloaded notice board now carries lost-item notes; the rack has coats and a furled umbrella, and the unsorted cart has belongings. The counter note says “back in 5 min”; generic service lettering covers the downloaded sign's unrelated hospital wording. Generated decorative exceptions are paper/text, fitted coats/umbrella/cart belongings (reusing downloaded wool texture), the reused wooden coat rack, open LabelledBox variant and its fabric contents, and the reused CushionBin/OfficeChair meshes. Sources and procedural decisions are recorded in [08l verification](ticket-08l-verification.md#procedural-geometry-and-sourcing). Core placements remain unchanged.

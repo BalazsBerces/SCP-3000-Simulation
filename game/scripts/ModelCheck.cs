@@ -15,7 +15,9 @@ public static class ModelCheck
 {
     /// <summary>The Furniture types drawn from external models, every variant.</summary>
     public static readonly FurnitureType[] HeroTypes =
-        [FurnitureType.Armchair, FurnitureType.Sofa, FurnitureType.Chair, FurnitureType.Toilet, FurnitureType.VanityUnit];
+        [FurnitureType.Armchair, FurnitureType.Sofa, FurnitureType.Chair, FurnitureType.Toilet, FurnitureType.VanityUnit,
+         FurnitureType.DiningTable, FurnitureType.Sideboard, FurnitureType.MealPlate, FurnitureType.Rug,
+         FurnitureType.ShoppingCart, FurnitureType.ShelfUnit, FurnitureType.ExitSign, FurnitureType.DoorFrame];
 
     // In metres.
     private const float Tolerance = 0.001f;
@@ -68,6 +70,19 @@ public static class ModelCheck
             Check(FurnitureModels.AllowedLicences.Contains(model.Licence), $"{name} licence {model.Licence} is CC0 or CC-BY");
             Check(credits.Any(l => l.Contains(model.Source) && l.Contains(model.Author) && l.Contains(model.Licence) && l.Contains($"models/{model.Folder}")),
                 $"{name} is in CREDITS.md with source {model.Source}, author {model.Author} and licence {model.Licence}");
+            if (model.Type == FurnitureType.ExitSign)
+            {
+                Check(Enumerable.Range(0, full.GetSurfaceCount()).Any(s =>
+                {
+                    var material = (ShaderMaterial)full.SurfaceGetMaterial(s);
+                    return (float)material.GetShaderParameter("emission_energy") > 0f
+                        && !(bool)material.GetShaderParameter("lamp_glow")
+                        && (bool)material.GetShaderParameter("emission_textured");
+                }), $"{name} preserves the sign's emissive texture independently of Lamps");
+                var coarseMaterial = (ShaderMaterial)coarse.SurfaceGetMaterial(0);
+                Check(coarseMaterial.GetShaderParameter("part_glow").AsVector3Array().Any(v => v.LengthSquared() > 0f),
+                    $"{name} still glows in the coarse mesh");
+            }
         }
         lines.Add($"{FurnitureModels.All.Count} models, {failed} checks failed.");
         return (failed == 0, lines);

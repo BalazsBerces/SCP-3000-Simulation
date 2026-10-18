@@ -64,3 +64,7 @@
 
 - Restroom atmosphere: verify that the tiled restroom reads as an abandoned store facility with appropriate wear (tilted broken door, out-of-order caution sign, floor litter, cracked mirror).
 - Stall door angles and placement across different seeds.
+
+## Stage review follow-up (08l)
+
+The Restroom floor and walls now use downloaded Poly Haven `floor_tiles_06` PBR maps rather than flat ceramic. Thin mirror cracks replace the broad dark rectangles, and the caution model carries an explicit OUT OF ORDER notice. The generated exceptions are stall partitions/doors, mirror/frame/cracks, fitted wall/floor panels and paper litter. See [08l sourcing and stage review](ticket-08l-verification.md#procedural-geometry-and-sourcing) for reuse checks, sources searched and reasons complete cubicle/ornate mirror assets were unsuitable.
