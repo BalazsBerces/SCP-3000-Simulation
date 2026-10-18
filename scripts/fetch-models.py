@@ -56,6 +56,16 @@ MODELS = [
     ("notice_board", "sketchfab", "9a2ae180dae541d2abfec62864dd9ef4", "Notice board", "Notice board of lost-item notes"),
     ("lost_and_found_sign", "sketchfab", "74157aae9eb746d9a0cfe7f9c5c7f83f", "Hospital hanging signage", "Lost and found sign"),
     ("service_counter", "sketchfab", "c8392731f0da42d68042013df924ea66", "Small modern reception counter", "Service counter"),
+    ("dining_table", "polyhaven", "dining_table", "Dining Table", "Dining table"),
+    ("round_wooden_table_01", "polyhaven", "round_wooden_table_01", "Round Wooden Table 01", "Dining table, round variant"),
+    ("painted_wooden_table", "polyhaven", "painted_wooden_table", "Painted Wooden Table", "Dining table, long refectory variant"),
+    ("modern_wooden_cabinet", "polyhaven", "modern_wooden_cabinet", "Modern Wooden Cabinet", "Sideboard"),
+    ("steel_frame_shelves_01", "polyhaven", "steel_frame_shelves_01", "Steel Frame Shelves 01", "Shelf unit"),
+    ("shopping_cart", "sketchfab", "8b2de85475184aa3a7fa9f244307dadf", "Shopping cart", "Shopping cart"),
+    ("meal_plate", "sketchfab", "49a9493f884d405997d0f021639b22cf", "Plate of Food", "Plate of food"),
+    ("rug", "sketchfab", "5f5de1ba643746fc9da76d2cac94fbb3", "Kuuma YE rug by Kristiina Lassus", "Rug"),
+    ("door_frame", "sketchfab", "2f2f149f3ec44d658a02c1f924dfa449", "Door with frame", "Door frame"),
+    ("exit_sign", "sketchfab_exit_sign", "46b52e08b8b64b81ad9ff5fb752bcc06", "Exit Sign", "EXIT sign"),
 ]
 
 # Toilets pack material -> its texture folder in the pack.
@@ -78,14 +88,15 @@ def get(url):
 
 
 def polyhaven(folder, asset):
-    files = json.loads(get(f"https://api.polyhaven.com/files/{asset}"))["gltf"]["1k"]["gltf"]
     info = json.loads(get(f"https://api.polyhaven.com/info/{asset}"))
     target = OUT / folder
-    target.mkdir(parents=True, exist_ok=True)
-    (target / f"{folder}.gltf").write_bytes(get(files["url"]))
-    for path, entry in files["include"].items():
-        (target / path).parent.mkdir(parents=True, exist_ok=True)
-        (target / path).write_bytes(get(entry["url"]))
+    if not (target / f"{folder}.gltf").exists():
+        files = json.loads(get(f"https://api.polyhaven.com/files/{asset}"))["gltf"]["1k"]["gltf"]
+        target.mkdir(parents=True, exist_ok=True)
+        (target / f"{folder}.gltf").write_bytes(get(files["url"]))
+        for path, entry in files["include"].items():
+            (target / path).parent.mkdir(parents=True, exist_ok=True)
+            (target / path).write_bytes(get(entry["url"]))
     return ", ".join(info["authors"].keys()), f"https://polyhaven.com/a/{asset}", "CC0"
 
 
@@ -104,44 +115,169 @@ def sketchfab(folder, uid):
     licence = {"by": "CC-BY", "cc0": "CC0"}.get(info["license"]["slug"])
     if licence is None:
         sys.exit(f"{info['name']} has the licence {info['license']['label']}; only CC0 and CC-BY may be used.")
-    request = urllib.request.Request(f"https://api.sketchfab.com/v3/models/{uid}/download",
-                                     headers={**USER_AGENT, "Authorization": f"Token {sketchfab_token()}"})
-    with urllib.request.urlopen(request) as response:
-        archive = zipfile.ZipFile(io.BytesIO(get(json.loads(response.read())["gltf"]["url"])))
-    gltf = json.loads(archive.read("scene.gltf"))
     target = OUT / folder
-    (target / "textures").mkdir(parents=True, exist_ok=True)
-    for image in gltf.get("images", []):
-        name = pathlib.PurePosixPath(image["uri"]).stem
-        picture = Image.open(io.BytesIO(archive.read(image["uri"]))).convert("RGB")
-        picture.thumbnail((1024, 1024))
-        image["uri"] = f"textures/{name}.jpg"
-        picture.save(target / image["uri"], quality=92, optimize=True)
-        image.pop("mimeType", None)
-    # The game wants albedo, normal and roughness maps on every material: missing ones become
-    # small flat maps of the material's own factors (a flat normal map changes nothing).
-    def flat(name, colour):
+    if not (target / f"{folder}.gltf").exists():
+        request = urllib.request.Request(f"https://api.sketchfab.com/v3/models/{uid}/download",
+                                         headers={**USER_AGENT, "Authorization": f"Token {sketchfab_token()}"})
+        with urllib.request.urlopen(request) as response:
+            archive = zipfile.ZipFile(io.BytesIO(get(json.loads(response.read())["gltf"]["url"])))
+        gltf = json.loads(archive.read("scene.gltf"))
+        (target / "textures").mkdir(parents=True, exist_ok=True)
+        for image in gltf.get("images", []):
+            name = pathlib.PurePosixPath(image["uri"]).stem
+            picture = Image.open(io.BytesIO(archive.read(image["uri"]))).convert("RGB")
+            picture.thumbnail((1024, 1024))
+            image["uri"] = f"textures/{name}.jpg"
+            picture.save(target / image["uri"], quality=92, optimize=True)
+            image.pop("mimeType", None)
+        # The game wants albedo, normal and roughness maps on every material: missing ones become
+        # small flat maps of the material's own factors (a flat normal map changes nothing).
+        def flat(name, colour):
+            uri = f"textures/{name}.jpg"
+            Image.new("RGB", (4, 4), colour).save(target / uri, quality=95)
+            gltf.setdefault("images", []).append({"uri": uri})
+            gltf.setdefault("textures", []).append({"source": len(gltf["images"]) - 1})
+            return {"index": len(gltf["textures"]) - 1}
+
+        for index, material in enumerate(gltf["materials"]):
+            material.pop("alphaMode", None)
+            pbr = material.setdefault("pbrMetallicRoughness", {})
+            tag = f"{folder}_material{index}"
+            if "baseColorTexture" not in pbr:
+                factor = pbr.pop("baseColorFactor", [1.0, 1.0, 1.0, 1.0])
+                pbr["baseColorTexture"] = flat(f"{tag}_albedo", tuple(round(255 * c ** (1 / 2.2)) for c in factor[:3]))
+            if "metallicRoughnessTexture" not in pbr:
+                roughness, metallic = pbr.pop("roughnessFactor", 1.0), pbr.pop("metallicFactor", 1.0)
+                pbr["metallicRoughnessTexture"] = flat(f"{tag}_orm", (255, round(255 * roughness), round(255 * metallic)))
+            if "normalTexture" not in material:
+                material["normalTexture"] = flat(f"{tag}_normal", (128, 128, 255))
+        gltf["buffers"] = [{"uri": f"{folder}.bin", "byteLength": len(archive.read("scene.bin"))}]
+        (target / f"{folder}.bin").write_bytes(archive.read("scene.bin"))
+        (target / f"{folder}.gltf").write_text(json.dumps(gltf, indent=1), encoding="utf-8")
+    return info["user"]["displayName"], info["viewerUrl"], licence
+
+
+def sketchfab_exit_sign(folder, uid):
+    author, url, licence = sketchfab(folder, uid)
+    target = OUT / folder
+    gltf = json.loads((target / f"{folder}.gltf").read_text(encoding="utf-8"))
+    # Check if support posts already added
+    if any(m.get("name") == "Posts" for m in gltf.get("meshes", [])):
+        return author, url, licence
+    bin_data = bytearray((target / f"{folder}.bin").read_bytes())
+
+    def add_box(min_pt, max_pt):
+        x0, y0, z0 = min_pt
+        x1, y1, z1 = max_pt
+        faces = [
+            ([(x1, y0, z0), (x1, y1, z0), (x1, y1, z1), (x1, y0, z1)], (1.0, 0.0, 0.0)),
+            ([(x0, y0, z1), (x0, y1, z1), (x0, y1, z0), (x0, y0, z0)], (-1.0, 0.0, 0.0)),
+            ([(x0, y1, z0), (x0, y1, z1), (x1, y1, z1), (x1, y1, z0)], (0.0, 1.0, 0.0)),
+            ([(x0, y0, z1), (x0, y0, z0), (x1, y0, z0), (x1, y0, z1)], (0.0, -1.0, 0.0)),
+            ([(x0, y0, z1), (x1, y0, z1), (x1, y1, z1), (x0, y1, z1)], (0.0, 0.0, 1.0)),
+            ([(x1, y0, z0), (x0, y0, z0), (x0, y1, z0), (x1, y1, z0)], (0.0, 0.0, -1.0)),
+        ]
+        verts, normals, uvs, indices = [], [], [], []
+        for quad, norm in faces:
+            base = len(verts)
+            verts.extend(quad)
+            normals.extend([norm] * 4)
+            uvs.extend([(0.0, 0.0), (1.0, 0.0), (1.0, 1.0), (0.0, 1.0)])
+            indices.extend([base, base + 1, base + 2, base, base + 2, base + 3])
+        return verts, normals, uvs, indices
+
+    all_verts, all_normals, all_uvs, all_indices = [], [], [], []
+    def append_mesh(min_pt, max_pt):
+        v, n, u, ind = add_box(min_pt, max_pt)
+        base = len(all_verts)
+        all_verts.extend(v)
+        all_normals.extend(n)
+        all_uvs.extend(u)
+        all_indices.extend([base + i for i in ind])
+
+    append_mesh((-14.6, 0.0, -91.5), (-13.4, 152.0, -90.1))
+    append_mesh((13.4, 0.0, -91.5), (14.6, 152.0, -90.1))
+    append_mesh((-16.0, 0.0, -95.5), (-12.0, 2.5, -86.1))
+    append_mesh((12.0, 0.0, -95.5), (16.0, 2.5, -86.1))
+
+    def flat_tex(name, col):
         uri = f"textures/{name}.jpg"
-        Image.new("RGB", (4, 4), colour).save(target / uri, quality=95)
+        Image.new("RGB", (4, 4), col).save(target / uri, quality=95)
         gltf.setdefault("images", []).append({"uri": uri})
         gltf.setdefault("textures", []).append({"source": len(gltf["images"]) - 1})
         return {"index": len(gltf["textures"]) - 1}
 
-    for index, material in enumerate(gltf["materials"]):
-        pbr = material.setdefault("pbrMetallicRoughness", {})
-        tag = f"{folder}_material{index}"
-        if "baseColorTexture" not in pbr:
-            factor = pbr.pop("baseColorFactor", [1.0, 1.0, 1.0, 1.0])
-            pbr["baseColorTexture"] = flat(f"{tag}_albedo", tuple(round(255 * c ** (1 / 2.2)) for c in factor[:3]))
-        if "metallicRoughnessTexture" not in pbr:
-            roughness, metallic = pbr.pop("roughnessFactor", 1.0), pbr.pop("metallicFactor", 1.0)
-            pbr["metallicRoughnessTexture"] = flat(f"{tag}_orm", (255, round(255 * roughness), round(255 * metallic)))
-        if "normalTexture" not in material:
-            material["normalTexture"] = flat(f"{tag}_normal", (128, 128, 255))
-    gltf["buffers"] = [{"uri": f"{folder}.bin", "byteLength": len(archive.read("scene.bin"))}]
-    (target / f"{folder}.bin").write_bytes(archive.read("scene.bin"))
+    post_mat_idx = len(gltf["materials"])
+    gltf["materials"].append({
+        "name": "SteelPost",
+        "pbrMetallicRoughness": {
+            "baseColorTexture": flat_tex("exit_sign_post_albedo", (45, 45, 50)),
+            "metallicRoughnessTexture": flat_tex("exit_sign_post_orm", (255, round(255 * 0.4), round(255 * 0.8))),
+        },
+        "normalTexture": flat_tex("exit_sign_post_normal", (128, 128, 255)),
+    })
+
+    while len(bin_data) % 4 != 0:
+        bin_data.append(0)
+
+    bv_pos_offset = len(bin_data)
+    for v in all_verts:
+        bin_data.extend(struct.pack("<fff", *v))
+    bv_norm_offset = len(bin_data)
+    for norm in all_normals:
+        bin_data.extend(struct.pack("<fff", *norm))
+    bv_uv_offset = len(bin_data)
+    for uv in all_uvs:
+        bin_data.extend(struct.pack("<ff", *uv))
+    bv_idx_offset = len(bin_data)
+    for idx in all_indices:
+        bin_data.extend(struct.pack("<H", idx))
+    while len(bin_data) % 4 != 0:
+        bin_data.append(0)
+
+    bv_start = len(gltf["bufferViews"])
+    gltf["bufferViews"].extend([
+        {"buffer": 0, "byteOffset": bv_pos_offset, "byteLength": len(all_verts) * 12, "target": 34962},
+        {"buffer": 0, "byteOffset": bv_norm_offset, "byteLength": len(all_normals) * 12, "target": 34962},
+        {"buffer": 0, "byteOffset": bv_uv_offset, "byteLength": len(all_uvs) * 8, "target": 34962},
+        {"buffer": 0, "byteOffset": bv_idx_offset, "byteLength": len(all_indices) * 2, "target": 34963},
+    ])
+
+    min_v = [min(v[i] for v in all_verts) for i in range(3)]
+    max_v = [max(v[i] for v in all_verts) for i in range(3)]
+
+    acc_start = len(gltf["accessors"])
+    gltf["accessors"].extend([
+        {"bufferView": bv_start, "byteOffset": 0, "componentType": 5126, "count": len(all_verts), "type": "VEC3", "min": min_v, "max": max_v},
+        {"bufferView": bv_start + 1, "byteOffset": 0, "componentType": 5126, "count": len(all_normals), "type": "VEC3"},
+        {"bufferView": bv_start + 2, "byteOffset": 0, "componentType": 5126, "count": len(all_uvs), "type": "VEC2"},
+        {"bufferView": bv_start + 3, "byteOffset": 0, "componentType": 5123, "count": len(all_indices), "type": "SCALAR"},
+    ])
+
+    mesh_idx = len(gltf["meshes"])
+    gltf["meshes"].append({
+        "name": "Posts",
+        "primitives": [{
+            "attributes": {
+                "POSITION": acc_start,
+                "NORMAL": acc_start + 1,
+                "TEXCOORD_0": acc_start + 2,
+            },
+            "indices": acc_start + 3,
+            "material": post_mat_idx,
+        }],
+    })
+
+    post_node_idx = len(gltf["nodes"])
+    gltf["nodes"].append({
+        "name": "Posts_Node",
+        "mesh": mesh_idx,
+    })
+    gltf["nodes"][1].setdefault("children", []).append(post_node_idx)
+    gltf["buffers"][0]["byteLength"] = len(bin_data)
+    (target / f"{folder}.bin").write_bytes(bin_data)
     (target / f"{folder}.gltf").write_text(json.dumps(gltf, indent=1), encoding="utf-8")
-    return info["user"]["displayName"], info["viewerUrl"], licence
+    return author, url, licence
 
 
 def toilets(pack, folder, root):
@@ -229,6 +365,10 @@ def main():
             where = "Poly Haven"
         elif source == "sketchfab":
             author, url, licence = sketchfab(folder, asset)
+            where = "Sketchfab"
+            licence = "CC-BY ([CC BY 4.0](https://creativecommons.org/licenses/by/4.0/))" if licence == "CC-BY" else licence
+        elif source == "sketchfab_exit_sign":
+            author, url, licence = sketchfab_exit_sign(folder, asset)
             where = "Sketchfab"
             licence = "CC-BY ([CC BY 4.0](https://creativecommons.org/licenses/by/4.0/))" if licence == "CC-BY" else licence
         else:

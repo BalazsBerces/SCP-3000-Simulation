@@ -1,0 +1,379 @@
+{
+ "accessors": [
+  {
+   "bufferView": 2,
+   "componentType": 5126,
+   "count": 1522,
+   "max": [
+    1.2076823711395264,
+    0.00800000037997961,
+    1.0467101335525513
+   ],
+   "min": [
+    -1.2129920721054077,
+    0.0,
+    -1.0601062774658203
+   ],
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 2,
+   "byteOffset": 18264,
+   "componentType": 5126,
+   "count": 1522,
+   "max": [
+    0.9951880574226379,
+    0.995188295841217,
+    0.9951865077018738
+   ],
+   "min": [
+    -0.9951897263526917,
+    -0.995188295841217,
+    -0.9951915144920349
+   ],
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 1,
+   "componentType": 5126,
+   "count": 1522,
+   "max": [
+    0.9917532801628113,
+    0.9934358596801758
+   ],
+   "min": [
+    0.013261616230010986,
+    0.009407524019479752
+   ],
+   "type": "VEC2"
+  },
+  {
+   "bufferView": 1,
+   "byteOffset": 12176,
+   "componentType": 5126,
+   "count": 1522,
+   "max": [
+    0.9917532801628113,
+    0.9934358596801758
+   ],
+   "min": [
+    0.013261616230010986,
+    0.009407524019479752
+   ],
+   "type": "VEC2"
+  },
+  {
+   "bufferView": 0,
+   "componentType": 5125,
+   "count": 5625,
+   "type": "SCALAR"
+  },
+  {
+   "bufferView": 2,
+   "byteOffset": 36528,
+   "componentType": 5126,
+   "count": 87,
+   "max": [
+    1.20513916015625,
+    0.0,
+    1.0442100763320923
+   ],
+   "min": [
+    -1.2104920148849487,
+    0.0,
+    -1.0576062202453613
+   ],
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 2,
+   "byteOffset": 37572,
+   "componentType": 5126,
+   "count": 87,
+   "max": [
+    0.15540289878845215,
+    -0.9851890206336975,
+    0.11542347073554993
+   ],
+   "min": [
+    -0.13818837702274323,
+    -0.995188295841217,
+    -0.102635458111763
+   ],
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 1,
+   "byteOffset": 24352,
+   "componentType": 5126,
+   "count": 87,
+   "max": [
+    0.9905921816825867,
+    0.9924196600914001
+   ],
+   "min": [
+    0.014422740787267685,
+    0.010434710420668125
+   ],
+   "type": "VEC2"
+  },
+  {
+   "bufferView": 1,
+   "byteOffset": 25048,
+   "componentType": 5126,
+   "count": 87,
+   "max": [
+    0.9905921816825867,
+    0.9924196600914001
+   ],
+   "min": [
+    0.014422740787267685,
+    0.010434710420668125
+   ],
+   "type": "VEC2"
+  },
+  {
+   "bufferView": 0,
+   "byteOffset": 22500,
+   "componentType": 5125,
+   "count": 255,
+   "type": "SCALAR"
+  }
+ ],
+ "asset": {
+  "extras": {
+   "author": "mfb64 (https://sketchfab.com/mfb64)",
+   "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+   "source": "https://sketchfab.com/3d-models/kuuma-ye-rug-by-kristiina-lassus-5f5de1ba643746fc9da76d2cac94fbb3",
+   "title": "Kuuma YE rug by Kristiina Lassus"
+  },
+  "generator": "Sketchfab-12.65.0",
+  "version": "2.0"
+ },
+ "bufferViews": [
+  {
+   "buffer": 0,
+   "byteLength": 23520,
+   "name": "floatBufferViews",
+   "target": 34963
+  },
+  {
+   "buffer": 0,
+   "byteLength": 25744,
+   "byteOffset": 23520,
+   "byteStride": 8,
+   "name": "floatBufferViews",
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteLength": 38616,
+   "byteOffset": 49264,
+   "byteStride": 12,
+   "name": "floatBufferViews",
+   "target": 34962
+  }
+ ],
+ "buffers": [
+  {
+   "uri": "rug.bin",
+   "byteLength": 87880
+  }
+ ],
+ "images": [
+  {
+   "uri": "textures/carpet_baseColor.jpg"
+  },
+  {
+   "uri": "textures/carpet.back_baseColor.jpg"
+  },
+  {
+   "uri": "textures/rug_material0_orm.jpg"
+  },
+  {
+   "uri": "textures/rug_material0_normal.jpg"
+  },
+  {
+   "uri": "textures/rug_material1_orm.jpg"
+  },
+  {
+   "uri": "textures/rug_material1_normal.jpg"
+  }
+ ],
+ "materials": [
+  {
+   "doubleSided": true,
+   "name": "carpet",
+   "pbrMetallicRoughness": {
+    "baseColorTexture": {
+     "index": 0
+    },
+    "metallicRoughnessTexture": {
+     "index": 2
+    }
+   },
+   "normalTexture": {
+    "index": 3
+   }
+  },
+  {
+   "doubleSided": true,
+   "name": "carpet.back",
+   "pbrMetallicRoughness": {
+    "baseColorTexture": {
+     "index": 1
+    },
+    "metallicRoughnessTexture": {
+     "index": 4
+    }
+   },
+   "normalTexture": {
+    "index": 5
+   }
+  }
+ ],
+ "meshes": [
+  {
+   "name": "Object_0",
+   "primitives": [
+    {
+     "attributes": {
+      "NORMAL": 1,
+      "POSITION": 0,
+      "TEXCOORD_0": 2,
+      "TEXCOORD_1": 3
+     },
+     "indices": 4,
+     "material": 0,
+     "mode": 4
+    }
+   ]
+  },
+  {
+   "name": "Object_1",
+   "primitives": [
+    {
+     "attributes": {
+      "NORMAL": 6,
+      "POSITION": 5,
+      "TEXCOORD_0": 7,
+      "TEXCOORD_1": 8
+     },
+     "indices": 9,
+     "material": 1,
+     "mode": 4
+    }
+   ]
+  }
+ ],
+ "nodes": [
+  {
+   "children": [
+    1
+   ],
+   "matrix": [
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    2.220446049250313e-16,
+    -1.0,
+    0.0,
+    0.0,
+    1.0,
+    2.220446049250313e-16,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0
+   ],
+   "name": "Sketchfab_model"
+  },
+  {
+   "children": [
+    2
+   ],
+   "name": "root"
+  },
+  {
+   "children": [
+    3
+   ],
+   "matrix": [
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    2.220446049250313e-16,
+    1.0,
+    0.0,
+    0.0,
+    -1.0,
+    2.220446049250313e-16,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0
+   ],
+   "name": "GLTF_SceneRootNode"
+  },
+  {
+   "children": [
+    4,
+    5
+   ],
+   "name": "Kuuma-YE_Rugs-Kristiina-Lassus_0"
+  },
+  {
+   "mesh": 0,
+   "name": "Object_4"
+  },
+  {
+   "mesh": 1,
+   "name": "Object_5"
+  }
+ ],
+ "samplers": [
+  {
+   "magFilter": 9729,
+   "minFilter": 9987,
+   "wrapS": 10497,
+   "wrapT": 10497
+  }
+ ],
+ "scene": 0,
+ "scenes": [
+  {
+   "name": "Sketchfab_Scene",
+   "nodes": [
+    0
+   ]
+  }
+ ],
+ "textures": [
+  {
+   "sampler": 0,
+   "source": 0
+  },
+  {
+   "sampler": 0,
+   "source": 1
+  },
+  {
+   "source": 2
+  },
+  {
+   "source": 3
+  },
+  {
+   "source": 4
+  },
+  {
+   "source": 5
+  }
+ ]
+}

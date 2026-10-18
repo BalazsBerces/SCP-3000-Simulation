@@ -1,0 +1,249 @@
+{
+ "accessors": [
+  {
+   "bufferView": 2,
+   "componentType": 5126,
+   "count": 6736,
+   "max": [
+    14.802947998046875,
+    6.059308052062988,
+    2.9704930782318115
+   ],
+   "min": [
+    13.207275390625,
+    3.095494031906128,
+    -0.01629599928855896
+   ],
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 2,
+   "byteOffset": 80832,
+   "componentType": 5126,
+   "count": 6736,
+   "max": [
+    0.9999984502792358,
+    0.9999340772628784,
+    0.9999958276748657
+   ],
+   "min": [
+    -0.999998927116394,
+    -0.9999340772628784,
+    -0.9999996423721313
+   ],
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 3,
+   "componentType": 5126,
+   "count": 6736,
+   "max": [
+    0.999996542930603,
+    0.9998470544815063,
+    0.9999989867210388,
+    1.0
+   ],
+   "min": [
+    -0.9999988675117493,
+    -0.9999555349349976,
+    -0.9999990463256836,
+    -1.0
+   ],
+   "type": "VEC4"
+  },
+  {
+   "bufferView": 1,
+   "componentType": 5126,
+   "count": 6736,
+   "max": [
+    0.9888740181922913,
+    0.9938070178031921
+   ],
+   "min": [
+    0.01911799982190132,
+    0.008212000131607056
+   ],
+   "type": "VEC2"
+  },
+  {
+   "bufferView": 0,
+   "componentType": 5125,
+   "count": 29988,
+   "type": "SCALAR"
+  }
+ ],
+ "asset": {
+  "extras": {
+   "author": "Sebastian ramirez (https://sketchfab.com/lokundo72)",
+   "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+   "source": "https://sketchfab.com/3d-models/shopping-cart-8b2de85475184aa3a7fa9f244307dadf",
+   "title": "Shopping cart"
+  },
+  "generator": "Sketchfab-15.91.0",
+  "version": "2.0"
+ },
+ "bufferViews": [
+  {
+   "buffer": 0,
+   "byteLength": 119952,
+   "name": "floatBufferViews",
+   "target": 34963
+  },
+  {
+   "buffer": 0,
+   "byteLength": 53888,
+   "byteOffset": 119952,
+   "byteStride": 8,
+   "name": "floatBufferViews",
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteLength": 161664,
+   "byteOffset": 173840,
+   "byteStride": 12,
+   "name": "floatBufferViews",
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteLength": 107776,
+   "byteOffset": 335504,
+   "byteStride": 16,
+   "name": "floatBufferViews",
+   "target": 34962
+  }
+ ],
+ "buffers": [
+  {
+   "uri": "shopping_cart.bin",
+   "byteLength": 443280
+  }
+ ],
+ "extensionsUsed": [
+  "KHR_materials_specular"
+ ],
+ "images": [
+  {
+   "uri": "textures/carritocompras_baseColor.jpg"
+  },
+  {
+   "uri": "textures/carritocompras_metallicRoughness.jpg"
+  },
+  {
+   "uri": "textures/carritocompras_normal.jpg"
+  }
+ ],
+ "materials": [
+  {
+   "doubleSided": true,
+   "extensions": {
+    "KHR_materials_specular": {
+     "specularColorFactor": [
+      1.0,
+      1.0,
+      1.0
+     ],
+     "specularFactor": 1.0
+    }
+   },
+   "name": "carritocompras",
+   "normalTexture": {
+    "index": 2
+   },
+   "pbrMetallicRoughness": {
+    "baseColorTexture": {
+     "index": 0
+    },
+    "metallicRoughnessTexture": {
+     "index": 1
+    }
+   }
+  }
+ ],
+ "meshes": [
+  {
+   "name": "Object_0",
+   "primitives": [
+    {
+     "attributes": {
+      "NORMAL": 1,
+      "POSITION": 0,
+      "TANGENT": 2,
+      "TEXCOORD_0": 3
+     },
+     "indices": 4,
+     "material": 0,
+     "mode": 4
+    }
+   ]
+  }
+ ],
+ "nodes": [
+  {
+   "children": [
+    1
+   ],
+   "matrix": [
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    2.220446049250313e-16,
+    -1.0,
+    0.0,
+    0.0,
+    1.0,
+    2.220446049250313e-16,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0
+   ],
+   "name": "Sketchfab_model"
+  },
+  {
+   "children": [
+    2
+   ],
+   "name": "carro_LP.obj.cleaner.materialmerger.gles"
+  },
+  {
+   "mesh": 0,
+   "name": "Object_2"
+  }
+ ],
+ "samplers": [
+  {
+   "magFilter": 9729,
+   "minFilter": 9987,
+   "wrapS": 10497,
+   "wrapT": 10497
+  }
+ ],
+ "scene": 0,
+ "scenes": [
+  {
+   "name": "Sketchfab_Scene",
+   "nodes": [
+    0
+   ]
+  }
+ ],
+ "textures": [
+  {
+   "sampler": 0,
+   "source": 0
+  },
+  {
+   "sampler": 0,
+   "source": 1
+  },
+  {
+   "sampler": 0,
+   "source": 2
+  }
+ ]
+}
