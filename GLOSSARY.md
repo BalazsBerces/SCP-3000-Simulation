@@ -120,8 +120,16 @@ Small stock on shelves (food, batteries, bulbs, cables) taken as-is rather than 
 _Avoid_: Loot, items
 
 **Material**:
-An abstract unit (panel, metal, fabric, glass, electrics) obtained by disassembling Furniture and counted in a Village's stores.
+An abstract unit of one of eight kinds (wood/panel, metal, fabric, leather, foam, glass, electrics, plastic) obtained by disassembling Furniture and counted in a Village's stores.
 _Avoid_: Parts, components, scrap
+
+**Gear**:
+A portable thing a single Villager carries and uses (a tool, backpack, weapon, armour, lantern), made from Materials or found in the Store, and worn out by use. Gear is neither Furniture (it does not stand in the world) nor Goods (it is not consumed).
+_Avoid_: Item, equipment, inventory
+
+**Recipe**:
+A known way to make a piece of Gear or a reinforcement from Materials, needing certain tools and sometimes a Workshop. Basic Recipes are known by everyone; others are discovered by experimenting, learned from assembly instructions found in the Store, brought by people who join, or traded and shared between Villages. A Village's know-how is the set of its Recipes.
+_Avoid_: Technology, tech, blueprint (that is a structure plan)
 
 **Restock**:
 The Store's slow replenishment of Goods and Furniture, which keeps the world from running dry.
@@ -165,6 +173,10 @@ _Avoid_: Survivor, agent, NPC
 A person in the Store who belongs to no Village: a newly lost shopper, or a Refugee. Wanderers join Villages or found new ones.
 _Avoid_: Newcomer, nomad, stray
 
+**Band**:
+A small group of Wanderers travelling together, scavenging and looking for a site, before they found a Village. A run starts with Bands, not Villages.
+_Avoid_: Party, group, tribe
+
 **Refugee**:
 A Wanderer whose Village has fallen.
 _Avoid_: Survivor, exile
@@ -177,8 +189,24 @@ _Avoid_: Trade route (that is the path, not the group), convoy
 A group a Village sends out at Closing time to observe the Staff, scout or reach contested areas; it may return with Beliefs and loot, or not at all.
 _Avoid_: Night scout (that is a Role), mission, patrol
 
+**Outpost**:
+A small forward barricade a Village sets up near distant resources once its surroundings run low, held by a few of its Villagers; it is part of that Village until it grows large or drifts apart enough to split off as a Village of its own.
+_Avoid_: Colony, camp, satellite
+
+**Known map**:
+What a Band or Village knows of the Store: the ground it has explored, known food and water sources, dangerous places and other Villages. Scavenging goes to known places, scouting widens it; it can be traded or passed on, and goes stale as the Store restocks and the Staff move.
+_Avoid_: Fog of war, minimap, map (that is the Observer's strategic map)
+
+**Envoy**:
+A Villager sent to another Village to carry a message, news or an offer.
+_Avoid_: Messenger, diplomat, courier
+
+**Signal**:
+A message a Village gives without sending anyone: lamp signals from a tower at Closing time (safe, as light does not draw the Staff) or marks painted on Pillars and along paths.
+_Avoid_: Beacon, sign
+
 **Personality**:
-A Village's collective temperament (peaceful traders, isolationists, raiders…), seeded at founding by its Department and founders and drifting with events.
+The collective temperament of a Band or Village (cautious, bold, builders; peaceful traders, isolationists, raiders…). A Band's comes from its members and shapes how it survives Closing time (hiding, moving on or barricading); a Village inherits its founding Band's, shaped by its Department, and it drifts with events.
 _Avoid_: Culture, alignment, faction type
 
 **Raid**:
@@ -197,6 +225,10 @@ _Avoid_: Job, class, profession
 A plan for a structure (wall segment, tower, gate, keep, Pillar scaffold) made of slots that each demand a kind of Furniture by size and sturdiness, so the same Blueprint can be built from different Furniture.
 _Avoid_: Template, recipe, design
 
+**Workshop**:
+A station built from Furniture inside a Village where Recipes that need it are made: a workbench (wood, metal), a sewing table (fabric, leather, foam) or an electrics bench (electrics, glass).
+_Avoid_: Crafting table, factory
+
 **Tier**:
 A stronger variant of a Blueprint whose slots demand sturdier Furniture plus Material reinforcement; structures are upgraded piece by piece.
 _Avoid_: Level, upgrade stage
@@ -204,8 +236,12 @@ _Avoid_: Level, upgrade stage
 ### Threat
 
 **Staff**:
-The faceless, silent entities of the Store: dormant while the Store is open, hostile at Closing time. Light does not affect them.
+The faceless, silent entities of the Store: dormant while the Store is open, hostile at Closing time. At Closing time noise draws them from afar and they notice a Villager only at close range; light does not affect them. Few at first, they grow in number over Store days and where more people live. A Staff can be killed only with great effort, and leaves Staff remains.
 _Avoid_: Employees, monsters, enemies
+
+**Staff remains**:
+The body a killed Staff leaves behind. After a few hours it starts drawing other Staff, ever more strongly, until Staff carry it off at Closing time; so a Village must haul it away, or can carry it off as bait to lure a Horde elsewhere or into a trap.
+_Avoid_: Corpse, carcass
 
 **Belief**:
 A single claim a Village holds about Staff behaviour, with a confidence; it may be false. A Village's staff knowledge is the set of its Beliefs.
