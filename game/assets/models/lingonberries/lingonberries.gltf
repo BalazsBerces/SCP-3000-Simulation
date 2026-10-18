@@ -1,0 +1,230 @@
+{
+  "asset": {
+    "version": "2.0",
+    "generator": "scp3008-food-builder"
+  },
+  "scenes": [
+    {
+      "name": "lingonberries",
+      "nodes": [
+        0,
+        1
+      ]
+    }
+  ],
+  "scene": 0,
+  "nodes": [
+    {
+      "name": "Lingonberries",
+      "mesh": 0
+    },
+    {
+      "name": "Lingonberries_Coarse",
+      "mesh": 1
+    }
+  ],
+  "meshes": [
+    {
+      "name": "Lingonberries",
+      "primitives": [
+        {
+          "attributes": {
+            "POSITION": 0,
+            "NORMAL": 1,
+            "TEXCOORD_0": 2
+          },
+          "indices": 3,
+          "material": 0
+        }
+      ]
+    },
+    {
+      "name": "Lingonberries_Coarse",
+      "primitives": [
+        {
+          "attributes": {
+            "POSITION": 4,
+            "NORMAL": 5,
+            "TEXCOORD_0": 6
+          },
+          "indices": 7,
+          "material": 0
+        }
+      ]
+    }
+  ],
+  "materials": [
+    {
+      "name": "Lingonberries",
+      "pbrMetallicRoughness": {
+        "roughnessFactor": 0.4,
+        "metallicFactor": 0.0,
+        "baseColorTexture": {
+          "index": 0
+        },
+        "metallicRoughnessTexture": {
+          "index": 2
+        }
+      },
+      "normalTexture": {
+        "index": 1
+      }
+    }
+  ],
+  "textures": [
+    {
+      "source": 0
+    },
+    {
+      "source": 1
+    },
+    {
+      "source": 2
+    }
+  ],
+  "images": [
+    {
+      "uri": "textures/lingonberry_albedo.jpg"
+    },
+    {
+      "uri": "textures/lingonberry_normal.jpg"
+    },
+    {
+      "uri": "textures/lingonberry_orm.jpg"
+    }
+  ],
+  "accessors": [
+    {
+      "bufferView": 0,
+      "byteOffset": 0,
+      "componentType": 5126,
+      "count": 267,
+      "type": "VEC3",
+      "min": [
+        -0.23624558746814728,
+        0.0,
+        -0.18702781200408936
+      ],
+      "max": [
+        0.2381875365972519,
+        0.04601868987083435,
+        0.1904754936695099
+      ]
+    },
+    {
+      "bufferView": 1,
+      "byteOffset": 0,
+      "componentType": 5126,
+      "count": 267,
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 2,
+      "byteOffset": 0,
+      "componentType": 5126,
+      "count": 267,
+      "type": "VEC2"
+    },
+    {
+      "bufferView": 3,
+      "byteOffset": 0,
+      "componentType": 5123,
+      "count": 1797,
+      "type": "SCALAR"
+    },
+    {
+      "bufferView": 4,
+      "byteOffset": 0,
+      "componentType": 5126,
+      "count": 46,
+      "type": "VEC3",
+      "min": [
+        -0.21941086649894714,
+        0.024880748242139816,
+        -0.16656120121479034
+      ],
+      "max": [
+        0.20121988654136658,
+        0.041694607585668564,
+        0.17154154181480408
+      ]
+    },
+    {
+      "bufferView": 5,
+      "byteOffset": 0,
+      "componentType": 5126,
+      "count": 46,
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 6,
+      "byteOffset": 0,
+      "componentType": 5126,
+      "count": 46,
+      "type": "VEC2"
+    },
+    {
+      "bufferView": 7,
+      "byteOffset": 0,
+      "componentType": 5123,
+      "count": 306,
+      "type": "SCALAR"
+    }
+  ],
+  "bufferViews": [
+    {
+      "buffer": 0,
+      "byteOffset": 0,
+      "byteLength": 3204,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 3204,
+      "byteLength": 3204,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 6408,
+      "byteLength": 2136,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 8544,
+      "byteLength": 3594,
+      "target": 34963
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 12140,
+      "byteLength": 552,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 12692,
+      "byteLength": 552,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 13244,
+      "byteLength": 368,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 13612,
+      "byteLength": 612,
+      "target": 34963
+    }
+  ],
+  "buffers": [
+    {
+      "uri": "lingonberries.bin",
+      "byteLength": 14224
+    }
+  ]
+}

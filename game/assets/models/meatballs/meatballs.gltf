@@ -1,0 +1,426 @@
+{
+  "asset": {
+    "version": "2.0",
+    "generator": "scp3008-food-builder"
+  },
+  "scenes": [
+    {
+      "name": "meatballs",
+      "nodes": [
+        0,
+        1,
+        2,
+        3
+      ]
+    }
+  ],
+  "scene": 0,
+  "nodes": [
+    {
+      "name": "Meatballs",
+      "mesh": 0
+    },
+    {
+      "name": "Meatballs_Coarse",
+      "mesh": 1
+    },
+    {
+      "name": "Sauce",
+      "mesh": 2
+    },
+    {
+      "name": "Sauce_Coarse",
+      "mesh": 3
+    }
+  ],
+  "meshes": [
+    {
+      "name": "Meatballs",
+      "primitives": [
+        {
+          "attributes": {
+            "POSITION": 0,
+            "NORMAL": 1,
+            "TEXCOORD_0": 2
+          },
+          "indices": 3,
+          "material": 0
+        }
+      ]
+    },
+    {
+      "name": "Meatballs_Coarse",
+      "primitives": [
+        {
+          "attributes": {
+            "POSITION": 4,
+            "NORMAL": 5,
+            "TEXCOORD_0": 6
+          },
+          "indices": 7,
+          "material": 0
+        }
+      ]
+    },
+    {
+      "name": "Sauce",
+      "primitives": [
+        {
+          "attributes": {
+            "POSITION": 8,
+            "NORMAL": 9,
+            "TEXCOORD_0": 10
+          },
+          "indices": 11,
+          "material": 1
+        }
+      ]
+    },
+    {
+      "name": "Sauce_Coarse",
+      "primitives": [
+        {
+          "attributes": {
+            "POSITION": 12,
+            "NORMAL": 13,
+            "TEXCOORD_0": 14
+          },
+          "indices": 15,
+          "material": 1
+        }
+      ]
+    }
+  ],
+  "materials": [
+    {
+      "name": "Meatballs",
+      "pbrMetallicRoughness": {
+        "roughnessFactor": 0.65,
+        "metallicFactor": 0.0,
+        "baseColorTexture": {
+          "index": 0
+        },
+        "metallicRoughnessTexture": {
+          "index": 2
+        }
+      },
+      "normalTexture": {
+        "index": 1
+      }
+    },
+    {
+      "name": "Sauce",
+      "pbrMetallicRoughness": {
+        "roughnessFactor": 0.25,
+        "metallicFactor": 0.0,
+        "baseColorTexture": {
+          "index": 3
+        },
+        "metallicRoughnessTexture": {
+          "index": 5
+        }
+      },
+      "normalTexture": {
+        "index": 4
+      }
+    }
+  ],
+  "textures": [
+    {
+      "source": 0
+    },
+    {
+      "source": 1
+    },
+    {
+      "source": 2
+    },
+    {
+      "source": 3
+    },
+    {
+      "source": 4
+    },
+    {
+      "source": 5
+    }
+  ],
+  "images": [
+    {
+      "uri": "textures/meatballs_albedo.jpg"
+    },
+    {
+      "uri": "textures/meatballs_normal.jpg"
+    },
+    {
+      "uri": "textures/meatballs_orm.jpg"
+    },
+    {
+      "uri": "textures/sauce_albedo.jpg"
+    },
+    {
+      "uri": "textures/sauce_normal.jpg"
+    },
+    {
+      "uri": "textures/sauce_orm.jpg"
+    }
+  ],
+  "accessors": [
+    {
+      "bufferView": 0,
+      "byteOffset": 0,
+      "componentType": 5126,
+      "count": 592,
+      "type": "VEC3",
+      "min": [
+        -0.18972574174404144,
+        -0.02077467553317547,
+        -0.059308912605047226
+      ],
+      "max": [
+        0.1750512272119522,
+        0.0546000674366951,
+        0.17288736999034882
+      ]
+    },
+    {
+      "bufferView": 1,
+      "byteOffset": 0,
+      "componentType": 5126,
+      "count": 592,
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 2,
+      "byteOffset": 0,
+      "componentType": 5126,
+      "count": 592,
+      "type": "VEC2"
+    },
+    {
+      "bufferView": 3,
+      "byteOffset": 0,
+      "componentType": 5123,
+      "count": 3633,
+      "type": "SCALAR"
+    },
+    {
+      "bufferView": 4,
+      "byteOffset": 0,
+      "componentType": 5126,
+      "count": 55,
+      "type": "VEC3",
+      "min": [
+        -0.18380631506443024,
+        -0.01541479304432869,
+        -0.04942091181874275
+      ],
+      "max": [
+        0.1744900643825531,
+        0.04135112464427948,
+        0.15736743807792664
+      ]
+    },
+    {
+      "bufferView": 5,
+      "byteOffset": 0,
+      "componentType": 5126,
+      "count": 55,
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 6,
+      "byteOffset": 0,
+      "componentType": 5126,
+      "count": 55,
+      "type": "VEC2"
+    },
+    {
+      "bufferView": 7,
+      "byteOffset": 0,
+      "componentType": 5123,
+      "count": 357,
+      "type": "SCALAR"
+    },
+    {
+      "bufferView": 8,
+      "byteOffset": 0,
+      "componentType": 5126,
+      "count": 33,
+      "type": "VEC3",
+      "min": [
+        -0.24001613209589703,
+        -8.057288622579066e-06,
+        -0.19001299799217927
+      ],
+      "max": [
+        0.24001640260418478,
+        -8.057288622579066e-06,
+        0.19001273345098613
+      ]
+    },
+    {
+      "bufferView": 9,
+      "byteOffset": 0,
+      "componentType": 5126,
+      "count": 33,
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 10,
+      "byteOffset": 0,
+      "componentType": 5126,
+      "count": 33,
+      "type": "VEC2"
+    },
+    {
+      "bufferView": 11,
+      "byteOffset": 0,
+      "componentType": 5123,
+      "count": 96,
+      "type": "SCALAR"
+    },
+    {
+      "bufferView": 12,
+      "byteOffset": 0,
+      "componentType": 5126,
+      "count": 33,
+      "type": "VEC3",
+      "min": [
+        -0.24001613209589703,
+        -8.057288622579066e-06,
+        -0.19001299799217927
+      ],
+      "max": [
+        0.24001640260418478,
+        -8.057288622579066e-06,
+        0.19001273345098613
+      ]
+    },
+    {
+      "bufferView": 13,
+      "byteOffset": 0,
+      "componentType": 5126,
+      "count": 33,
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 14,
+      "byteOffset": 0,
+      "componentType": 5126,
+      "count": 33,
+      "type": "VEC2"
+    },
+    {
+      "bufferView": 15,
+      "byteOffset": 0,
+      "componentType": 5123,
+      "count": 96,
+      "type": "SCALAR"
+    }
+  ],
+  "bufferViews": [
+    {
+      "buffer": 0,
+      "byteOffset": 0,
+      "byteLength": 7104,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 7104,
+      "byteLength": 7104,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 14208,
+      "byteLength": 4736,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 18944,
+      "byteLength": 7266,
+      "target": 34963
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 26212,
+      "byteLength": 660,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 26872,
+      "byteLength": 660,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 27532,
+      "byteLength": 440,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 27972,
+      "byteLength": 714,
+      "target": 34963
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 28688,
+      "byteLength": 396,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 29084,
+      "byteLength": 396,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 29480,
+      "byteLength": 264,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 29744,
+      "byteLength": 192,
+      "target": 34963
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 29936,
+      "byteLength": 396,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 30332,
+      "byteLength": 396,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 30728,
+      "byteLength": 264,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 30992,
+      "byteLength": 192,
+      "target": 34963
+    }
+  ],
+  "buffers": [
+    {
+      "uri": "meatballs.bin",
+      "byteLength": 31184
+    }
+  ]
+}

@@ -39,6 +39,16 @@ Models are simplified for rendering and textures resized. The EXIT sign has adde
 - Door frame: [Door with frame](https://sketchfab.com/3d-models/door-with-frame-2f2f149f3ec44d658a02c1f924dfa449) by witnessk, Sketchfab, CC-BY ([CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)) (`models/door_frame`)
 - EXIT sign: [Exit Sign](https://sketchfab.com/3d-models/exit-sign-46b52e08b8b64b81ad9ff5fb752bcc06) by tboiston, Sketchfab, CC-BY ([CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)) (`models/exit_sign`)
 
+## Cafeteria food models
+
+Fitted into the hot food counter wells and dessert counter shelves (ticket 08n).
+
+- Meatballs and sauce: [Swedish Meatballs](https://polyhaven.com/a/swedish_meatballs) by Poly Haven, CC0 (`models/meatballs`)
+- Mashed potatoes: [Mashed Potatoes](https://polyhaven.com/a/mashed_potatoes) by Poly Haven, CC0 (`models/mash`)
+- Lingonberry jam: [Cranberry Sauce](https://sketchfab.com/3d-models/cranberry-sauce-e55500d0263346d0a7751fb4be3ea7c2) by shedmon, Sketchfab, CC-BY ([CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)) (`models/lingonberries`)
+- Whole almond cake: [Carrot Cake](https://polyhaven.com/a/carrot_cake) by Poly Haven, CC0 (`models/whole_cake`)
+- Sliced cake and plate: [Cake Slice](https://sketchfab.com/3d-models/cake-slice-d01a91e1d2484433917dc9435b5a2e57) by omarelone, Sketchfab, CC-BY ([CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)) (`models/cake_slice`)
+
 ## Textures
 
 PBR textures for the procedural Furniture and the floors are listed in `game/assets/textures/CREDITS.md`; all CC0, from Poly Haven and ambientCG.

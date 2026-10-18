@@ -580,7 +580,9 @@ function Invoke-Gemini($t, $stats, [string]$Message) {
     elseif ($errText -match $QuotaPattern) { 'exhausted' }
     elseif ($s.Errors.Count -or $run.ExitCode -ne 0) { 'provider' }
     else { 'nomarker' }
-  Write-Host "  [Gemini] status: $status$(if ($marker) { " ($marker)" })" -ForegroundColor $(if ($status -eq 'done') { 'Green' } else { 'Yellow' })
+  # Not green: the agent's TICKET_DONE is only a claim until the gate has passed and the runner has committed.
+  $note = if ($status -eq 'done') { ' - agent claims it is done; the runner has not checked it yet' } else { '' }
+  Write-Host "  [Gemini] status: $status$(if ($marker) { " ($marker)" })$note" -ForegroundColor $(if ($status -eq 'done') { 'Cyan' } else { 'Yellow' })
   [pscustomobject]@{ Status = $status; Marker = $marker; ErrorText = $errText; Final = $s.Final; Log = $log }
 }
 

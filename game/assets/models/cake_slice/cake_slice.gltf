@@ -1,0 +1,426 @@
+{
+  "asset": {
+    "version": "2.0",
+    "generator": "scp3008-food-builder"
+  },
+  "scenes": [
+    {
+      "name": "cake_slice",
+      "nodes": [
+        0,
+        1,
+        2,
+        3
+      ]
+    }
+  ],
+  "scene": 0,
+  "nodes": [
+    {
+      "name": "CakeSlice",
+      "mesh": 0
+    },
+    {
+      "name": "CakeSlice_Coarse",
+      "mesh": 1
+    },
+    {
+      "name": "Plate",
+      "mesh": 2
+    },
+    {
+      "name": "Plate_Coarse",
+      "mesh": 3
+    }
+  ],
+  "meshes": [
+    {
+      "name": "CakeSlice",
+      "primitives": [
+        {
+          "attributes": {
+            "POSITION": 0,
+            "NORMAL": 1,
+            "TEXCOORD_0": 2
+          },
+          "indices": 3,
+          "material": 0
+        }
+      ]
+    },
+    {
+      "name": "CakeSlice_Coarse",
+      "primitives": [
+        {
+          "attributes": {
+            "POSITION": 4,
+            "NORMAL": 5,
+            "TEXCOORD_0": 6
+          },
+          "indices": 7,
+          "material": 0
+        }
+      ]
+    },
+    {
+      "name": "Plate",
+      "primitives": [
+        {
+          "attributes": {
+            "POSITION": 8,
+            "NORMAL": 9,
+            "TEXCOORD_0": 10
+          },
+          "indices": 11,
+          "material": 1
+        }
+      ]
+    },
+    {
+      "name": "Plate_Coarse",
+      "primitives": [
+        {
+          "attributes": {
+            "POSITION": 12,
+            "NORMAL": 13,
+            "TEXCOORD_0": 14
+          },
+          "indices": 15,
+          "material": 1
+        }
+      ]
+    }
+  ],
+  "materials": [
+    {
+      "name": "CakeSlice",
+      "pbrMetallicRoughness": {
+        "roughnessFactor": 0.65,
+        "metallicFactor": 0.0,
+        "baseColorTexture": {
+          "index": 0
+        },
+        "metallicRoughnessTexture": {
+          "index": 2
+        }
+      },
+      "normalTexture": {
+        "index": 1
+      }
+    },
+    {
+      "name": "Plate",
+      "pbrMetallicRoughness": {
+        "roughnessFactor": 0.2,
+        "metallicFactor": 0.0,
+        "baseColorTexture": {
+          "index": 3
+        },
+        "metallicRoughnessTexture": {
+          "index": 5
+        }
+      },
+      "normalTexture": {
+        "index": 4
+      }
+    }
+  ],
+  "textures": [
+    {
+      "source": 0
+    },
+    {
+      "source": 1
+    },
+    {
+      "source": 2
+    },
+    {
+      "source": 3
+    },
+    {
+      "source": 4
+    },
+    {
+      "source": 5
+    }
+  ],
+  "images": [
+    {
+      "uri": "textures/cake_slice_albedo.jpg"
+    },
+    {
+      "uri": "textures/cake_slice_normal.jpg"
+    },
+    {
+      "uri": "textures/cake_slice_orm.jpg"
+    },
+    {
+      "uri": "textures/plate_albedo.jpg"
+    },
+    {
+      "uri": "textures/plate_normal.jpg"
+    },
+    {
+      "uri": "textures/plate_orm.jpg"
+    }
+  ],
+  "accessors": [
+    {
+      "bufferView": 0,
+      "byteOffset": 0,
+      "componentType": 5126,
+      "count": 350,
+      "type": "VEC3",
+      "min": [
+        -0.0782272145152092,
+        0.012282194569706917,
+        -0.05943619832396507
+      ],
+      "max": [
+        0.08658343553543091,
+        0.09188539534807205,
+        0.05887706205248833
+      ]
+    },
+    {
+      "bufferView": 1,
+      "byteOffset": 0,
+      "componentType": 5126,
+      "count": 350,
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 2,
+      "byteOffset": 0,
+      "componentType": 5126,
+      "count": 350,
+      "type": "VEC2"
+    },
+    {
+      "bufferView": 3,
+      "byteOffset": 0,
+      "componentType": 5123,
+      "count": 2124,
+      "type": "SCALAR"
+    },
+    {
+      "bufferView": 4,
+      "byteOffset": 0,
+      "componentType": 5126,
+      "count": 41,
+      "type": "VEC3",
+      "min": [
+        -0.07444257289171219,
+        0.012522531673312187,
+        -0.05569937825202942
+      ],
+      "max": [
+        0.08587042987346649,
+        0.0857754498720169,
+        0.053994063287973404
+      ]
+    },
+    {
+      "bufferView": 5,
+      "byteOffset": 0,
+      "componentType": 5126,
+      "count": 41,
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 6,
+      "byteOffset": 0,
+      "componentType": 5126,
+      "count": 41,
+      "type": "VEC2"
+    },
+    {
+      "bufferView": 7,
+      "byteOffset": 0,
+      "componentType": 5123,
+      "count": 243,
+      "type": "SCALAR"
+    },
+    {
+      "bufferView": 8,
+      "byteOffset": 0,
+      "componentType": 5126,
+      "count": 145,
+      "type": "VEC3",
+      "min": [
+        -0.11821656674146652,
+        5.257557500470966e-09,
+        -0.12921784818172455
+      ],
+      "max": [
+        0.13005365431308746,
+        0.011127378791570663,
+        0.12645576894283295
+      ]
+    },
+    {
+      "bufferView": 9,
+      "byteOffset": 0,
+      "componentType": 5126,
+      "count": 145,
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 10,
+      "byteOffset": 0,
+      "componentType": 5126,
+      "count": 145,
+      "type": "VEC2"
+    },
+    {
+      "bufferView": 11,
+      "byteOffset": 0,
+      "componentType": 5123,
+      "count": 1047,
+      "type": "SCALAR"
+    },
+    {
+      "bufferView": 12,
+      "byteOffset": 0,
+      "componentType": 5126,
+      "count": 32,
+      "type": "VEC3",
+      "min": [
+        -0.11282865703105927,
+        0.0005017131334170699,
+        -0.12396082282066345
+      ],
+      "max": [
+        0.12629830837249756,
+        0.009925039485096931,
+        0.11645128577947617
+      ]
+    },
+    {
+      "bufferView": 13,
+      "byteOffset": 0,
+      "componentType": 5126,
+      "count": 32,
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 14,
+      "byteOffset": 0,
+      "componentType": 5126,
+      "count": 32,
+      "type": "VEC2"
+    },
+    {
+      "bufferView": 15,
+      "byteOffset": 0,
+      "componentType": 5123,
+      "count": 186,
+      "type": "SCALAR"
+    }
+  ],
+  "bufferViews": [
+    {
+      "buffer": 0,
+      "byteOffset": 0,
+      "byteLength": 4200,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 4200,
+      "byteLength": 4200,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 8400,
+      "byteLength": 2800,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 11200,
+      "byteLength": 4248,
+      "target": 34963
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 15448,
+      "byteLength": 492,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 15940,
+      "byteLength": 492,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 16432,
+      "byteLength": 328,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 16760,
+      "byteLength": 486,
+      "target": 34963
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 17248,
+      "byteLength": 1740,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 18988,
+      "byteLength": 1740,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 20728,
+      "byteLength": 1160,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 21888,
+      "byteLength": 2094,
+      "target": 34963
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 23984,
+      "byteLength": 384,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 24368,
+      "byteLength": 384,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 24752,
+      "byteLength": 256,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 25008,
+      "byteLength": 372,
+      "target": 34963
+    }
+  ],
+  "buffers": [
+    {
+      "uri": "cake_slice.bin",
+      "byteLength": 25380
+    }
+  ]
+}

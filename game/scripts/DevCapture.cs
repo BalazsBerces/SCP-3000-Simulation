@@ -93,6 +93,9 @@ public partial class DevCapture : Node
     private double _zoomSweepSeconds;
     private int _detailSwitches;
     private float? _overviewDistance;
+    private Vector3? _focusToJump;
+    private float? _distanceToSet;
+    private string? _poiName;
 
     public override void _Ready() => Guarded(Configure);
 
@@ -158,18 +161,22 @@ public partial class DevCapture : Node
             else if (arg == "--hitch-report")
                 _hitchReport = _fpsReport = true;
             else if (arg.StartsWith("--focus="))
-                Rig.JumpTo(ParseFloorVector(arg["--focus=".Length..]));
+            {
+                _focusToJump = ParseFloorVector(arg["--focus=".Length..]);
+                Rig.JumpTo(_focusToJump.Value);
+            }
             else if (arg.StartsWith("--poi="))
             {
-                var name = arg["--poi=".Length..];
-                var poi = Host.Snapshot.PointsOfInterest.FirstOrDefault(p => p.Type.ToString() == name);
-                if (poi is null)
-                    GD.PrintErr($"No Point of interest {name} in this Store.");
-                else
+                _poiName = arg["--poi=".Length..];
+                var poi = Host.Snapshot.PointsOfInterest.FirstOrDefault(p => p.Type.ToString() == _poiName);
+                if (poi is not null)
                     Rig.JumpTo(new Vector3(poi.Centre.X, 0f, poi.Centre.Y));
             }
             else if (arg.StartsWith("--distance="))
-                Rig.JumpToDistance(float.Parse(arg["--distance=".Length..], CultureInfo.InvariantCulture));
+            {
+                _distanceToSet = float.Parse(arg["--distance=".Length..], CultureInfo.InvariantCulture);
+                Rig.JumpToDistance(_distanceToSet.Value);
+            }
             else if (arg.StartsWith("--overview-distance="))
                 _overviewDistance = float.Parse(arg["--overview-distance=".Length..], CultureInfo.InvariantCulture);
             else if (arg.StartsWith("--pillar="))
@@ -293,6 +300,25 @@ public partial class DevCapture : Node
             Seeds.ChooseLayout(chosen);
             _layoutToChoose = null;
         }
+        if (_poiName is not null && _elapsed >= 1.0)
+        {
+            var poi = Host.Snapshot.PointsOfInterest.FirstOrDefault(p => p.Type.ToString() == _poiName);
+            if (poi is null)
+                GD.PrintErr($"No Point of interest {_poiName} in this Store.");
+            else
+                Rig.JumpTo(new Vector3(poi.Centre.X, 0f, poi.Centre.Y));
+            _poiName = null;
+        }
+        if (_focusToJump is { } focus && _elapsed >= 1.0)
+        {
+            Rig.JumpTo(focus);
+            _focusToJump = null;
+        }
+        if (_distanceToSet is { } dist && _elapsed >= 1.0)
+        {
+            Rig.JumpToDistance(dist);
+            _distanceToSet = null;
+        }
         if (_seedToEnter is not null || _layoutToChoose is not null || Host.IsGenerating)
             return;
         if (_elapsed < _captureAfter || (_capturePath is null && !_fpsReport && _zoomSweepSeconds == 0))
@@ -316,6 +342,7 @@ public partial class DevCapture : Node
         var wind = Host.Snapshot.Wind;
         GD.Print($"Weather: {Host.Snapshot.FogBanks.Count} Fog banks, wind {wind.Length():0} m per Store hour, " +
                  $"fog density at the focus {Host.Snapshot.FogDensityAt(Rig.Focus.ToStore()):0.00}");
+        GD.Print($"DevCapture focus: {Rig.Focus}, distance: {Rig.Distance}");
         if (_capturePath is not null)
         {
             var image = GetViewport().GetTexture().GetImage();
