@@ -43,7 +43,7 @@ public class CafeteriaTests
         [
             FurnitureType.HotFoodCounter, FurnitureType.DessertCounter, FurnitureType.TrayRail, FurnitureType.TrayStation,
             FurnitureType.CoffeeMachine, FurnitureType.Till, FurnitureType.TrayTrolley, FurnitureType.HighChair,
-            FurnitureType.MenuBoard, FurnitureType.DiningTable, FurnitureType.Chair, FurnitureType.Tray,
+            FurnitureType.DiningTable, FurnitureType.Chair, FurnitureType.Tray,
         ];
         Assert.All(expected, type => Assert.Contains(type, types));
         Assert.True(pieces.Count(p => p.Type == FurnitureType.DiningTable) >= 30, "A large dining hall seats many: at least 30 tables.");

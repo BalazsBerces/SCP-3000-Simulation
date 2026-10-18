@@ -998,7 +998,6 @@ internal static class PointOfInterestGenerator
             if (Line(type, s, 0.7f))
                 b.Serve(meal);
             Line(FurnitureType.TrayRail, s, 1.295f);
-            Line(FurnitureType.MenuBoard, s, 0.16f);
         }
         Line(FurnitureType.Counter, 9.4f, 0.65f);
         Line(FurnitureType.CoffeeMachine, 8.95f, 0.6f, FurnitureCatalog.Spec(FurnitureType.Counter).Height);

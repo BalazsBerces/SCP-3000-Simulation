@@ -962,7 +962,8 @@ public static class FurnitureMeshes
 
                 // Food in wells: left Food (meatballs) + Sauce, middle Mash, right Lingonberry
                 b.AddFood(Part.Food, CafeteriaFood.Meatballs, new Vector3(-0.6f, 0.92f, 0f));
-                b.AddFood(Part.Sauce, CafeteriaFood.Sauce, new Vector3(-0.6f, 0.92f, 0f));
+                // 3 mm above the steel top: the sauce is a flat disc, which would z-fight with the steel at 0.92.
+                b.AddFood(Part.Sauce, CafeteriaFood.Sauce, new Vector3(-0.6f, 0.923f, 0f));
                 b.AddFood(Part.Mash, CafeteriaFood.Mash, new Vector3(0.0f, 0.92f, 0f));
                 b.AddFood(Part.Lingonberry, CafeteriaFood.Lingonberries, new Vector3(0.6f, 0.92f, 0f));
 
