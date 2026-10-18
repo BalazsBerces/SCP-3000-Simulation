@@ -35,6 +35,7 @@ For inspecting a source (mesh names, bounds, triangle counts, texture colours), 
 - bake the item's own transform, so the origin is at the bottom centre and Y is up;
 - textures: albedo, normal and ORM (occlusion, roughness, metallic), 1k, JPEG;
 - one material per distinct surface, named.
+- **texture import settings:** every texture's `.jpg.import` must have `compress/mode=2` (VRAM compressed), `mipmaps/generate=true` and `detect_3d/compress_to=0`; normal maps also `compress/normal_map=2`. Godot's default for a new texture is lossless without mipmaps: it loads slowly, takes far more memory and shimmers at a distance (ticket 08n shipped that way). Copy the settings of `game/assets/models/meal_plate/textures/*.import`, then let Godot reimport (a build does it).
 
 If a model needs a special treatment (a pack, a part to remove), add it to `fetch-models.py` as a new source kind with a comment saying why, so the next model of that kind reuses it.
 
@@ -56,6 +57,7 @@ Run these in order; all must pass.
    - `--model-check=<file>`: every variant has a model; each fits its size within 1 mm and its budget; the coarse mesh stays inside and passes the silhouette check; every material has albedo, normal and roughness; the licence is CC0 or CC-BY; `CREDITS.md` lists it.
    - `--coarse-colour-check=<dir>`: the coarse mesh has the same colours as the full one, part by part; look at the contact sheets it writes.
    - `--silhouette-check=<file>` for shapes that are not boxes.
+   - Check the import settings: `grep -L "mipmaps/generate=true" game/assets/models/<folder>/textures/*.import` must print nothing.
 4. Look at it once: `--capture=<png>` with `--poi=<name>` or `--furniture-tour=<dir>`, at most 1280 px wide. Judge the picture once; do not recapture the same view.
 5. The 120 fps check of ADR 0004 for the stage end ticket (`--fps-report`).
 
