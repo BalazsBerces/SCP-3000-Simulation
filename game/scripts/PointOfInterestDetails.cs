@@ -21,9 +21,10 @@ public partial class PointOfInterestDetails : Node3D
         _space = snapshot.Space;
         foreach (var piece in snapshot.Furniture)
         {
-            if (piece.PointOfInterestId < 0)
+            // The Camping ground's trail sign is lettered although it belongs to no Point of interest.
+            if (piece.PointOfInterestId < 0 && piece.Type != FurnitureType.TrailSign)
                 continue;
-            var poi = snapshot.PointsOfInterest[piece.PointOfInterestId].Type;
+            var poi = piece.PointOfInterestId < 0 ? default : snapshot.PointsOfInterest[piece.PointOfInterestId].Type;
             var node = new Node3D();
             var spec = FurnitureCatalog.Spec(piece);
             switch (piece.Type)
@@ -52,6 +53,15 @@ public partial class PointOfInterestDetails : Node3D
                         node.AddChild(face);
                         Paper(face, "LOST & FOUND", new(0, spec.Height / 2, spec.Depth / 2 + 0.012f),
                             new(spec.Width + 0.01f, spec.Height + 0.01f), 0.07f);
+                    }
+                    break;
+                case FurnitureType.TrailSign:
+                    // The board's text on both faces; the sign leads nowhere.
+                    foreach (var side in new[] { -1, 1 })
+                    {
+                        var face = new Node3D { Rotation = new(0, side < 0 ? Mathf.Pi : 0, 0) };
+                        node.AddChild(face);
+                        Text(face, "Camp\n3 km", new(-0.07f, 1.65f, 0.043f), 0.13f, Colors.Ivory);
                     }
                     break;
                 case FurnitureType.OutOfOrderSign:

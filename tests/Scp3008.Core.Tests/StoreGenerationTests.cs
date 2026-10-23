@@ -138,7 +138,8 @@ public class StoreGenerationTests
     public void Each_department_type_has_its_own_shelving_or_display_furniture()
     {
         var snapshot = Generate(3008);
-        var typesIn = snapshot.Furniture
+        // Landmarks stand on any Department's floor, so only the Departments' own Furniture counts.
+        var typesIn = snapshot.Furniture.Where(p => p.LandmarkId < 0)
             .GroupBy(p => snapshot.Departments.At(p.Position).Type)
             .ToDictionary(g => g.Key, g => g.Select(p => p.Type).ToHashSet());
 
@@ -173,7 +174,9 @@ public class StoreGenerationTests
     {
         var snapshot = Generate(3008);
         // A tipped-over piece is lifted by its tilt; it is raised only if its lowest corner is off the floor.
-        var raised = snapshot.Furniture.Where(p => p.LandmarkId < 0 && Bottom(p) > 0.01f).ToList();
+        // Mirrors, notice boards and the like hang on a restroom or service-point wall a hair in front of it, so they have nothing under them.
+        FurnitureType[] wallHung = [FurnitureType.RestroomMirror, FurnitureType.BabyChangingTable, FurnitureType.NoticeBoard, FurnitureType.LostAndFoundSign];
+        var raised = snapshot.Furniture.Where(p => p.LandmarkId < 0 && Bottom(p) > 0.01f && !wallHung.Contains(p.Type)).ToList();
 
         var supported = FootprintPairs(snapshot.Space, raised, snapshot.Furniture)
             .Where(pair => Bottom(pair.B) < Bottom(pair.A) && Top(pair.B) >= Bottom(pair.A) - 0.01f)

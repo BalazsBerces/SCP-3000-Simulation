@@ -58,6 +58,9 @@ public sealed record WorldSnapshot(
     /// <summary>The meals on the Cafeterias' serving counters, one entry per <see cref="FurnitureType.HotFoodCounter"/> and <see cref="FurnitureType.DessertCounter"/>, in counter order.</summary>
     public IReadOnlyList<CounterMeal> CounterMeals { get; init; } = Array.Empty<CounterMeal>();
 
+    /// <summary>The goods on the Camping grounds' stands, one entry per kind per stand (the marshmallow tasting stand holds marshmallows).</summary>
+    public IReadOnlyList<CampGoods> CampGoods { get; init; } = [];
+
     /// <summary>The Store's three Ball pits as the one network the Staff pass through at Closing time.</summary>
     public BallPitNetwork BallPitNetwork { get; init; } = BallPitNetwork.None;
 

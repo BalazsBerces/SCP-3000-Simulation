@@ -299,10 +299,7 @@ public static class PointOfInterestNames
 {
     public static string Of(PointOfInterestType type) => type switch
     {
-        PointOfInterestType.Restroom => "Restroom",
-        PointOfInterestType.Canteen => "Canteen",
         PointOfInterestType.SetDinnerTable => "Dinner table",
-        PointOfInterestType.LostAndFoundDesk => "Lost and found",
         PointOfInterestType.ShoppingCartGraveyard => "Cart graveyard",
         PointOfInterestType.BallPit => "Ball pit",
         PointOfInterestType.ArmchairHenge => "Armchair henge",
@@ -330,6 +327,7 @@ public static class LandmarkNames
         LandmarkType.ClockWall => "Clock wall",
         LandmarkType.FountainCourt => "Fountain court",
         LandmarkType.AbandonedScaffold => "Abandoned scaffold",
+        LandmarkType.CampingGround => "Camping ground",
         _ => type.ToString(),
     };
 }

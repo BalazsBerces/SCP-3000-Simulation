@@ -8,7 +8,11 @@ namespace Scp3008.Core.Generation;
 internal sealed record LandmarkSite(int Id, LandmarkType Type, int SectorId, Vector2 Centre, Vector2 Size, int Quarters, Pillar? Pillar = null);
 
 /// <summary>The built Landmarks and their Furniture.</summary>
-internal sealed record LandmarkLayout(IReadOnlyList<Landmark> Landmarks, IReadOnlyList<FurniturePiece> Pieces);
+internal sealed record LandmarkLayout(IReadOnlyList<Landmark> Landmarks, IReadOnlyList<FurniturePiece> Pieces)
+{
+    /// <summary>What the Camping ground's stands hold.</summary>
+    public IReadOnlyList<CampGoods> CampGoods { get; init; } = [];
+}
 
 /// <summary>
 /// Places and builds the Landmarks from the seed. Every world has the ruined Village; each other
@@ -23,12 +27,11 @@ internal static class LandmarkGenerator
 {
     private const int PlanStream = 4;
     private const int BuildStream = 5;
-    private const float OtherLandmarkChance = 2f / 3f;
 
     private static readonly LandmarkType[] Others =
     [
         LandmarkType.RackCanyon, LandmarkType.BoxFort, LandmarkType.MattressMountain,
-        LandmarkType.DeadZone, LandmarkType.ClockWall, LandmarkType.FountainCourt,
+        LandmarkType.DeadZone, LandmarkType.ClockWall, LandmarkType.FountainCourt, LandmarkType.CampingGround,
     ];
 
     /// <summary>The size of each Landmark in its own frame: sized for its idea, read from far away, and in whole cells.</summary>
@@ -38,9 +41,10 @@ internal static class LandmarkGenerator
         LandmarkType.RackCanyon => new(160f, 112f),
         LandmarkType.BoxFort => new(80f, 80f),
         LandmarkType.MattressMountain => new(80f, 80f),
-        LandmarkType.DeadZone => new(112f, 112f),
+        LandmarkType.DeadZone => new(144f, 144f),
         LandmarkType.ClockWall => new(128f, 32f),
         LandmarkType.FountainCourt => new(96f, 96f),
+        LandmarkType.CampingGround => new(112f, 96f),
         _ => throw new ArgumentOutOfRangeException(nameof(type), type, null),
     };
 
@@ -48,9 +52,7 @@ internal static class LandmarkGenerator
     {
         var random = SeededRandom.For(seed, PlanStream);
         var kinds = new List<LandmarkType> { LandmarkType.RuinedVillage };
-        foreach (var other in Others)
-            if (random.Chance(OtherLandmarkChance))
-                kinds.Add(other);
+        kinds.AddRange(Others);
         Shuffle(random, kinds);
         while (kinds.Count > sectors.Count)
             kinds.Remove(kinds.Last(k => k != LandmarkType.RuinedVillage));
@@ -141,8 +143,10 @@ internal static class LandmarkGenerator
     {
         var landmarks = new List<Landmark>();
         var pieces = new List<FurniturePiece>();
+        var campGoods = new List<CampGoods>();
         foreach (var site in sites)
         {
+            CampingResult? camping = null;
             var builder = new LandmarkBuilder(space, site, SeededRandom.For(seed, BuildStream, site.Id));
             switch (site.Type)
             {
@@ -154,6 +158,7 @@ internal static class LandmarkGenerator
                 case LandmarkType.ClockWall: BuildClockWall(builder); break;
                 case LandmarkType.FountainCourt: BuildFountainCourt(builder); break;
                 case LandmarkType.AbandonedScaffold: BuildAbandonedScaffold(builder, site.Pillar!); break;
+                case LandmarkType.CampingGround: camping = CampingGroundGenerator.Build(builder); break;
             }
             var first = pieces.Count;
             foreach (var piece in builder.Pieces)
@@ -162,11 +167,23 @@ internal static class LandmarkGenerator
             {
                 PillarId = site.Pillar?.Id ?? -1,
             };
+            if (camping is not null)
+            {
+                int Id(int index) => firstPieceId + first + index;
+                landmark = landmark with
+                {
+                    Dinosaurs = camping.Dinosaurs.Select(d => new Dinosaur(d.Kind, d.Tint, Enumerable.Range(d.First, d.Count).Select(Id).ToList())).ToList(),
+                    AxeId = Id(camping.AxeIndex),
+                    AxeTreeId = Id(camping.AxeTreeIndex),
+                    Paths = camping.Paths.Select(p => (IReadOnlyList<Vector2>)p.Select(q => site.Centre + LandmarkBuilder.Turn(q, site.Quarters)).ToList()).ToList(),
+                };
+                campGoods.AddRange(camping.Goods.Select(g => new CampGoods(Id(g.Index), g.Kind)));
+            }
             if (site.Type == LandmarkType.ClockWall)
                 landmark = SetClocks(landmark, pieces.Skip(first).ToList(), builder.Random);
             landmarks.Add(landmark);
         }
-        return new LandmarkLayout(landmarks.AsReadOnly(), pieces.AsReadOnly());
+        return new LandmarkLayout(landmarks.AsReadOnly(), pieces.AsReadOnly()) { CampGoods = campGoods.AsReadOnly() };
     }
 
     /// <summary>Whether a rectangle of the given half size, this far from a square's centre, stays out of the square.</summary>
@@ -1074,11 +1091,11 @@ internal sealed class LandmarkBuilder(StoreSpace space, LandmarkSite site, Seede
     public float Top { get; private set; }
 
     /// <summary>Places a piece with the centre of its base at a local position and elevation.</summary>
-    public bool Put(FurnitureType type, Vector2 local, float elevation, float rotation, float tilt = 0f, int variant = 0, int tint = 0)
+    public bool Put(FurnitureType type, Vector2 local, float elevation, float rotation, float tilt = 0f, int variant = 0, int tint = 0, float roll = 0f)
     {
         var turn = site.Quarters * MathF.PI / 2f;
         var piece = new FurniturePiece(0, type, site.Centre + Turn(local, site.Quarters), elevation,
-            (float)Math.IEEERemainder(rotation + turn, 2.0 * Math.PI), variant, Tint: tint, LandmarkId: site.Id, Tilt: tilt);
+            (float)Math.IEEERemainder(rotation + turn, 2.0 * Math.PI), variant, Tint: tint, LandmarkId: site.Id, Tilt: tilt, Roll: roll);
         var corners = FurnitureCatalog.Corners(piece);
         var lowest = corners.Min(c => c.Z);
         if (lowest < 0f)

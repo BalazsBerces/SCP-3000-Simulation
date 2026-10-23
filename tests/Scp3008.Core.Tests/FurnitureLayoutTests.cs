@@ -167,7 +167,9 @@ public class FurnitureLayoutTests(BenchmarkStore store) : IClassFixture<Benchmar
     [Fact]
     public void Every_department_type_mixes_in_six_foreign_types_but_stays_mostly_its_own()
     {
-        foreach (var pieces in Snapshot.Furniture.GroupBy(p => Snapshot.Departments.At(p.Position).Type))
+        // Landmarks stand on any Department's floor, so only the Departments' own Furniture counts.
+        foreach (var pieces in Snapshot.Furniture.Where(p => p.LandmarkId < 0 && p.PointOfInterestId < 0)
+                     .GroupBy(p => Snapshot.Departments.At(p.Position).Type))
         {
             var own = ThemeCatalog.OwnTypes(pieces.Key);
             var foreign = pieces.Select(p => p.Type).Distinct().Where(t => !own.Contains(t)).ToList();

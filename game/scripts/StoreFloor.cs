@@ -20,7 +20,7 @@ public partial class StoreFloor : MeshInstance3D
     /// <summary>Albedo balance per Department type (food market, showrooms, lighting, warehouse, bath/kitchen, plants, kids).</summary>
     private static readonly Color[] LayerTints =
     [
-        new(1f, 1f, 1f), new(1f, 1f, 1f), new(0.8f, 0.8f, 0.85f), new(1.05f, 1.05f, 1.05f),
+        new(1.25f, 1.2f, 1.1f), new(1f, 1f, 1f), new(0.8f, 0.8f, 0.85f), new(1.05f, 1.05f, 1.05f),
         new(1f, 1f, 1f), new(1f, 1f, 1f), new(1f, 1f, 1f),
         new(1f, 1f, 1f), new(1f, 1f, 1f), new(1f, 1f, 1f), new(1f, 1f, 1f),
     ];
@@ -31,7 +31,13 @@ public partial class StoreFloor : MeshInstance3D
     /// for the large regular tiles of the food market and lighting floors, 0 large-scale shade and
     /// wear only for the rest (planks, staggered or tiny tiles), where neither fits.
     /// </summary>
-    private static readonly int[] LayerModes = [2, 0, 2, 1, 0, 0, 0, 1, 0, 0, 0];
+    private static readonly int[] LayerModes = [1, 0, 2, 1, 0, 0, 0, 1, 0, 0, 0];
+
+    /// <summary>The atlas layer each Department type's floor reads: the food market's chequerboard (layer 0) is replaced by the jointless concrete.</summary>
+    private static readonly int[] LayerSources = [3, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+
+    /// <summary>How far each floor's albedo fades towards its average: the Workspaces carpet's stripes flicker and smear under FSR2.</summary>
+    private static readonly float[] LayerFlatten = [0f, 0f, 0f, 0f, 0f, 0f, 0f, 0.6f, 0f, 0f, 0f];
 
     /// <summary>For per-tile layers: tiles per repeat and the grid's offset in repeat units, read off the textures.</summary>
     private static readonly Vector3[] LayerGrids =
@@ -54,6 +60,8 @@ public partial class StoreFloor : MeshInstance3D
         FloorMaterial.SetShaderParameter("layer_tint", LayerTints.Select(c => new Vector3(c.R, c.G, c.B)).ToArray());
         FloorMaterial.SetShaderParameter("layer_mode", LayerModes);
         FloorMaterial.SetShaderParameter("layer_grid", LayerGrids);
+        FloorMaterial.SetShaderParameter("layer_source", LayerSources);
+        FloorMaterial.SetShaderParameter("layer_flatten", LayerFlatten);
         ShowDepartments(Host.Snapshot);
         Host.WorldCreated += ShowDepartments;
         FollowFocus();
@@ -106,6 +114,16 @@ public partial class StoreFloor : MeshInstance3D
         var image = Image.CreateFromData(map.CellsPerSide, map.CellsPerSide, false, Image.Format.R8, types);
         FloorMaterial.SetShaderParameter("department_map", ImageTexture.CreateFromImage(image));
         FloorMaterial.SetShaderParameter("department_cell_size", map.CellSize);
+        // The Camping ground's turf and paths; none (zero rectangle) in a world without one.
+        var camp = snapshot.Landmarks.FirstOrDefault(l => l.Type == LandmarkType.CampingGround);
+        if (camp is null)
+        {
+            FloorMaterial.SetShaderParameter("camp_rect", Vector4.Zero);
+            return;
+        }
+        var (turf, rect) = CampTurf.Build(camp, snapshot.Space, snapshot.Seed);
+        FloorMaterial.SetShaderParameter("camp_map", turf);
+        FloorMaterial.SetShaderParameter("camp_rect", rect);
     }
 
     private void FollowFocus() => Position = Rig.Focus with { Y = 0f };

@@ -36,6 +36,12 @@ public enum LandmarkType
     /// fewer Materials.
     /// </summary>
     AbandonedScaffold,
+    /// <summary>
+    /// A trade-fair camping showroom on artificial turf: three huge dinosaurs built of Furniture (<see cref="Landmark.Dinosaurs"/>), tents,
+    /// fake trees, a fake campfire, a lake, a tree house and a camper van. Lookouts: the top of the tree house and the
+    /// Brachiosaurus's back. Its ground is visual only (<see cref="GroundProperty.None"/>).
+    /// </summary>
+    CampingGround,
 }
 
 /// <summary>
@@ -100,6 +106,21 @@ public sealed record Landmark(int Id, LandmarkType Type, int SectorId, Vector2 C
 
     /// <summary>The Pillar the abandoned scaffold climbs, by <see cref="Pillar.Id"/>; -1 for other Landmarks.</summary>
     public int PillarId { get; init; } = -1;
+
+    /// <summary>The Camping ground's dinosaurs, one of each kind with its own main colour; empty for other Landmarks.</summary>
+    public IReadOnlyList<Dinosaur> Dinosaurs { get; init; } = [];
+
+    /// <summary>
+    /// The Camping ground's winding visitor paths over its turf, as polylines of Store positions (unwrapped, inside its rectangle)
+    /// with their <see cref="CampingGround.PathWidth"/>; visual only. Empty for other Landmarks.
+    /// </summary>
+    public IReadOnlyList<IReadOnlyList<Vector2>> Paths { get; init; } = [];
+
+    /// <summary>The decorative axe stuck in a tree, by <see cref="FurniturePiece.Id"/>; -1 for other Landmarks. A separate piece: the tree stands without it.</summary>
+    public int AxeId { get; init; } = -1;
+
+    /// <summary>The tree the decorative axe is stuck in, by <see cref="FurniturePiece.Id"/>; -1 for other Landmarks.</summary>
+    public int AxeTreeId { get; init; } = -1;
 
     /// <summary>Whether a Store position (it may be unwrapped) lies on this Landmark's rectangle, edges included.</summary>
     public bool Covers(StoreSpace space, Vector2 position)

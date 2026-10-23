@@ -157,6 +157,33 @@ public enum FurnitureType
     NoticeBoard,
     /// <summary>Store service sign marking the Lost and found service point.</summary>
     LostAndFoundSign,
+    // The Camping ground's Furniture (ticket 07z), found only in that Landmark
+    /// <summary>Fake tree: a trunk and a crown (variant 0: broad, 1: tall conifer, 2: giant tree a tree house is built in).</summary>
+    Tree,
+    /// <summary>Dome tent.</summary>
+    Tent,
+    /// <summary>Dome tent with a lantern inside: a Lamp whose fabric glows with a silhouette inside it when lit.</summary>
+    LanternTent,
+    /// <summary>Fake campfire flame: a glowing red-orange cloth flame with a Lamp inside it.</summary>
+    CampfireFlame,
+    /// <summary>Log seat round a campfire.</summary>
+    LogSeat,
+    /// <summary>Hammock slung between two trees.</summary>
+    Hammock,
+    /// <summary>Kayak.</summary>
+    Kayak,
+    /// <summary>Fishing rod leaning on its stand.</summary>
+    FishingRod,
+    /// <summary>Rubber duck.</summary>
+    RubberDuck,
+    /// <summary>Big plush bear, sitting.</summary>
+    PlushBear,
+    /// <summary>Trail sign post.</summary>
+    TrailSign,
+    /// <summary>Camping axe (Gear): the decorative axe stuck in a tree.</summary>
+    Axe,
+    /// <summary>Sleeping bag (a Dwelling's bedding).</summary>
+    SleepingBag,
 }
 
 /// <summary>
@@ -177,7 +204,8 @@ public enum FurnitureType
 /// <param name="DisplayId">The <see cref="Display"/> the piece belongs to, by <see cref="Display.Id"/>; -1 for Landmark and Point of interest Furniture.</param>
 /// <param name="Tint">
 /// The colour of its fabric, plastic or leaves, as an index into the tints (0 to
-/// <see cref="FurniturePalettes.TintCount"/> - 1); always one of its Display's palette, if it has one.
+/// <see cref="FurniturePalettes.TintCount"/> - 1); always one of its Display's palette, if it has one. The Camping ground's
+/// dinosaurs use the <see cref="FurniturePalettes.DinosaurTints"/> beyond that.
 /// </param>
 /// <param name="LandmarkId">The <see cref="Landmark"/> the piece is part of, by <see cref="Landmark.Id"/>; -1 for Display Furniture.</param>
 /// <param name="PointOfInterestId">The <see cref="PointOfInterest"/> the piece is part of, by <see cref="PointOfInterest.Id"/>; -1 for other Furniture.</param>
@@ -275,6 +303,17 @@ public static class FurnitureCatalog
     [
         FurnitureType.Mattress, FurnitureType.CardboardBox, FurnitureType.WallClock, FurnitureType.FountainBowl,
         FurnitureType.FountainColumn, FurnitureType.BasinKerb,
+        FurnitureType.Tree, FurnitureType.Tent, FurnitureType.LanternTent, FurnitureType.CampfireFlame, FurnitureType.LogSeat,
+        FurnitureType.Hammock, FurnitureType.Kayak, FurnitureType.FishingRod, FurnitureType.RubberDuck, FurnitureType.PlushBear,
+        FurnitureType.TrailSign, FurnitureType.Axe, FurnitureType.SleepingBag,
+    ];
+
+    /// <summary>The Furniture types found only in the Camping ground.</summary>
+    public static IReadOnlyList<FurnitureType> CampingTypes { get; } =
+    [
+        FurnitureType.Tree, FurnitureType.Tent, FurnitureType.LanternTent, FurnitureType.CampfireFlame, FurnitureType.LogSeat,
+        FurnitureType.Hammock, FurnitureType.Kayak, FurnitureType.FishingRod, FurnitureType.RubberDuck, FurnitureType.PlushBear,
+        FurnitureType.TrailSign, FurnitureType.Axe, FurnitureType.SleepingBag,
     ];
 
     /// <summary>The Furniture types found only in Points of interest, never on display.</summary>
@@ -434,6 +473,20 @@ public static class FurnitureCatalog
             new(FurnitureType.UnsortedCart, 0.90f, 0.60f, 0.95f),
             new(FurnitureType.NoticeBoard, 1.20f, 0.05f, 0.80f),
             new(FurnitureType.LostAndFoundSign, 0.80f, 0.06f, 0.40f),
+            // Camping ground Furniture (ticket 07z)
+            new(FurnitureType.Tree, 4.0f, 4.0f, 6.0f),
+            new(FurnitureType.Tent, 3.0f, 3.0f, 1.8f),
+            new(FurnitureType.LanternTent, 3.0f, 3.0f, 1.8f, LightRadius: 4f),
+            new(FurnitureType.CampfireFlame, 1.4f, 1.4f, 1.7f, LightRadius: 8f),
+            new(FurnitureType.LogSeat, 1.8f, 0.5f, 0.45f),
+            new(FurnitureType.Hammock, 3.2f, 0.9f, 0.5f),
+            new(FurnitureType.Kayak, 3.2f, 0.7f, 0.4f),
+            new(FurnitureType.FishingRod, 0.4f, 0.4f, 2.0f),
+            new(FurnitureType.RubberDuck, 0.35f, 0.35f, 0.35f),
+            new(FurnitureType.PlushBear, 1.2f, 1.0f, 1.5f),
+            new(FurnitureType.TrailSign, 1.2f, 0.15f, 2.0f),
+            new(FurnitureType.Axe, 0.5f, 0.9f, 0.1f),
+            new(FurnitureType.SleepingBag, 0.8f, 2.0f, 0.25f),
 
             // Variants of the most repeated types: other proportions, backs, legs or materials.
             new(FurnitureType.LabelledBox, 0.50f, 0.40f, 0.35f, Variant: 1), // open / spilled box
@@ -475,6 +528,10 @@ public static class FurnitureCatalog
             new(FurnitureType.FountainBowl, 6.0f, 6.0f, 1.0f, Variant: 2),
             new(FurnitureType.FountainBowl, 9.0f, 9.0f, 1.2f, Variant: 3),
             new(FurnitureType.FountainColumn, 0.5f, 0.5f, 2.0f, Variant: 1),   // slender column
+            new(FurnitureType.Tree, 3.0f, 3.0f, 9.0f, Variant: 1),             // tall conifer
+            new(FurnitureType.Tree, 5.0f, 5.0f, 22.0f, Variant: 2),            // giant tree, for the tree house
+            new(FurnitureType.Tent, 3.2f, 3.2f, 3.4f, Variant: 1),             // tipi
+            new(FurnitureType.Tent, 6.0f, 3.2f, 2.2f, Variant: 2),             // family tunnel tent
         ];
         var byType = new FurnitureSpec[Enum.GetValues<FurnitureType>().Length][];
         foreach (var group in specs.GroupBy(s => s.Type))
@@ -499,6 +556,32 @@ public static class FurniturePalettes
 {
     /// <summary>Number of distinct tints; a piece's <see cref="FurniturePiece.Tint"/> is below it.</summary>
     public const int TintCount = 12;
+
+    /// <summary>The first of the Camping ground's dinosaur tints, which follow the ordinary ones.</summary>
+    public const int FirstDinosaurTint = TintCount;
+
+    /// <summary>
+    /// The dinosaur tints: three saturated main colours (orange-red, green, teal) and the accents (cream, dark, yellow),
+    /// from <see cref="FirstDinosaurTint"/> on.
+    /// </summary>
+    public enum DinosaurTints
+    {
+        /// <summary>The Tyrannosaurus's orange-red.</summary>
+        OrangeRed = FirstDinosaurTint,
+        /// <summary>The Brachiosaurus's green.</summary>
+        Green,
+        /// <summary>The Triceratops's teal.</summary>
+        Teal,
+        /// <summary>Teeth and horns.</summary>
+        Cream,
+        /// <summary>Eyes.</summary>
+        Dark,
+        /// <summary>Spikes and plates.</summary>
+        Yellow,
+    }
+
+    /// <summary>Number of tints including the dinosaur tints.</summary>
+    public const int TotalTintCount = FirstDinosaurTint + 6;
 
     /// <summary>Every palette: two or three related tint indices each.</summary>
     public static IReadOnlyList<IReadOnlyList<int>> All { get; } =

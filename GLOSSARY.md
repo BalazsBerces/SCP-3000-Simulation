@@ -39,7 +39,7 @@ One of the equal squares the Pillar layout divides the Store into, named by its 
 _Avoid_: Zone, region, quadrant, district
 
 **Landmark**:
-A huge, far-visible, unique place of the Store that shapes what Villagers do there (the ruined Village, Abandoned scaffold, rack canyon, dead zone, clock wall, mattress mountain, fountain court or box fort). Every world has the ruined Village; the seed picks which of the others it has, at most one Landmark per Sector, preferring Sectors without a Pillar. It stands on a rectangle of at most a quarter of its Sector, clear of the Pillar and its walkway ring, which no Display enters, and rises well above the shelving and the Fog banks. It is made entirely of Furniture, which Villages may take and Restock slowly brings back; some also give their ground a lasting property, such as darkness or water, that stays when the Furniture is gone. Pillars are not Landmarks. The climbable ones (rack canyon, mattress mountain) have **Lookouts**: high places on their Furniture to look out from.
+A huge, far-visible, unique place of the Store that shapes what Villagers do there (the ruined Village, Abandoned scaffold, rack canyon, dead zone, clock wall, mattress mountain, fountain court, box fort or Camping ground). Every world has the ruined Village; the seed picks which of the others it has, at most one Landmark per Sector, preferring Sectors without a Pillar. It stands on a rectangle of at most a quarter of its Sector, clear of the Pillar and its walkway ring, which no Display enters, and rises well above the shelving and the Fog banks. It is made entirely of Furniture, which Villages may take and Restock slowly brings back; some also give their ground a lasting property, such as darkness or water, that stays when the Furniture is gone. Pillars are not Landmarks. The climbable ones (rack canyon, mattress mountain, Camping ground) have **Lookouts**: high places on their Furniture to look out from.
 _Avoid_: Point of interest (small, seen only up close)
 
 **Landmark showcase**:
@@ -79,12 +79,16 @@ The three Ball pits of a Store recorded as one network in the core: at Closing t
 **Rare Points of interest**:
 Six kinds, planned like the common ones: exactly 3 **Ball pits** (the Ball pit network), 1–2 each of the **Armchair henge** (an unmistakable copy of Stonehenge built only of armchairs and sofas, about 26 m across and bigger than a Department cell: an outer circle of 2.7 m big sofas stood on end under lintel sofas with a few gaps and fallen stones, five **trilithons** (pairs of stacked upright sofas under a lintel, the middle one tallest), an inner horseshoe of armchairs, a sofa altar and a leaning heel stone; its false Belief: sitting in the ring at Closing time is safe), the **EXIT sign** (glows, its arrow leads nowhere), the **Mannequin crowd** (24–42 bare, faceless plastic shop mannequins of human proportions that look like the Staff from afar: five poses and builds, off-white to dingy to dark plastic, most facing one way, one fallen and sometimes one missing an arm), the **Door to nowhere** (a free-standing door frame onto the same aisle; the false "portal" Belief) and the **Aquarium aisle** (a pet-shop row of tanks of different sizes, each with its own kind of live fish; glows in the dark).
 
+**Camping ground**:
+A Landmark: a camping showroom laid out like a trade-fair exhibition: mostly artificial-turf lawn in organic, non-grid shapes with a few winding visitor paths, holding fake trees, tents of three kinds, a fake campfire ring (its fire glows only at Closing time) with a marshmallow tasting stand beside it (the marshmallows are Goods), a decorative axe stuck in one tree that can be pulled out (it is Gear), a hammock, a lake with a kayak, a plush bear, a trail sign pointing nowhere, a tree house and a camper van. Three big, colourful dinosaurs built of Furniture stand in it (a T-rex, a Brachiosaurus and a Triceratops, each in its own main colour). A source of Dwellings' tents, bedding and camping Gear. Has **Lookouts** on the tree house and the Brachiosaurus.
+_Avoid_: Camp (a Village is not a camp), campsite
+
 **Abandoned scaffold**:
 A Landmark: a half-finished Furniture stair climbing high up one Pillar on its walkway ring, with abandoned, half-furnished rooms bolted to the Pillar's sides, ending abruptly in a Lookout in the topmost room: the one exception to the ring staying Furniture-free. Every world has exactly one, on top of the one Landmark per Sector the others are limited to. A Village can finish it as a Pillar scaffold with fewer Materials.
 _Avoid_: Ladder, tower
 
 **Lookout**:
-A high place on Furniture from which to look out over the Store: on the climbable Landmarks (rack canyon, mattress mountain) and at the top of the Abandoned scaffold.
+A high place on Furniture from which to look out over the Store: on the climbable Landmarks (rack canyon, mattress mountain, Camping ground) and at the top of the Abandoned scaffold.
 
 **Furniture**:
 A single physical object in the Store (wardrobe, shelf unit, sofa, lamp…) that can be moved, used, built with or disassembled.

@@ -37,6 +37,7 @@ public sealed class Simulation : IDisposable
     private readonly BallPitNetwork _ballPitNetwork;
     private readonly IReadOnlyList<TankFish> _tankFish;
     private readonly IReadOnlyList<CounterMeal> _counterMeals;
+    private readonly IReadOnlyList<CampGoods> _campGoods;
     private readonly Weather _weather;
     private long _tick;
     private SimulationSpeed _speed = SimulationSpeed.Normal;
@@ -76,6 +77,7 @@ public sealed class Simulation : IDisposable
         var pointsOfInterest = PointOfInterestGenerator.Build(config.Seed, _space, poiSites, furniture.Pieces.Count + landmarks.Pieces.Count);
         _furniture = furniture with { Pieces = furniture.Pieces.Concat(landmarks.Pieces).Concat(pointsOfInterest.Pieces).ToList().AsReadOnly() };
         _landmarks = landmarks.Landmarks;
+        _campGoods = landmarks.CampGoods;
         _pointsOfInterest = pointsOfInterest.PointsOfInterest;
         _ballPitNetwork = pointsOfInterest.BallPitNetwork;
         _tankFish = pointsOfInterest.TankFish;
@@ -332,6 +334,7 @@ public sealed class Simulation : IDisposable
             BallPitNetwork = _ballPitNetwork,
             TankFish = _tankFish,
             CounterMeals = _counterMeals,
+            CampGoods = _campGoods,
             PointOfInterestShowcase = _config.PointOfInterestShowcase,
         };
 

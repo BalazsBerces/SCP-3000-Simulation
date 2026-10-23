@@ -18,6 +18,9 @@ uniform sampler2DArray floor_roughness : hint_default_white, filter_linear_mipma
 uniform float layer_metres[11];
 // Albedo multiplier per layer, to balance the textures against each other.
 uniform vec3 layer_tint[11];
+// Which atlas layer each Department type reads its textures from, and how far its albedo fades towards the layer's average.
+uniform int layer_source[11];
+uniform float layer_flatten[11];
 // How each layer breaks its repeat: 0 large-scale shade and wear only, 1 randomly offset copies
 // (organic layers with no visible joints), 2 per-tile variation (tiles on a regular grid).
 uniform int layer_mode[11];
@@ -25,6 +28,7 @@ uniform int layer_mode[11];
 uniform vec3 layer_grid[11];
 // Fixes the variation, so each world has its own and the same world always looks the same.
 uniform int world_seed = 0;
+global uniform float lod_scale;
 uniform float macro_strength = 0.09;
 uniform float tile_strength = 0.07;
 uniform float wear_strength = 1.0;
@@ -54,6 +58,10 @@ uniform vec3 sector_line_color : source_color = vec3(1.0, 0.85, 0.35);
 // by coverage and linear (not sRGB), covering the Store once, in place of the Furniture meshes.
 uniform sampler2D furniture_map : filter_linear_mipmap_anisotropic, repeat_disable;
 uniform bool show_furniture_map = false;
+
+// The Camping ground's turf map (CampTurf.cs) and its rectangle (centre X and Z, half size); zero size if the world has none.
+uniform sampler2D camp_map : filter_linear, repeat_disable;
+uniform vec4 camp_rect = vec4(0.0);
 
 varying vec3 world_position;
 
@@ -136,9 +144,10 @@ void fragment() {
 
 	// Gradients from the continuous position keep mip selection smooth across cell edges.
 	vec2 uv = p / layer_metres[layer];
-	vec2 dx = dFdx(p) / layer_metres[layer];
-	vec2 dy = dFdy(p) / layer_metres[layer];
-	vec3 coord = vec3(uv, float(layer));
+	// lod_scale below 1 sharpens the mip choice to make up for a lower render resolution (FSR2).
+	vec2 dx = dFdx(p) / layer_metres[layer] * lod_scale;
+	vec2 dy = dFdy(p) / layer_metres[layer] * lod_scale;
+	vec3 coord = vec3(uv, float(layer_source[layer]));
 	vec2 uv_wrapped = wrapped / layer_metres[layer];
 	int repeats = int(round(store_size / layer_metres[layer]));
 	vec3 color;
@@ -158,7 +167,9 @@ void fragment() {
 	}
 	color *= layer_tint[layer];
 	// The layer's average colour, what a worn surface fades towards.
-	vec3 average = textureLod(floor_albedo, vec3(0.5, 0.5, float(layer)), 12.0).rgb * layer_tint[layer];
+	vec3 average = textureLod(floor_albedo, vec3(0.5, 0.5, float(layer_source[layer])), 12.0).rgb * layer_tint[layer];
+	// A pattern too busy for the render resolution (the carpet's stripes) fades towards its average.
+	color = mix(color, average, layer_flatten[layer]);
 
 	if (layer_mode[layer] == 2) {
 		vec3 grid = layer_grid[layer];
@@ -220,6 +231,21 @@ void fragment() {
 	if (show_sectors) {
 		color = mix(color, sector_line_color, overlay_lines(p, sector_size, 1.5));
 	}
+	// The Camping ground: artificial turf over the floor with winding trodden paths (red: turf, green: path).
+	if (camp_rect.z > 0.0) {
+		vec2 camp_delta = mod(p - camp_rect.xy + store_size * 0.5, store_size) - store_size * 0.5;
+		if (all(lessThan(abs(camp_delta), camp_rect.zw))) {
+			vec2 camp = texture(camp_map, camp_delta / (camp_rect.zw * 2.0) + 0.5).rg;
+			float grain = store_noise(wrapped, 0.35, 11) * 0.5 + store_noise(wrapped, 1.3, 12) * 0.3 + store_noise(wrapped, 6.0, 13) * 0.2;
+			vec3 turf = mix(vec3(0.03, 0.2, 0.03), vec3(0.09, 0.33, 0.05), grain);
+			vec3 trodden = mix(vec3(0.3, 0.22, 0.12), vec3(0.45, 0.36, 0.22), grain);
+			vec3 ground = mix(turf, trodden, camp.g);
+			color = mix(color, ground, camp.r);
+			roughness = mix(roughness, mix(0.95, 0.85, camp.g), camp.r);
+			normal_map = mix(normal_map, vec3(0.5, 0.5, 1.0), camp.r);
+			NORMAL_MAP = normal_map;
+		}
+	}
 	// The fountain court's floor is wet: darker, glossy and a little blue-green.
 	bool wet = on_ground_rect(p, ground_water_rect);
 	if (wet) {
@@ -233,12 +259,10 @@ void fragment() {
 	METALLIC = wet ? 0.0 : border_metallic * border;
 	SPECULAR = wet ? 0.5 : 0.35;
 	// The dead zone: no light ever falls on its floor.
-	if (on_ground_rect(p, ground_dark_rect)) {
-		ALBEDO = vec3(0.0);
-		SPECULAR = 0.0;
-		EMISSION = vec3(0.0);
-	} else {
-		EMISSION = lamp_pools(VERTEX, lamp_mapped_normal(NORMAL, TANGENT, BINORMAL, normal_map, 1.0), INV_VIEW_MATRIX,
-				ALBEDO, ROUGHNESS, METALLIC, SPECULAR);
-	}
+	float dark = ground_dark_amount(p);
+	EMISSION = lamp_pools(VERTEX, lamp_mapped_normal(NORMAL, TANGENT, BINORMAL, normal_map, 1.0), INV_VIEW_MATRIX,
+			ALBEDO, ROUGHNESS, METALLIC, SPECULAR);
+	ALBEDO *= 1.0 - dark;
+	SPECULAR *= 1.0 - dark;
+	EMISSION *= 1.0 - dark;
 }

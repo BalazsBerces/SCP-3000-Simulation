@@ -36,10 +36,7 @@ internal static class PointOfInterestGenerator
 
     private static Vector2 OwnSize(PointOfInterestType type) => type switch
     {
-        PointOfInterestType.Restroom => new(8f, 6f),
-        PointOfInterestType.Canteen => new(12f, 10f),
         PointOfInterestType.SetDinnerTable => new(6f, 5f),
-        PointOfInterestType.LostAndFoundDesk => new(5f, 5f),
         PointOfInterestType.ShoppingCartGraveyard => new(8f, 6f),
         PointOfInterestType.BallPit => new(8f, 8f),
         PointOfInterestType.ArmchairHenge => new(28f, 33f),
@@ -59,12 +56,14 @@ internal static class PointOfInterestGenerator
         var random = SeededRandom.For(seed, PlanStream);
         var cellSize = departments.CellSize;
         var sites = new List<PointOfInterestSite>();
+        // The 2 × 2 blocks of Department cells the Cafeterias stand on: no other Point of interest may touch them.
+        var reserved = new List<(Vector2 Centre, Vector2 Size)>();
 
-        bool TryPlace(PointOfInterestType type, int firstCellX, int firstCellY, int cellsX, int cellsY, Func<int, int, bool> allowed)
+        bool TryPlace(PointOfInterestType type, int firstCellX, int firstCellY, int cellsX, int cellsY, Func<int, int, bool> allowed, int blockCells = 1)
         {
             var cells = new List<(int X, int Y)>();
-            for (var y = firstCellY; y < firstCellY + cellsY; y++)
-                for (var x = firstCellX; x < firstCellX + cellsX; x++)
+            for (var y = firstCellY; y < firstCellY + cellsY - (blockCells - 1); y++)
+                for (var x = firstCellX; x < firstCellX + cellsX - (blockCells - 1); x++)
                     if (allowed(x, y))
                         cells.Add((x, y));
             while (cells.Count > 0)
@@ -77,10 +76,15 @@ internal static class PointOfInterestGenerator
                 var own = OwnSize(type);
                 var size = (quarters & 1) == 0 ? own : new Vector2(own.Y, own.X);
                 // A Point of interest bigger than a department cell (the Armchair henge) stands centred on its cell.
-                var slack = Vector2.Max(Vector2.Zero, (new Vector2(cellSize) - size) / 2f - new Vector2(Clearance));
-                var centre = new Vector2((cx + 0.5f) * cellSize, (cy + 0.5f) * cellSize)
+                var block = new Vector2(cellSize * blockCells);
+                var slack = Vector2.Max(Vector2.Zero, (block - size) / 2f - new Vector2(Clearance));
+                var centre = new Vector2((cx + blockCells / 2f) * cellSize, (cy + blockCells / 2f) * cellSize)
                     + new Vector2(random.Range(-slack.X, slack.X), random.Range(-slack.Y, slack.Y));
                 if (!IsFree(space, pillars, landmarks, sites, centre, size))
+                    continue;
+                // Only a Cafeteria may stand on a Cafeteria's block of cells.
+                if (type != PointOfInterestType.Cafeteria &&
+                    reserved.Any(r => !Apart(space.Delta(r.Centre, centre), r.Size / 2f, size / 2f, 0f)))
                     continue;
                 var sector = sectors.First(s => centre.X >= s.Origin.X && centre.X < s.Origin.X + s.Size &&
                                                 centre.Y >= s.Origin.Y && centre.Y < s.Origin.Y + s.Size);
@@ -88,6 +92,8 @@ internal static class PointOfInterestGenerator
                     centre.Y - size.Y / 2f < sector.Origin.Y || centre.Y + size.Y / 2f > sector.Origin.Y + sector.Size)
                     continue;
                 sites.Add(new PointOfInterestSite(sites.Count, type, sector.Id, centre, size, quarters));
+                if (type == PointOfInterestType.Cafeteria)
+                    reserved.Add((new Vector2((cx + 1f) * cellSize, (cy + 1f) * cellSize), block));
                 return true;
             }
             return false;
@@ -100,9 +106,14 @@ internal static class PointOfInterestGenerator
         }
 
         var side = departments.CellsPerSide;
-        for (var n = 3 + random.Next(2); n > 0; n--)
-            Place(PointOfInterestType.Canteen, 0, 0, side, side,
-                (x, y) => departments.AtCell(x, y).Type == DepartmentType.RestaurantAndFoodMarket);
+        // Each Cafeteria stands on a 2 × 2 block of cells that all belong to one Restaurant/food market Department.
+        bool FoodMarketBlock(int x, int y) =>
+            departments.AtCell(x, y).Type == DepartmentType.RestaurantAndFoodMarket &&
+            departments.AtCell(x + 1, y) == departments.AtCell(x, y) && departments.AtCell(x, y + 1) == departments.AtCell(x, y) &&
+            departments.AtCell(x + 1, y + 1) == departments.AtCell(x, y);
+        for (var n = 2 + random.Next(2); n > 0; n--)
+            if (!TryPlace(PointOfInterestType.Cafeteria, 0, 0, side, side, FoodMarketBlock, blockCells: 2) && sites.Count(s => s.Type == PointOfInterestType.Cafeteria) < 2)
+                throw new InvalidOperationException("No room for a Cafeteria.");
         for (var n = 2 + random.Next(3); n > 0; n--)
             Place(PointOfInterestType.ShoppingCartGraveyard, 0, 0, side, side, (_, _) => true);
         foreach (var sector in sectors)
@@ -114,8 +125,8 @@ internal static class PointOfInterestGenerator
             for (var n = 2 + random.Next(2); n > 0; n--)
                 PlaceInSector(PointOfInterestType.SetDinnerTable);
             for (var n = 1 + random.Next(3); n > 0; n--)
-                PlaceInSector(PointOfInterestType.Restroom);
-            PlaceInSector(PointOfInterestType.LostAndFoundDesk);
+                PlaceInSector(PointOfInterestType.StoreRestroom);
+            PlaceInSector(PointOfInterestType.LostAndFound);
         }
 
         // The rare ones, anywhere in the Store; the Ball pits in the Kids' area where it has room.
@@ -136,13 +147,12 @@ internal static class PointOfInterestGenerator
     private const float ShowcaseGap = 6f;
 
     /// <summary>
-    /// The Point of interest showcase: every kind once except the Canteen, which the Cafeteria replaces, unturned, side by side along x in a row centred on the Store, on
+    /// The Point of interest showcase: every kind once, unturned, side by side along x in a row centred on the Store, on
     /// the row nearest the middle of the Store that keeps clear of every Pillar and its walkway ring.
     /// </summary>
     public static IReadOnlyList<PointOfInterestSite> Showcase(StoreSpace space, IReadOnlyList<Sector> sectors, IReadOnlyList<Pillar> pillars)
     {
-        // The Cafeteria stands in for the Canteen, StoreRestroom stands in for the Restroom, and LostAndFound stands in for LostAndFoundDesk (ticket 08m moves the Store generator over too).
-        var kinds = Enum.GetValues<PointOfInterestType>().Where(k => k != PointOfInterestType.Canteen && k != PointOfInterestType.Restroom && k != PointOfInterestType.LostAndFoundDesk).ToList();
+        var kinds = Enum.GetValues<PointOfInterestType>().ToList();
         var length = kinds.Sum(k => OwnSize(k).X) + ShowcaseGap * (kinds.Count - 1);
         if (length > space.Size)
             throw new InvalidOperationException($"The showcase row ({length:0} m) is longer than the Store.");
@@ -201,10 +211,7 @@ internal static class PointOfInterestGenerator
             var builder = new PointOfInterestBuilder(space, site, SeededRandom.For(seed, BuildStream, site.Id));
             switch (site.Type)
             {
-                case PointOfInterestType.Restroom: BuildRestroom(builder); break;
-                case PointOfInterestType.Canteen: BuildCanteen(builder); break;
                 case PointOfInterestType.SetDinnerTable: BuildDinnerTable(builder); break;
-                case PointOfInterestType.LostAndFoundDesk: BuildLostAndFound(builder); break;
                 case PointOfInterestType.ShoppingCartGraveyard: BuildCartGraveyard(builder); break;
                 case PointOfInterestType.BallPit: BuildBallPit(builder); break;
                 case PointOfInterestType.ArmchairHenge: BuildArmchairHenge(builder); break;
@@ -422,56 +429,6 @@ internal static class PointOfInterestGenerator
         }
     }
 
-    /// <summary>A row of stalls along the north wall, each with a toilet between partitions, and basins with mirrors along the south.</summary>
-    private static void BuildRestroom(PointOfInterestBuilder b)
-    {
-        var random = b.Random;
-        var stalls = 2 + random.Next(2);
-        const float stallWidth = 1.5f;
-        var x0 = -4f + 0.3f;
-        for (var i = 0; i <= stalls; i++)
-            foreach (var y in new[] { -2.55f, -1.75f })
-                b.Put(FurnitureType.Bookcase, new Vector2(x0 + i * stallWidth, y), 0f, Quarter);
-        for (var i = 0; i < stalls; i++)
-            b.Put(FurnitureType.Toilet, new Vector2(x0 + (i + 0.5f) * stallWidth, -2.65f), 0f, 0f);
-        var basins = 2 + random.Next(2);
-        var start = -(basins - 1) * 1.0f / 2f + random.Range(-0.6f, 0.6f);
-        for (var i = 0; i < basins; i++)
-        {
-            b.Put(FurnitureType.VanityUnit, new Vector2(start + i * 1.0f, 2.2f), 0f, MathF.PI);
-            b.Put(FurnitureType.FloorMirror, new Vector2(start + i * 1.0f, 2.74f), 0f, MathF.PI);
-        }
-        if (random.Chance(0.6f))
-            b.Put(FurnitureType.HallBench, new Vector2(random.Range(-3f, 3f), 0.4f), 0f, random.Chance(0.5f) ? 0f : MathF.PI);
-    }
-
-    /// <summary>A serving line of counters with meals, chilled cabinets and shelves along the walls, and rows of dining tables.</summary>
-    private static void BuildCanteen(PointOfInterestBuilder b)
-    {
-        var random = b.Random;
-        var counterHeight = FurnitureCatalog.Spec(FurnitureType.Counter).Height;
-        for (var x = -4.1f; x <= 4.11f; x += 2.05f)
-        {
-            b.Put(FurnitureType.Counter, new Vector2(x, -4.6f), 0f, 0f);
-            foreach (var dx in new[] { -0.45f, 0.45f })
-                if (random.Chance(0.8f))
-                    b.Put(FurnitureType.MealPlate, new Vector2(x + dx, -4.6f), counterHeight, 0f);
-        }
-        foreach (var y in new[] { -3.1f, -0.9f })
-        {
-            b.Put(FurnitureType.Freezer, new Vector2(-5.55f, y), 0f, -Quarter);
-            b.Put(FurnitureType.GroceryShelf, new Vector2(5.55f, y), 0f, Quarter);
-        }
-        var tableVariant = random.Chance(0.4f) && FurnitureCatalog.VariantCount(FurnitureType.DiningTable) > 1 ? 1 : 0;
-        var columns = 3 + random.Next(2);
-        for (var row = 0; row < 2; row++)
-            for (var column = 0; column < columns; column++)
-            {
-                var at = new Vector2((column - (columns - 1) / 2f) * 2.4f, 0.4f + row * 2.7f);
-                b.Put(FurnitureType.DiningTable, at, 0f, 0f, tableVariant);
-                SeatsAround(b, at, tableVariant, plates: random.Chance(0.5f), sideSeats: 1);
-            }
-    }
 
     /// <summary>Chairs around a dining table, and a plate before each if it is laid.</summary>
     private static void SeatsAround(PointOfInterestBuilder b, Vector2 table, int variant, bool plates, int sideSeats = 2)
@@ -538,7 +495,7 @@ internal static class PointOfInterestGenerator
                 b.Put(FurnitureType.NoticeBoard, new Vector2(-0.15f, -2.42f), 1.2f, 0f);
 
                 // Storage bin beside east shelf
-                b.Put(FurnitureType.CushionBin, new Vector2(2.6f, -2.0f), 0f, 0f, tint: random.Next(FurniturePalettes.TintCount));
+                b.Put(FurnitureType.CushionBin, new Vector2(2.75f, -2.0f), 0f, 0f, tint: random.Next(FurniturePalettes.TintCount));
 
                 // West side: coat rack and unsorted cart
                 b.Put(FurnitureType.CoatRack, new Vector2(-2.7f, -1.0f), 0f, 0f);
@@ -576,7 +533,7 @@ internal static class PointOfInterestGenerator
                 b.Put(FurnitureType.LabelledBox, new Vector2(-2.85f, 1.3f), 0.45f, Quarter - 0.1f);
                 b.Put(FurnitureType.LabelledBox, new Vector2(-2.85f, 1.0f), 0.95f, Quarter + 0.1f);
 
-                b.Put(FurnitureType.CushionBin, new Vector2(-2.6f, -2.0f), 0f, 0f, tint: random.Next(FurniturePalettes.TintCount));
+                b.Put(FurnitureType.CushionBin, new Vector2(-1.85f, -1.95f), 0f, 0f, tint: random.Next(FurniturePalettes.TintCount));
 
                 // North wall: notice board, coat rack, and unsorted cart
                 b.Put(FurnitureType.NoticeBoard, new Vector2(-0.5f, -2.42f), 1.2f, 0f);
@@ -641,23 +598,6 @@ internal static class PointOfInterestGenerator
                 break;
             }
         }
-    }
-
-    /// <summary>A desk with the staff's chair before shelves and cabinets of what has been found, and boxes of it on the floor.</summary>
-    private static void BuildLostAndFound(PointOfInterestBuilder b)
-    {
-        var random = b.Random;
-        foreach (var x in new[] { -1.45f, 0.6f })
-            b.Put(FurnitureType.ShelfUnit, new Vector2(x, -2.2f), 0f, 0f);
-        b.Put(FurnitureType.FilingCabinet, new Vector2(2.1f, -2.2f), 0f, 0f);
-        b.Put(FurnitureType.Desk, new Vector2(0f, 0.2f), 0f, 0f, FurnitureCatalog.VariantCount(FurnitureType.Desk) > 2 ? 2 : 0);
-        b.Put(FurnitureType.OfficeChair, new Vector2(random.Range(-0.3f, 0.3f), -0.8f), 0f, random.Range(-0.3f, 0.3f));
-        b.Put(FurnitureType.FilingCabinet, new Vector2(-2.1f, 0.6f), 0f, Quarter);
-        b.Put(FurnitureType.CushionBin, new Vector2(-1.9f, 1.8f), 0f, 0f, tint: random.Next(FurniturePalettes.TintCount));
-        b.Put(FurnitureType.CoatRack, new Vector2(2.1f, 1.9f), 0f, 0f);
-        // Boxes of what has been found, one stacked on another.
-        b.Put(FurnitureType.FlatPackBox, new Vector2(0.4f, 1.5f), 0f, 0f);
-        b.Put(FurnitureType.FlatPackBox, new Vector2(0.4f, 1.5f), FurnitureCatalog.Spec(FurnitureType.FlatPackBox).Height, random.Range(-0.3f, 0.3f));
     }
 
     /// <summary>A corral fenced with shelving on three sides, full of nested shopping carts, with a few knocked over outside.</summary>
@@ -815,8 +755,11 @@ internal static class PointOfInterestGenerator
                 if (i == fallenUpright)
                 {
                     var side = random.Chance(0.5f) ? 1f : -1f;
-                    b.Put(FurnitureType.Sofa, At(centre, angle, ringRadius + side * 2.2f), 0f, angle + Quarter + random.Range(-0.4f, 0.4f),
-                        stoneVariant, tint: Tint());
+                    var fallenTurn = angle + Quarter + random.Range(-0.4f, 0.4f);
+                    var fallenTint = Tint();
+                    // Outside the ring it may stick out of the site's rectangle; then it lies inside the ring instead.
+                    if (!b.Put(FurnitureType.Sofa, At(centre, angle, ringRadius + side * 2.2f), 0f, fallenTurn, stoneVariant, tint: fallenTint))
+                        b.Put(FurnitureType.Sofa, At(centre, angle, ringRadius - side * 2.2f), 0f, fallenTurn, stoneVariant, tint: fallenTint);
                 }
                 continue;
             }

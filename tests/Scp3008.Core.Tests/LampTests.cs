@@ -28,7 +28,8 @@ public class LampTests
         Assert.Equal(lamps, sim.Snapshot.Furniture.Where(p => p.DisplayId >= 0 && FurnitureCatalog.Spec(p.Type).IsLamp));
     }
 
-    private static readonly FurnitureType[] LampTypes = [FurnitureType.TableLamp, FurnitureType.FloorLamp, FurnitureType.DeskLamp, FurnitureType.ArcLamp];
+    private static readonly FurnitureType[] LampTypes = [FurnitureType.TableLamp, FurnitureType.FloorLamp, FurnitureType.DeskLamp, FurnitureType.ArcLamp,
+        FurnitureType.LanternTent, FurnitureType.CampfireFlame];
 
     [Fact]
     public void Lamps_give_light_and_other_furniture_does_not()
@@ -76,7 +77,8 @@ public class LampLevelTests
     }
 
     private static FurniturePiece[] LampsOf(Simulation sim) =>
-        sim.Snapshot.Furniture.Where(p => p.DisplayId >= 0 && FurnitureCatalog.Spec(p).IsLamp).ToArray();
+        sim.Snapshot.Furniture.Where(p => p.DisplayId >= 0 && FurnitureCatalog.Spec(p).IsLamp
+            && !sim.Snapshot.GroundAt(p.Position).HasFlag(GroundProperty.Darkness)).ToArray();
 
     private static float[] Levels(Simulation sim, FurniturePiece[] lamps) =>
         lamps.Select(sim.Snapshot.LampLevel).ToArray();

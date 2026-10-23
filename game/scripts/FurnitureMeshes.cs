@@ -81,6 +81,14 @@ public static class FurnitureMeshes
         Sauce,
         CakeSlice,
         Plate,
+        // The Camping ground (ticket 07z): bark, tent and hammock canvas (tinted), fur, the rubber duck's yellow and
+        // orange, and the campfire's cloth flame, which glows as far as its own Lamp has come on.
+        Bark,
+        Canvas,
+        Fur,
+        Duck,
+        Beak,
+        Flame,
     }
 
     // Emission of a lit lamp shade.
@@ -162,6 +170,8 @@ public static class FurnitureMeshes
         FurnitureType.ArcLamp => 1.95f,
         FurnitureType.TableLamp => 0.4f,
         FurnitureType.FloorLamp => 1.55f,
+        FurnitureType.LanternTent => 0.7f,
+        FurnitureType.CampfireFlame => 0.7f,
         _ => throw new ArgumentOutOfRangeException(nameof(type), type, "Not a Lamp."),
     };
 
@@ -193,8 +203,20 @@ public static class FurnitureMeshes
     public static Color TintFor(FurnitureType type, int tint)
     {
         var palette = Palette(type);
-        return palette is null ? Colors.White : palette[Math.Clamp(tint, 0, palette.Length - 1)];
+        if (palette is null)
+            return Colors.White;
+        // The dinosaurs' saturated colours follow the ordinary tints, on any palette type they are built of.
+        return tint >= FurniturePalettes.FirstDinosaurTint
+            ? DinosaurColors[Math.Clamp(tint - FurniturePalettes.FirstDinosaurTint, 0, DinosaurColors.Length - 1)]
+            : palette[Math.Clamp(tint, 0, palette.Length - 1)];
     }
+
+    // The dinosaur tints (FurniturePalettes.DinosaurTints): orange-red, green, teal, then cream, dark and yellow accents.
+    private static readonly Color[] DinosaurColors =
+    [
+        new(0.95f, 0.25f, 0.05f), new(0.15f, 0.7f, 0.12f), new(0.0f, 0.62f, 0.62f),
+        new(0.95f, 0.92f, 0.78f), new(0.05f, 0.05f, 0.06f), new(1f, 0.82f, 0.05f),
+    ];
 
     /// <summary>Whether pieces of this type take a colour from a palette (their tinted materials vary).</summary>
     public static bool IsTinted(FurnitureType type) => Palette(type) is not null;
@@ -233,6 +255,8 @@ public static class FurnitureMeshes
             FurnitureType.Mannequin => MannequinColors,
             FurnitureType.BallPool or FurnitureType.NetRailing or FurnitureType.PlaySlide or FurnitureType.FoamStep => PaddingColors,
             FurnitureType.PlayBall => BallColors,
+            FurnitureType.Tree => LeafColors,
+            FurnitureType.Tent or FurnitureType.LanternTent or FurnitureType.SleepingBag or FurnitureType.Hammock or FurnitureType.Kayak => PlasticColors,
             _ => null,
         };
     }
@@ -350,6 +374,11 @@ public static class FurnitureMeshes
             or FurnitureType.NoticeBoard or FurnitureType.LostAndFoundSign)
         {
             BuildLostAndFound(b, type, variant, w, d, h);
+            return b;
+        }
+        if (FurnitureCatalog.CampingTypes.Contains(type))
+        {
+            BuildCamping(b, type, variant, w, d, h);
             return b;
         }
         if (variant > 0)
@@ -1257,6 +1286,148 @@ public static class FurnitureMeshes
         }
     }
 
+    /// <summary>The Camping ground's camp Furniture (ticket 07z): trees, tents, campfire, hammock, kayak and small props.</summary>
+    private static void BuildCamping(Builder b, FurnitureType type, int variant, float w, float d, float h)
+    {
+        var (hw, hd) = (w / 2f, d / 2f);
+        // The cloth flame and the tent's lit panel glow with their own Lamp; coarse meshes have the lamp shade part for that.
+        var glow = b.Coarse ? Part.LampShade : Part.Flame;
+        // A half ellipsoid on the ground: the lower half stays below the floor, coarse meshes use a box.
+        void Dome(Part part, float cx, float cz, float rx, float ry, float rz, int segments = 12, int rings = 8)
+        {
+            if (b.Coarse)
+                b.Box(part, new Vector3(cx - rx * 0.85f, 0f, cz - rz * 0.85f), new Vector3(cx + rx * 0.85f, ry * 0.85f, cz + rz * 0.85f));
+            else
+                b.Ellipsoid(part, new Vector3(cx, 0f, cz), rx, ry, rz, segments, rings);
+        }
+        switch (type)
+        {
+            case FurnitureType.Tree when variant == 1:
+                // A tall conifer: four tiers of needles up a thin trunk.
+                b.Cylinder(Part.Bark, Vector3.Zero, 0.3f, 0.12f, h, 8);
+                (float Base, float Radius, float Height)[] tiers = [(1.4f, 1.45f, 2.8f), (3.2f, 1.2f, 2.8f), (5.0f, 0.95f, 2.8f), (6.8f, 0.7f, 2.2f)];
+                foreach (var (bottom, radius, height) in tiers)
+                    b.Cylinder(Part.Leaf, new Vector3(0f, bottom, 0f), radius, 0.03f, height, 10);
+                break;
+            case FurnitureType.Tree when variant == 2:
+                // The giant tree house tree: a thick trunk and a high crown of blobs.
+                b.Cylinder(Part.Bark, Vector3.Zero, 0.95f, 0.5f, 15f, 10);
+                b.Ellipsoid(Part.Leaf, new Vector3(0f, 17.5f, 0f), 2.4f, 4.5f, 2.4f, 12, 8);
+                b.Ellipsoid(Part.Leaf, new Vector3(1.5f, 15f, 0.5f), 2f, 2f, 2f, 10, 6);
+                b.Ellipsoid(Part.Leaf, new Vector3(-1.4f, 16f, -0.6f), 2f, 2.2f, 2f, 10, 6);
+                break;
+            case FurnitureType.Tree:
+                b.Cylinder(Part.Bark, Vector3.Zero, 0.3f, 0.2f, 3.6f, 8);
+                b.Ellipsoid(Part.Leaf, new Vector3(0f, 3.6f, 0f), 1.8f, 1.5f, 1.8f, 10, 6);
+                b.Ellipsoid(Part.Leaf, new Vector3(0.8f, 4.6f, 0.3f), 1.2f, 1.2f, 1.2f, 10, 6);
+                b.Ellipsoid(Part.Leaf, new Vector3(-0.7f, 4.8f, -0.4f), 1.2f, 1.2f, 1.2f, 10, 6);
+                break;
+            case FurnitureType.Tent when variant == 1:
+                // A tipi: a cone of canvas, poles crossing above it and a dark door flap.
+                b.Cylinder(Part.Canvas, Vector3.Zero, hw, 0.05f, h - 0.6f, 12);
+                foreach (var (x, z) in new[] { (-0.35f, -0.25f), (0.35f, -0.25f), (0f, 0.4f) })
+                    b.Tube(Part.Bark, new Vector3(x * 1.8f, 0f, z * 1.8f), new Vector3(0f, h, 0f), 0.05f, 0.03f, 5);
+                b.Fin(Part.Rubber, new Vector3(-0.4f, 0f, hd + 0.02f), new Vector3(0.4f, 0f, hd + 0.02f), new Vector3(0f, 1.5f, hd * 0.5f));
+                break;
+            case FurnitureType.Tent when variant == 2:
+                // A family tunnel tent: a long low pod with a dark door and a vestibule bulge.
+                Dome(Part.Canvas, 0f, 0f, hw, h, hd, 14, 8);
+                Dome(Part.Rubber, 0f, hd - 0.1f, 0.7f, 1.2f, 0.3f, 10, 6);
+                Dome(Part.Canvas, -hw * 0.35f, hd - 0.2f, 1.2f, 1.1f, 0.5f, 10, 6);
+                break;
+            case FurnitureType.Tent:
+            case FurnitureType.LanternTent:
+                // A dome tent: a half ellipsoid of canvas with a dark door, and a lit lantern panel for the lantern tent.
+                Dome(Part.Canvas, 0f, 0f, hw, h, hd);
+                if (type == FurnitureType.LanternTent)
+                {
+                    Dome(Part.LampShade, 0f, hd - 0.2f, 0.9f, 1.1f, 0.3f, 10, 6);
+                    if (!b.Coarse)
+                    {
+                        // A person's silhouette against the glow.
+                        b.Ellipsoid(Part.Rubber, new Vector3(-0.1f, 0.95f, hd + 0.12f), 0.13f, 0.14f, 0.05f, 8, 5);
+                        b.Ellipsoid(Part.Rubber, new Vector3(-0.1f, 0.5f, hd + 0.12f), 0.25f, 0.38f, 0.05f, 8, 5);
+                    }
+                }
+                else
+                    Dome(Part.Rubber, 0f, hd - 0.05f, 0.5f, 0.75f, 0.2f, 8, 5);
+                break;
+            case FurnitureType.CampfireFlame:
+                // Logs under three tongues of cloth flame.
+                b.Tube(Part.Bark, new Vector3(-0.6f, 0.12f, -0.1f), new Vector3(0.6f, 0.12f, 0.1f), 0.1f, 0.1f, 6);
+                b.Tube(Part.Bark, new Vector3(-0.1f, 0.12f, -0.6f), new Vector3(0.1f, 0.12f, 0.6f), 0.1f, 0.1f, 6);
+                b.Cylinder(glow, new Vector3(0f, 0.1f, 0f), 0.45f, 0.04f, 1.5f, 8);
+                b.Cylinder(glow, new Vector3(0.22f, 0.1f, 0.1f), 0.28f, 0.03f, 1.7f, 8);
+                b.Cylinder(glow, new Vector3(-0.22f, 0.1f, -0.1f), 0.28f, 0.03f, 1.2f, 8);
+                break;
+            case FurnitureType.LogSeat:
+                b.Tube(Part.Bark, new Vector3(-hw, 0.225f, 0f), new Vector3(hw, 0.225f, 0f), 0.225f, 0.225f, 8);
+                break;
+            case FurnitureType.Hammock:
+            {
+                // Cloth sagging from both ends, hung from ropes.
+                var half = 0.4f;
+                b.Slab(Part.Canvas, new Vector3(-hw, 0.5f, -half), new Vector3(1.05f, -0.38f, 0f), new Vector3(0f, 0f, half * 2f), 0.04f);
+                b.Slab(Part.Canvas, new Vector3(-0.55f, 0.12f, -half), new Vector3(1.1f, 0f, 0f), new Vector3(0f, 0f, half * 2f), 0.04f);
+                b.Slab(Part.Canvas, new Vector3(0.55f, 0.12f, -half), new Vector3(1.05f, 0.38f, 0f), new Vector3(0f, 0f, half * 2f), 0.04f);
+                foreach (var side in new[] { -1f, 1f })
+                    b.Tube(Part.Bark, new Vector3(side * hw, 0.5f, 0f), new Vector3(side * (hw + 0.7f), 1.1f, 0f), 0.025f, 0.025f, 4);
+                break;
+            }
+            case FurnitureType.Kayak:
+                b.Ellipsoid(Part.Plastic, new Vector3(0f, 0.2f, 0f), hw, 0.2f, hd, 12, 6);
+                b.Ellipsoid(Part.Rubber, new Vector3(0.1f, 0.36f, 0f), 0.4f, 0.06f, 0.2f, 8, 4);
+                break;
+            case FurnitureType.FishingRod:
+                // A forked stick holds a long rod over the water, its line hanging down.
+                b.Tube(Part.Pine, new Vector3(-0.15f, 0f, -0.1f), new Vector3(-0.1f, 0.8f, 0f), 0.02f, 0.02f, 5);
+                b.Tube(Part.Pine, new Vector3(-0.05f, 0f, 0.1f), new Vector3(-0.1f, 0.8f, 0f), 0.02f, 0.02f, 5);
+                b.Tube(Part.DarkSteel, new Vector3(-0.15f, 0.7f, 0f), new Vector3(0.18f, 1.98f, 0.1f), 0.02f, 0.008f, 5);
+                b.Tube(Part.LightSteel, new Vector3(0.18f, 1.98f, 0.1f), new Vector3(0.18f, 0.5f, 0.19f), 0.004f, 0.004f, 4);
+                break;
+            case FurnitureType.RubberDuck:
+                b.Ellipsoid(Part.Duck, new Vector3(0f, 0.11f, 0f), 0.14f, 0.11f, 0.13f, 8, 5);
+                b.Ellipsoid(Part.Duck, new Vector3(0f, 0.27f, 0.08f), 0.075f, 0.075f, 0.075f, 8, 5);
+                b.Box(Part.Beak, new Vector3(-0.035f, 0.24f, 0.14f), new Vector3(0.035f, 0.27f, 0.19f));
+                break;
+            case FurnitureType.PlushBear:
+                b.Ellipsoid(Part.Fur, new Vector3(0f, 0.55f, 0f), 0.42f, 0.55f, 0.38f, 10, 6);
+                b.Ellipsoid(Part.Fur, new Vector3(0f, 1.2f, 0.05f), 0.32f, 0.3f, 0.3f, 10, 6);
+                foreach (var side in new[] { -1f, 1f })
+                {
+                    b.Ellipsoid(Part.Fur, new Vector3(side * 0.24f, 1.45f, 0f), 0.1f, 0.1f, 0.06f, 6, 4);
+                    b.Ellipsoid(Part.Fur, new Vector3(side * 0.44f, 0.72f, 0.1f), 0.13f, 0.3f, 0.14f, 6, 4);
+                    b.Ellipsoid(Part.Fur, new Vector3(side * 0.24f, 0.18f, 0.25f), 0.19f, 0.17f, 0.25f, 6, 4);
+                    if (!b.Coarse)
+                        b.Ellipsoid(Part.Rubber, new Vector3(side * 0.11f, 1.28f, 0.32f), 0.04f, 0.04f, 0.03f, 6, 4);
+                }
+                if (!b.Coarse)
+                {
+                    b.Ellipsoid(Part.Bedding, new Vector3(0f, 1.15f, 0.31f), 0.13f, 0.1f, 0.09f, 8, 5);
+                    b.Ellipsoid(Part.Rubber, new Vector3(0f, 1.19f, 0.39f), 0.05f, 0.04f, 0.03f, 6, 4);
+                }
+                break;
+            case FurnitureType.TrailSign:
+                // A post with a board; its lettering ("Camp 3 km") is added by PointOfInterestDetails.
+                b.Box(Part.Pine, new Vector3(-0.05f, 0f, -0.05f), new Vector3(0.05f, h, 0.05f));
+                b.Box(Part.Pine, new Vector3(-hw, 1.45f, -0.04f), new Vector3(hw - 0.15f, 1.85f, 0.04f));
+                b.Fin(Part.Pine, new Vector3(hw - 0.15f, 1.45f, 0f), new Vector3(hw - 0.15f, 1.85f, 0f), new Vector3(hw, 1.65f, 0f));
+                break;
+            case FurnitureType.Axe:
+                // Lying flat: the head at the back, where it is stuck in the trunk, the handle toward the front.
+                b.Box(Part.LightSteel, new Vector3(-hw, 0f, -hd), new Vector3(hw, h, -hd + 0.14f));
+                b.Box(Part.DarkSteel, new Vector3(-hw, 0f, -hd + 0.14f), new Vector3(hw, h, -hd + 0.2f));
+                b.Box(Part.Pine, new Vector3(-0.02f, 0.03f, -hd + 0.2f), new Vector3(0.02f, 0.07f, hd));
+                break;
+            case FurnitureType.SleepingBag:
+                // A rolled-out bag with a pillow at the head end.
+                b.Box(Part.Canvas, new Vector3(-hw, 0f, -hd), new Vector3(hw, h - 0.05f, hd - 0.1f));
+                b.Box(Part.Canvas, new Vector3(-hw + 0.05f, h - 0.05f, -hd + 0.05f), new Vector3(hw - 0.05f, h, hd - 0.15f));
+                b.Box(Part.Bedding, new Vector3(-hw + 0.1f, 0f, -hd), new Vector3(hw - 0.1f, h - 0.04f, -hd + 0.45f));
+                break;
+        }
+    }
+
     private static void BuildLostAndFound(Builder b, FurnitureType type, int variant, float w, float d, float h)
     {
         var (hw, hd) = (w / 2f, d / 2f);
@@ -1946,6 +2117,13 @@ public static class FurnitureMeshes
             [Part.Sauce] = ModelFoodMaterial("meatballs", "sauce"),
             [Part.CakeSlice] = ModelFoodMaterial("cake_slice", "cake_slice"),
             [Part.Plate] = ModelFoodMaterial("whole_cake", "plate"),
+            [Part.Bark] = Plain(new Color(0.3f, 0.2f, 0.12f), 0.95f),
+            [Part.Canvas] = Plain(Colors.White, 0.85f, tinted: true),
+            [Part.Fur] = Plain(new Color(0.45f, 0.28f, 0.14f), 0.95f),
+            [Part.Duck] = Plain(new Color(1f, 0.85f, 0.1f), 0.3f),
+            [Part.Beak] = Plain(new Color(0.95f, 0.45f, 0.08f), 0.4f),
+            // A red-orange cloth flame, lit as far as its own Lamp has come on like a lamp shade.
+            [Part.Flame] = Flame(),
         };
         return _materials;
 
@@ -1958,6 +2136,13 @@ public static class FurnitureMeshes
             material.SetShaderParameter("emission_color", new Color(0.2f, 0.62f, 0.95f));
             material.SetShaderParameter("emission_energy", 0.9f);
             material.SetShaderParameter("panel_alpha", 0.28f);
+            return material;
+        }
+        ShaderMaterial Flame()
+        {
+            var material = Plain(new Color(0.9f, 0.22f, 0.05f), 0.9f);
+            material.SetShaderParameter("emission_color", new Color(1f, 0.3f, 0.06f));
+            material.SetShaderParameter("emission_energy", 3.5f);
             return material;
         }
         // A school of fish in its kind's colour (FishColour), which its shader swims.
