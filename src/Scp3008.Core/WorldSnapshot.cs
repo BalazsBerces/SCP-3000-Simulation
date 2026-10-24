@@ -61,6 +61,29 @@ public sealed record WorldSnapshot(
     /// <summary>The goods on the Camping grounds' stands, one entry per kind per stand (the marshmallow tasting stand holds marshmallows).</summary>
     public IReadOnlyList<CampGoods> CampGoods { get; init; } = [];
 
+    /// <summary>
+    /// All the Store's Goods: which piece holds them, which kind, how much. Store stock lies on Stock Furniture
+    /// (<see cref="IsStockFurniture"/>), the Cafeteria meals, Aquarium fish and Camping ground goods included; the rare
+    /// <see cref="StockedGoods.LeftBehind"/> finds lie in Display Furniture.
+    /// </summary>
+    public IReadOnlyList<StockedGoods> Stock { get; init; } = [];
+
+    /// <summary>
+    /// Whether a piece is Stock Furniture, which holds Goods as real store stock (grocery shelves, freezers, warehouse shelving,
+    /// Cafeteria counters, Aquarium tanks, the Camping ground's stands, a Lost and found's boxes), whether or not any are on it now.
+    /// </summary>
+    public bool IsStockFurniture(FurniturePiece piece) =>
+        Generation.StockGenerator.IsStockFurniture(piece, Displays, Departments, PointsOfInterest, CampGoods);
+
+    /// <summary>The units of Goods in the Store per Goods class, every class listed.</summary>
+    public IReadOnlyDictionary<GoodsClass, int> StockByClass()
+    {
+        var totals = Enum.GetValues<GoodsClass>().ToDictionary(c => c, _ => 0);
+        foreach (var goods in Stock)
+            totals[GoodsCatalog.ClassOf(goods.Kind)] += goods.Amount;
+        return totals;
+    }
+
     /// <summary>The Store's three Ball pits as the one network the Staff pass through at Closing time.</summary>
     public BallPitNetwork BallPitNetwork { get; init; } = BallPitNetwork.None;
 

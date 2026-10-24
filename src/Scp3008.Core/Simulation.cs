@@ -38,6 +38,7 @@ public sealed class Simulation : IDisposable
     private readonly IReadOnlyList<TankFish> _tankFish;
     private readonly IReadOnlyList<CounterMeal> _counterMeals;
     private readonly IReadOnlyList<CampGoods> _campGoods;
+    private IReadOnlyList<StockedGoods> _stock;
     private readonly Weather _weather;
     private long _tick;
     private SimulationSpeed _speed = SimulationSpeed.Normal;
@@ -82,6 +83,8 @@ public sealed class Simulation : IDisposable
         _ballPitNetwork = pointsOfInterest.BallPitNetwork;
         _tankFish = pointsOfInterest.TankFish;
         _counterMeals = pointsOfInterest.CounterMeals;
+        _stock = StockGenerator.Generate(config.Seed, config.Stock ?? new StockConfig(), _furniture.Pieces, _furniture.Displays, _departments,
+            _pointsOfInterest, _tankFish, _counterMeals, _campGoods);
         // Runtime randomness never comes from the Store seed (ADR 0003); it is unseeded unless a test fixes it.
         var runtimeSeed = config.RuntimeRngSeed ?? Random.Shared.Next();
         _weather = new Weather(_space, SeededRandom.For(runtimeSeed, WeatherStream));
@@ -312,6 +315,9 @@ public sealed class Simulation : IDisposable
             if (removed > 0)
             {
                 _furniture = _furniture with { Pieces = kept.AsReadOnly() };
+                // Goods go with the Furniture that held them.
+                var ids = kept.Select(p => p.Id).ToHashSet();
+                _stock = _stock.Where(g => ids.Contains(g.FurnitureId)).ToList().AsReadOnly();
                 _snapshot = BuildSnapshot();
             }
             return removed;
@@ -335,6 +341,7 @@ public sealed class Simulation : IDisposable
             TankFish = _tankFish,
             CounterMeals = _counterMeals,
             CampGoods = _campGoods,
+            Stock = _stock,
             PointOfInterestShowcase = _config.PointOfInterestShowcase,
         };
 
