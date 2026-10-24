@@ -40,6 +40,7 @@ public sealed class Simulation : IDisposable
     private readonly IReadOnlyList<CampGoods> _campGoods;
     private IReadOnlyList<StockedGoods> _stock;
     private IReadOnlyList<WaterPoint> _waterPoints;
+    private IReadOnlyList<SectorStock> _sectorStocks;
     private readonly Weather _weather;
     private long _tick;
     private SimulationSpeed _speed = SimulationSpeed.Normal;
@@ -85,7 +86,8 @@ public sealed class Simulation : IDisposable
         _tankFish = pointsOfInterest.TankFish;
         _counterMeals = pointsOfInterest.CounterMeals;
         _stock = StockGenerator.Generate(config.Seed, config.Stock ?? new StockConfig(), _furniture.Pieces, _furniture.Displays, _departments,
-            _pointsOfInterest, _tankFish, _counterMeals, _campGoods);
+            _pointsOfInterest, _tankFish, _counterMeals, _campGoods, _space, config.PillarLayout);
+        _sectorStocks = StockGenerator.Summarize(_stock, _furniture.Pieces, _space, config.PillarLayout, config.Stock ?? new StockConfig());
         _waterPoints = WaterGenerator.Generate(config.Seed, config.Water ?? new WaterConfig(), _furniture.Pieces, _furniture.Displays,
             _pointsOfInterest, _landmarks);
         // Runtime randomness never comes from the Store seed (ADR 0003); it is unseeded unless a test fixes it.
@@ -346,6 +348,7 @@ public sealed class Simulation : IDisposable
             CounterMeals = _counterMeals,
             CampGoods = _campGoods,
             Stock = _stock,
+            SectorStocks = _sectorStocks,
             WaterPoints = _waterPoints,
             PointOfInterestShowcase = _config.PointOfInterestShowcase,
         };

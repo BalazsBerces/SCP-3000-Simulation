@@ -84,7 +84,41 @@ public sealed record StockConfig
     /// that holds one left-behind find; the number of finds is this share of them, rounded down.
     /// </summary>
     public float LeftBehindShare { get; init; } = 0.02f;
+
+    /// <summary>
+    /// Whether the generator reshapes the Display stock's amounts so every Sector has a Surplus and a Shortage and each Goods
+    /// class's Store total keeps to its band; off, every shelf keeps the amount drawn for it.
+    /// </summary>
+    public bool SectorGuarantee { get; init; } = true;
+    /// <summary>A Sector has a Surplus in a Goods class holding at least this many times the Store's mean per Sector of it.</summary>
+    public float SurplusRatio { get; init; } = 1.3f;
+    /// <summary>A Sector has a Shortage in a Goods class holding at most this share of the Store's mean per Sector of it (scarce, not absent).</summary>
+    public float ShortageRatio { get; init; } = 0.6f;
+    /// <summary>
+    /// The target Store-wide units of each Goods class per hectare of floor; the defaults are about what the Departments' shelves
+    /// hold on average across seeds and layouts.
+    /// </summary>
+    public IReadOnlyDictionary<GoodsClass, float> TargetPerHectare { get; init; } = new Dictionary<GoodsClass, float>
+    {
+        [GoodsClass.Food] = 1470f, [GoodsClass.Drink] = 105f, [GoodsClass.Comfort] = 1050f, [GoodsClass.Supplies] = 1470f,
+    };
+    /// <summary>
+    /// How far, as a share of its target, each Goods class's Store total may stray from <see cref="TargetPerHectare"/>; a Store
+    /// whose shelves hold more or less is brought to the band's edge.
+    /// </summary>
+    public float ClassTotalBand { get; init; } = 0.2f;
 }
+
+/// <summary>
+/// A Sector's store stock by Goods class and what it makes the Sector rich in or short of, derived from the Goods actually on
+/// its Furniture, measured against the Store's mean per Sector of each class.
+/// </summary>
+/// <param name="SectorId">The Sector, by <see cref="Sector.Id"/>.</param>
+/// <param name="ByClass">The units of Goods in the Sector per Goods class, every class listed.</param>
+/// <param name="Surplus">The classes it is rich in (<see cref="StockConfig.SurplusRatio"/>), in class order.</param>
+/// <param name="Shortage">The classes it lacks (<see cref="StockConfig.ShortageRatio"/>), in class order.</param>
+public sealed record SectorStock(int SectorId, IReadOnlyDictionary<GoodsClass, int> ByClass, IReadOnlyList<GoodsClass> Surplus,
+    IReadOnlyList<GoodsClass> Shortage);
 
 /// <summary>What each Goods kind is, and which Furniture of which Department holds which kinds as store stock.</summary>
 public static class GoodsCatalog

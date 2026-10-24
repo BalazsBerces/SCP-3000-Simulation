@@ -259,7 +259,11 @@ public class StockTests(ITestOutputHelper output)
     [Fact]
     public void Stock_amounts_come_from_the_configuration()
     {
-        var config = new StockConfig { ShelfAmountMin = 3, ShelfAmountMax = 3, FishMin = 2, FishMax = 2, MealPortionsMin = 9, MealPortionsMax = 9 };
+        // Without the Sector guarantee (ticket 08q), which reshapes the Display stock's amounts.
+        var config = new StockConfig
+        {
+            ShelfAmountMin = 3, ShelfAmountMax = 3, FishMin = 2, FishMax = 2, MealPortionsMin = 9, MealPortionsMax = 9, SectorGuarantee = false,
+        };
         using var sim = Simulation.Create(new WorldConfig(42, RuntimeRngSeed: 1, Stock: config));
         var snapshot = sim.Snapshot;
         var pieces = PiecesById(snapshot);

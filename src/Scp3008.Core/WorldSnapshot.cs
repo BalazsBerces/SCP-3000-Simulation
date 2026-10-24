@@ -75,6 +75,12 @@ public sealed record WorldSnapshot(
     public bool IsStockFurniture(FurniturePiece piece) =>
         Generation.StockGenerator.IsStockFurniture(piece, Displays, Departments, PointsOfInterest, CampGoods);
 
+    /// <summary>
+    /// Each Sector's stock per Goods class and its Surplus and Shortage classes, derived from <see cref="Stock"/>, indexed by
+    /// <see cref="Sector.Id"/>. No Sector has everything: each is rich in at least one class and short of at least one.
+    /// </summary>
+    public IReadOnlyList<SectorStock> SectorStocks { get; init; } = [];
+
     /// <summary>The units of Goods in the Store per Goods class, every class listed.</summary>
     public IReadOnlyDictionary<GoodsClass, int> StockByClass()
     {

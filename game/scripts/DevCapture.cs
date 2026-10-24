@@ -34,6 +34,8 @@ namespace Scp3008.Game;
 ///   --choose-pillars=name  after one second, choose this Pillar layout in the top-right panel;
 ///                          the capture timer restarts once the new Store is shown.
 ///   --show-credits         after one second, open the Credits dialog as the seed panel's Credits button does.
+///   --inspect=x,y          (read by SectorInspector) once the overview is on, turn on Sector inspection and click the
+///                          screen point over Store position (x, y), wrapped (e.g. -20,960 picks the Sector east of the west Seam).
 ///   --furniture-tour=dir  save 1080p JPG captures into dir, then quit: every Department type
 ///                          (Department-*), every layout archetype (Archetype-*) and every
 ///                          Furniture variant (Variant-*-n).
