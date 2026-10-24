@@ -560,6 +560,7 @@ public static class FurnitureCatalog
             new(FurnitureType.GardenChair, 0.7f, 0.75f, 0.8f, Variant: 2),     // low lounge chair
             new(FurnitureType.GardenTable, 0.9f, 0.9f, 0.75f, Variant: 1),     // round bistro table
             new(FurnitureType.GardenTable, 2.0f, 0.9f, 0.75f, Variant: 2),     // long picnic table
+            new(FurnitureType.Armchair, 0.85f, 0.85f, 0.75f, Variant: 1),      // modern low cube armchair (the standard's footprint, so layouts stay put)
             new(FurnitureType.Sofa, 1.6f, 0.9f, 0.85f, Variant: 1),            // two-seat loveseat
             new(FurnitureType.Sofa, 2.7f, 1.0f, 0.9f, Variant: 2),             // large three-seat sofa
             new(FurnitureType.Sofa, 2.2f, 0.95f, 0.85f, Variant: 3, IsLeather: true), // leather sofa, rare

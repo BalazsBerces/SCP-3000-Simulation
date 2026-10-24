@@ -794,7 +794,8 @@ internal static class PointOfInterestGenerator
         for (var i = 0; i < 7; i++)
         {
             var angle = -MathF.PI / 2f + (i - 3) * 0.5f;
-            b.Put(FurnitureType.Armchair, At(centre, angle, 3.6f), 0f, angle + Quarter, tint: Tint());
+            b.Put(FurnitureType.Armchair, At(centre, angle, 3.6f), 0f, angle + Quarter,
+                FurnitureCatalog.PickVariant(random, FurnitureType.Armchair), tint: Tint());
         }
         // The altar: a sofa on its back at the centre, across the entrance axis.
         b.Put(FurnitureType.Sofa, centre + new Vector2(0f, stone.Height / 2f), 0f, 0f, stoneVariant, -MathF.PI / 2f, Tint());

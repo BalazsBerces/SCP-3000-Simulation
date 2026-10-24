@@ -625,8 +625,10 @@ internal static class LandmarkGenerator
             case 0:
                 Piece(FurnitureType.Rug, 0f, 0f, 0f);
                 Piece(FurnitureType.Sofa, 0f, -2f, 0f, variant: 2);
-                Piece(FurnitureType.Armchair, -2.2f, 0.2f, -MathF.PI / 2f);
-                Piece(FurnitureType.Armchair, 2.2f, 0.2f, MathF.PI / 2f);
+                // A matched pair: both armchairs the same version.
+                var armchair = FurnitureCatalog.PickVariant(random, FurnitureType.Armchair);
+                Piece(FurnitureType.Armchair, -2.2f, 0.2f, -MathF.PI / 2f, variant: armchair);
+                Piece(FurnitureType.Armchair, 2.2f, 0.2f, MathF.PI / 2f, variant: armchair);
                 Piece(FurnitureType.CoffeeTable, 0f, 0f, 0f);
                 Piece(FurnitureType.FloorLamp, -1.9f, -2.3f, 0f);
                 Piece(FurnitureType.FloorLamp, 1.9f, -2.3f, 0f);

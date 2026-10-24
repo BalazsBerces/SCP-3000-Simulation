@@ -67,6 +67,8 @@ public static class FurnitureModels
     public static readonly IReadOnlyList<Model> All =
     [
         new(FurnitureType.Armchair, 0, "ArmChair_01", 0f, SeatBudget, true, "Kirill Sannikov", "CC0", "https://polyhaven.com/a/ArmChair_01"),
+        // The modern cube armchair goes with the boxy fabric sofas; the classic and the modern one are equally common.
+        new(FurnitureType.Armchair, 1, "cube_armchair", 0f, SeatBudget, true, "Muwanga Mohammed", "CC-BY", "https://sketchfab.com/3d-models/muwanga-lego-sofa-office-masterae-c27b118e5001429fb4411ba6f33fb3f3"),
         // Everyday fabric sofas, tinted to the Display's palette; the leather one (variant 3) is rare.
         new(FurnitureType.Sofa, 0, "fabric_sofa", 0f, SofaBudget, true, "Sempay_3D", "CC-BY", "https://sketchfab.com/3d-models/modern-minimalist-fabric-sofa-be39bf64cf4c4a02b55a0ef1d40e1fbb"),
         new(FurnitureType.Sofa, 1, "fabric_loveseat", 90f, SofaBudget, true, "Renend Studio", "CC-BY", "https://sketchfab.com/3d-models/modern-fabric-sofa-low-poly-game-ready-5a1ccfe43ffd4f1883abe4dca7d2b3bb"),

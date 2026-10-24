@@ -38,6 +38,7 @@ TOILETS_PAGE = "https://opengameart.org/content/toilets"
 # (folder, source, asset or root node, title, used for).
 MODELS = [
     ("ArmChair_01", "polyhaven", "ArmChair_01", "Arm Chair 01", "Armchair"),
+    ("cube_armchair", "sketchfab", "c27b118e5001429fb4411ba6f33fb3f3", "Muwanga Lego Sofa - Office Master.ae", "Armchair, modern cube fabric variant"),
     ("fabric_sofa", "sketchfab", "be39bf64cf4c4a02b55a0ef1d40e1fbb", "Modern Minimalist Fabric Sofa", "Sofa and its large three-seat variant"),
     ("fabric_loveseat", "sketchfab", "5a1ccfe43ffd4f1883abe4dca7d2b3bb", "Modern Fabric Sofa - Low Poly / Game Ready", "Sofa, two-seat loveseat variant"),
     ("sofa_02", "polyhaven", "sofa_02", "Sofa 02", "Sofa, leather variant (rare)"),
@@ -107,8 +108,9 @@ DROP_NODES = {
 }
 
 # Tinted models whose fabric is too dark to take the piece's tint (the game tints only texels lighter than its threshold):
-# their albedo becomes a light grey that keeps the texture's detail. The rolled sleeping bag's canvas is dark brown.
-LIGHTEN_FOR_TINT = ["camp_sleeping_bag_rolled"]
+# their albedo becomes a light grey that keeps the texture's detail. The rolled sleeping bag's canvas is dark brown,
+# the cube armchair's fabric dark grey.
+LIGHTEN_FOR_TINT = ["camp_sleeping_bag_rolled", "cube_armchair"]
 
 
 def lighten_for_tint(folder):
@@ -118,7 +120,8 @@ def lighten_for_tint(folder):
         if sum(image.getdata()) / (image.width * image.height) > 150:
             continue
         low, high = image.getextrema()
-        image = image.point(lambda v: int(150 + 95 * ((v - low) / max(1, high - low)) ** 0.7))
+        # Pillow evaluates the curve for every level, also those below the image's darkest.
+        image = image.point(lambda v: int(150 + 95 * (max(0, v - low) / max(1, high - low)) ** 0.7))
         image.convert("RGB").save(path, quality=90)
 
 # Toilets pack material -> its texture folder in the pack.
