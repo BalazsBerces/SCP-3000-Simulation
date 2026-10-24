@@ -120,8 +120,16 @@ A version of a Furniture type with its own proportions, silhouette or materials 
 Two or three related tint indices shared by the Furniture of a Display. Neighbouring rooms usually use different Palettes; wood and metal retain their textures.
 
 **Goods**:
-Small stock on shelves (food, batteries, bulbs, cables) taken as-is rather than placed in the world. The live fish in an Aquarium aisle's tanks and a Cafeteria's meals are Goods too; the tanks, racks and counters are Furniture.
+Small stock taken as-is rather than placed in the world, in four **Goods classes**: food (fresh food spoils fast, tinned and dry food slowly), drink (bottled water, soft drinks, coffee), comfort goods (sweets, candles; they keep no one alive but raise morale) and supplies (batteries, bulbs, cables, tape). There are no medicines in the Store. Goods lie only on **Stock Furniture**; the live fish in an Aquarium aisle's tanks and a Cafeteria's meals are Goods too, while the tanks, racks and counters are Furniture.
 _Avoid_: Loot, items
+
+**Stock Furniture**:
+A piece of Furniture that holds Goods as real store stock: grocery shelves, freezers, warehouse shelving, Cafeteria counters, Aquarium tanks, the Camping ground's stands. Each one holds its own Goods, of a kind and amount, so a single shelf can be found, guarded or raided. Display Furniture such as a showroom fridge or kitchen cabinet is empty, apart from the rare thing left behind.
+_Avoid_: Container, loot spot
+
+**Water point**:
+A place where a Villager can drink: a Restroom's washbasins, the fountain court, the Camping ground's lake, and the few showroom taps that, unlike most, still run. Which taps run never changes and is found only by trying them, so a running tap is valuable Known map knowledge.
+_Avoid_: Well, water source (informal)
 
 **Limbo**:
 The state of Goods untouched on the Store's own shelves and Displays: they never spoil there. Once a Villager takes food, it starts to spoil (fresh food fast, tinned and dry food slowly), and putting it back does not restore Limbo. Villages do not know this at first; they may learn it as a Belief.
@@ -136,16 +144,28 @@ An abstract unit of one of eight kinds (wood/panel, metal, fabric, leather, foam
 _Avoid_: Parts, components, scrap
 
 **Gear**:
-A portable thing a single Villager carries and uses (a tool, backpack, weapon, armour, lantern), made from Materials or found in the Store, and worn out by use. Gear is neither Furniture (it does not stand in the world) nor Goods (it is not consumed).
+A portable thing a single Villager carries and uses (a tool, backpack, weapon, armour, lantern), made from Materials or found in the Store, and worn out by use. Gear is neither Furniture (it does not stand in the world) nor Goods (it is not store stock). Some Gear is used up in one use, like a bandage made from fabric. Found Gear is scarce and belongs to its Department (kitchen knives, warehouse tools, lighting-department torches); most Gear is made.
 _Avoid_: Item, equipment, inventory
+
+**Crop**:
+A real potted plant of the Plant section (herbs, vegetables) that a Village tends and that slowly yields food Goods: the only food a Village grows rather than finds.
+_Avoid_: Farm, field, plant (the decorative ones are Furniture)
+
+**Surplus** / **Shortage**:
+The Goods classes a Sector is rich in or lacks, through the Departments it holds. No Sector has everything, so Villages must trade, send Outposts or raid for what their own Sector lacks.
+_Avoid_: Biome resource, specialty
 
 **Recipe**:
 A known way to make a piece of Gear or a reinforcement from Materials, needing certain tools and sometimes a Workshop. Basic Recipes are known by everyone; others are discovered by experimenting, learned from assembly instructions found in the Store, brought by people who join, or traded and shared between Villages. A Village's know-how is the set of its Recipes.
 _Avoid_: Technology, tech, blueprint (that is a structure plan)
 
 **Restock**:
-The Store's slow replenishment of Goods and Furniture, which keeps the world from running dry. Each Goods kind and Furniture restock at their own rate; Furniture reappears only where no Villager can see.
+The Store's slow replenishment of Goods and Furniture, which keeps the world from running dry. Each Goods kind and Furniture restock at their own rate; Furniture reappears only where no Villager can see. Goods restock only on Stock Furniture, and the shelves visibly fill and empty.
 _Avoid_: Respawn, regeneration
+
+**Dry spell**:
+A stretch of a few Store days in which a Department's Restock slows or stops, while elsewhere it runs faster, so Shortages wander across the Store and Villages must adapt. Villages may form Beliefs about them.
+_Avoid_: Famine, drought, shortage (a Sector's lasting lack)
 
 **Fog bank**:
 A large, soft-edged region of thick fog that forms, grows, drifts with a slowly changing wind across the wrapping Store, then thins out and dissipates over Store hours. Clear stretches remain between Fog banks; the air is otherwise perfectly clear, with no base fog or haze. Fog density affects sight and comes from Weather, independent of the Store seed.
