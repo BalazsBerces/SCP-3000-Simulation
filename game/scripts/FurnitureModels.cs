@@ -306,17 +306,22 @@ public static class FurnitureModels
 
     /// <summary>
     /// A model whose pieces are still over budget at their simplest (a cabinet with many small
-    /// bevelled details) loses its smallest pieces, by bounding-box volume, until it fits. The pieces it
-    /// stands on (legs, feet, a plinth) go last: a thin leg is as small as a screw, but without it the
-    /// model floats.
+    /// bevelled details) loses its smallest pieces, by bounding-box volume, until it fits. The pieces that
+    /// reach its outline go last: those it stands on (legs, feet, a plinth), since a thin leg is as small as a
+    /// screw but without it the model floats, and those at its sides and top (a tree's outermost leaves),
+    /// without which it no longer fills its Furniture size.
     /// </summary>
     private static void DropSmallestPieces(List<Part> parts, List<List<int[][]>> levels, int budget)
     {
         var floor = levels.Sum(l => l.Sum(p => p[^1].Length / 3));
         if (floor <= budget)
             return;
-        var pieces = levels.SelectMany((list, s) => list.Select(piece => (Part: s, Piece: piece, Box: Bounds(parts[s].Positions, piece[0]))))
-            .OrderBy(p => p.Box.Position.Y < StandsOn).ThenBy(p => p.Box.Volume).ToList();
+        var pieces = levels.SelectMany((list, s) => list.Select(piece => (Part: s, Piece: piece, Box: Bounds(parts[s].Positions, piece[0])))).ToList();
+        var outline = pieces.Select(p => p.Box).Aggregate((a, b) => a.Merge(b));
+        bool ReachesOutline(Aabb box) =>
+            (box.Position - outline.Position).Abs() is var low && (outline.End - box.End).Abs() is var high
+            && Mathf.Min(Mathf.Min(low.X, low.Y), Mathf.Min(low.Z, Mathf.Min(high.X, Mathf.Min(high.Y, high.Z)))) < StandsOn;
+        pieces = pieces.OrderBy(p => ReachesOutline(p.Box)).ThenBy(p => p.Box.Volume).ToList();
         foreach (var (part, piece, _) in pieces)
         {
             if (floor <= budget)
@@ -392,6 +397,10 @@ public static class FurnitureModels
             var levels = new List<int[]> { indices.ToArray() };
             for (var level = 0; level < mesh.GetSurfaceLodCount(0); level++)
                 levels.Add(mesh.GetSurfaceLodIndices(0, level).Select(i => vertices[i]).ToArray());
+            // A piece standing on the floor (a trunk, a leg) keeps only the levels that still reach it:
+            // simplifying can drop its bottom ring and leave it floating.
+            if (Bounds(part.Positions, levels[0]).Position.Y < StandsOn)
+                levels.RemoveAll(l => Bounds(part.Positions, l).Position.Y >= StandsOn);
             result.Add([.. levels]);
         }
         return result;
