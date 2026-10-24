@@ -6,7 +6,8 @@ namespace Scp3008.Game;
 /// <summary>
 /// In the <see cref="StoreOverview"/>, zoomed far out, a letter over each Landmark (V Ruined Village, C Rack canyon,
 /// B Box fort, M Mattress mountain, D Dead zone, K Clock wall, F Fountain court, G Camping ground), kept the
-/// same size on screen however far the camera is. The markers are rebuilt when a new world is created.
+/// same size on screen however far the camera is, and a smaller one over each Water point (W blue: always there, T green: a running
+/// showroom tap, t grey: a dry one; dev only, the presentation itself never tells them apart). The markers are rebuilt when a new world is created.
 /// </summary>
 public partial class LandmarkMarkers : Node3D
 {
@@ -19,6 +20,7 @@ public partial class LandmarkMarkers : Node3D
     [Export] public float ScreenShare { get; set; } = 0.05f;
 
     private const int FontSize = 128;
+    private const float WaterScale = 0.3f;
 
     private readonly List<Label3D> _labels = [];
 
@@ -39,7 +41,7 @@ public partial class LandmarkMarkers : Node3D
         // The view is 2 tan(fov / 2) distances high at a distance.
         var pixelSize = Rig.Distance * 2f * Mathf.Tan(Mathf.DegToRad(Rig.Camera.Fov) / 2f) * ScreenShare / FontSize;
         foreach (var label in _labels)
-            label.PixelSize = pixelSize;
+            label.PixelSize = pixelSize * (label.FontSize == FontSize ? 1f : WaterScale);
     }
 
     private void Rebuild(WorldSnapshot snapshot)
@@ -61,6 +63,24 @@ public partial class LandmarkMarkers : Node3D
                 Modulate = new Color(1f, 0.9f, 0.3f),
                 OutlineModulate = new Color(0f, 0f, 0f),
                 Position = new Vector3(landmark.Centre.X, landmark.Height, landmark.Centre.Y),
+            };
+            AddChild(label);
+            _labels.Add(label);
+        }
+        foreach (var water in snapshot.WaterPoints)
+        {
+            var tap = water.Kind == WaterPointKind.ShowroomTap;
+            var label = new Label3D
+            {
+                Text = !tap ? "W" : water.Running ? "T" : "t",
+                FontSize = FontSize - 1, // told apart from the Landmark letters by size
+                OutlineSize = 24,
+                Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
+                NoDepthTest = true,
+                Shaded = false,
+                Modulate = !tap ? new Color(0.3f, 0.6f, 1f) : water.Running ? new Color(0.3f, 1f, 0.4f) : new Color(0.6f, 0.6f, 0.6f),
+                OutlineModulate = new Color(0f, 0f, 0f),
+                Position = new Vector3(water.Position.X, 3f, water.Position.Y),
             };
             AddChild(label);
             _labels.Add(label);

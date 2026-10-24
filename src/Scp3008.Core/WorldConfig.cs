@@ -23,5 +23,7 @@ namespace Scp3008.Core;
 /// The seed still varies how each one is built. Not combined with <paramref name="LandmarkShowcase"/>.
 /// </param>
 /// <param name="Stock">How much Goods the Store generator puts on the Stock Furniture, and the left-behind share; the defaults if null.</param>
+/// <param name="Water">How many showroom taps run; the defaults if null.</param>
 public sealed record WorldConfig(int Seed, int? RuntimeRngSeed = null, PillarLayout PillarLayout = PillarLayout.ThreeByThree,
-    bool LandmarkShowcase = false, bool PointOfInterestShowcase = false, StockConfig? Stock = null);
+    bool LandmarkShowcase = false, bool PointOfInterestShowcase = false, StockConfig? Stock = null,
+    WaterConfig? Water = null);

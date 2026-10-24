@@ -84,6 +84,12 @@ public sealed record WorldSnapshot(
         return totals;
     }
 
+    /// <summary>
+    /// Every Water point: the Restrooms' washbasins, the fountain court, the Camping ground's lake and every showroom sink, each
+    /// with whether it runs. The running taps are fixed by the seed and never change; Villagers do not see which run.
+    /// </summary>
+    public IReadOnlyList<WaterPoint> WaterPoints { get; init; } = [];
+
     /// <summary>The Store's three Ball pits as the one network the Staff pass through at Closing time.</summary>
     public BallPitNetwork BallPitNetwork { get; init; } = BallPitNetwork.None;
 

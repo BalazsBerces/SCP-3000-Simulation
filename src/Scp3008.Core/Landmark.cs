@@ -104,6 +104,9 @@ public sealed record Landmark(int Id, LandmarkType Type, int SectorId, Vector2 C
     /// </summary>
     public IReadOnlyList<IReadOnlyList<Vector2>> Paths { get; init; } = [];
 
+    /// <summary>The middle of the Camping ground's lake as a Store position (unwrapped, inside its rectangle); null for other Landmarks.</summary>
+    public Vector2? Lake { get; init; }
+
     /// <summary>The decorative axe stuck in a tree, by <see cref="FurniturePiece.Id"/>; -1 for other Landmarks. A separate piece: the tree stands without it.</summary>
     public int AxeId { get; init; } = -1;
 

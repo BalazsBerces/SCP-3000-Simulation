@@ -153,6 +153,7 @@ internal static class LandmarkGenerator
                 landmark = landmark with
                 {
                     Dinosaurs = camping.Dinosaurs.Select(d => new Dinosaur(d.Kind, d.Tint, Enumerable.Range(d.First, d.Count).Select(Id).ToList())).ToList(),
+                    Lake = site.Centre + LandmarkBuilder.Turn(camping.Lake, site.Quarters),
                     AxeId = Id(camping.AxeIndex),
                     AxeTreeId = Id(camping.AxeTreeIndex),
                     Paths = camping.Paths.Select(p => (IReadOnlyList<Vector2>)p.Select(q => site.Centre + LandmarkBuilder.Turn(q, site.Quarters)).ToList()).ToList(),

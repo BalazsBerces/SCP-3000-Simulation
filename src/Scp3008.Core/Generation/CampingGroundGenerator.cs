@@ -6,11 +6,12 @@ namespace Scp3008.Core.Generation;
 /// <param name="Dinosaurs">Each dinosaur: kind, main tint, first piece index and piece count (its pieces are contiguous).</param>
 /// <param name="Goods">The stands that hold goods: piece index and kind.</param>
 /// <param name="Paths">The visitor paths, in the Landmark's own frame.</param>
+/// <param name="Lake">The middle of the lake, in the Landmark's own frame.</param>
 internal sealed record CampingResult(
     IReadOnlyList<(DinosaurKind Kind, int Tint, int First, int Count)> Dinosaurs,
     int AxeIndex, int AxeTreeIndex,
     IReadOnlyList<(int Index, CampGoodsKind Kind)> Goods,
-    IReadOnlyList<IReadOnlyList<Vector2>> Paths);
+    IReadOnlyList<IReadOnlyList<Vector2>> Paths, Vector2 Lake);
 
 /// <summary>
 /// Builds the camping ground in its own frame (112 x 96 m): a camping department laid out like a store's showroom, with
@@ -401,7 +402,7 @@ internal static class CampingGroundGenerator
         Banner(b, At(-3f, backY), outward);
         Banner(b, At(3f, backY), -outward);
 
-        return new CampingResult(dinosaurs, axe, axeTree, goods, paths);
+        return new CampingResult(dinosaurs, axe, axeTree, goods, paths, lake);
     }
 
     /// <summary>The rotation of a piece whose front faces along a direction.</summary>
