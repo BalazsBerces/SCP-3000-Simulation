@@ -32,10 +32,19 @@ public static class FurnitureModels
     private const int SeatBudget = 3500;
     private const int SofaBudget = 4500;
     private const int BathroomBudget = 8000;
+    // The Camping ground shows up to nine tents and about fifteen trees at once.
+    private const int TentBudget = 6000;
+    private const int TreeBudget = 5000;
+    // And about thirty bushes, small enough that their sources' ~1000 triangles are plenty.
+    private const int BushBudget = 1200;
 
     // The coarse mesh's voxel size, in metres (see Proxy): it is drawn only from the switch zoom
     // out (160 m), where a pixel spans about 20 cm, so a voxel is half a pixel.
-    private const float CoarseCell = 0.1f;
+    private static readonly float CoarseCell = OS.GetCmdlineUserArgs().FirstOrDefault(a => a.StartsWith("--coarse-cell=")) is { } arg
+        ? float.Parse(arg["--coarse-cell=".Length..], System.Globalization.CultureInfo.InvariantCulture) : 0.15f;
+
+    // At most this many voxels along a coarse mesh's longest side.
+    private const float MaxCoarseCells = 20f;
 
     // A coarse face takes the model's surface normal only if it turns less than about 78° from the face's own.
     private const float MinShadingAlignment = 0.2f;
@@ -89,6 +98,37 @@ public static class FurnitureModels
         new(FurnitureType.Rug, 0, "rug", 0f, 1200, true, "mfb64", "CC-BY", "https://sketchfab.com/3d-models/kuuma-ye-rug-by-kristiina-lassus-5f5de1ba643746fc9da76d2cac94fbb3"),
         new(FurnitureType.DoorFrame, 0, "door_frame", 0f, 3000, false, "witnessk", "CC-BY", "https://sketchfab.com/3d-models/door-with-frame-2f2f149f3ec44d658a02c1f924dfa449"),
         new(FurnitureType.ExitSign, 0, "exit_sign", 0f, 5000, false, "tboiston", "CC-BY", "https://sketchfab.com/3d-models/exit-sign-46b52e08b8b64b81ad9ff5fb752bcc06"),
+        // The Camping ground (ticket 07z2). Its Lamps (the cloth flame, the tent's lantern-lit door, the lanterns) stay
+        // procedural: their glow follows the Lamp level, which a model's material cannot.
+        new(FurnitureType.Tent, 0, "camp_tent_dome", 0f, TentBudget, true, "Guy in a Poncho", "CC-BY", "https://sketchfab.com/3d-models/modern-camping-tent-3f624d58d582430595179bdf9a156be3"),
+        new(FurnitureType.Tent, 1, "camp_tent_tipi", 0f, TentBudget, false, "lampyre3d", "CC-BY", "https://sketchfab.com/3d-models/teepee-63e67c40b3994278a09705941b6981b7"),
+        new(FurnitureType.Tent, 2, "camp_tent_family", 0f, TentBudget, true, "Alex272005", "CC-BY", "https://sketchfab.com/3d-models/camping-tent-5fa10f0a207d4c9580b6e77bd45f774e"),
+        new(FurnitureType.Tent, 3, "camp_tent_round", 0f, TentBudget, false, "Periklis", "CC-BY", "https://sketchfab.com/3d-models/circus-tent-4998d155bd654544a577dec078ef5aea"),
+        new(FurnitureType.Tent, 4, "camp_tent_ridge", 0f, TentBudget, true, "Adeel Qadir", "CC-BY", "https://sketchfab.com/3d-models/camping-tent-21cc274c86104fc997e0f172938d4205"),
+        new(FurnitureType.Tent, 5, "camp_tent_popup", 0f, TentBudget, true, "Harold.Llanos", "CC-BY", "https://sketchfab.com/3d-models/carpa-playera-beach-tent-ffdd0519fa604e138d88a0c7fa262bb8"),
+        new(FurnitureType.Tree, 0, "camp_tree_oak", 0f, TreeBudget, false, "Maple", "CC-BY", "https://sketchfab.com/3d-models/oak-tree-game-ready-2f4ae6b907fd4741abda5d1b71c83b10"),
+        new(FurnitureType.Tree, 1, "camp_tree_spruce", 0f, TreeBudget, false, "Alan Zimmerman", "CC-BY", "https://sketchfab.com/3d-models/spruce-tree-low-poly-b68f79aee62f4e849be265c903f724f5"),
+        new(FurnitureType.Tree, 2, "camp_bush", 0f, BushBudget, false, "Daniel", "CC-BY", "https://sketchfab.com/3d-models/stylized-bush-9d9ce79d3ae040619e96d5b22c7de1a6"),
+        new(FurnitureType.Tree, 3, "camp_bush_flowering", 0f, BushBudget, false, "SangeetBlaze", "CC-BY", "https://sketchfab.com/3d-models/stylized-bush-v1-7ccbbb3307004ad18bed624e356c5975"),
+        new(FurnitureType.TreeHouse, 0, "camp_tree_house", 0f, 8000, false, "d-luX", "CC-BY", "https://sketchfab.com/3d-models/dlx-tree-housewith-tree-1cf11dd38e03427a843fb034d3f7eec9"),
+        new(FurnitureType.CampfireRing, 0, "camp_campfire", 0f, 4000, false, "Sarah Shahzad", "CC-BY", "https://sketchfab.com/3d-models/campfire-logs-360f5729f7d447b598170fd66b26c3b5"),
+        new(FurnitureType.LogSeat, 0, "camp_log_bench", 0f, 1000, false, "AmbiMesh", "CC-BY", "https://sketchfab.com/3d-models/log-bench-55fea7c2f116426a9c7332fcf5ef1705"),
+        new(FurnitureType.Kayak, 0, "camp_kayak", 0f, 5000, true, "nayangway", "CC-BY", "https://sketchfab.com/3d-models/kayak-with-paddle-cda3354816af4a0aa1ca5cfee6c5dcd7"),
+        new(FurnitureType.PlushBear, 0, "camp_teddy_bear", -90f, 5000, false, "Xeno Studios", "CC-BY", "https://sketchfab.com/3d-models/teddy-bear-9c7081efd187447da9a333f89ea43f80"),
+        new(FurnitureType.Axe, 0, "camp_axe", 0f, 2000, false, "James Ray Cock, Ulan Cabanilla", "CC0", "https://polyhaven.com/a/hatchet"),
+        new(FurnitureType.MarshmallowStick, 0, "camp_marshmallow", 0f, 400, false, "Sillyy_", "CC-BY", "https://sketchfab.com/3d-models/marshmallow-on-a-stick-e7a92ddb4a11433690334eab67f29474"),
+        new(FurnitureType.SleepingBag, 0, "camp_sleeping_bag", 90f, 1000, true, "Joe", "CC-BY", "https://sketchfab.com/3d-models/sleeping-bag-b1b452fe764a4cc9af3030f69939f506"),
+        new(FurnitureType.Hammock, 0, "camp_hammock", 90f, 4500, true, "AndreyUEDev", "CC-BY", "https://sketchfab.com/3d-models/hammock-low-poly-c5fd4cef873f44f5a31db1fc6a04c572"),
+        new(FurnitureType.FishingRod, 0, "camp_fishing_rod", 0f, 3000, false, "emelyarules", "CC-BY", "https://sketchfab.com/3d-models/fishing-rod-86c77e3d23d341cd90245c21402f68b9"),
+        new(FurnitureType.RubberDuck, 0, "camp_rubber_duck", 0f, 1500, false, "Plat251", "CC0", "https://polyhaven.com/a/rubber_duck_toy"),
+        new(FurnitureType.TrailSign, 0, "camp_signpost", 0f, 2500, false, "Tetiana_Denysenko", "CC-BY", "https://sketchfab.com/3d-models/signpost-493bcedc8b344a38a9a67587b14bfcff"),
+        new(FurnitureType.CampChair, 0, "camp_chair", 0f, ChairBudget * 2, false, "lpfeffer", "CC-BY", "https://sketchfab.com/3d-models/camping-chair-46b592f41c1f441ca19faadd2b4bb90a"),
+        // The Camping ground's sun lounger and sleeping bag sections (ticket 07z3), which show dozens of each at once.
+        new(FurnitureType.SleepingBag, 1, "camp_sleeping_bag_rolled", 0f, 600, true, "Fochdog", "CC-BY", "https://sketchfab.com/3d-models/camping-sleeping-bag-d2ab6e8a8ffc472e9fca8b920662dafe"),
+        new(FurnitureType.SunLounger, 0, "sun_lounger_wood", 0f, ChairBudget, false, "kirill", "CC-BY", "https://sketchfab.com/3d-models/deck-chair-f7b31f2190ae425682a873e28bd3244c"),
+        new(FurnitureType.SunLounger, 1, "sun_lounger_plastic", 0f, ChairBudget, false, "rodestrela", "CC-BY", "https://sketchfab.com/3d-models/sun-lounger-3d-974e74f55bbd4dc9a85c4a48fc987a18"),
+        new(FurnitureType.SunLounger, 2, "deck_chair", 90f, ChairBudget, true, "MaX3Dd", "CC-BY", "https://sketchfab.com/3d-models/deck-chair-38de6171cbeb41c5bdc49c07df76ede9"),
+        new(FurnitureType.Parasol, 1, "beach_umbrella", 0f, 2000, false, "stealth86", "CC-BY", "https://sketchfab.com/3d-models/beach-umbrella-1014ad7c8a4c4aa8ba5e88fc6151aa4f"),
     ];
 
     /// <summary>The licences external models may have.</summary>
@@ -97,6 +137,22 @@ public static class FurnitureModels
     private static readonly Dictionary<(FurnitureType, int), (ArrayMesh Full, ArrayMesh Coarse)> Cache = new();
     private static readonly List<ShaderMaterial> CoarseMaterials = [];
     private static bool _coarseInMagenta;
+
+    // Per model part, the linear colour gain that makes the coarse mesh match the full mesh's rendered look
+    // (the textures' average misses highlights, occlusion and the weight of lit tops); written by
+    // CoarseColourCheck (coarse_gains.json), keyed by "Type-Variant" and part name.
+    private const string GainsPath = "res://assets/models/coarse_gains.json";
+    private static Dictionary<string, Dictionary<string, float[]>>? _gains;
+
+    public static Vector3 CoarseGain(FurnitureType type, int variant, string part)
+    {
+        if (_gains is null)
+        {
+            using var file = Godot.FileAccess.Open(GainsPath, Godot.FileAccess.ModeFlags.Read);
+            _gains = file is null ? [] : System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, Dictionary<string, float[]>>>(file.GetAsText()) ?? [];
+        }
+        return _gains.TryGetValue($"{type}-{variant}", out var parts) && parts.TryGetValue(part, out var g) ? new Vector3(g[0], g[1], g[2]) : Vector3.One;
+    }
 
     /// <summary>The model that draws a Furniture type and variant, or null if it is procedural.</summary>
     public static Model? Find(FurnitureType type, int variant) =>
@@ -166,6 +222,13 @@ public static class FurnitureModels
             fraction *= 0.8f;
         var full = new ImporterMesh();
         var fullIndices = levels.Select(l => Level(l, fraction)).ToList();
+        // A part simplified away entirely has no surface.
+        for (var s = parts.Count - 1; s >= 0; s--)
+            if (fullIndices[s].Length == 0)
+            {
+                parts.RemoveAt(s);
+                fullIndices.RemoveAt(s);
+            }
         for (var s = 0; s < parts.Count; s++)
             full.AddSurface(Mesh.PrimitiveType.Triangles, Arrays(parts[s], fullIndices[s]), name: parts[s].Name, material: Material(parts[s], model.Tinted));
         full.GenerateLods(LodMergeAngle, 0f, new Godot.Collections.Array());
@@ -374,7 +437,12 @@ public static class FurnitureModels
     private static ArrayMesh CoarseMesh(Model model, List<Part> parts)
     {
         var images = parts.Select(p => Decompressed(p.Material.AlbedoTexture)).ToList();
-        var (positions, normals, parts2) = Proxy(parts, images, model.Tinted);
+        // A low-poly model (a canvas tent) can have fewer triangles than its voxels' faces: coarsen the grid until it does not.
+        var fullTriangles = parts.Sum(p => p.Indices.Count / 3);
+        var cells = MaxCoarseCells;
+        var (positions, normals, parts2) = Proxy(parts, images, model.Tinted, cells);
+        while (positions.Count / 3 > fullTriangles && cells > 3f)
+            (positions, normals, parts2) = Proxy(parts, images, model.Tinted, cells *= 0.75f);
         var albedo = new Vector4[FurnitureMeshes.PartSlots];
         var surface = new Vector2[FurnitureMeshes.PartSlots];
         var glow = new Vector3[FurnitureMeshes.PartSlots];
@@ -383,6 +451,8 @@ public static class FurnitureModels
             var part = parts[s];
             var image = images[s];
             var colour = part.Material.AlbedoColor.SrgbToLinear() * (image is null ? Colors.White : Average(part, image, srgb: true, model.Tinted ? -1 : 0));
+            var gain = CoarseGain(model.Type, model.Variant, part.Name);
+            colour = new Color(colour.R * gain.X, colour.G * gain.Y, colour.B * gain.Z, colour.A);
             albedo[s] = new Vector4(colour.R, colour.G, colour.B, 0f);
             var orm = Decompressed(part.Material.RoughnessTexture);
             var packed = orm is null ? Colors.White : Average(part, orm, srgb: false);
@@ -429,11 +499,14 @@ public static class FurnitureModels
     /// voxel, which a pixel at the switch zoom hides. Each voxel takes the part with the most surface
     /// in it and, on a tinted model, whether that surface is mostly light fabric.
     /// </summary>
-    private static (List<Vector3> Positions, List<Vector3> Normals, List<Vector2> Parts) Proxy(List<Part> parts, List<Image?> images, bool tinted)
+    private static (List<Vector3> Positions, List<Vector3> Normals, List<Vector2> Parts) Proxy(List<Part> parts, List<Image?> images, bool tinted, float maxCells)
     {
         var all = parts.SelectMany(p => p.Positions).ToList();
         var (min, max) = (all.Aggregate(Vector3.Inf, (a, b) => a.Min(b)), all.Aggregate(-Vector3.Inf, (a, b) => a.Max(b)));
         var size = max - min;
+        // A big model (a tree) gets bigger voxels, so its coarse mesh stays a few hundred triangles.
+        var voxelSize = Mathf.Max(CoarseCell, Mathf.Max(size.X, Mathf.Max(size.Y, size.Z)) / maxCells);
+        int Cells(float extent) => Math.Max(1, (int)Mathf.Round(extent / voxelSize));
         var n = new Vector3I(Cells(size.X), Cells(size.Y), Cells(size.Z));
         var cell = size / new Vector3(n.X, n.Y, n.Z);
         int Index(Vector3I v) => (v.Y * n.Z + v.Z) * n.X + v.X;
@@ -444,7 +517,7 @@ public static class FurnitureModels
         var votes = new Dictionary<int, float[]>();
         var surfaceNormals = new Dictionary<int, Vector3>();
         // A flat model (a rug) has one voxel on its thin axis, whose tiny cell would multiply the samples by thousands.
-        var spacing = Mathf.Min(n.X > 1 ? cell.X : CoarseCell, Mathf.Min(n.Y > 1 ? cell.Y : CoarseCell, n.Z > 1 ? cell.Z : CoarseCell)) / 3f;
+        var spacing = Mathf.Min(n.X > 1 ? cell.X : voxelSize, Mathf.Min(n.Y > 1 ? cell.Y : voxelSize, n.Z > 1 ? cell.Z : voxelSize)) / 3f;
         for (var s = 0; s < parts.Count; s++)
         {
             var part = parts[s];
@@ -567,9 +640,6 @@ public static class FurnitureModels
         }
         return (positions, normals, keys);
     }
-
-    /// <summary>The number of <see cref="CoarseCell"/> voxels nearest to filling a size, at least one.</summary>
-    private static int Cells(float size) => Math.Max(1, (int)Mathf.Round(size / CoarseCell));
 
     /// <summary>Whether a material's roughness map is a packed occlusion, roughness, metallic map (glTF's metallicRoughness texture).</summary>
     private static bool Orm(BaseMaterial3D material) =>

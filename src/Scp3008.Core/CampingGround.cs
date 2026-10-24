@@ -40,4 +40,25 @@ public static class CampingGround
 {
     /// <summary>Width of the visitor paths over the turf, in metres.</summary>
     public const float PathWidth = 2.2f;
+
+    /// <summary>Height of the tree house's deck above the floor, in metres; the fixed shell has its own stair up to it.</summary>
+    public const float TreeHouseDeckHeight = 4.5f;
+
+    /// <summary>The middle of the tree house's roofed cabin on its deck, in the shell's own frame (along its width, along its depth), in metres.</summary>
+    public static readonly Vector2 TreeHouseCabin = new(1.58f, -2.33f);
+
+    /// <summary>The middle of the tree house's open deck, in the shell's own frame, in metres.</summary>
+    public static readonly Vector2 TreeHouseOpenDeck = new(1.58f, 2.47f);
+
+    /// <summary>Where a broad tree's (variant 0) trunk stands, in its own frame (along its width, along its depth), in metres.</summary>
+    public static readonly Vector2 TreeTrunk = new(-0.47f, -0.12f);
+
+    /// <summary>Where a broad tree's trunk is at chest height (<see cref="AxeHeight"/>), in its own frame: the trunk leans.</summary>
+    public static readonly Vector2 TreeTrunkAtChest = new(-0.27f, 0.33f);
+
+    /// <summary>Radius of a broad tree's trunk at chest height, in metres.</summary>
+    public const float TreeTrunkRadius = 0.4f;
+
+    /// <summary>Height of the decorative axe above the floor, in metres: chest height.</summary>
+    public const float AxeHeight = 1.3f;
 }

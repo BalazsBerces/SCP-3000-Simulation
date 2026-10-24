@@ -1,0 +1,271 @@
+ok   PalletRack-0: RackUpright full 152d66 coarse 152d66 brightness x1.00 hue 0.000; RackBeam full c45b13 coarse c45b13 brightness x1.00 hue 0.000
+ok   FlatPackBox-0 tint 0: Cardboard full af8c58 coarse b18f5c brightness x1.04 hue 0.013; LightSteel not compared (883/0 px)
+ok   FlatPackBox-0 tint 4: Cardboard full a7834f coarse a98653 brightness x1.04 hue 0.013; LightSteel not compared (883/0 px)
+ok   FlatPackBox-0 tint 9: Cardboard full a17c49 coarse a27f4c brightness x1.04 hue 0.011; LightSteel not compared (883/0 px)
+ok   ShelfUnit-0: steel_frame_shelves_01 full d19961 coarse cd965f brightness x0.96 hue 0.003
+ok   DisplayTable-0: Maple full fbecce coarse fbeacd brightness x0.99 hue 0.003; DarkSteel full 0f0f11 coarse 0f0f11 brightness x1.00 hue 0.000
+ok   TableLamp-0: DarkSteel full 161617 coarse 161617 brightness x1.00 hue 0.001; LampShade full e9e2c5 coarse ece6c8 brightness x1.04 hue 0.004
+ok   FloorLamp-0: DarkSteel full 161618 coarse 151517 brightness x0.96 hue 0.003; LampShade full e8e1c4 coarse ebe5c7 brightness x1.04 hue 0.003
+ok   Sofa-0 tint 0: Plain_Grey_Velvet.001 full d3d0c4 coarse d2cec1 brightness x0.98 hue 0.006; Material.003 not compared (6/161 px)
+ok   Sofa-0 tint 4: Plain_Grey_Velvet.001 full 627095 coarse 606d92 brightness x0.95 hue 0.002; Material.003 not compared (6/161 px)
+ok   Sofa-0 tint 9: Plain_Grey_Velvet.001 full be8e79 coarse bb8b77 brightness x0.95 hue 0.002; Material.003 not compared (6/161 px)
+ok   Sofa-1 tint 0: M_Koltuk. full 515251 coarse 4a4b4a brightness x0.83 hue 0.002
+ok   Sofa-1 tint 4: M_Koltuk. full 505150 coarse 4a4b4a brightness x0.86 hue 0.002
+ok   Sofa-1 tint 9: M_Koltuk. full 515150 coarse 4a4b4a brightness x0.85 hue 0.004
+ok   Sofa-2 tint 0: Plain_Grey_Velvet.001 full d5d2c6 coarse d4cfc2 brightness x0.97 hue 0.007; Material.003 not compared (4/90 px)
+ok   Sofa-2 tint 4: Plain_Grey_Velvet.001 full 637197 coarse 606e93 brightness x0.94 hue 0.002; Material.003 not compared (4/90 px)
+ok   Sofa-2 tint 9: Plain_Grey_Velvet.001 full c08f7b coarse bc8c77 brightness x0.95 hue 0.002; Material.003 not compared (4/90 px)
+ok   Sofa-3 tint 0: sofa_02 full 252421 coarse 24221e brightness x0.90 hue 0.011
+ok   Sofa-3 tint 4: sofa_02 full 252421 coarse 24221e brightness x0.90 hue 0.011
+ok   Sofa-3 tint 9: sofa_02 full 252421 coarse 24221e brightness x0.90 hue 0.011
+ok   Armchair-0 tint 0: Armchair_01 full c2bfb5 coarse c0beb5 brightness x0.99 hue 0.006
+ok   Armchair-0 tint 4: Armchair_01 full 5e6a8b coarse 606b8b brightness x1.03 hue 0.010
+ok   Armchair-0 tint 9: Armchair_01 full b08572 coarse b08673 brightness x1.01 hue 0.003
+ok   CoffeeTable-0: Oak full b18b63 coarse b08b62 brightness x0.99 hue 0.002
+ok   Bed-0 tint 0: Oak full 977653 coarse 967652 brightness x0.99 hue 0.001; Bedding full 8b8874 coarse 8a8874 brightness x0.99 hue 0.001; Fabric full 9c957b coarse 9b9479 brightness x0.98 hue 0.003
+ok   Bed-0 tint 4: Oak full 977653 coarse 967652 brightness x0.99 hue 0.001; Bedding full 8b8874 coarse 8a8874 brightness x0.99 hue 0.001; Fabric full 48505d coarse 48505d brightness x0.99 hue 0.002
+ok   Bed-0 tint 9: Oak full 977653 coarse 967652 brightness x0.99 hue 0.001; Bedding full 8b8874 coarse 8a8874 brightness x0.99 hue 0.001; Fabric full 8a664c coarse 89654c brightness x0.98 hue 0.001
+ok   Wardrobe-0: Maple full d5c7ae coarse d6c7ae brightness x1.00 hue 0.001; Rubber full 202020 coarse 202020 brightness x1.00 hue 0.000; Walnut not compared (0/0 px); Chrome full 010101 coarse 010101 brightness x1.00 hue 0.000
+ok   Wardrobe-1: Oak full 9c7b57 coarse 9b7a55 brightness x0.98 hue 0.002; Rubber full 202020 coarse 202020 brightness x1.00 hue 0.000; Walnut not compared (7/0 px); Chrome full 010101 coarse 010101 brightness x1.00 hue 0.000
+ok   Wardrobe-2: Walnut full 7a5d48 coarse 7a5d48 brightness x1.01 hue 0.003; Rubber full 202020 coarse 202020 brightness x1.00 hue 0.000; Chrome full 010101 coarse 010101 brightness x1.00 hue 0.000
+ok   Bookcase-0: Oak full a07e5a coarse 9d7b56 brightness x0.95 hue 0.006
+ok   Rug-0 tint 0: carpet full faf8ef coarse fdfdf2 brightness x1.04 hue 0.004; carpet.back not compared (0/8407 px)
+ok   Rug-0 tint 4: carpet full 7b8bb8 coarse 7c8cba brightness x1.02 hue 0.002; carpet.back not compared (0/8407 px)
+ok   Rug-0 tint 9: carpet full e8af96 coarse eab198 brightness x1.02 hue 0.001; carpet.back not compared (0/8407 px)
+ok   KitchenCabinet-0: Rubber full 191919 coarse 191919 brightness x1.00 hue 0.000; Maple full c8baa3 coarse c8baa3 brightness x1.00 hue 0.001; Walnut full 99755c coarse 98755c brightness x0.99 hue 0.001; Chrome full 020202 coarse 020202 brightness x1.00 hue 0.000
+ok   KitchenCabinet-1: Rubber full 1a1a1a coarse 1a1a1a brightness x1.00 hue 0.000; Maple full a09581 coarse 9f9481 brightness x0.99 hue 0.001; Walnut full 9a765c coarse 99765c brightness x0.99 hue 0.001; Pine full 603407 coarse 653708 brightness x1.12 hue 0.004; Chrome not compared (833/0 px)
+ok   KitchenCabinet-2: Rubber full 181818 coarse 181818 brightness x1.00 hue 0.000; Maple full cfc1a9 coarse cfc1a8 brightness x1.00 hue 0.002; Walnut not compared (0/0 px); Chrome full 010101 coarse 010101 brightness x1.00 hue 0.000
+ok   Fridge-0: Ceramic full d7d7d6 coarse d7d7d6 brightness x1.00 hue 0.000; Chrome full 010101 coarse 010101 brightness x1.00 hue 0.000
+ok   Bathtub-0: Chrome full 0a0a0b coarse 010101 brightness x0.13 hue 0.056; Ceramic full dfdfdd coarse dfdfdd brightness x1.00 hue 0.000
+ok   Toilet-0: Toilet_Elongated_A full c5c4c6 coarse bdbbbd brightness x0.90 hue 0.001; Toilet_pipes_flush_Mat full 555657 coarse 535355 brightness x0.94 hue 0.002; Toilet_Elongated_Seat_Mat full fafafa coarse fefefe brightness x1.04 hue 0.000
+ok   VanityUnit-0: Sink_C_Mat full ecebed coarse f0f0f0 brightness x1.04 hue 0.002
+ok   GroceryShelf-0: LightSteel full 909294 coarse 909294 brightness x1.00 hue 0.000; RackBeam full c85d14 coarse c85d14 brightness x1.00 hue 0.000
+ok   Freezer-0: Ceramic full d9d9d7 coarse d9d9d7 brightness x1.00 hue 0.000; LightSteel full 87898b coarse 87898b brightness x1.00 hue 0.000; Glass full 859da9 coarse 859da9 brightness x1.00 hue 0.000
+ok   Counter-0: Rubber full 1e1e1e coarse 1e1e1e brightness x1.00 hue 0.000; Walnut full 81624c coarse 82634c brightness x1.01 hue 0.000; Maple full fbebcd coarse faeacc brightness x0.99 hue 0.003
+ok   DiningTable-0: dining_table full 9c8976 coarse a5917b brightness x1.12 hue 0.007
+ok   DiningTable-1: round_wooden_table_01 full 441f11 coarse 421e12 brightness x0.94 hue 0.009
+ok   DiningTable-2: painted_wooden_table full 50606a coarse 50616a brightness x1.01 hue 0.000
+ok   Chair-0: painted_wooden_chair_01 full d7d5d4 coarse cac7c5 brightness x0.86 hue 0.005
+ok   Chair-1: dining_chair_02 full 2e231e coarse 2b221c brightness x0.90 hue 0.015
+ok   Chair-2: GreenChair_01 full 41463c coarse 3d4037 brightness x0.86 hue 0.016
+ok   PlantTable-0: LightSteel full 989a9c coarse 989a9c brightness x1.00 hue 0.000
+ok   PottedPlant-0 tint 0: Terracotta full 80422b coarse 7d412a brightness x0.96 hue 0.002; Soil full 372a24 coarse 332720 brightness x0.86 hue 0.005; Leaf full b7c77b coarse bbcb7e brightness x1.05 hue 0.001
+ok   PottedPlant-0 tint 4: Terracotta full 80422b coarse 7d412a brightness x0.96 hue 0.002; Soil full 372a24 coarse 332720 brightness x0.86 hue 0.005; Leaf full 80aa7b coarse 83ad7e brightness x1.05 hue 0.001
+ok   PottedPlant-0 tint 9: Terracotta full 80422b coarse 7d412a brightness x0.96 hue 0.002; Soil full 372a24 coarse 332720 brightness x0.86 hue 0.005; Leaf full 87b78e coarse 8abb91 brightness x1.05 hue 0.001
+ok   LargePlant-0 tint 0: Terracotta full 81432c coarse 7f422a brightness x0.96 hue 0.002; Soil full 3d3029 coarse 3d3029 brightness x1.00 hue 0.000; Walnut full 785b46 coarse 775a45 brightness x0.98 hue 0.002; Leaf full afbe75 coarse b4c378 brightness x1.06 hue 0.001
+ok   LargePlant-0 tint 4: Terracotta full 81432c coarse 7f422a brightness x0.96 hue 0.002; Soil full 3d3029 coarse 3d3029 brightness x1.00 hue 0.000; Walnut full 785b46 coarse 775a45 brightness x0.98 hue 0.002; Leaf full 7aa275 coarse 7da778 brightness x1.07 hue 0.001
+ok   LargePlant-0 tint 9: Terracotta full 81432c coarse 7f422a brightness x0.96 hue 0.002; Soil full 3d3029 coarse 3d3029 brightness x1.00 hue 0.000; Walnut full 785b46 coarse 775a45 brightness x0.98 hue 0.002; Leaf full 81af87 coarse 85b48b brightness x1.07 hue 0.001
+ok   ToyShelf-0 tint 0: Maple full dbcdb3 coarse daccb2 brightness x0.99 hue 0.002; Plastic full f6f1de coarse f6f1de brightness x1.00 hue 0.000
+ok   ToyShelf-0 tint 4: Maple full dbcdb3 coarse daccb2 brightness x0.99 hue 0.002; Plastic full 6e97e2 coarse 6e97e2 brightness x1.00 hue 0.000
+ok   ToyShelf-0 tint 9: Maple full dbcdb3 coarse daccb2 brightness x0.99 hue 0.002; Plastic full f4ab7d coarse f4ab7d brightness x1.00 hue 0.000
+ok   BunkBed-0 tint 0: Maple full d6c7ae coarse d6c7ae brightness x1.00 hue 0.000; Bedding full 928f7a coarse 918f7a brightness x0.99 hue 0.001; Plastic full fefdf3 coarse fefdf3 brightness x1.00 hue 0.000
+ok   BunkBed-0 tint 4: Maple full d6c7ae coarse d6c7ae brightness x1.00 hue 0.000; Bedding full 928f7a coarse 918f7a brightness x0.99 hue 0.001; Plastic full 79a5f7 coarse 79a5f7 brightness x1.00 hue 0.000
+ok   BunkBed-0 tint 9: Maple full d6c7ae coarse d6c7ae brightness x1.00 hue 0.000; Bedding full 928f7a coarse 918f7a brightness x0.99 hue 0.001; Plastic full fdbb89 coarse fdbb89 brightness x1.00 hue 0.000
+ok   KidsTable-0 tint 0: Plastic full fcfcf2 coarse fcfcf2 brightness x1.00 hue 0.000; Maple full cabca4 coarse cbbda5 brightness x1.01 hue 0.001
+ok   KidsTable-0 tint 4: Plastic full 78a4f6 coarse 78a4f6 brightness x1.00 hue 0.000; Maple full cabca4 coarse cbbda5 brightness x1.01 hue 0.001
+ok   KidsTable-0 tint 9: Plastic full fcba88 coarse fcba88 brightness x1.00 hue 0.000; Maple full cabca4 coarse cbbda5 brightness x1.01 hue 0.001
+ok   KidsChair-0 tint 0: Plastic full f7f4e4 coarse f7f4e4 brightness x1.00 hue 0.000; Maple full cabca4 coarse cbbda5 brightness x1.01 hue 0.001
+ok   KidsChair-0 tint 4: Plastic full 719be8 coarse 719be8 brightness x1.00 hue 0.000; Maple full cabca4 coarse cbbda5 brightness x1.01 hue 0.001
+ok   KidsChair-0 tint 9: Plastic full f6b080 coarse f6b080 brightness x1.00 hue 0.000; Maple full cabca4 coarse cbbda5 brightness x1.01 hue 0.001
+ok   PlayCube-0 tint 0: Plastic full e9e4d3 coarse e9e4d3 brightness x1.00 hue 0.000
+ok   PlayCube-0 tint 4: Plastic full 688fd7 coarse 688fd7 brightness x1.00 hue 0.000
+ok   PlayCube-0 tint 9: Plastic full e7a276 coarse e7a276 brightness x1.00 hue 0.000
+ok   Desk-0: Pine full 6b3b0a coarse 6e3d0a brightness x1.07 hue 0.003; PaintedMetal full 6f7274 coarse 6f7275 brightness x1.00 hue 0.001
+ok   Desk-1: Pine full 703d0a coarse 74410c brightness x1.10 hue 0.006; PaintedMetal full 5d6062 coarse 5d6062 brightness x1.01 hue 0.001
+ok   Desk-2: Walnut full 9a765c coarse 99765c brightness x0.99 hue 0.001; Pine full 572e05 coarse 593006 brightness x1.07 hue 0.003; Rubber full 1a1a1a coarse 1a1a1a brightness x1.00 hue 0.000; Chrome full 020202 coarse 020202 brightness x1.00 hue 0.000
+ok   OfficeChair-0 tint 0: PaintedMetal full 898c90 coarse 8a8d91 brightness x1.02 hue 0.002; Chrome full 020202 coarse 010101 brightness x0.50 hue 0.060; Linen full 8a9db1 coarse 8a9db1 brightness x0.99 hue 0.001
+ok   OfficeChair-0 tint 4: PaintedMetal full 898c90 coarse 8a8d91 brightness x1.02 hue 0.002; Chrome full 020202 coarse 010101 brightness x0.50 hue 0.060; Linen full 405487 coarse 3f5487 brightness x1.00 hue 0.001
+ok   OfficeChair-0 tint 9: PaintedMetal full 898c90 coarse 8a8d91 brightness x1.02 hue 0.002; Chrome full 020202 coarse 010101 brightness x0.50 hue 0.060; Linen full 7a6b6e coarse 7a6a6e brightness x1.00 hue 0.002
+ok   OfficeChair-1 tint 0: PaintedMetal full 898d90 coarse 8b8f93 brightness x1.03 hue 0.002; Chrome full 020202 coarse 010101 brightness x0.50 hue 0.058; Linen full 8da1b6 coarse 8da1b5 brightness x1.00 hue 0.002
+ok   OfficeChair-1 tint 4: PaintedMetal full 898d90 coarse 8b8f93 brightness x1.03 hue 0.002; Chrome full 020202 coarse 010101 brightness x0.50 hue 0.058; Linen full 42568b coarse 42568b brightness x1.00 hue 0.000
+ok   OfficeChair-1 tint 9: PaintedMetal full 898d90 coarse 8b8f93 brightness x1.03 hue 0.002; Chrome full 020202 coarse 010101 brightness x0.50 hue 0.058; Linen full 7d6d71 coarse 7d6d71 brightness x1.00 hue 0.003
+ok   OfficeChair-2 tint 0: DarkSteel full 171718 coarse 171719 brightness x1.03 hue 0.000; Chrome full 020202 coarse 020202 brightness x1.08 hue 0.007; Linen full 889baf coarse 889aaf brightness x1.00 hue 0.001
+ok   OfficeChair-2 tint 4: DarkSteel full 171718 coarse 171719 brightness x1.03 hue 0.000; Chrome full 020202 coarse 020202 brightness x1.08 hue 0.007; Linen full 3f5385 coarse 3e5385 brightness x1.00 hue 0.001
+ok   OfficeChair-2 tint 9: DarkSteel full 171718 coarse 171719 brightness x1.03 hue 0.000; Chrome full 020202 coarse 020202 brightness x1.08 hue 0.007; Linen full 78696c coarse 78696c brightness x1.00 hue 0.002
+ok   FilingCabinet-0: PaintedMetal full 76797c coarse 76797c brightness x1.00 hue 0.001; Chrome not compared (173/0 px)
+ok   MeetingTable-0: Pine full 723f0b coarse 73400b brightness x1.02 hue 0.001
+ok   DeskLamp-0: PaintedMetal full 898d90 coarse 898d91 brightness x1.01 hue 0.002; Chrome full 030303 coarse 010101 brightness x0.31 hue 0.065; LampShade full efe9cc coarse f4efd3 brightness x1.06 hue 0.005
+ok   CushionBin-0 tint 0: Wool full 6f6c68 coarse 6f6c68 brightness x1.00 hue 0.002; Linen full 889bb0 coarse 889baf brightness x1.00 hue 0.002
+ok   CushionBin-0 tint 4: Wool full 6f6c68 coarse 6f6c68 brightness x1.00 hue 0.002; Linen full 3f5386 coarse 3f5386 brightness x1.00 hue 0.000
+ok   CushionBin-0 tint 9: Wool full 6f6c68 coarse 6f6c68 brightness x1.00 hue 0.002; Linen full 79696d coarse 79696d brightness x1.00 hue 0.003
+ok   BlanketStack-0 tint 0: Linen full 8b9fb3 coarse 8b9eb3 brightness x1.00 hue 0.002; Bedding full 807d6b coarse 807d6b brightness x1.00 hue 0.000
+ok   BlanketStack-0 tint 4: Linen full 405589 coarse 415589 brightness x1.00 hue 0.000; Bedding full 807d6b coarse 807d6b brightness x1.00 hue 0.000
+ok   BlanketStack-0 tint 9: Linen full 7b6c6f coarse 7c6b6f brightness x1.00 hue 0.003; Bedding full 807d6b coarse 807d6b brightness x1.00 hue 0.000
+ok   CurtainRack-0 tint 0: PaintedMetal full 83878a coarse 83878a brightness x1.01 hue 0.002; Linen full 8294a7 coarse 8193a7 brightness x0.99 hue 0.002
+ok   CurtainRack-0 tint 4: PaintedMetal full 83878a coarse 83878a brightness x1.01 hue 0.002; Linen full 3b4e7f coarse 3b4e7f brightness x0.99 hue 0.002
+ok   CurtainRack-0 tint 9: PaintedMetal full 83878a coarse 83878a brightness x1.01 hue 0.002; Linen full 736468 coarse 736467 brightness x1.00 hue 0.002
+ok   FloorMirror-0: Pine full 613407 coarse 603407 brightness x0.98 hue 0.003; Chrome full 010101 coarse 010101 brightness x1.00 hue 0.000
+ok   FrameDisplay-0 tint 0: Pine full 633607 coarse 633608 brightness x1.00 hue 0.006; Linen full 8497ab coarse 8496aa brightness x0.99 hue 0.001
+ok   FrameDisplay-0 tint 4: Pine full 633607 coarse 633608 brightness x1.00 hue 0.006; Linen full 3d5082 coarse 3c5082 brightness x0.99 hue 0.003
+ok   FrameDisplay-0 tint 9: Pine full 633607 coarse 633608 brightness x1.00 hue 0.006; Linen full 75666a coarse 756669 brightness x1.00 hue 0.002
+ok   GardenTable-0: Teak full bc8c60 coarse bc8c60 brightness x1.00 hue 0.002
+ok   GardenTable-1: Teak full c39164 coarse c29163 brightness x0.99 hue 0.001; DarkSteel full 19191a coarse 18181a brightness x0.97 hue 0.001
+ok   GardenTable-2: Teak full b6875c coarse b6885d brightness x1.00 hue 0.001
+ok   GardenChair-0: Wool full 7e7b76 coarse 7e7b76 brightness x1.00 hue 0.001; Teak full 99704b coarse 9b734e brightness x1.04 hue 0.011
+ok   GardenChair-1: PaintedMetal full 8d9194 coarse 8e9296 brightness x1.02 hue 0.003; DarkSteel full 121213 coarse 121213 brightness x1.00 hue 0.000
+ok   GardenChair-2: Teak full 976f4a coarse 97704c brightness x1.02 hue 0.007; Wool full 7e7b76 coarse 7e7b76 brightness x1.00 hue 0.001
+ok   SunLounger-0: Teak full 9f7650 coarse a07750 brightness x1.01 hue 0.002; Wool full 837f7a coarse 837f7a brightness x1.00 hue 0.001
+ok   Parasol-0 tint 0: PaintedMetal full 878b8e coarse 888c90 brightness x1.01 hue 0.002; Teak full 966e4a coarse a07750 brightness x1.16 hue 0.007; Linen full 9aafc5 coarse 9aafc6 brightness x1.00 hue 0.001
+ok   Parasol-0 tint 4: PaintedMetal full 878b8e coarse 888c90 brightness x1.01 hue 0.002; Teak full 966e4a coarse a07750 brightness x1.16 hue 0.007; Linen full 495f97 coarse 495f97 brightness x1.00 hue 0.001
+ok   Parasol-0 tint 9: PaintedMetal full 878b8e coarse 888c90 brightness x1.01 hue 0.002; Teak full 966e4a coarse a07750 brightness x1.16 hue 0.007; Linen full 89787c coarse 89787c brightness x1.00 hue 0.001
+ok   Grill-0: DarkSteel full 18181a coarse 1c1c1e brightness x1.28 hue 0.003; PaintedMetal full 7a7e81 coarse 797d80 brightness x0.98 hue 0.001
+ok   DisplayCabinet-0: Pine full 5e3207 coarse 613507 brightness x1.08 hue 0.005; Glass full 728892 coarse 728892 brightness x1.00 hue 0.000
+ok   DisplayCabinet-1: Pine full 653708 coarse 693a09 brightness x1.09 hue 0.006; Glass full 728892 coarse 728892 brightness x1.00 hue 0.000
+ok   DisplayCabinet-2: Walnut full 785b46 coarse 785b46 brightness x1.00 hue 0.002; Glass full 728892 coarse 728892 brightness x1.00 hue 0.000; Rubber full 1c1c1c coarse 1c1c1c brightness x1.00 hue 0.000
+ok   Sideboard-0: modern_wooden_cabinet full 342318 coarse 36251c brightness x1.08 hue 0.038
+ok   ShoeCabinet-0: Pine full 603407 coarse 643708 brightness x1.09 hue 0.003; Chrome not compared (205/0 px)
+ok   CoatRack-0: Pine full 683908 coarse 673909 brightness x0.99 hue 0.006
+ok   HallBench-0: Pine full 683909 coarse 6c3c0a brightness x1.10 hue 0.006
+ok   ArcLamp-0: DarkSteel full 171718 coarse 171718 brightness x1.00 hue 0.000; Chrome full 050506 coarse 010101 brightness x0.24 hue 0.046; LampShade full ebe5c7 coarse f2eccf brightness x1.07 hue 0.006
+ok   TvBench-0: Pine full 6a3a09 coarse 703e0b brightness x1.13 hue 0.007
+ok   Dresser-0: Pine full 623507 coarse 663808 brightness x1.12 hue 0.005; Chrome not compared (154/0 px)
+ok   Nightstand-0: Pine full 633507 coarse 653708 brightness x1.06 hue 0.007; Chrome not compared (911/0 px)
+ok   WashingMachine-0: Ceramic full d9d9d8 coarse d9d9d8 brightness x1.00 hue 0.000; PaintedMetal full 7d8083 coarse 7d8083 brightness x1.00 hue 0.003; DarkSteel full 121214 coarse 121214 brightness x1.00 hue 0.000; Glass full 728892 coarse 728892 brightness x1.00 hue 0.000
+ok   Stove-0: DarkSteel full 131315 coarse 131315 brightness x1.01 hue 0.000; Ceramic full d3d3d2 coarse d2d2d1 brightness x0.99 hue 0.000; PaintedMetal full 7d8083 coarse 7e8184 brightness x1.00 hue 0.003
+ok   BoxCart-0: Rubber full 181818 coarse 191919 brightness x1.06 hue 0.000; PaintedMetal full 6e7274 coarse 6f7275 brightness x1.01 hue 0.001; Cardboard full b59058 coarse b3915e brightness x1.02 hue 0.021
+ok   BarStool-0: Pine full 623507 coarse 643708 brightness x1.06 hue 0.005
+ok   PlanterBox-0 tint 0: Leaf full bbcb7d coarse c5d584 brightness x1.12 hue 0.001; Teak full a37951 coarse a47a53 brightness x1.03 hue 0.006; Soil full 3c2f28 coarse 3c2f28 brightness x0.99 hue 0.000
+ok   PlanterBox-0 tint 4: Leaf full 83ae7d coarse 8ab784 brightness x1.12 hue 0.001; Teak full a37951 coarse a47a53 brightness x1.03 hue 0.006; Soil full 3c2f28 coarse 3c2f28 brightness x0.99 hue 0.000
+ok   PlanterBox-0 tint 9: Leaf full 8abb91 coarse 92c599 brightness x1.12 hue 0.001; Teak full a37951 coarse a47a53 brightness x1.03 hue 0.006; Soil full 3c2f28 coarse 3c2f28 brightness x0.99 hue 0.000
+ok   ToyChest-0: Pine full 623507 coarse 673909 brightness x1.12 hue 0.005; Chrome not compared (156/0 px)
+ok   Mattress-0 tint 0: Fabric full 7d7862 coarse 7d7761 brightness x0.99 hue 0.003; Bedding full a19d87 coarse a09d86 brightness x0.99 hue 0.002
+ok   Mattress-0 tint 4: Fabric full 373e49 coarse 373e49 brightness x0.99 hue 0.004; Bedding full a19d87 coarse a09d86 brightness x0.99 hue 0.002
+ok   Mattress-0 tint 9: Fabric full 6f503b coarse 6e503b brightness x0.99 hue 0.001; Bedding full a19d87 coarse a09d86 brightness x0.99 hue 0.002
+ok   CardboardBox-0 tint 0: Cardboard full aa8855 coarse ac8b59 brightness x1.05 hue 0.014; LightSteel not compared (1467/0 px)
+ok   CardboardBox-0 tint 4: Cardboard full a27f4c coarse a48250 brightness x1.04 hue 0.014; LightSteel not compared (1467/0 px)
+ok   CardboardBox-0 tint 9: Cardboard full 9b7846 coarse 9d7b4a brightness x1.05 hue 0.012; LightSteel not compared (1467/0 px)
+ok   WallClock-0: Walnut full 85664f coarse 876750 brightness x1.02 hue 0.002; Ceramic full e2e2e0 coarse e4e4e2 brightness x1.02 hue 0.000; HourHand not compared (0/0 px); MinuteHand not compared (140/0 px)
+ok   WallClock-1: Oak full 9c7a56 coarse 9c7b56 brightness x1.01 hue 0.004; Ceramic full e2e2e0 coarse e4e4e2 brightness x1.02 hue 0.000; HourHand not compared (0/0 px); MinuteHand not compared (140/0 px)
+ok   WallClock-2: DarkSteel full 121214 coarse 121214 brightness x1.00 hue 0.001; Ceramic full e2e2e0 coarse e4e4e2 brightness x1.02 hue 0.000; HourHand not compared (0/0 px); MinuteHand not compared (140/0 px)
+ok   WallClock-3: Walnut full 86664f coarse 866750 brightness x1.01 hue 0.001; Ceramic full e2e2e0 coarse e4e4e2 brightness x1.02 hue 0.000; HourHand not compared (0/0 px); MinuteHand not compared (140/0 px)
+ok   FountainBowl-0: Stone full ded9c9 coarse e1dccc brightness x1.03 hue 0.000; Water full 2f565e coarse 2f565e brightness x1.00 hue 0.000
+ok   FountainBowl-1: Stone full e4dfce coarse e4dfce brightness x1.00 hue 0.000; Water full 2f565e coarse 2f565e brightness x1.00 hue 0.000
+ok   FountainBowl-2: Stone full e4dfce coarse e4dfce brightness x1.00 hue 0.000; Water full 2f565e coarse 2f565e brightness x1.00 hue 0.000
+ok   FountainBowl-3: Stone full e4dfce coarse e4dfce brightness x1.00 hue 0.000; Water full 2f565e coarse 2f565e brightness x1.00 hue 0.000
+ok   FountainColumn-0: Stone full bdb8aa coarse bebaac brightness x1.02 hue 0.000
+ok   FountainColumn-1: Stone full bbb6a8 coarse c1bcae brightness x1.08 hue 0.000
+ok   BasinKerb-0: Stone full cdc9b9 coarse cdc9b9 brightness x1.00 hue 0.000
+ok   ShoppingCart-0: carritocompras full 737951 coarse 757b52 brightness x1.04 hue 0.004
+ok   MealPlate-0: plate full bbc1ce coarse c0c6d3 brightness x1.05 hue 0.001; potato not compared (1647/0 px); mushroom not compared (632/0 px); bread not compared (2488/0 px); eggs not compared (1696/0 px); sausage not compared (2851/0 px)
+ok   ExitSign-0: lambert1 full 9abda1 coarse b1cbb5 brightness x1.21 hue 0.039; SteelPost full 110f11 coarse 100e10 brightness x0.95 hue 0.018
+ok   Mannequin-0 tint 0: MannequinSkin full dcdad6 coarse e0dfda brightness x1.05 hue 0.002; DarkSteel full 18181a coarse 18181a brightness x1.00 hue 0.000
+ok   Mannequin-0 tint 4: MannequinSkin full cfcdc9 coarse d2d0cb brightness x1.03 hue 0.001; DarkSteel full 18181a coarse 18181a brightness x1.00 hue 0.000
+ok   Mannequin-0 tint 9: MannequinSkin full 949495 coarse 959597 brightness x1.02 hue 0.000; DarkSteel full 18181a coarse 18181a brightness x1.00 hue 0.000
+ok   Mannequin-1 tint 0: MannequinSkin full dddbd7 coarse e1e0db brightness x1.04 hue 0.002; DarkSteel full 18181a coarse 18181a brightness x1.00 hue 0.000
+ok   Mannequin-1 tint 4: MannequinSkin full d1cfca coarse d3d1cc brightness x1.03 hue 0.001; DarkSteel full 18181a coarse 18181a brightness x1.00 hue 0.000
+ok   Mannequin-1 tint 9: MannequinSkin full 959596 coarse 959597 brightness x1.01 hue 0.000; DarkSteel full 18181a coarse 18181a brightness x1.00 hue 0.000
+ok   Mannequin-2 tint 0: MannequinSkin full dddcd8 coarse dbdad5 brightness x0.98 hue 0.003
+ok   Mannequin-2 tint 4: MannequinSkin full d1cfcb coarse ceccc7 brightness x0.97 hue 0.001
+ok   Mannequin-2 tint 9: MannequinSkin full 959597 coarse 929293 brightness x0.95 hue 0.000
+ok   Mannequin-3 tint 0: MannequinSkin full dbd9d5 coarse e0ded9 brightness x1.05 hue 0.002; DarkSteel full 18181a coarse 18181a brightness x1.00 hue 0.000
+ok   Mannequin-3 tint 4: MannequinSkin full ceccc7 coarse d2d0cb brightness x1.04 hue 0.001; DarkSteel full 18181a coarse 18181a brightness x1.00 hue 0.000
+ok   Mannequin-3 tint 9: MannequinSkin full 939394 coarse 949496 brightness x1.03 hue 0.000; DarkSteel full 18181a coarse 18181a brightness x1.00 hue 0.000
+ok   Mannequin-4 tint 0: MannequinSkin full dddcd8 coarse e2e0db brightness x1.04 hue 0.003; DarkSteel full 18181a coarse 18181a brightness x1.00 hue 0.000
+ok   Mannequin-4 tint 4: MannequinSkin full d2d0cb coarse d4d2cd brightness x1.02 hue 0.001; DarkSteel full 18181a coarse 18181a brightness x1.00 hue 0.000
+ok   Mannequin-4 tint 9: MannequinSkin full 969698 coarse 969698 brightness x1.00 hue 0.000; DarkSteel full 18181a coarse 18181a brightness x1.00 hue 0.000
+ok   Mannequin-5 tint 0: MannequinSkin full dcdbd7 coarse e0ded9 brightness x1.04 hue 0.002; DarkSteel full 18181a coarse 18181a brightness x1.00 hue 0.000
+ok   Mannequin-5 tint 4: MannequinSkin full d0cec9 coarse d2d0cb brightness x1.02 hue 0.001; DarkSteel full 18181a coarse 18181a brightness x1.00 hue 0.000
+ok   Mannequin-5 tint 9: MannequinSkin full 949496 coarse 949496 brightness x1.00 hue 0.000; DarkSteel full 18181a coarse 18181a brightness x1.00 hue 0.000
+ok   DoorFrame-0: Glossy not compared (51/0 px); Door full 8e898e coarse 908b90 brightness x1.02 hue 0.001
+ok   FishTank-0: TankGlass not compared (26336/0 px); Gravel not compared (0/0 px); Stone not compared (0/0 px); AquaticPlant not compared (0/0 px); Rubber full 252525 coarse 242424 brightness x0.99 hue 0.000; TankWater not compared (0/25952 px); TankVolume not compared (0/0 px)
+ok   FishTank-1: TankGlass not compared (25340/0 px); Gravel not compared (0/0 px); Stone not compared (0/0 px); AquaticPlant not compared (0/0 px); Rubber full 262626 coarse 252525 brightness x0.99 hue 0.000; TankWater not compared (0/25131 px); TankVolume not compared (0/0 px)
+ok   FishTank-2: TankGlass not compared (18340/0 px); Gravel not compared (0/0 px); Stone not compared (0/0 px); AquaticPlant not compared (0/0 px); Rubber full 262626 coarse 262626 brightness x1.00 hue 0.000; Walnut full 81624c coarse 81624b brightness x1.01 hue 0.003; TankWater not compared (0/18284 px); TankVolume not compared (0/0 px)
+ok   TankRack-0: DarkSteel full 181819 coarse 181819 brightness x1.00 hue 0.000
+ok   BallPool-0 tint 0: PaddingTrim full e4241f coarse e3241f brightness x0.99 hue 0.000; Padding full 5191d2 coarse 5191d2 brightness x1.00 hue 0.000; BallBed full 352b30 coarse 352b30 brightness x1.00 hue 0.000
+ok   BallPool-0 tint 4: PaddingTrim full e4241f coarse e3241f brightness x0.99 hue 0.000; Padding full 5187bf coarse 5187bf brightness x1.00 hue 0.000; BallBed full 352b30 coarse 352b30 brightness x1.00 hue 0.000
+ok   BallPool-0 tint 9: PaddingTrim full e4241f coarse e3241f brightness x0.99 hue 0.000; Padding full e2d87c coarse e2d87c brightness x1.00 hue 0.000; BallBed full 352b30 coarse 352b30 brightness x1.00 hue 0.000
+ok   NetRailing-0 tint 0: Padding full 5a99d7 coarse 5496d9 brightness x0.96 hue 0.025; Rubber full 202020 coarse 1f1f1f brightness x0.94 hue 0.000
+ok   NetRailing-0 tint 4: Padding full 5a8fc8 coarse 548cc6 brightness x0.95 hue 0.017; Rubber full 202020 coarse 1f1f1f brightness x0.94 hue 0.000
+ok   NetRailing-0 tint 9: Padding full e2db84 coarse e6de81 brightness x1.03 hue 0.014; Rubber full 202020 coarse 1f1f1f brightness x0.94 hue 0.000
+ok   PlaySlide-0 tint 0: PaddingTrim full e82c28 coarse e82c28 brightness x1.00 hue 0.000; Padding full 5496d8 coarse 5496d8 brightness x1.00 hue 0.000
+ok   PlaySlide-0 tint 4: PaddingTrim full e82c28 coarse e82c28 brightness x1.00 hue 0.000; Padding full 548cc6 coarse 548cc6 brightness x1.00 hue 0.000
+ok   PlaySlide-0 tint 9: PaddingTrim full e82c28 coarse e82c28 brightness x1.00 hue 0.000; Padding full e3dc80 coarse e3dc80 brightness x1.00 hue 0.000
+ok   FoamStep-0 tint 0: Padding full 5192d4 coarse 5192d4 brightness x1.00 hue 0.000; PaddingTrim full ea2521 coarse ea2521 brightness x1.00 hue 0.000
+ok   FoamStep-0 tint 4: Padding full 5188c0 coarse 5188c0 brightness x1.00 hue 0.000; PaddingTrim full ea2521 coarse ea2521 brightness x1.00 hue 0.000
+ok   FoamStep-0 tint 9: Padding full e4d97d coarse e4d97d brightness x1.00 hue 0.000; PaddingTrim full ea2521 coarse ea2521 brightness x1.00 hue 0.000
+ok   PlayBall-0 tint 0: Balls full e25959 coarse e45555 brightness x0.98 hue 0.024
+ok   PlayBall-0 tint 4: Balls full e7b543 coarse eab33c brightness x1.00 hue 0.019
+ok   PlayBall-0 tint 9: Balls full e7de43 coarse eae03c brightness x1.02 hue 0.010
+FAIL HotFoodCounter-0: Food not compared (0/91 px); Sauce not compared (0/484 px); Mash not compared (0/731 px); Lingonberry full 784036 coarse 7f4c3c brightness x1.27 hue 0.046; LightSteel full 818385 coarse 848688 brightness x1.05 hue 0.000; Chrome full 020202 coarse 010101 brightness x0.95 hue 0.002; TankGlass not compared (8028/0 px)
+ok   DessertCounter-0: Plate not compared (0/1 px); Cake not compared (0/28 px); CakeSlice not compared (0/0 px); LightSteel full 898b8d coarse 8c8e90 brightness x1.05 hue 0.000; TankGlass not compared (13268/0 px)
+ok   TrayRail-0: Chrome full 010101 coarse 010101 brightness x1.00 hue 0.000
+ok   TrayStation-0: Maple full d6c7ae coarse d6c7ae brightness x1.00 hue 0.000; DarkSteel full 141415 coarse 141415 brightness x1.00 hue 0.000; LightSteel full 8a8c8e coarse 8c8d8f brightness x1.02 hue 0.000; Chrome not compared (95/0 px)
+ok   CoffeeMachine-0: Ceramic not compared (584/0 px); DarkSteel full 111113 coarse 111113 brightness x1.00 hue 0.000; Chrome full 010101 coarse 010101 brightness x1.03 hue 0.001
+ok   Till-0: Chrome not compared (23/0 px); Maple full d9cbb1 coarse dacbb1 brightness x1.00 hue 0.001; DarkSteel full 151517 coarse 151517 brightness x1.00 hue 0.000
+ok   TrayTrolley-0: Ceramic full fafafa coarse fbfbfb brightness x1.01 hue 0.000; Rubber full 1a1a1a coarse 1a1a1a brightness x1.00 hue 0.000; Chrome full 010101 coarse 010101 brightness x1.00 hue 0.000; LightSteel full 8c8e90 coarse 8c8e90 brightness x1.00 hue 0.000; DarkSteel full 18181a coarse 18181a brightness x1.00 hue 0.000
+ok   HighChair-0: Maple full e2d3b9 coarse e2d3b8 brightness x1.00 hue 0.002
+ok   MenuBoard-0: DarkSteel full 0f0f10 coarse 0f0f10 brightness x1.00 hue 0.000; MenuPanel full 232325 coarse 232325 brightness x1.00 hue 0.000
+ok   Tray-0: DarkSteel full 181819 coarse 181819 brightness x1.02 hue 0.000
+ok   Spill-0: Spill full 78451e coarse 78451e brightness x1.00 hue 0.000
+ok   Note-0: Paper full fbfbfa coarse fbfbfa brightness x1.00 hue 0.000
+ok   StallPartition-0: Chrome full 010101 coarse 010101 brightness x1.00 hue 0.000; LightSteel full 5d5e60 coarse 5d5e60 brightness x1.00 hue 0.000
+ok   StallDoor-0: Chrome full 010101 coarse 010101 brightness x0.82 hue 0.030; LightSteel full 838587 coarse 838587 brightness x1.00 hue 0.000
+ok   HandDryer-0: T_hand_dryer_1001 full 0b0b0b coarse 0d0e0e brightness x1.24 hue 0.012
+ok   PaperTowelDispenser-0: Dispenser full e1e0e1 coarse efeeef brightness x1.15 hue 0.000; Dispenser_Bottom full 3a3a3a coarse 3e3e3e brightness x1.15 hue 0.000; Paper_Towel full 7f7561 coarse 807662 brightness x1.02 hue 0.001
+ok   BabyChangingTable-0: Material.001 not compared (0/0 px); Material full e7e6e7 coarse e6e5e6 brightness x0.99 hue 0.001; Material.003 not compared (3897/0 px); Material.002 not compared (818/0 px)
+ok   RestroomSign-0: Scene_-_Root full 4e79b0 coarse 507ab0 brightness x1.01 hue 0.006
+ok   OutOfOrderSign-0: WetFloorSign_01 full c5b42c coarse c5b42b brightness x1.00 hue 0.000
+ok   RestroomMirror-0: Chrome full 010101 coarse 010101 brightness x1.00 hue 0.000; Glass full 728892 coarse 728892 brightness x1.00 hue 0.000
+ok   RestroomMirror-1: DarkSteel not compared (0/0 px); Chrome full 010101 coarse 010101 brightness x1.00 hue 0.000; Glass full 728892 coarse 728892 brightness x1.00 hue 0.000
+ok   TiledWall-0: DarkSteel full 121214 coarse 121214 brightness x1.00 hue 0.000; Tiles full c8c7c8 coarse c3c3c3 brightness x0.95 hue 0.003
+ok   TiledWall-1: DarkSteel full 121214 coarse 121214 brightness x1.00 hue 0.000; Tiles full c8c7c8 coarse c3c3c3 brightness x0.95 hue 0.003
+ok   TiledWall-2: DarkSteel full 121214 coarse 121214 brightness x1.00 hue 0.000; Tiles full c8c7c7 coarse c2c2c2 brightness x0.95 hue 0.003
+ok   TiledFloor-0: Tiles full e7e5e6 coarse e1e1e1 brightness x0.96 hue 0.003
+ok   LitterPaper-0: Paper full fdfdfc coarse fdfdfc brightness x1.00 hue 0.000
+ok   ServiceCounter-0: Wood_Bamboo full c59b69 coarse c59a68 brightness x0.99 hue 0.003; 0047_Khaki not compared (13682/0 px); material not compared (178/0 px); 0128_White not compared (0/0 px); Color_M07 not compared (129/0 px)
+ok   ServiceBell-0: aiStandardSurface1SG full 1e1918 coarse 222424 brightness x1.61 hue 0.117; aiStandardSurface2SG not compared (607/0 px)
+ok   LabelledBox-0: cardboard_box_01 full 9e8b68 coarse 9d8a66 brightness x0.98 hue 0.009
+ok   LabelledBox-1: Cardboard full a4804b coarse a08152 brightness x1.00 hue 0.035; Fabric full a19e8a coarse a09d89 brightness x0.99 hue 0.001
+ok   UnsortedCart-0: industrial_storage_cart full 333628 coarse 36392c brightness x1.11 hue 0.009
+ok   NoticeBoard-0: Scene_-_Root full 745337 coarse 6b4b2f brightness x0.82 hue 0.022
+ok   LostAndFoundSign-0: M_signage_1_1001 full 454a42 coarse 474c44 brightness x1.04 hue 0.003
+ok   Tree-0 tint 0: leaf full 4b881c coarse 4c881c brightness x1.00 hue 0.012; Trunk not compared (3/9 px)
+ok   Tree-0 tint 4: leaf full 4b881c coarse 4c881c brightness x1.00 hue 0.012; Trunk not compared (3/9 px)
+ok   Tree-0 tint 9: leaf full 4b881c coarse 4c881c brightness x1.00 hue 0.012; Trunk not compared (3/9 px)
+ok   Tree-1 tint 0: tree-spruce full 374939 coarse 38493a brightness x1.00 hue 0.009
+ok   Tree-1 tint 4: tree-spruce full 374939 coarse 38493a brightness x1.00 hue 0.009
+ok   Tree-1 tint 9: tree-spruce full 374939 coarse 38493a brightness x1.00 hue 0.009
+ok   Tent-0 tint 0: Tent full 9d9b92 coarse 93948f brightness x0.89 hue 0.026
+FAIL Tent-0 tint 4: Tent full 526894 coarse 5b6d91 brightness x1.10 hue 0.056
+FAIL Tent-0 tint 9: Tent full 9c7360 coarse 937764 brightness x1.00 hue 0.064
+ok   Tent-1 tint 0: teepee_material full 8a9799 coarse 8a9798 brightness x1.00 hue 0.001
+ok   Tent-1 tint 4: teepee_material full 8a9799 coarse 8a9798 brightness x1.00 hue 0.001
+ok   Tent-1 tint 9: teepee_material full 8a9799 coarse 8a9798 brightness x1.00 hue 0.001
+ok   Tent-2 tint 0: Material.001 full d9d5c9 coarse e8e7d9 brightness x1.19 hue 0.005
+ok   Tent-2 tint 4: Material.001 full 688dcb coarse 6d93dd brightness x1.11 hue 0.029
+ok   Tent-2 tint 9: Material.001 full d7a176 coarse e8a77b brightness x1.13 hue 0.023
+FAIL Tent-3 tint 0: material_4 full f7f4e8 coarse fefef3 brightness x1.09 hue 0.008; material_1 full b9b4a1 coarse d9d6c2 brightness x1.48 hue 0.012; material_2 not compared (0/0 px); material full eae7d9 coarse e2e1d2 brightness x0.94 hue 0.003
+FAIL Tent-3 tint 4: material_4 full 76a0ea coarse 7aa5f7 brightness x1.09 hue 0.013; material_1 full 4e6ca4 coarse 6084c6 brightness x1.53 hue 0.004; material_2 not compared (0/0 px); material full 6f96dc coarse 698fd6 brightness x0.91 hue 0.015
+FAIL Tent-3 tint 9: material_4 full f5b586 coarse febc8b brightness x1.09 hue 0.002; material_1 full b67b59 coarse d8966e brightness x1.50 hue 0.014; material_2 not compared (0/0 px); material full e8aa7d coarse e2a277 brightness x0.92 hue 0.009
+FAIL Tent-4 tint 0: Stake full cdc8b5 coarse e2e0d1 brightness x1.29 hue 0.021; Rope not compared (0/2167 px); knot not compared (6/483 px); Part_1 full e8e2cc coarse e7e3d0 brightness x1.01 hue 0.009; Part_2 full f9f3dd coarse ddd9c6 brightness x0.77 hue 0.005
+FAIL Tent-4 tint 4: Stake full 597bb8 coarse 688ed5 brightness x1.37 hue 0.001; Rope not compared (0/2167 px); knot not compared (6/483 px); Part_1 full 648ad0 coarse 668cd3 brightness x1.04 hue 0.002; Part_2 full 6d95e0 coarse 6186c9 brightness x0.79 hue 0.002
+FAIL Tent-4 tint 9: Stake full cb8c66 coarse e1a176 brightness x1.33 hue 0.023; Rope not compared (0/2167 px); knot not compared (6/483 px); Part_1 full e59d72 coarse e5a075 brightness x1.02 hue 0.011; Part_2 full f6aa7c coarse db986f brightness x0.78 hue 0.008
+ok   Tent-5 tint 0: Root full ebe7d2 coarse f2efe1 brightness x1.08 hue 0.020
+ok   Tent-5 tint 4: Root full 6f93d6 coarse 729ae4 brightness x1.11 hue 0.016
+ok   Tent-5 tint 9: Root full e9a57d coarse f1af81 brightness x1.11 hue 0.013
+ok   LanternTent-0: Rubber not compared (6070/0 px); LampShade full e7dcc0 coarse e7ddc0 brightness x1.00 hue 0.001
+FAIL CampfireFlame-0: Flame not compared (14197/0 px)
+ok   LogSeat-0: Scene_-_Root full 856750 coarse 80634c brightness x0.91 hue 0.003
+ok   Hammock-0 tint 0: Material full eae5cf coarse f1efe0 brightness x1.09 hue 0.027
+ok   Hammock-0 tint 4: Material full 688ed2 coarse 7099e4 brightness x1.18 hue 0.004
+ok   Hammock-0 tint 9: Material full e8a077 coarse f0ad7f brightness x1.14 hue 0.027
+ok   Kayak-0 tint 0: Plastic_Kayak full f7f6ef coarse f8f4e5 brightness x0.98 hue 0.025; Metal not compared (0/0 px); Elastic_Cord full 252525 coarse 1c1c1c brightness x0.61 hue 0.001; Paddles full fffffb coarse f9f8e5 brightness x0.93 hue 0.039; Paddle_Handle not compared (0/834 px)
+FAIL Kayak-0 tint 4: Plastic_Kayak full 82a9f2 coarse 759ee8 brightness x0.86 hue 0.027; Metal not compared (0/0 px); Elastic_Cord full 252525 coarse 1c1c1c brightness x0.61 hue 0.001; Paddles full 83aefd coarse 719bea brightness x0.78 hue 0.028; Paddle_Handle not compared (0/834 px)
+FAIL Kayak-0 tint 9: Plastic_Kayak full f7be91 coarse f6b284 brightness x0.91 hue 0.045; Metal not compared (0/0 px); Elastic_Cord full 252525 coarse 1c1c1c brightness x0.61 hue 0.001; Paddles full ffc593 coarse f8b181 brightness x0.84 hue 0.059; Paddle_Handle not compared (0/834 px)
+ok   FishingRod-0: map_Spining01 full 2c3d3b coarse 2c3d3b brightness x1.01 hue 0.004
+ok   RubberDuck-0: rubber_duck_toy full d77e1b coarse db8015 brightness x1.03 hue 0.007
+ok   PlushBear-0: Face_Baked full b5a797 coarse b6a99a brightness x1.03 hue 0.004; Ear_R_Baked full ad9f90 coarse a89c8d brightness x0.95 hue 0.004; Ear_L_Baked full b6a797 coarse b6a799 brightness x1.01 hue 0.002; Body_Baked full ab9e90 coarse ac9f91 brightness x1.01 hue 0.001; Hands_Baked full aa9d8e coarse aa9c8e brightness x1.00 hue 0.004; Legs_Baked full ada091 coarse a79b8d brightness x0.93 hue 0.002; Mouth_Baked full c3bfbf coarse bfbebd brightness x0.98 hue 0.006; Eyes_Baked not compared (37/0 px)
+ok   TrailSign-0: Material.002 full 8f887d coarse 999186 brightness x1.16 hue 0.004; Material.005 full 759d3a coarse 759d3b brightness x1.01 hue 0.004
+ok   Axe-0: hatchet full 302017 coarse 302017 brightness x1.00 hue 0.005
+ok   SleepingBag-0 tint 0: DefaultMaterial full e0dfd3 coarse e0dac4 brightness x0.96 hue 0.037
+ok   SleepingBag-0 tint 4: DefaultMaterial full 6b90d6 coarse 6385c8 brightness x0.85 hue 0.003
+FAIL SleepingBag-0 tint 9: DefaultMaterial full e0a379 coarse dd976f brightness x0.89 hue 0.044
+ok   TreeHouse-0: planks full 9e8c6d coarse 9d8b6c brightness x0.99 hue 0.001; bark03.002 not compared (267/33 px); oak_leaf.001 full 7d8c56 coarse 82915d brightness x1.09 hue 0.013
+ok   MarshmallowTray-0: Teak full b6875c coarse b6885d brightness x1.01 hue 0.004; Marshmallow full f8f7f5 coarse f8f7f5 brightness x1.00 hue 0.000
+ok   CampBanner-0: DarkSteel full 101011 coarse 101012 brightness x1.03 hue 0.004; Canvas full f7f7f7 coarse f7f7f7 brightness x1.00 hue 0.000
+ok   PriceTag-0: DarkSteel full 0f0f11 coarse 0f0f11 brightness x1.00 hue 0.000; Marshmallow full ece8de coarse ece8de brightness x1.00 hue 0.000
+ok   CampChair-0: lambert1 full 365146 coarse 385247 brightness x1.02 hue 0.014
+ok   CampLantern-0: DarkSteel full 232324 coarse 202021 brightness x0.87 hue 0.001; LampShade full d0c5aa coarse d2c7ac brightness x1.02 hue 0.000
+ok   CampfireRing-0: material full 796f77 coarse 7a7077 brightness x1.01 hue 0.004; log_ring full 5f5253 coarse 625557 brightness x1.08 hue 0.007; rock full a9a7a8 coarse a9a8a9 brightness x1.01 hue 0.001
+ok   MarshmallowStick-0: Material full e5e5e5 coarse e9e9e9 brightness x1.04 hue 0.000
+270 Furniture types, variants and tints, 13 failed.

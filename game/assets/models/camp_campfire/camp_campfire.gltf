@@ -1,0 +1,457 @@
+{
+ "accessors": [
+  {
+   "bufferView": 2,
+   "componentType": 5126,
+   "count": 384,
+   "max": [
+    630.792236328125,
+    156.47348022460938,
+    593.9014282226562
+   ],
+   "min": [
+    -619.7657470703125,
+    -4.257301330566406,
+    -592.1466064453125
+   ],
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 2,
+   "byteOffset": 4608,
+   "componentType": 5126,
+   "count": 384,
+   "max": [
+    0.8786340355873108,
+    0.9638320207595825,
+    0.9662168025970459
+   ],
+   "min": [
+    -0.8786340951919556,
+    -0.9704724550247192,
+    -0.9662167429924011
+   ],
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 1,
+   "componentType": 5126,
+   "count": 384,
+   "max": [
+    0.9711717367172241,
+    1.2865121364593506
+   ],
+   "min": [
+    0.04402869939804077,
+    -0.3060804605484009
+   ],
+   "type": "VEC2"
+  },
+  {
+   "bufferView": 0,
+   "componentType": 5125,
+   "count": 864,
+   "type": "SCALAR"
+  },
+  {
+   "bufferView": 2,
+   "byteOffset": 9216,
+   "componentType": 5126,
+   "count": 108,
+   "max": [
+    630.792236328125,
+    156.24240112304688,
+    593.9014282226562
+   ],
+   "min": [
+    -619.7657470703125,
+    4.6248779296875,
+    -592.1466064453125
+   ],
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 2,
+   "byteOffset": 10512,
+   "componentType": 5126,
+   "count": 108,
+   "max": [
+    1.0,
+    1.0324017694074428e-06,
+    0.8660260438919067
+   ],
+   "min": [
+    -1.0,
+    -1.263122499040037e-06,
+    -0.866025984287262
+   ],
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 1,
+   "byteOffset": 3072,
+   "componentType": 5126,
+   "count": 108,
+   "max": [
+    1.0122671127319336,
+    0.8985241055488586
+   ],
+   "min": [
+    0.06119692325592041,
+    0.015955209732055664
+   ],
+   "type": "VEC2"
+  },
+  {
+   "bufferView": 0,
+   "byteOffset": 3456,
+   "componentType": 5125,
+   "count": 288,
+   "type": "SCALAR"
+  },
+  {
+   "bufferView": 2,
+   "byteOffset": 11808,
+   "componentType": 5126,
+   "count": 2376,
+   "max": [
+    814.4871826171875,
+    139.0152587890625,
+    816.0029296875
+   ],
+   "min": [
+    -814.33251953125,
+    -13.361717224121094,
+    -810.806396484375
+   ],
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 2,
+   "byteOffset": 40320,
+   "componentType": 5126,
+   "count": 2376,
+   "max": [
+    0.9982462525367737,
+    0.9931768774986267,
+    0.9976670742034912
+   ],
+   "min": [
+    -0.9998492002487183,
+    -0.883085310459137,
+    -0.9999427795410156
+   ],
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 1,
+   "byteOffset": 3936,
+   "componentType": 5126,
+   "count": 2376,
+   "max": [
+    1.0,
+    0.9421643614768982
+   ],
+   "min": [
+    0.0,
+    0.0
+   ],
+   "type": "VEC2"
+  },
+  {
+   "bufferView": 0,
+   "byteOffset": 4608,
+   "componentType": 5125,
+   "count": 10560,
+   "type": "SCALAR"
+  }
+ ],
+ "asset": {
+  "extras": {
+   "author": "Sarah Shahzad (https://sketchfab.com/sarah-sr)",
+   "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+   "source": "https://sketchfab.com/3d-models/campfire-logs-360f5729f7d447b598170fd66b26c3b5",
+   "title": "Campfire Logs"
+  },
+  "generator": "Sketchfab-12.68.0",
+  "version": "2.0"
+ },
+ "bufferViews": [
+  {
+   "buffer": 0,
+   "byteLength": 46848,
+   "name": "floatBufferViews",
+   "target": 34963
+  },
+  {
+   "buffer": 0,
+   "byteLength": 22944,
+   "byteOffset": 46848,
+   "byteStride": 8,
+   "name": "floatBufferViews",
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteLength": 68832,
+   "byteOffset": 69792,
+   "byteStride": 12,
+   "name": "floatBufferViews",
+   "target": 34962
+  }
+ ],
+ "buffers": [
+  {
+   "uri": "camp_campfire.bin",
+   "byteLength": 138624
+  }
+ ],
+ "images": [
+  {
+   "uri": "textures/material_baseColor.jpg"
+  },
+  {
+   "uri": "textures/log_ring_baseColor.jpg"
+  },
+  {
+   "uri": "textures/rock_baseColor.jpg"
+  },
+  {
+   "uri": "textures/camp_campfire_material0_orm.jpg"
+  },
+  {
+   "uri": "textures/camp_campfire_material0_normal.jpg"
+  },
+  {
+   "uri": "textures/camp_campfire_material1_orm.jpg"
+  },
+  {
+   "uri": "textures/camp_campfire_material1_normal.jpg"
+  },
+  {
+   "uri": "textures/camp_campfire_material2_orm.jpg"
+  },
+  {
+   "uri": "textures/camp_campfire_material2_normal.jpg"
+  }
+ ],
+ "materials": [
+  {
+   "doubleSided": true,
+   "name": "material",
+   "pbrMetallicRoughness": {
+    "baseColorTexture": {
+     "index": 0
+    },
+    "metallicRoughnessTexture": {
+     "index": 3
+    }
+   },
+   "normalTexture": {
+    "index": 4
+   }
+  },
+  {
+   "doubleSided": true,
+   "name": "log_ring",
+   "pbrMetallicRoughness": {
+    "baseColorTexture": {
+     "index": 1
+    },
+    "metallicRoughnessTexture": {
+     "index": 5
+    }
+   },
+   "normalTexture": {
+    "index": 6
+   }
+  },
+  {
+   "doubleSided": true,
+   "name": "rock",
+   "pbrMetallicRoughness": {
+    "baseColorTexture": {
+     "index": 2
+    },
+    "metallicRoughnessTexture": {
+     "index": 7
+    }
+   },
+   "normalTexture": {
+    "index": 8
+   }
+  }
+ ],
+ "meshes": [
+  {
+   "name": "pCylinder7_log_0",
+   "primitives": [
+    {
+     "attributes": {
+      "NORMAL": 1,
+      "POSITION": 0,
+      "TEXCOORD_0": 2
+     },
+     "indices": 3,
+     "material": 0,
+     "mode": 4
+    }
+   ]
+  },
+  {
+   "name": "pCylinder7_log_ring_0",
+   "primitives": [
+    {
+     "attributes": {
+      "NORMAL": 5,
+      "POSITION": 4,
+      "TEXCOORD_0": 6
+     },
+     "indices": 7,
+     "material": 1,
+     "mode": 4
+    }
+   ]
+  },
+  {
+   "name": "pCylinder7_rock_0",
+   "primitives": [
+    {
+     "attributes": {
+      "NORMAL": 9,
+      "POSITION": 8,
+      "TEXCOORD_0": 10
+     },
+     "indices": 11,
+     "material": 2,
+     "mode": 4
+    }
+   ]
+  }
+ ],
+ "nodes": [
+  {
+   "children": [
+    1
+   ],
+   "matrix": [
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    2.220446049250313e-16,
+    -1.0,
+    0.0,
+    0.0,
+    1.0,
+    2.220446049250313e-16,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0
+   ],
+   "name": "Sketchfab_model"
+  },
+  {
+   "children": [
+    2
+   ],
+   "matrix": [
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    -1.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0
+   ],
+   "name": "campfire.fbx"
+  },
+  {
+   "children": [
+    3
+   ],
+   "name": "RootNode"
+  },
+  {
+   "children": [
+    4,
+    5,
+    6
+   ],
+   "name": "pCylinder7"
+  },
+  {
+   "mesh": 0,
+   "name": "pCylinder7_log_0"
+  },
+  {
+   "mesh": 1,
+   "name": "pCylinder7_log_ring_0"
+  },
+  {
+   "mesh": 2,
+   "name": "pCylinder7_rock_0"
+  }
+ ],
+ "samplers": [
+  {
+   "magFilter": 9729,
+   "minFilter": 9987,
+   "wrapS": 10497,
+   "wrapT": 10497
+  }
+ ],
+ "scene": 0,
+ "scenes": [
+  {
+   "name": "Sketchfab_Scene",
+   "nodes": [
+    0
+   ]
+  }
+ ],
+ "textures": [
+  {
+   "sampler": 0,
+   "source": 0
+  },
+  {
+   "sampler": 0,
+   "source": 1
+  },
+  {
+   "sampler": 0,
+   "source": 2
+  },
+  {
+   "source": 3
+  },
+  {
+   "source": 4
+  },
+  {
+   "source": 5
+  },
+  {
+   "source": 6
+  },
+  {
+   "source": 7
+  },
+  {
+   "source": 8
+  }
+ ]
+}

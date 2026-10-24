@@ -1,0 +1,301 @@
+{
+ "accessors": [
+  {
+   "bufferView": 2,
+   "componentType": 5126,
+   "count": 1290,
+   "max": [
+    0.9329832792282104,
+    0.3914891481399536,
+    0.6505485773086548
+   ],
+   "min": [
+    -0.8932795524597168,
+    -0.5608248710632324,
+    -0.6608206629753113
+   ],
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 2,
+   "byteOffset": 15480,
+   "componentType": 5126,
+   "count": 1290,
+   "max": [
+    0.9998868107795715,
+    0.9998950362205505,
+    0.9933122992515564
+   ],
+   "min": [
+    -0.9995186924934387,
+    -0.7838724255561829,
+    -0.9962000846862793
+   ],
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 3,
+   "componentType": 5126,
+   "count": 1290,
+   "max": [
+    0.999999463558197,
+    0.9829891324043274,
+    0.9976379871368408,
+    1.0
+   ],
+   "min": [
+    -0.9999994039535522,
+    -0.9323009848594666,
+    -0.9999936819076538,
+    1.0
+   ],
+   "type": "VEC4"
+  },
+  {
+   "bufferView": 1,
+   "componentType": 5126,
+   "count": 1290,
+   "max": [
+    1.9834716320037842,
+    0.9887464642524719
+   ],
+   "min": [
+    -0.0013200193643569946,
+    0.0006670951843261719
+   ],
+   "type": "VEC2"
+  },
+  {
+   "bufferView": 0,
+   "componentType": 5125,
+   "count": 3540,
+   "type": "SCALAR"
+  }
+ ],
+ "asset": {
+  "extras": {
+   "author": "SangeetBlaze (https://sketchfab.com/SangeetBlaze)",
+   "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+   "source": "https://sketchfab.com/3d-models/stylized-bush-v1-7ccbbb3307004ad18bed624e356c5975",
+   "title": "Stylized Bush (V1)"
+  },
+  "generator": "Sketchfab-12.68.0",
+  "version": "2.0"
+ },
+ "bufferViews": [
+  {
+   "buffer": 0,
+   "byteLength": 14160,
+   "name": "floatBufferViews",
+   "target": 34963
+  },
+  {
+   "buffer": 0,
+   "byteLength": 10320,
+   "byteOffset": 14160,
+   "byteStride": 8,
+   "name": "floatBufferViews",
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteLength": 30960,
+   "byteOffset": 24480,
+   "byteStride": 12,
+   "name": "floatBufferViews",
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteLength": 20640,
+   "byteOffset": 55440,
+   "byteStride": 16,
+   "name": "floatBufferViews",
+   "target": 34962
+  }
+ ],
+ "buffers": [
+  {
+   "uri": "camp_bush_flowering.bin",
+   "byteLength": 76080
+  }
+ ],
+ "images": [
+  {
+   "uri": "textures/lambert1_diffuse.jpg"
+  },
+  {
+   "uri": "textures/lambert1_specularGlossiness.jpg"
+  },
+  {
+   "uri": "textures/lambert1_normal.jpg"
+  },
+  {
+   "uri": "textures/lambert1_occlusion.jpg"
+  },
+  {
+   "uri": "textures/camp_bush_flowering_material0_orm.jpg"
+  }
+ ],
+ "materials": [
+  {
+   "doubleSided": true,
+   "extensions": {},
+   "name": "lambert1",
+   "normalTexture": {
+    "index": 2
+   },
+   "occlusionTexture": {
+    "index": 3
+   },
+   "pbrMetallicRoughness": {
+    "baseColorTexture": {
+     "index": 0
+    },
+    "metallicRoughnessTexture": {
+     "index": 4
+    }
+   }
+  }
+ ],
+ "meshes": [
+  {
+   "name": "Bush3_lambert1_0",
+   "primitives": [
+    {
+     "attributes": {
+      "NORMAL": 1,
+      "POSITION": 0,
+      "TANGENT": 2,
+      "TEXCOORD_0": 3
+     },
+     "indices": 4,
+     "material": 0,
+     "mode": 4
+    }
+   ]
+  }
+ ],
+ "nodes": [
+  {
+   "children": [
+    1
+   ],
+   "matrix": [
+    92.09000396728516,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    5.638886675654569e-15,
+    -92.09000396728516,
+    0.0,
+    0.0,
+    92.09000396728516,
+    5.638886675654569e-15,
+    0.0,
+    0.0,
+    3.009265538105056e-35,
+    -1.3552527156068805e-19,
+    1.0
+   ],
+   "name": "Sketchfab_model"
+  },
+  {
+   "children": [
+    2
+   ],
+   "matrix": [
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    -1.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0
+   ],
+   "name": "db603f027c484f628bae13ae82eab25d.fbx"
+  },
+  {
+   "children": [
+    3
+   ],
+   "name": "RootNode"
+  },
+  {
+   "children": [
+    4
+   ],
+   "matrix": [
+    0.009999999776482582,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.009999999776482582,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.009999999776482582,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0
+   ],
+   "name": "Bush3"
+  },
+  {
+   "mesh": 0,
+   "name": "Bush3_lambert1_0"
+  }
+ ],
+ "samplers": [
+  {
+   "magFilter": 9729,
+   "minFilter": 9987,
+   "wrapS": 10497,
+   "wrapT": 10497
+  }
+ ],
+ "scene": 0,
+ "scenes": [
+  {
+   "name": "Sketchfab_Scene",
+   "nodes": [
+    0
+   ]
+  }
+ ],
+ "textures": [
+  {
+   "sampler": 0,
+   "source": 0
+  },
+  {
+   "sampler": 0,
+   "source": 1
+  },
+  {
+   "sampler": 0,
+   "source": 2
+  },
+  {
+   "sampler": 0,
+   "source": 3
+  },
+  {
+   "source": 4
+  }
+ ]
+}

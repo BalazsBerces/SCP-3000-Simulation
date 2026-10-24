@@ -54,6 +54,18 @@ time_to_closing={
 "type": "float",
 "value": 0.0
 }
+lod_scale={
+"type": "float",
+"value": 1.0
+}
+lamp_pool_cap={
+"type": "float",
+"value": 1000.0
+}
+lamp_pool_far={
+"type": "float",
+"value": 150.0
+}
 lamp_cells={
 "type": "sampler2D",
 "value": ""

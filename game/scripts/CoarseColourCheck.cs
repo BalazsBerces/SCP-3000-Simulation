@@ -35,7 +35,7 @@ public partial class CoarseColourCheck : Node
         public float BrightnessRatio => (Luminance(Coarse) + 1e-4f) / (Luminance(Full) + 1e-4f);
         public float ChromaDistance => Chroma(Coarse).DistanceTo(Chroma(Full));
         // Both near black: chrome reflecting the dark backdrop, dark steel. Ratio and hue are noise there.
-        private bool Dark => Mathf.Max(Luminance(Coarse), Luminance(Full)) < 2f * MinLuminanceDifference;
+        public bool Dark => Mathf.Max(Luminance(Coarse), Luminance(Full)) < 2f * MinLuminanceDifference;
         private bool SameBrightness => Mathf.Abs(Luminance(Coarse) - Luminance(Full)) < MinLuminanceDifference
                                        || (BrightnessRatio <= MaxBrightnessRatio && BrightnessRatio >= 1f / MaxBrightnessRatio);
         public bool Passed => !Compared || Dark || (SameBrightness && ChromaDistance <= MaxChromaDistance);
@@ -94,6 +94,7 @@ public partial class CoarseColourCheck : Node
                 _label.Visible = false;
             }
         SaveSheets(directory, tiles);
+        SaveGains(directory, results);
         var failed = results.Count(r => !r.Passed);
         var lines = results.Select(r => r.ToString())
             .Append($"{results.Count} Furniture types, variants and tints, {failed} failed.").ToList();
@@ -103,6 +104,36 @@ public partial class CoarseColourCheck : Node
             GD.Print(line);
         _viewport.QueueFree();
         return failed == 0;
+    }
+
+    /// <summary>
+    /// The coarse gains (FurnitureModels.CoarseGain) that would make every failing part match: the current gain
+    /// times the full-over-coarse colour ratio, per channel, written to coarse_gains.json. Copy it to
+    /// assets/models/coarse_gains.json and run the check again; each round closes most of the remaining gap.
+    /// Tinted pieces count in their first tint; a part near black in either render or missing from one keeps its gain.
+    /// </summary>
+    private static void SaveGains(string directory, List<Result> results)
+    {
+        var gains = new SortedDictionary<string, SortedDictionary<string, float[]>>();
+        foreach (var result in results.Where(r => r.Tint is null or 0).Where(r => FurnitureModels.Find(r.Type, r.Variant) is not null))
+            foreach (var part in result.Parts)
+            {
+                var old = FurnitureModels.CoarseGain(result.Type, result.Variant, part.Part);
+                var gain = old;
+                if (part.Compared && !part.Dark && !part.Passed)
+                    gain = new Vector3(
+                        old.X * Mathf.Clamp(part.Full.R / Mathf.Max(part.Coarse.R, 1e-3f), 0.1f, 10f),
+                        old.Y * Mathf.Clamp(part.Full.G / Mathf.Max(part.Coarse.G, 1e-3f), 0.1f, 10f),
+                        old.Z * Mathf.Clamp(part.Full.B / Mathf.Max(part.Coarse.B, 1e-3f), 0.1f, 10f));
+                if (gain == Vector3.One)
+                    continue;
+                var key = $"{result.Type}-{result.Variant}";
+                if (!gains.TryGetValue(key, out var parts))
+                    gains[key] = parts = [];
+                parts[part.Part] = [gain.X, gain.Y, gain.Z];
+            }
+        System.IO.File.WriteAllText(System.IO.Path.Combine(directory, "coarse_gains.json"),
+            System.Text.Json.JsonSerializer.Serialize(gains, new System.Text.Json.JsonSerializerOptions { WriteIndented = true }));
     }
 
     /// <summary>A world of its own: grey backdrop, soft ambient light, one sun from the front left, an orthographic camera.</summary>

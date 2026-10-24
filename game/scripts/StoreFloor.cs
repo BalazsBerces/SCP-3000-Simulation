@@ -62,6 +62,9 @@ public partial class StoreFloor : MeshInstance3D
         FloorMaterial.SetShaderParameter("layer_grid", LayerGrids);
         FloorMaterial.SetShaderParameter("layer_source", LayerSources);
         FloorMaterial.SetShaderParameter("layer_flatten", LayerFlatten);
+        FloorMaterial.SetShaderParameter("grass_albedo", GD.Load<Texture2D>("res://assets/textures/grass_albedo.jpg"));
+        FloorMaterial.SetShaderParameter("grass_normal", GD.Load<Texture2D>("res://assets/textures/grass_normal.jpg"));
+        FloorMaterial.SetShaderParameter("grass_roughness", GD.Load<Texture2D>("res://assets/textures/grass_roughness.jpg"));
         ShowDepartments(Host.Snapshot);
         Host.WorldCreated += ShowDepartments;
         FollowFocus();
@@ -121,7 +124,7 @@ public partial class StoreFloor : MeshInstance3D
             FloorMaterial.SetShaderParameter("camp_rect", Vector4.Zero);
             return;
         }
-        var (turf, rect) = CampTurf.Build(camp, snapshot.Space, snapshot.Seed);
+        var (turf, rect) = CampTurf.Build(camp, snapshot.Space, snapshot.Furniture);
         FloorMaterial.SetShaderParameter("camp_map", turf);
         FloorMaterial.SetShaderParameter("camp_rect", rect);
     }

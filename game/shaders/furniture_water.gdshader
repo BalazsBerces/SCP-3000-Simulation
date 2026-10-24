@@ -20,12 +20,11 @@ void fragment() {
 	ROUGHNESS = roughness;
 	METALLIC = metallic;
 	ALPHA = panel_alpha;
-	if (on_ground_rect((INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xz, ground_dark_rect)) {
-		ALBEDO = vec3(0.0);
-		SPECULAR = 0.0;
-	} else {
-		float ripple = sin(UV.x * 23.0 + TIME * 1.3) * sin(UV.y * 19.0 - TIME * 1.1) + sin((UV.x + UV.y) * 31.0 + TIME * 1.7);
-		EMISSION = emission_color * emission_energy * (0.8 + 0.12 * ripple)
-				+ lamp_pools(VERTEX, NORMAL, INV_VIEW_MATRIX, ALBEDO, roughness, metallic, 0.5);
-	}
+	float dark = ground_dark_amount((INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xz);
+	float ripple = sin(UV.x * 23.0 + TIME * 1.3) * sin(UV.y * 19.0 - TIME * 1.1) + sin((UV.x + UV.y) * 31.0 + TIME * 1.7);
+	EMISSION = emission_color * emission_energy * (0.8 + 0.12 * ripple)
+			+ lamp_pools(VERTEX, NORMAL, INV_VIEW_MATRIX, ALBEDO, roughness, metallic, 0.5);
+	ALBEDO *= 1.0 - dark;
+	SPECULAR *= 1.0 - dark;
+	EMISSION *= 1.0 - dark;
 }

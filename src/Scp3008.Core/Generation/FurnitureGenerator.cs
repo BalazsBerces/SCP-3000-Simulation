@@ -23,7 +23,8 @@ internal static class FurnitureGenerator
         IReadOnlyList<LandmarkSite> landmarks, IReadOnlyList<PointOfInterestSite> pointsOfInterest)
     {
         var keepClear = pillars.Select(p => (p.Position, HalfSize: new Vector2(p.ClearHalfWidth)))
-            .Concat(landmarks.Select(l => (l.Centre, HalfSize: l.Size / 2f)))
+            // The dead zone's dark ground reaches one cell past its own Furniture, so the Store's rooms may start one cell inside it.
+            .Concat(landmarks.Select(l => (l.Centre, HalfSize: l.Size / 2f - (l.Type == LandmarkType.DeadZone ? new Vector2(departments.CellSize) : Vector2.Zero))))
             .Concat(pointsOfInterest.Select(p => (p.Centre, HalfSize: p.Size / 2f + new Vector2(PointOfInterestGenerator.DisplayMargin))));
         var store = new StoreFurniture(space, keepClear.ToArray());
         var cellSize = departments.CellSize;

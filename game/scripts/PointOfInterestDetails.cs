@@ -19,10 +19,12 @@ public partial class PointOfInterestDetails : Node3D
     public void Build(WorldSnapshot snapshot)
     {
         _space = snapshot.Space;
+        // The Camping ground's products, for its price tags to name.
+        var products = snapshot.Furniture.Where(p => p.LandmarkId >= 0 && Product(p) is not null).ToList();
         foreach (var piece in snapshot.Furniture)
         {
-            // The Camping ground's trail sign is lettered although it belongs to no Point of interest.
-            if (piece.PointOfInterestId < 0 && piece.Type != FurnitureType.TrailSign)
+            // The Camping ground's trail sign, banners and price tags are lettered although they belong to no Point of interest.
+            if (piece.PointOfInterestId < 0 && piece.Type is not (FurnitureType.TrailSign or FurnitureType.CampBanner or FurnitureType.PriceTag))
                 continue;
             var poi = piece.PointOfInterestId < 0 ? default : snapshot.PointsOfInterest[piece.PointOfInterestId].Type;
             var node = new Node3D();
@@ -56,14 +58,42 @@ public partial class PointOfInterestDetails : Node3D
                     }
                     break;
                 case FurnitureType.TrailSign:
-                    // The board's text on both faces; the sign leads nowhere.
+                    // The lowest board's text on both faces (the model's board runs along its width at 1.64 m, its faces at
+                    // depth -0.07 and -0.16 m), on its long arm clear of the post; the sign leads nowhere.
                     foreach (var side in new[] { -1, 1 })
                     {
                         var face = new Node3D { Rotation = new(0, side < 0 ? Mathf.Pi : 0, 0) };
                         node.AddChild(face);
-                        Text(face, "Camp\n3 km", new(-0.07f, 1.65f, 0.043f), 0.13f, Colors.Ivory);
+                        Text(face, "Camp 3 km", side > 0 ? new(-0.3f, 1.64f, -0.06f) : new(0.3f, 1.64f, 0.17f), 0.08f, Colors.Ivory);
                     }
                     break;
+                case FurnitureType.CampBanner:
+                {
+                    // The name of the section whose goods are near (within 7 m), or else an advertising slogan, on both faces of the cloth.
+                    var near = products.Where(p => Section(p) is not null && _space.Delta(p.Position, piece.Position).Length() < 7f)
+                        .OrderBy(p => _space.Delta(p.Position, piece.Position).Length()).Select(Section).FirstOrDefault();
+                    var label = near ?? Slogans[piece.Id % Slogans.Length];
+                    foreach (var side in new[] { -1, 1 })
+                    {
+                        var face = new Node3D { Rotation = new(0, side < 0 ? Mathf.Pi : 0, 0) };
+                        node.AddChild(face);
+                        Text(face, label, new(0, spec.Height - 0.7f, 0.02f), 0.32f, new Color(0.1f, 0.38f, 0.2f));
+                    }
+                    break;
+                }
+                case FurnitureType.PriceTag:
+                {
+                    // The nearest product's name and price, on both faces of the card.
+                    var nearest = products.MinBy(p => _space.Delta(p.Position, piece.Position).Length());
+                    var label = products.Count > 0 && _space.Delta(nearest.Position, piece.Position).Length() < 8f ? Product(nearest)! : "Camping\nfrom 9.99";
+                    foreach (var side in new[] { -1, 1 })
+                    {
+                        var face = new Node3D { Rotation = new(0, side < 0 ? Mathf.Pi : 0, 0) };
+                        node.AddChild(face);
+                        Text(face, label, new(0, spec.Height - 0.15f, 0.012f), 0.05f, new Color(0.12f, 0.12f, 0.14f));
+                    }
+                    break;
+                }
                 case FurnitureType.OutOfOrderSign:
                     Paper(node, "OUT OF\nORDER", new(0, spec.Height * 0.6f, spec.Depth / 2 + 0.012f),
                         new(spec.Width * 0.9f, 0.24f), 0.055f);
@@ -112,6 +142,48 @@ public partial class PointOfInterestDetails : Node3D
             node.Visible = !FurnitureDetail.Coarse && camera.DistanceTo(node.Position) < 60f;
         }
     }
+
+    private static readonly string[] Slogans = ["SUMMER CAMP", "Explore the\ngreat outdoors!", "Sleep under\nthe stars"];
+
+    /// <summary>A Camping ground product's price tag text, or null if the piece is not one on sale.</summary>
+    private static string? Product(FurniturePiece piece) => piece.Type switch
+    {
+        FurnitureType.Tent => (TentKind)piece.Variant switch
+        {
+            TentKind.Dome => "Dome tent, 2 person\n49.99",
+            TentKind.Tipi => "Tipi tent\n129.00",
+            TentKind.Family => "Family tent, 6 person\n299.00",
+            TentKind.Bell => "Canvas bell tent\n449.00",
+            TentKind.AFrame => "Ridge tent, 2 person\n39.99",
+            _ => "Pop-up shelter\n89.00",
+        },
+        FurnitureType.SunLounger => piece.Variant switch
+        {
+            0 => "Wooden sun lounger\n129.00",
+            1 => "Sun lounger, stackable\n39.99",
+            _ => "Deck chair\n29.99",
+        },
+        FurnitureType.Parasol => "Beach umbrella\n34.99",
+        FurnitureType.SleepingBag => piece.Variant == 0 ? "Sleeping bag, 3 season\n49.99" : "Sleeping bag, compact\n34.99",
+        FurnitureType.CampChair => "Camping chair\n19.99",
+        FurnitureType.Hammock => "Hammock\n24.99",
+        FurnitureType.Kayak => "Sit-on kayak\n349.00",
+        FurnitureType.PlushBear => "Plush bear XL\n59.99",
+        FurnitureType.Axe => "Camping axe\n19.99",
+        FurnitureType.MarshmallowTray => "Marshmallow tasting\nFREE",
+        FurnitureType.DoorFrame => "Retro caravan\n4 999.00",
+        _ => null,
+    };
+
+    /// <summary>The name of the Camping ground section a product belongs to, for its banner, or null if it has none.</summary>
+    private static string? Section(FurniturePiece piece) => piece.Type switch
+    {
+        FurnitureType.Tent => "TENTS",
+        FurnitureType.SunLounger or FurnitureType.Parasol => "SUN LOUNGERS",
+        FurnitureType.SleepingBag => "SLEEPING BAGS",
+        FurnitureType.CampChair or FurnitureType.Kayak => "CAMP FURNITURE\n& KAYAKS",
+        _ => null,
+    };
 
     private static Label3D Text(Node3D parent, string text, Vector3 position, float height, Color colour, bool handwritten = false)
     {

@@ -15,7 +15,7 @@ Placement, the ruined Village, the rack canyon, the box fort and the mattress mo
 ## Decisions
 
 - **Random streams.** Stream 4 plans the Landmarks. Stream 5 plus the Landmark id builds each one, so changing one Landmark's builder does not move the others.
-- **Which Landmarks a world has.** The Village is always present. The rack canyon, box fort and mattress mountain each appear with chance 2/3, in shuffled order.
+- **Which Landmarks a world has.** The Village is always present. The rack canyon, box fort, mattress mountain, dead zone, clock wall and fountain court always appear too, in shuffled order (if there are fewer Sectors than Landmarks, the surplus ones are dropped, never the Village).
 - **Sectors.** Pillar-less Sectors are shuffled and used first, then Pillar Sectors.
 - **Rectangle sizes:** Village 96 × 96 m, canyon 160 × 112 m, fort 80 × 80 m, mountain 80 × 80 m. Every size is within ¼ of the smallest Sector (448 m). Each rectangle sits on the department-cell grid, at least one cell from the Sector edges and one cell beyond the Pillar's walkway ring.
 - **Pieces.** Landmark pieces come after the Display pieces in `WorldSnapshot.Furniture`, so Ids stay equal to indices.

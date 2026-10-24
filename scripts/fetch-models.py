@@ -67,7 +67,59 @@ MODELS = [
     ("rug", "sketchfab", "5f5de1ba643746fc9da76d2cac94fbb3", "Kuuma YE rug by Kristiina Lassus", "Rug"),
     ("door_frame", "sketchfab", "2f2f149f3ec44d658a02c1f924dfa449", "Door with frame", "Door frame"),
     ("exit_sign", "sketchfab_exit_sign", "46b52e08b8b64b81ad9ff5fb752bcc06", "Exit Sign", "EXIT sign"),
+    # Camping ground Landmark (ticket 07z): an artificial camping showroom.
+    ("camp_tent_dome", "sketchfab", "3f624d58d582430595179bdf9a156be3", "Modern Camping Tent", "Camping ground: dome tent"),
+    ("camp_tent_tipi", "sketchfab", "63e67c40b3994278a09705941b6981b7", "Teepee", "Camping ground: tipi tent"),
+    ("camp_tent_round", "sketchfab", "4998d155bd654544a577dec078ef5aea", "Circus Tent", "Camping ground: round striped canvas bell tent"),
+    ("camp_tent_family", "sketchfab", "5fa10f0a207d4c9580b6e77bd45f774e", "Camping tent", "Camping ground: large family tent"),
+    ("camp_tent_ridge", "sketchfab", "21cc274c86104fc997e0f172938d4205", "Camping Tent", "Camping ground: A-frame ridge tent"),
+    ("camp_tent_popup", "sketchfab", "ffdd0519fa604e138d88a0c7fa262bb8", "Carpa Playera - beach tent", "Camping ground: pop-up canopy tent"),
+    ("camp_tree_oak", "sketchfab", "2f4ae6b907fd4741abda5d1b71c83b10", "Oak Tree | Game Ready", "Camping ground: broad deciduous tree"),
+    ("camp_tree_spruce", "sketchfab", "b68f79aee62f4e849be265c903f724f5", "Spruce Tree - Low Poly", "Camping ground: conifer"),
+    ("camp_bush", "sketchfab", "9d9ce79d3ae040619e96d5b22c7de1a6", "Stylized Bush", "Camping ground: round bush"),
+    ("camp_bush_flowering", "sketchfab", "7ccbbb3307004ad18bed624e356c5975", "Stylized Bush (V1)", "Camping ground: flowering bush"),
+    ("camp_tree_house", "sketchfab", "1cf11dd38e03427a843fb034d3f7eec9", "dlX - Tree House(with Tree)", "Camping ground: tree house with its tree"),
+    ("camp_campfire", "sketchfab", "360f5729f7d447b598170fd66b26c3b5", "Campfire Logs", "Camping ground: campfire stone ring with logs"),
+    ("camp_log_bench", "sketchfab", "55fea7c2f116426a9c7332fcf5ef1705", "Log Bench", "Camping ground: log seat"),
+    ("camp_kayak", "sketchfab", "cda3354816af4a0aa1ca5cfee6c5dcd7", "Kayak with Paddle", "Camping ground: kayak"),
+    ("camp_teddy_bear", "sketchfab", "9c7081efd187447da9a333f89ea43f80", "Teddy Bear", "Camping ground: plush teddy bear"),
+    ("camp_axe", "polyhaven", "hatchet", "Hatchet", "Camping ground: axe"),
+    ("camp_marshmallow", "sketchfab", "e7a92ddb4a11433690334eab67f29474", "Marshmallow_on_a_stick", "Camping ground: marshmallow on a stick"),
+    ("camp_sleeping_bag", "sketchfab", "b1b452fe764a4cc9af3030f69939f506", "Sleeping bag", "Camping ground: sleeping bag"),
+    ("camp_hammock", "sketchfab", "c5fd4cef873f44f5a31db1fc6a04c572", "Hammock (low poly)", "Camping ground: hammock on a wooden stand"),
+    ("camp_fishing_rod", "sketchfab", "86c77e3d23d341cd90245c21402f68b9", "Fishing Rod", "Camping ground: fishing rod"),
+    ("camp_rubber_duck", "polyhaven", "rubber_duck_toy", "Rubber Duck Toy", "Camping ground: rubber duck"),
+    ("camp_signpost", "sketchfab", "493bcedc8b344a38a9a67587b14bfcff", "Signpost", "Camping ground: wooden trail signpost"),
+    ("camp_chair", "sketchfab", "46b592f41c1f441ca19faadd2b4bb90a", "Camping Chair", "Camping ground: folding camping chair"),
+    # Camping ground showroom sections (ticket 07z3): sun loungers, deck chairs, beach umbrellas and rolled sleeping bags.
+    ("sun_lounger_wood", "sketchfab", "f7b31f2190ae425682a873e28bd3244c", "Deck chair", "Sun lounger: wooden slatted lounger"),
+    ("sun_lounger_plastic", "sketchfab", "974e74f55bbd4dc9a85c4a48fc987a18", "Sun lounger 3D", "Sun lounger, white plastic variant"),
+    ("deck_chair", "sketchfab", "38de6171cbeb41c5bdc49c07df76ede9", "deck chair", "Sun lounger, folding canvas deck chair variant"),
+    ("beach_umbrella", "sketchfab", "1014ad7c8a4c4aa8ba5e88fc6151aa4f", "Beach Umbrella", "Parasol, beach umbrella variant"),
+    ("camp_sleeping_bag_rolled", "sketchfab", "d2ab6e8a8ffc472e9fca8b920662dafe", "Camping sleeping bag", "Camping ground: rolled sleeping bag"),
 ]
+
+# Sketchfab models whose scene carries helper nodes that are not part of the item: folder -> node names to cut out
+# (the Kayak's source has a camera with a large backdrop plane under it). An entry is a node name, or a node index
+# where the names are not unique.
+DROP_NODES = {
+    "camp_kayak": ["Camera_7"],
+}
+
+# Tinted models whose fabric is too dark to take the piece's tint (the game tints only texels lighter than its threshold):
+# their albedo becomes a light grey that keeps the texture's detail. The rolled sleeping bag's canvas is dark brown.
+LIGHTEN_FOR_TINT = ["camp_sleeping_bag_rolled"]
+
+
+def lighten_for_tint(folder):
+    for path in (OUT / folder / "textures").glob("*baseColor.jpg"):
+        image = Image.open(path).convert("L")
+        # Already lightened: the step runs on every fetch, also when the download is skipped.
+        if sum(image.getdata()) / (image.width * image.height) > 150:
+            continue
+        low, high = image.getextrema()
+        image = image.point(lambda v: int(150 + 95 * ((v - low) / max(1, high - low)) ** 0.7))
+        image.convert("RGB").save(path, quality=90)
 
 # Toilets pack material -> its texture folder in the pack.
 TOILET_TEXTURES = {
@@ -143,7 +195,16 @@ def sketchfab(folder, uid):
         # small flat maps of the material's own factors (a flat normal map changes nothing).
         for index, material in enumerate(gltf["materials"]):
             material.pop("alphaMode", None)
+            # An unlit material would drop the normal and roughness maps the game wants.
+            material.get("extensions", {}).pop("KHR_materials_unlit", None)
             pbr = material.setdefault("pbrMetallicRoughness", {})
+            # A specular-glossiness material (an older glTF extension) becomes a matte non-metal with its diffuse map as
+            # albedo; left as it is, its empty metallic-roughness part would default to white metal, which renders black.
+            spec_gloss = material.get("extensions", {}).pop("KHR_materials_pbrSpecularGlossiness", None)
+            if spec_gloss is not None:
+                if "diffuseTexture" in spec_gloss:
+                    pbr["baseColorTexture"] = spec_gloss["diffuseTexture"]
+                pbr["metallicFactor"], pbr["roughnessFactor"] = 0.0, 0.8
             tag = f"{folder}_material{index}"
             if "baseColorTexture" not in pbr:
                 factor = pbr.pop("baseColorFactor", [1.0, 1.0, 1.0, 1.0])
@@ -153,9 +214,21 @@ def sketchfab(folder, uid):
                 pbr["metallicRoughnessTexture"] = flat_texture(target, gltf, f"{tag}_orm", (255, round(255 * roughness), round(255 * metallic)))
             if "normalTexture" not in material:
                 material["normalTexture"] = flat_texture(target, gltf, f"{tag}_normal", (128, 128, 255))
+        for key in ("extensionsUsed", "extensionsRequired"):
+            kept = [e for e in gltf.pop(key, []) if e not in ("KHR_materials_unlit", "KHR_materials_pbrSpecularGlossiness")]
+            if kept:
+                gltf[key] = kept
         gltf["buffers"] = [{"uri": f"{folder}.bin", "byteLength": len(archive.read("scene.bin"))}]
         (target / f"{folder}.bin").write_bytes(archive.read("scene.bin"))
         (target / f"{folder}.gltf").write_text(json.dumps(gltf, indent=1), encoding="utf-8")
+    if folder in DROP_NODES:
+        gltf = json.loads((target / f"{folder}.gltf").read_text(encoding="utf-8"))
+        drop = {i for i, node in enumerate(gltf["nodes"]) if node.get("name") in DROP_NODES[folder] or i in DROP_NODES[folder]}
+        if drop:
+            for node in gltf["nodes"]:
+                if "children" in node:
+                    node["children"] = [c for c in node["children"] if c not in drop]
+            (target / f"{folder}.gltf").write_text(json.dumps(gltf, indent=1), encoding="utf-8")
     return info["user"]["displayName"], info["viewerUrl"], licence
 
 
@@ -402,6 +475,8 @@ def main():
         "PBR textures for the procedural Furniture and the floors are listed in `game/assets/textures/CREDITS.md`; all CC0, from Poly Haven and ambientCG.",
         "",
     ]
+    for folder in LIGHTEN_FOR_TINT:
+        lighten_for_tint(folder)
     CREDITS.write_text("\n".join(lines), encoding="utf-8")
 
 

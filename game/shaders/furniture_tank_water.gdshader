@@ -16,12 +16,11 @@ void fragment() {
 	ALBEDO = albedo_color.rgb;
 	ALPHA = albedo_color.a;
 	ROUGHNESS = roughness;
-	if (on_ground_rect((INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xz, ground_dark_rect)) {
-		ALBEDO = vec3(0.0);
-		SPECULAR = 0.0;
-	} else {
-		float shimmer = sin(UV.x * 17.0 + TIME * 0.9) * sin(UV.y * 13.0 - TIME * 0.7);
-		EMISSION = emission_color * emission_energy * (0.8 + 0.2 * shimmer)
-				+ lamp_pools(VERTEX, NORMAL, INV_VIEW_MATRIX, ALBEDO, roughness, 0.0, 0.5);
-	}
+	float dark = ground_dark_amount((INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xz);
+	float shimmer = sin(UV.x * 17.0 + TIME * 0.9) * sin(UV.y * 13.0 - TIME * 0.7);
+	EMISSION = emission_color * emission_energy * (0.8 + 0.2 * shimmer)
+			+ lamp_pools(VERTEX, NORMAL, INV_VIEW_MATRIX, ALBEDO, roughness, 0.0, 0.5);
+	ALBEDO *= 1.0 - dark;
+	SPECULAR *= 1.0 - dark;
+	EMISSION *= 1.0 - dark;
 }

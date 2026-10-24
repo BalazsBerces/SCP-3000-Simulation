@@ -60,18 +60,18 @@ public class PointOfInterestTests
         foreach (var sector in snapshot.Sectors)
         {
             int Count(PointOfInterestType type) => pois.Count(p => p.Type == type && p.SectorId == sector.Id);
-            Assert.InRange(Count(PointOfInterestType.Restroom), 1, 3);
+            Assert.InRange(Count(PointOfInterestType.StoreRestroom), 1, 3);
             Assert.InRange(Count(PointOfInterestType.SetDinnerTable), 2, 3);
-            Assert.Equal(1, Count(PointOfInterestType.LostAndFoundDesk));
+            Assert.Equal(1, Count(PointOfInterestType.LostAndFound));
         }
-        Assert.InRange(pois.Count(p => p.Type == PointOfInterestType.Canteen), 3, 4);
+        Assert.InRange(pois.Count(p => p.Type == PointOfInterestType.Cafeteria), 2, 3);
         Assert.InRange(pois.Count(p => p.Type == PointOfInterestType.ShoppingCartGraveyard), 2, 4);
         // The rare ones, per Store.
         Assert.Equal(3, pois.Count(p => p.Type == PointOfInterestType.BallPit));
         foreach (var type in new[] { PointOfInterestType.ArmchairHenge, PointOfInterestType.ExitSign, PointOfInterestType.MannequinCrowd,
                      PointOfInterestType.DoorToNowhere, PointOfInterestType.AquariumAisle })
             Assert.InRange(pois.Count(p => p.Type == type), 1, 2);
-        Assert.All(pois.Where(p => p.Type == PointOfInterestType.Canteen),
+        Assert.All(pois.Where(p => p.Type == PointOfInterestType.Cafeteria),
             p => Assert.Equal(DepartmentType.RestaurantAndFoodMarket, snapshot.Departments.At(p.Centre).Type));
     }
 
@@ -153,10 +153,10 @@ public class PointOfInterestTests
             .SelectMany(s => s.PointsOfInterest.Where(p => p.Type == kind).SelectMany(p => PiecesOf(s, p)))
             .Select(p => p.Type).ToHashSet();
 
-        Assert.Superset(new HashSet<FurnitureType> { FurnitureType.Toilet, FurnitureType.VanityUnit }, Types(PointOfInterestType.Restroom));
-        Assert.Superset(new HashSet<FurnitureType> { FurnitureType.Counter, FurnitureType.MealPlate, FurnitureType.DiningTable, FurnitureType.Chair }, Types(PointOfInterestType.Canteen));
+        Assert.Superset(new HashSet<FurnitureType> { FurnitureType.Toilet, FurnitureType.VanityUnit }, Types(PointOfInterestType.StoreRestroom));
+        Assert.Superset(new HashSet<FurnitureType> { FurnitureType.HotFoodCounter, FurnitureType.DiningTable, FurnitureType.Chair }, Types(PointOfInterestType.Cafeteria));
         Assert.Superset(new HashSet<FurnitureType> { FurnitureType.DiningTable, FurnitureType.Chair, FurnitureType.MealPlate }, Types(PointOfInterestType.SetDinnerTable));
-        Assert.Superset(new HashSet<FurnitureType> { FurnitureType.Desk, FurnitureType.FilingCabinet }, Types(PointOfInterestType.LostAndFoundDesk));
+        Assert.Superset(new HashSet<FurnitureType> { FurnitureType.LabelledBox, FurnitureType.NoticeBoard }, Types(PointOfInterestType.LostAndFound));
         Assert.Superset(new HashSet<FurnitureType> { FurnitureType.ShoppingCart }, Types(PointOfInterestType.ShoppingCartGraveyard));
         Assert.Superset(new HashSet<FurnitureType> { FurnitureType.BallPool, FurnitureType.NetRailing, FurnitureType.PlaySlide, FurnitureType.PlayBall }, Types(PointOfInterestType.BallPit));
         Assert.Superset(new HashSet<FurnitureType> { FurnitureType.Armchair, FurnitureType.Sofa }, Types(PointOfInterestType.ArmchairHenge));
@@ -164,7 +164,7 @@ public class PointOfInterestTests
         Assert.Superset(new HashSet<FurnitureType> { FurnitureType.Mannequin }, Types(PointOfInterestType.MannequinCrowd));
         Assert.Superset(new HashSet<FurnitureType> { FurnitureType.DoorFrame, FurnitureType.ShelfUnit }, Types(PointOfInterestType.DoorToNowhere));
         Assert.Superset(new HashSet<FurnitureType> { FurnitureType.FishTank, FurnitureType.TankRack }, Types(PointOfInterestType.AquariumAisle));
-        // The rare Furniture is found nowhere else.
+        // The rare Furniture is found nowhere else, but in Landmarks (the Camping ground's caravan has a door).
         foreach (var (furniture, kind) in new[]
                  {
                      (FurnitureType.BallPool, PointOfInterestType.BallPit), (FurnitureType.NetRailing, PointOfInterestType.BallPit),
@@ -174,7 +174,7 @@ public class PointOfInterestTests
                      (FurnitureType.FishTank, PointOfInterestType.AquariumAisle), (FurnitureType.TankRack, PointOfInterestType.AquariumAisle),
                  })
             foreach (var snapshot in snapshots)
-                Assert.All(snapshot.Furniture.Where(p => p.Type == furniture),
+                Assert.All(snapshot.Furniture.Where(p => p.Type == furniture && p.LandmarkId < 0),
                     p => Assert.Equal(kind, snapshot.PointsOfInterest[p.PointOfInterestId].Type));
         // Meals are laid on tables or counters, not on the floor.
         Assert.All(snapshots.SelectMany(s => s.Furniture.Where(p => p.Type == FurnitureType.MealPlate)), p => Assert.True(p.Elevation > 0.5f));
@@ -420,7 +420,7 @@ public class PointOfInterestTests
 
     [Theory]
     [MemberData(nameof(LayoutsAndSeeds))]
-    public void The_point_of_interest_showcase_has_every_kind_but_the_canteen_and_old_restroom_once_with_no_displays_or_landmarks(PillarLayout layout, int seed)
+    public void The_point_of_interest_showcase_has_every_kind_once_with_no_displays_or_landmarks(PillarLayout layout, int seed)
     {
         using var sim = Simulation.Create(new WorldConfig(seed, RuntimeRngSeed: 1, PillarLayout: layout, PointOfInterestShowcase: true));
         var snapshot = sim.Snapshot;
@@ -429,7 +429,7 @@ public class PointOfInterestTests
         Assert.False(snapshot.LandmarkShowcase);
         Assert.Empty(snapshot.Landmarks);
         Assert.Empty(snapshot.Displays);
-        Assert.Equal(Enum.GetValues<PointOfInterestType>().Where(t => t != PointOfInterestType.Canteen && t != PointOfInterestType.Restroom && t != PointOfInterestType.LostAndFoundDesk).Order(), snapshot.PointsOfInterest.Select(p => p.Type).Order());
+        Assert.Equal(Enum.GetValues<PointOfInterestType>().Order(), snapshot.PointsOfInterest.Select(p => p.Type).Order());
         Assert.All(snapshot.PointsOfInterest, poi => Assert.NotEmpty(PiecesOf(snapshot, poi)));
         Assert.All(snapshot.Furniture, piece => Assert.True(piece.PointOfInterestId >= 0));
     }

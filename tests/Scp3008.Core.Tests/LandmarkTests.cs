@@ -37,19 +37,16 @@ public class LandmarkTests
     }
 
     [Fact]
-    public void Every_world_has_the_ruined_village_and_the_seed_picks_the_other_landmarks()
+    public void Every_world_has_every_landmark_and_the_seed_picks_only_where_they_stand()
     {
         var kinds = Seeds.Select(seed => Generate(seed).Landmarks.Select(l => l.Type).ToHashSet()).ToList();
 
         Assert.All(kinds, k => Assert.Contains(LandmarkType.RuinedVillage, k));
         Assert.All(Seeds.Select(seed => Generate(seed)), s => Assert.Single(s.Landmarks, l => l.Type == LandmarkType.RuinedVillage));
         Assert.All(Seeds.Select(seed => Generate(seed)), s => Assert.Single(s.Landmarks, l => l.Type == LandmarkType.AbandonedScaffold));
-        foreach (var other in Enum.GetValues<LandmarkType>().Except([LandmarkType.RuinedVillage, LandmarkType.AbandonedScaffold]))
-        {
-            Assert.Contains(kinds, k => k.Contains(other));
-            Assert.Contains(kinds, k => !k.Contains(other));
-        }
-        Assert.True(kinds.Select(k => string.Join(",", k.Order())).Distinct().Count() >= 3, "The seed hardly changes which Landmarks a world has.");
+        Assert.All(kinds, k => Assert.Equal(Enum.GetValues<LandmarkType>().ToHashSet(), k));
+        Assert.True(Seeds.Select(seed => string.Join(";", Generate(seed).Landmarks.Select(l => (l.Type, l.SectorId)))).Distinct().Count() >= 3,
+            "The seed hardly changes where the Landmarks stand.");
     }
 
     [Theory]
@@ -111,11 +108,12 @@ public class LandmarkTests
             Assert.Equal(top, landmark.Height, 3);
             Assert.True(landmark.Height >= Landmark.MinHeight, $"{landmark.Type} is only {landmark.Height:0.0} m high.");
         }
-        // Display Furniture stays out of every Landmark.
+        // Display Furniture stays out of every Landmark, except that it may start one cell inside the dead zone's dark ground.
         var intruders = snapshot.Furniture.Where(p => p.LandmarkId < 0 && snapshot.Landmarks.Any(l =>
         {
             var delta = snapshot.Space.Delta(l.Centre, p.Position);
-            return MathF.Abs(delta.X) < l.Size.X / 2f && MathF.Abs(delta.Y) < l.Size.Y / 2f;
+            var inset = l.Type == LandmarkType.DeadZone ? snapshot.Departments.CellSize : 0f;
+            return MathF.Abs(delta.X) < l.Size.X / 2f - inset && MathF.Abs(delta.Y) < l.Size.Y / 2f - inset;
         })).Take(5).ToList();
         Assert.True(intruders.Count == 0, "Display Furniture inside a Landmark: " + string.Join("; ", intruders));
     }

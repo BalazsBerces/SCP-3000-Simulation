@@ -1,0 +1,24 @@
+Godot Engine v4.7.2.stable.mono.official.ed1daf0bf - https://godotengine.org
+Vulkan 1.4.329 - Forward+ - Using Device #0: NVIDIA - NVIDIA GeForce RTX 2070 SUPER
+
+Furniture: 415943 pieces placed in 6312 ms; Landmarks: CampingGround in B-3 at 680,1024, 23 m, MattressMountain in C-3 at 984,1160, 25 m, DeadZone in B-2 at 728,536, 23 m, BoxFort in C-2 at 1256,584, 25 m, FountainCourt in A-1 at 352,256, 22 m, RackCanyon in A-2 at 280,544, 23 m, ClockWall in A-3 at 336,1072, 24 m, RuinedVillage in C-1 at 1248,320, 22 m, AbandonedScaffold in B-2 at 672,672, 57 m.
+Pillars: 3x3 layout, 9 solid concrete Landmarks 1200 m tall, 9 Sectors, no emission or lights, reach 1200 m.
+Fog bank 1 dissipated at (885, 1232).
+Fog bank 13 formed at (1209, 1004).
+Fog bank 14 formed at (846, 996).
+Fog bank 15 formed at (879, 140).
+Fog bank 16 formed at (726, 730).
+  [Open] last frame: visible 2,71 M prims / 1716 calls, shadow 2,08 M prims / 1136 calls; coarse True
+Fog bank 16 dissipated at (583, 886).
+Closing time began on Store day 1.
+Fog bank 17 formed at (726, 730).
+  [Closing time] last frame: visible 2,71 M prims / 1716 calls, shadow 1,55 M prims / 527 calls; coarse True
+  [Closing time far] last frame: visible 2,74 M prims / 1703 calls, shadow 0,00 M prims / 0 calls; coarse True
+  [Closing time at LOD switch] last frame: visible 2,43 M prims / 2347 calls, shadow 0,00 M prims / 0 calls; coarse False
+Benchmark: Store 3008, 1920x1080, NVIDIA GeForce RTX 2070 SUPER, 20 s per lighting, target 120 fps average, minimum 90 fps average and 60 fps 1% low
+  Weather: fixed Fog bank, radius 160 m; MSAA Msaa4X, TAA True; Furniture full up to a zoom of 160 m, map above an overview camera height of 250 m
+  Open                       average  118,7 fps, 1% low   58,4 fps [below 120 target] (2375 frames in 20,0 s; up to 0 lamp lights, 0 shadowed, 1746 visible Lamps with halos; average GPU 7,66 ms, CPU render 3,29 ms, 1845 draw calls, 2,5 M primitives)
+  Closing time               average  145,0 fps, 1% low   70,0 fps [meets 120 target] (2901 frames in 20,0 s; up to 96 lamp lights, 16 shadowed, 1746 visible Lamps with halos; average GPU 5,67 ms, CPU render 3,01 ms, 1292 draw calls, 2,0 M primitives)
+  Closing time far           average  116,1 fps, 1% low   87,1 fps [below 120 target] (2323 frames in 20,0 s; up to 96 lamp lights, 16 shadowed, 1652 visible Lamps with halos; average GPU 7,89 ms, CPU render 3,40 ms, 1703 draw calls, 2,7 M primitives)
+  Closing time at LOD switch average   93,0 fps, 1% low   76,8 fps [below 120 target] (1861 frames in 20,0 s; up to 96 lamp lights, 16 shadowed, 742 visible Lamps with halos; average GPU 10,10 ms, CPU render 3,67 ms, 2347 draw calls, 2,4 M primitives)
+Benchmark FAILED: below minimum

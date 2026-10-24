@@ -1,0 +1,592 @@
+{
+ "accessors": [
+  {
+   "bufferView": 2,
+   "componentType": 5126,
+   "count": 1122,
+   "max": [
+    30.402019500732422,
+    19.185035705566406,
+    27.028989791870117
+   ],
+   "min": [
+    -30.192607879638672,
+    -19.27524185180664,
+    -26.456594467163086
+   ],
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 2,
+   "byteOffset": 13464,
+   "componentType": 5126,
+   "count": 1122,
+   "max": [
+    0.9999639391899109,
+    0.9999985694885254,
+    0.9999857544898987
+   ],
+   "min": [
+    -0.9997128844261169,
+    -0.9999985098838806,
+    -0.9999989867210388
+   ],
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 3,
+   "componentType": 5126,
+   "count": 1122,
+   "max": [
+    0.9999994039535522,
+    0.9918654561042786,
+    0.9997143745422363,
+    1.0
+   ],
+   "min": [
+    -0.9999974966049194,
+    -0.9999993443489075,
+    -0.9999654293060303,
+    -1.0
+   ],
+   "type": "VEC4"
+  },
+  {
+   "bufferView": 1,
+   "componentType": 5126,
+   "count": 1122,
+   "max": [
+    0.996091902256012,
+    0.9956035614013672
+   ],
+   "min": [
+    0.0,
+    0.04960377886891365
+   ],
+   "type": "VEC2"
+  },
+  {
+   "bufferView": 1,
+   "byteOffset": 8976,
+   "componentType": 5126,
+   "count": 1122,
+   "max": [
+    0.9921875,
+    0.9921875
+   ],
+   "min": [
+    0.0078125,
+    0.06201171875
+   ],
+   "type": "VEC2"
+  },
+  {
+   "bufferView": 1,
+   "byteOffset": 17952,
+   "componentType": 5126,
+   "count": 1122,
+   "max": [
+    0.996091902256012,
+    0.9956035614013672
+   ],
+   "min": [
+    0.0,
+    0.04960377886891365
+   ],
+   "type": "VEC2"
+  },
+  {
+   "bufferView": 1,
+   "byteOffset": 26928,
+   "componentType": 5126,
+   "count": 1122,
+   "max": [
+    0.996091902256012,
+    0.9956035614013672
+   ],
+   "min": [
+    0.0,
+    0.04960377886891365
+   ],
+   "type": "VEC2"
+  },
+  {
+   "bufferView": 1,
+   "byteOffset": 35904,
+   "componentType": 5126,
+   "count": 1122,
+   "max": [
+    0.996091902256012,
+    0.9956035614013672
+   ],
+   "min": [
+    0.0,
+    0.04960377886891365
+   ],
+   "type": "VEC2"
+  },
+  {
+   "bufferView": 1,
+   "byteOffset": 44880,
+   "componentType": 5126,
+   "count": 1122,
+   "max": [
+    0.996091902256012,
+    0.9956035614013672
+   ],
+   "min": [
+    0.0,
+    0.04960377886891365
+   ],
+   "type": "VEC2"
+  },
+  {
+   "bufferView": 0,
+   "componentType": 5125,
+   "count": 3732,
+   "type": "SCALAR"
+  },
+  {
+   "bufferView": 2,
+   "byteOffset": 26928,
+   "componentType": 5126,
+   "count": 356,
+   "max": [
+    9.402710914611816,
+    15.003417015075684,
+    3.9580800533294678
+   ],
+   "min": [
+    -7.8783745765686035,
+    4.4438982009887695,
+    -4.209155082702637
+   ],
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 2,
+   "byteOffset": 31200,
+   "componentType": 5126,
+   "count": 356,
+   "max": [
+    0.9989036321640015,
+    0.9999843239784241,
+    1.0
+   ],
+   "min": [
+    -0.99329674243927,
+    -0.9998942017555237,
+    -1.0
+   ],
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 3,
+   "byteOffset": 17952,
+   "componentType": 5126,
+   "count": 356,
+   "max": [
+    0.999946117401123,
+    0.9912936687469482,
+    0.01808469183743,
+    1.0
+   ],
+   "min": [
+    -0.9995925426483154,
+    -0.9940374493598938,
+    -1.0,
+    1.0
+   ],
+   "type": "VEC4"
+  },
+  {
+   "bufferView": 1,
+   "byteOffset": 53856,
+   "componentType": 5126,
+   "count": 356,
+   "max": [
+    0.9955496191978455,
+    1.0
+   ],
+   "min": [
+    0.0,
+    -1.223930845046942e-17
+   ],
+   "type": "VEC2"
+  },
+  {
+   "bufferView": 1,
+   "byteOffset": 56704,
+   "componentType": 5126,
+   "count": 356,
+   "max": [
+    0.95849609375,
+    0.9921875
+   ],
+   "min": [
+    0.0078125,
+    0.28125
+   ],
+   "type": "VEC2"
+  },
+  {
+   "bufferView": 1,
+   "byteOffset": 59552,
+   "componentType": 5126,
+   "count": 356,
+   "max": [
+    0.9955496191978455,
+    1.0
+   ],
+   "min": [
+    0.0,
+    -1.223930845046942e-17
+   ],
+   "type": "VEC2"
+  },
+  {
+   "bufferView": 1,
+   "byteOffset": 62400,
+   "componentType": 5126,
+   "count": 356,
+   "max": [
+    0.9955496191978455,
+    1.0
+   ],
+   "min": [
+    0.0,
+    -1.223930845046942e-17
+   ],
+   "type": "VEC2"
+  },
+  {
+   "bufferView": 1,
+   "byteOffset": 65248,
+   "componentType": 5126,
+   "count": 356,
+   "max": [
+    0.9955496191978455,
+    1.0
+   ],
+   "min": [
+    0.0,
+    -1.223930845046942e-17
+   ],
+   "type": "VEC2"
+  },
+  {
+   "bufferView": 1,
+   "byteOffset": 68096,
+   "componentType": 5126,
+   "count": 356,
+   "max": [
+    0.9955496191978455,
+    1.0
+   ],
+   "min": [
+    0.0,
+    -1.223930845046942e-17
+   ],
+   "type": "VEC2"
+  },
+  {
+   "bufferView": 0,
+   "byteOffset": 14928,
+   "componentType": 5125,
+   "count": 996,
+   "type": "SCALAR"
+  }
+ ],
+ "asset": {
+  "extras": {
+   "author": "MaX3Dd (https://sketchfab.com/MaX3Dd)",
+   "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+   "source": "https://sketchfab.com/3d-models/deck-chair-38de6171cbeb41c5bdc49c07df76ede9",
+   "title": "deck chair"
+  },
+  "generator": "Sketchfab-15.15.0",
+  "version": "2.0"
+ },
+ "bufferViews": [
+  {
+   "buffer": 0,
+   "byteLength": 18912,
+   "name": "floatBufferViews",
+   "target": 34963
+  },
+  {
+   "buffer": 0,
+   "byteLength": 70944,
+   "byteOffset": 18912,
+   "byteStride": 8,
+   "name": "floatBufferViews",
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteLength": 35472,
+   "byteOffset": 89856,
+   "byteStride": 12,
+   "name": "floatBufferViews",
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteLength": 23648,
+   "byteOffset": 125328,
+   "byteStride": 16,
+   "name": "floatBufferViews",
+   "target": 34962
+  }
+ ],
+ "buffers": [
+  {
+   "uri": "deck_chair.bin",
+   "byteLength": 148976
+  }
+ ],
+ "images": [
+  {
+   "uri": "textures/DeckChair_baseColor.jpg"
+  },
+  {
+   "uri": "textures/DeckChair_metallicRoughness.jpg"
+  },
+  {
+   "uri": "textures/DeckChair_normal.jpg"
+  }
+ ],
+ "materials": [
+  {
+   "doubleSided": true,
+   "name": "DeckChair",
+   "normalTexture": {
+    "index": 2
+   },
+   "occlusionTexture": {
+    "index": 1
+   },
+   "pbrMetallicRoughness": {
+    "baseColorTexture": {
+     "index": 0
+    },
+    "metallicFactor": 0.9920030232473088,
+    "metallicRoughnessTexture": {
+     "index": 1
+    }
+   }
+  }
+ ],
+ "meshes": [
+  {
+   "name": "deck chair_DeckChair_0",
+   "primitives": [
+    {
+     "attributes": {
+      "NORMAL": 1,
+      "POSITION": 0,
+      "TANGENT": 2,
+      "TEXCOORD_0": 3,
+      "TEXCOORD_1": 4,
+      "TEXCOORD_2": 5,
+      "TEXCOORD_3": 6,
+      "TEXCOORD_4": 7,
+      "TEXCOORD_5": 8
+     },
+     "indices": 9,
+     "material": 0,
+     "mode": 4
+    }
+   ]
+  },
+  {
+   "name": "Object004_DeckChair_0",
+   "primitives": [
+    {
+     "attributes": {
+      "NORMAL": 11,
+      "POSITION": 10,
+      "TANGENT": 12,
+      "TEXCOORD_0": 13,
+      "TEXCOORD_1": 14,
+      "TEXCOORD_2": 15,
+      "TEXCOORD_3": 16,
+      "TEXCOORD_4": 17,
+      "TEXCOORD_5": 18
+     },
+     "indices": 19,
+     "material": 0,
+     "mode": 4
+    }
+   ]
+  }
+ ],
+ "nodes": [
+  {
+   "children": [
+    1
+   ],
+   "matrix": [
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    2.220446049250313e-16,
+    -1.0,
+    0.0,
+    0.0,
+    1.0,
+    2.220446049250313e-16,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0
+   ],
+   "name": "Sketchfab_model"
+  },
+  {
+   "children": [
+    2
+   ],
+   "matrix": [
+    0.009999999776482582,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.009999999776482582,
+    0.0,
+    0.0,
+    -0.009999999776482582,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0
+   ],
+   "name": "Deck Chair.fbx"
+  },
+  {
+   "children": [
+    3,
+    5
+   ],
+   "name": "RootNode"
+  },
+  {
+   "children": [
+    4
+   ],
+   "matrix": [
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    2.220446049250313e-16,
+    -1.0,
+    0.0,
+    0.0,
+    1.0,
+    2.220446049250313e-16,
+    0.0,
+    0.0,
+    26.497011184692383,
+    0.0,
+    1.0
+   ],
+   "name": "deck chair"
+  },
+  {
+   "mesh": 0,
+   "name": "deck chair_DeckChair_0"
+  },
+  {
+   "children": [
+    6
+   ],
+   "matrix": [
+    3.515500068664551,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    3.515500068664504,
+    5.72747694715758e-07,
+    0.0,
+    0.0,
+    -5.72747694715758e-07,
+    3.515500068664504,
+    0.0,
+    0.05529212951660156,
+    35.15869140625,
+    -0.1376485824584961,
+    1.0
+   ],
+   "name": "Object004"
+  },
+  {
+   "children": [
+    7
+   ],
+   "matrix": [
+    1.0,
+    0.0,
+    -0.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    -0.7621681094169617,
+    -9.723658561706543,
+    0.12553752958774567,
+    1.0
+   ],
+   "name": "Object_6"
+  },
+  {
+   "mesh": 1,
+   "name": "Object004_DeckChair_0"
+  }
+ ],
+ "samplers": [
+  {
+   "magFilter": 9729,
+   "minFilter": 9987,
+   "wrapS": 10497,
+   "wrapT": 10497
+  }
+ ],
+ "scene": 0,
+ "scenes": [
+  {
+   "name": "Sketchfab_Scene",
+   "nodes": [
+    0
+   ]
+  }
+ ],
+ "textures": [
+  {
+   "sampler": 0,
+   "source": 0
+  },
+  {
+   "sampler": 0,
+   "source": 1
+  },
+  {
+   "sampler": 0,
+   "source": 2
+  }
+ ]
+}

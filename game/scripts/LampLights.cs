@@ -18,10 +18,10 @@ public partial class LampLights : Node3D
     [Export] public StoreVisibility Visibility { get; set; } = null!;
 
     /// <summary>Most Lamps lit by real lights at once (ADR 0004); the rest are pools only. Read once, when the lights are made.</summary>
-    [Export] public int MaxLights { get; set; } = 256;
+    [Export] public int MaxLights { get; set; } = 96;
 
     /// <summary>Most lights casting shadows at once: the nearest of the lit Lamps. Read once, when the lights are made.</summary>
-    [Export] public int ShadowBudget { get; set; } = 64;
+    [Export] public int ShadowBudget { get; set; } = 16;
 
     /// <summary>Seconds a Lamp's shadow takes to fade in or out when it gains or loses a shadowed light.</summary>
     [Export] public float ShadowFadeSeconds { get; set; } = 0.4f;

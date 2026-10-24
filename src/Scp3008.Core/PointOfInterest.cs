@@ -9,14 +9,8 @@ namespace Scp3008.Core;
 /// </summary>
 public enum PointOfInterestType
 {
-    /// <summary>A working restroom: stalls, sinks and mirrors; a small water source. 1–3 per Sector.</summary>
-    Restroom,
-    /// <summary>A store canteen serving store-style food: a large food source that Villages fight over. 3–4 per Store, in Restaurant/food market Departments.</summary>
-    Canteen,
     /// <summary>A showroom dining table laid for a meal, with ready food that Restock lays again. 2–3 per Sector.</summary>
     SetDinnerTable,
-    /// <summary>A desk with rare, random Goods that Restock refills. One per Sector.</summary>
-    LostAndFoundDesk,
     /// <summary>A corral of shopping carts: a metal source; carts speed up hauling. At most 4 per Store.</summary>
     ShoppingCartGraveyard,
     /// <summary>
@@ -42,20 +36,19 @@ public enum PointOfInterestType
     AquariumAisle,
     /// <summary>
     /// A large self-service dining hall like a Scandinavian furniture store's restaurant (24 × 20 m): a tray line past hot food
-    /// and dessert counters to a till along one wall, and a big dining zone left mid-meal. For now only in the Point of interest
-    /// showcase; it replaces the Canteen in the Store generator in ticket 08m.
+    /// and dessert counters to a till along one wall, and a big dining zone left mid-meal. A large food source that Villages fight over.
+    /// 2–3 per Store, each on a 2 × 2 block of cells of one Restaurant/food market Department.
     /// </summary>
     Cafeteria,
     /// <summary>
     /// A recognisable store restroom (10.4 × 6 m, tiled surfaces, stalls with doors, washbasins with mirror, hand dryers,
-    /// baby-changing table, out-of-order sign). For now only in the Point of interest showcase; it replaces the old
-    /// Restroom in the Store generator in ticket 08m.
+    /// baby-changing table, out-of-order sign); a small water source. 1–3 per Sector.
     /// </summary>
     StoreRestroom,
     /// <summary>
     /// A recognisable store service point (6.5 × 5 m, service counter with bell, shelves of labelled boxes and bins,
     /// rack of lost coats and umbrellas, cart of unsorted things, notice board of lost-item notes, sign, abandonment signs).
-    /// For now only in the Point of interest showcase; it replaces the old LostAndFoundDesk in the Store generator in ticket 08m.
+    /// Rare, random Goods that Restock refills. About one per Sector.
     /// </summary>
     LostAndFound,
 }

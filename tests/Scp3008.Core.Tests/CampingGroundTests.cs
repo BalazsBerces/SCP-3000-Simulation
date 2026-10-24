@@ -40,11 +40,21 @@ public class CampingGroundTests
             foreach (var dinosaur in camp.Dinosaurs)
             {
                 var pieces = PiecesOf(sim.Snapshot, dinosaur);
-                Assert.True(pieces.Count >= 60, $"{dinosaur.Kind} has only {pieces.Count} pieces.");
+                Assert.True(pieces.Count >= 25, $"{dinosaur.Kind} has only {pieces.Count} pieces.");
                 // Built only of existing Furniture types, mostly in its main colour.
                 Assert.All(pieces, p => Assert.DoesNotContain(p.Type, FurnitureCatalog.CampingTypes));
+                // A sculpture of whole, recognisable Furniture: sofas or beds for the body, armchairs, beds for the legs; not one type on a grid.
+                Assert.True(pieces.Select(p => p.Type).Distinct().Count() >= 4, $"{dinosaur.Kind} is built of too few kinds of Furniture.");
+                Assert.Contains(pieces, p => p.Type is FurnitureType.Sofa or FurnitureType.Bed);
+                Assert.Contains(pieces, p => p.Tilt != 0f || p.Roll != 0f);
                 Assert.True(pieces.Count(p => p.Tint == dinosaur.MainTint) > pieces.Count / 2, $"{dinosaur.Kind} is not mostly its main colour.");
                 Assert.True(pieces.Select(p => p.Tint).Distinct().Count() >= 3, $"{dinosaur.Kind} has no accent colours.");
+                // The spikes on the back are lamps, lit at night.
+                Assert.True(pieces.Count(p => FurnitureCatalog.Spec(p).IsLamp) >= 5, $"{dinosaur.Kind} has too few lamps on its back.");
+                Assert.DoesNotContain(pieces, p => p.Type == FurnitureType.KidsChair && p.Tint == (int)FurniturePalettes.DinosaurTints.Yellow);
+                if (dinosaur.Kind == DinosaurKind.Triceratops)
+                    Assert.True(pieces.Count(p => p.Type == FurnitureType.Bed && p.Tint == (int)FurniturePalettes.DinosaurTints.Yellow) >= 5,
+                        "The triceratops' frill is not a fan of beds.");
             }
         }
     }
@@ -144,33 +154,99 @@ public class CampingGroundTests
     }
 
     [Fact]
-    public void The_camp_has_tents_of_three_kinds_with_one_lit_trees_and_the_small_things()
+    public void The_camp_has_a_tent_show_of_sixteen_tents_with_one_lit_trees_bushes_and_the_small_things()
     {
         foreach (var seed in Seeds)
         {
             var (sim, camp) = Camp(seed);
             using var _ = sim;
             var pieces = PiecesOf(sim.Snapshot, camp);
-            var tents = pieces.Where(p => p.Type == FurnitureType.Tent).Select(p => p.Variant).Distinct().Count();
-            Assert.Equal(3, tents);
-            Assert.NotEmpty(pieces.Where(p => p.Type == FurnitureType.LanternTent));
-            Assert.True(pieces.Count(p => p.Type == FurnitureType.Tree) >= 6);
-            Assert.True(pieces.Count(p => p.Type is FurnitureType.SleepingBag or FurnitureType.Mattress) >= 3);
+            // Sixteen tents, every kind at least twice, in four straight rows of four: two facing south, two facing north.
+            var tents = pieces.Where(p => p.Type == FurnitureType.Tent).ToList();
+            Assert.Equal(16, tents.Count);
+            Assert.All(Enum.GetValues<TentKind>(), kind => Assert.True(tents.Count(p => p.Variant == (int)kind) >= 2, $"Too few {kind} tents."));
+            var facings = tents.GroupBy(p => (MathF.Round(Front(p).X), MathF.Round(Front(p).Y))).ToList();
+            Assert.Equal(2, facings.Count);
+            Assert.True(Vector2.Dot(Front(facings[0].First()), Front(facings[1].First())) < -0.99f, "The rows do not face each other.");
+            foreach (var facing in facings)
+            {
+                // A row's tents stand side by side with their fronts on one line, along an aisle.
+                var rows = facing.GroupBy(p => MathF.Round(Vector2.Dot(p.Position, Front(p)) + FurnitureCatalog.Spec(p).Depth / 2f)).ToList();
+                Assert.Equal(2, rows.Count);
+                Assert.All(rows, row => Assert.Equal(4, row.Count()));
+            }
+            // One tent is lit: its lantern stands in its doorway.
+            var lit = Assert.Single(pieces, p => p.Type == FurnitureType.LanternTent);
+            Assert.Contains(pieces, p => p.Type == FurnitureType.Tent &&
+                Vector2.Distance(p.Position, lit.Position) < MathF.Max(FurnitureCatalog.Spec(p).Width, FurnitureCatalog.Spec(p).Depth) / 2f);
+            Assert.True(pieces.Count(p => p.Type == FurnitureType.Tree && p.Variant < 2) >= 6);
+            Assert.True(pieces.Count(p => p.Type == FurnitureType.Tree && p.Variant >= 2) >= 15, "Too few bushes.");
             foreach (var type in new[]
             {
                 FurnitureType.CampfireFlame, FurnitureType.LogSeat, FurnitureType.Hammock, FurnitureType.Kayak, FurnitureType.FishingRod,
                 FurnitureType.RubberDuck, FurnitureType.PlushBear, FurnitureType.TrailSign, FurnitureType.Axe, FurnitureType.BunkBed,
-                FurnitureType.Wardrobe, FurnitureType.Rug,
+                FurnitureType.Rug, FurnitureType.TreeHouse, FurnitureType.MarshmallowTray, FurnitureType.CampBanner, FurnitureType.PriceTag,
+                FurnitureType.CampChair, FurnitureType.CampLantern, FurnitureType.CampfireRing,
             })
                 Assert.Contains(pieces, p => p.Type == type);
-            Assert.True(camp.Paths.Count >= 3);
-            // Winding, not straight: each path is longer than the distance between its ends.
+            // Every tent has its price tag.
+            Assert.True(pieces.Count(p => p.Type == FurnitureType.PriceTag) > pieces.Count(p => p.Type is FurnitureType.Tent or FurnitureType.LanternTent));
+            // Straight aisles like a store's: a spine and three aisles across it, each of at most two straight stretches.
+            Assert.True(camp.Paths.Count >= 4);
             foreach (var path in camp.Paths)
             {
-                var length = path.Zip(path.Skip(1), Vector2.Distance).Sum();
-                Assert.True(length > Vector2.Distance(path[0], path[^1]) * 1.05f, "A visitor path is a straight line.");
+                var turns = path.Zip(path.Skip(1), (a, b) => Vector2.Normalize(b - a)).Zip(path.Skip(1).Zip(path.Skip(2), (a, b) => Vector2.Normalize(b - a)))
+                    .Count(t => Vector2.Dot(t.First, t.Second) < 0.999f);
+                Assert.True(turns <= 1, "An aisle winds.");
             }
         }
+    }
+
+    private static Vector2 Front(FurniturePiece p) => new(-MathF.Sin(p.Rotation), MathF.Cos(p.Rotation));
+
+    [Fact]
+    public void The_camp_has_a_sun_lounger_section_and_a_sleeping_bag_section_laid_out_in_rows()
+    {
+        foreach (var seed in Seeds)
+        {
+            var (sim, camp) = Camp(seed);
+            using var _ = sim;
+            var pieces = PiecesOf(sim.Snapshot, camp);
+            // Wooden and white loungers in pairs under beach umbrellas, and a row of deck chairs, all facing one way.
+            var loungers = pieces.Where(p => p.Type == FurnitureType.SunLounger).ToList();
+            foreach (var variant in new[] { 0, 1 })
+                Assert.True(loungers.Count(p => p.Variant == variant) >= 20, $"Too few sun loungers of variant {variant}.");
+            Assert.True(loungers.Count(p => p.Variant == 2) >= 30, "Too few deck chairs.");
+            Assert.Single(loungers.Select(p => (MathF.Round(Front(p).X), MathF.Round(Front(p).Y))).Distinct());
+            Assert.True(pieces.Count(p => p.Type == FurnitureType.Parasol && p.Variant == 1) >= loungers.Count(p => p.Variant < 2) / 2);
+            // Sleeping bags laid out on the lawn and on mattresses, and rolled up on display tables.
+            var bags = pieces.Where(p => p.Type == FurnitureType.SleepingBag).ToList();
+            Assert.True(bags.Count(p => p.Variant == 0) >= 40, "Too few sleeping bags laid out.");
+            var tables = pieces.Where(p => p.Type == FurnitureType.DisplayTable).ToList();
+            Assert.True(tables.Count >= 5);
+            var height = FurnitureCatalog.Spec(FurnitureType.DisplayTable).Height;
+            Assert.All(tables, t => Assert.True(bags.Count(p => p.Variant == 1 && p.Elevation >= height - 0.01f &&
+                Vector2.Distance(p.Position, t.Position) < 1f) >= 9, "A display table holds too few rolled sleeping bags."));
+            Assert.Contains(bags, p => p.Variant == 0 && pieces.Any(m => m.Type == FurnitureType.Mattress &&
+                Vector2.Distance(m.Position, p.Position) < 0.1f && MathF.Abs(p.Elevation - FurnitureCatalog.Spec(m).Height) < 0.01f));
+            // Price tags with the displays.
+            Assert.True(pieces.Count(p => p.Type == FurnitureType.PriceTag) >= 45, "Too few price tags.");
+        }
+    }
+
+    [Fact]
+    public void The_tree_house_shell_is_fixed_and_furnished_and_nothing_else_is_fixed()
+    {
+        foreach (var type in Enum.GetValues<FurnitureType>())
+            for (var v = 0; v < FurnitureCatalog.VariantCount(type); v++)
+                Assert.Equal(type == FurnitureType.TreeHouse, FurnitureCatalog.Spec(type, v).IsFixed);
+        var (sim, camp) = Camp(42);
+        using var _ = sim;
+        var pieces = PiecesOf(sim.Snapshot, camp);
+        var shell = Assert.Single(pieces, p => p.Type == FurnitureType.TreeHouse);
+        // Its deck holds a bunk bed: ordinary Furniture a Village may take.
+        Assert.Contains(pieces, p => p.Type == FurnitureType.BunkBed && Vector2.Distance(p.Position, shell.Position) < 4.5f &&
+                                     MathF.Abs(p.Elevation - CampingGround.TreeHouseDeckHeight) < 0.01f);
     }
 
     [Fact]
@@ -191,55 +267,22 @@ public class CampingGroundTests
     }
 
     [Fact]
-    public void The_tree_house_and_the_brachiosaurus_have_lookouts_that_can_be_reached_on_foot()
+    public void The_tree_house_deck_is_the_only_lookout()
     {
         foreach (var seed in Seeds)
         {
             var (sim, camp) = Camp(seed);
             using var _ = sim;
             var pieces = PiecesOf(sim.Snapshot, camp);
-            Assert.Equal(2, camp.Lookouts.Count);
-            var reached = Reachable(pieces);
-            var brachio = camp.Dinosaurs.Single(d => d.Kind == DinosaurKind.Brachiosaurus);
-            var brachioIds = brachio.PieceIds.ToHashSet();
-            foreach (var lookout in camp.Lookouts)
-            {
-                Assert.True(lookout.Z >= 5f, $"Lookout at {lookout.Z:0.0} m is low.");
-                Assert.Contains(reached, p => Top(p) >= lookout.Z - 0.3f && Top(p) <= lookout.Z + 0.1f &&
-                    Vector2.Distance(p.Position, new Vector2(lookout.X, lookout.Y)) <= 1.8f);
-            }
-            // One is on the Brachiosaurus's back, standing on its pieces; the other is the tree house, high in the giant tree.
-            var onBack = camp.Lookouts.Where(l => pieces.Any(p => brachioIds.Contains(p.Id) && Top(p) >= l.Z - 0.3f && Top(p) <= l.Z + 0.1f &&
-                Vector2.Distance(p.Position, new Vector2(l.X, l.Y)) <= 1.8f)).ToList();
-            Assert.Single(onBack);
-            Assert.Contains(camp.Lookouts, l => l.Z > 9f);
+            bool StandsOn(Vector3 l, FurniturePiece p) =>
+                Top(p) >= l.Z - 0.3f && Top(p) <= l.Z + 0.1f && Vector2.Distance(p.Position, new Vector2(l.X, l.Y)) <= 1.8f;
+            // The tree house's deck, inside the fixed shell, which has its own stair up to it.
+            var deck = Assert.Single(camp.Lookouts);
+            var shell = pieces.Single(p => p.Type == FurnitureType.TreeHouse);
+            Assert.Equal(CampingGround.TreeHouseDeckHeight + FurnitureCatalog.Spec(FurnitureType.Mattress).Height, deck.Z, 3);
+            Assert.True(Vector2.Distance(shell.Position, new Vector2(deck.X, deck.Y)) < FurnitureCatalog.Spec(shell).Width / 2f);
+            Assert.Contains(pieces, p => p.Type == FurnitureType.Mattress && StandsOn(deck, p));
         }
-    }
-
-    /// <summary>The pieces a walker can climb on from the ground: no step up higher than 0.85 m, no gap wider than 0.4 m.</summary>
-    private static HashSet<FurniturePiece> Reachable(List<FurniturePiece> pieces)
-    {
-        var tops = pieces.Select(Top).ToArray();
-        var radii = pieces.Select(p => MathF.Max(FurnitureCatalog.Spec(p).Width, FurnitureCatalog.Spec(p).Depth) / 2f).ToArray();
-        var seen = new bool[pieces.Count];
-        var queue = new Queue<int>();
-        for (var i = 0; i < pieces.Count; i++)
-            if (tops[i] <= 0.85f)
-            {
-                seen[i] = true;
-                queue.Enqueue(i);
-            }
-        while (queue.Count > 0)
-        {
-            var a = queue.Dequeue();
-            for (var b = 0; b < pieces.Count; b++)
-                if (!seen[b] && tops[b] - tops[a] <= 0.85f && Vector2.Distance(pieces[a].Position, pieces[b].Position) <= radii[a] + radii[b] + 0.4f)
-                {
-                    seen[b] = true;
-                    queue.Enqueue(b);
-                }
-        }
-        return pieces.Where((_, i) => seen[i]).ToHashSet();
     }
 
     [Fact]
@@ -255,6 +298,12 @@ public class CampingGroundTests
             Assert.Equal(camp.Id, piece.LandmarkId);
             var flame = PiecesOf(snapshot, camp).Single(p => p.Type == FurnitureType.CampfireFlame);
             Assert.InRange(Vector2.Distance(piece.Position, flame.Position), 2f, 9f);
+            // The marshmallows show: trays of them on sticks stand on the stand's top.
+            var top = FurnitureCatalog.Spec(piece).Height;
+            Assert.Contains(PiecesOf(snapshot, camp), p => p.Type == FurnitureType.MarshmallowTray &&
+                Vector2.Distance(p.Position, piece.Position) < 1f && MathF.Abs(p.Elevation - top) < 0.01f);
+            Assert.True(PiecesOf(snapshot, camp).Count(p => p.Type == FurnitureType.MarshmallowStick &&
+                Vector2.Distance(p.Position, piece.Position) < 1.2f && p.Elevation > top) >= 6, "The tasting stand has too few marshmallows.");
             Assert.Contains(snapshot.CampGoods, g => g.Kind == CampGoodsKind.TinnedFood);
             Assert.Contains(snapshot.CampGoods, g => g.Kind == CampGoodsKind.Backpack);
             Assert.All(snapshot.CampGoods, g => Assert.Contains(snapshot.Furniture, p => p.Id == g.StandId));
@@ -274,7 +323,11 @@ public class CampingGroundTests
             Assert.Equal(FurnitureType.Axe, axe.Type);
             Assert.NotEqual(tree.Id, axe.Id);
             Assert.InRange(Vector2.Distance(tree.Position, axe.Position), 0.3f, 2.5f);
-            Assert.InRange(axe.Elevation, 0.5f, 3f);
+            Assert.InRange(axe.Elevation, 1.0f, 1.6f);
+            // Beside a visitor path, on the path's side of the trunk.
+            var nearest = camp.Paths.SelectMany(p => p).MinBy(p => Vector2.Distance(p, tree.Position));
+            Assert.True(Vector2.Distance(nearest, tree.Position) < CampingGround.PathWidth / 2f + 4f, "The axe's tree is far from the paths.");
+            Assert.True(Vector2.Distance(nearest, axe.Position) < Vector2.Distance(nearest, tree.Position), "The axe faces away from the path.");
 
             Assert.Equal(1, sim.Scenario.RemoveFurniture(p => p.Id == axe.Id));
             Assert.DoesNotContain(sim.Snapshot.Furniture, p => p.Type == FurnitureType.Axe && p.LandmarkId == camp.Id);

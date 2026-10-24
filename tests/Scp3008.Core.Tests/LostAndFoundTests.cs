@@ -21,13 +21,12 @@ public class LostAndFoundTests
     [Theory]
     [InlineData(3008)]
     [InlineData(42)]
-    public void The_showcase_has_one_6_5_by_5_metre_lost_and_found_in_place_of_the_old_desk(int seed)
+    public void The_showcase_has_one_6_5_by_5_metre_lost_and_found_(int seed)
     {
         var snapshot = Showcase(seed);
 
         var (laf, _) = LostAndFoundOf(snapshot);
         Assert.Equal(new Vector2(6.5f, 5.0f), laf.Size);
-        Assert.DoesNotContain(snapshot.PointsOfInterest, p => p.Type == PointOfInterestType.LostAndFoundDesk);
     }
 
     [Theory]
@@ -104,12 +103,12 @@ public class LostAndFoundTests
     [Theory]
     [InlineData(3008)]
     [InlineData(42)]
-    public void A_normal_store_keeps_its_old_lost_and_found_desks_and_has_no_new_lost_and_found_yet(int seed)
+    public void A_normal_store_has_one_lost_and_found_per_sector(int seed)
     {
         using var sim = Simulation.Create(new WorldConfig(seed, RuntimeRngSeed: 1));
         var snapshot = sim.Snapshot;
 
-        Assert.DoesNotContain(snapshot.PointsOfInterest, p => p.Type == PointOfInterestType.LostAndFound);
-        Assert.InRange(snapshot.PointsOfInterest.Count(p => p.Type == PointOfInterestType.LostAndFoundDesk), 4, 9);
+        Assert.All(snapshot.Sectors, sector =>
+            Assert.Equal(1, snapshot.PointsOfInterest.Count(p => p.Type == PointOfInterestType.LostAndFound && p.SectorId == sector.Id)));
     }
 }

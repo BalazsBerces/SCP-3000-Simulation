@@ -62,6 +62,11 @@ uniform bool show_furniture_map = false;
 // The Camping ground's turf map (CampTurf.cs) and its rectangle (centre X and Z, half size); zero size if the world has none.
 uniform sampler2D camp_map : filter_linear, repeat_disable;
 uniform vec4 camp_rect = vec4(0.0);
+// The Camping ground's lawn: a real mown lawn texture (CC0, ambientCG Grass004) and the metres one repeat covers.
+uniform sampler2D grass_albedo : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform sampler2D grass_normal : hint_normal, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform sampler2D grass_roughness : hint_default_white, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform float grass_metres = 1.6;
 
 varying vec3 world_position;
 
@@ -125,6 +130,19 @@ vec3 stochastic_sample(sampler2DArray tex, vec3 coord, vec2 dx, vec2 dy, vec2 o0
 	return textureGrad(tex, coord + vec3(o0, 0.0), dx, dy).rgb * w.x
 			+ textureGrad(tex, coord + vec3(o1, 0.0), dx, dy).rgb * w.y
 			+ textureGrad(tex, coord + vec3(o2, 0.0), dx, dy).rgb * w.z;
+}
+
+// The lawn's three maps at uv, as randomly offset copies blended over a triangle grid so its repeat does not show.
+void grass_sample(vec2 uv, vec2 dx, vec2 dy, out vec3 albedo, out vec3 normal_map, out float roughness) {
+	vec2 o0, o1, o2;
+	vec3 w;
+	stochastic_corners(uv, 4096, 40, o0, o1, o2, w);
+	albedo = textureGrad(grass_albedo, uv + o0, dx, dy).rgb * w.x + textureGrad(grass_albedo, uv + o1, dx, dy).rgb * w.y
+			+ textureGrad(grass_albedo, uv + o2, dx, dy).rgb * w.z;
+	normal_map = textureGrad(grass_normal, uv + o0, dx, dy).rgb * w.x + textureGrad(grass_normal, uv + o1, dx, dy).rgb * w.y
+			+ textureGrad(grass_normal, uv + o2, dx, dy).rgb * w.z;
+	roughness = textureGrad(grass_roughness, uv + o0, dx, dy).r * w.x + textureGrad(grass_roughness, uv + o1, dx, dy).r * w.y
+			+ textureGrad(grass_roughness, uv + o2, dx, dy).r * w.z;
 }
 
 // Grid lines that never fade out, so the overlay stays readable when zoomed out.
@@ -231,18 +249,42 @@ void fragment() {
 	if (show_sectors) {
 		color = mix(color, sector_line_color, overlay_lines(p, sector_size, 1.5));
 	}
-	// The Camping ground: artificial turf over the floor with winding trodden paths (red: turf, green: path).
+	// The Camping ground: a mown lawn over the floor with straight boardwalk aisles (red: lawn, green: aisle,
+	// blue and alpha: the aisle's direction as cos and sin of twice its angle; see CampTurf.cs).
 	if (camp_rect.z > 0.0) {
 		vec2 camp_delta = mod(p - camp_rect.xy + store_size * 0.5, store_size) - store_size * 0.5;
 		if (all(lessThan(abs(camp_delta), camp_rect.zw))) {
-			vec2 camp = texture(camp_map, camp_delta / (camp_rect.zw * 2.0) + 0.5).rg;
-			float grain = store_noise(wrapped, 0.35, 11) * 0.5 + store_noise(wrapped, 1.3, 12) * 0.3 + store_noise(wrapped, 6.0, 13) * 0.2;
-			vec3 turf = mix(vec3(0.03, 0.2, 0.03), vec3(0.09, 0.33, 0.05), grain);
-			vec3 trodden = mix(vec3(0.3, 0.22, 0.12), vec3(0.45, 0.36, 0.22), grain);
-			vec3 ground = mix(turf, trodden, camp.g);
-			color = mix(color, ground, camp.r);
-			roughness = mix(roughness, mix(0.95, 0.85, camp.g), camp.r);
-			normal_map = mix(normal_map, vec3(0.5, 0.5, 1.0), camp.r);
+			vec4 camp = texture(camp_map, camp_delta / (camp_rect.zw * 2.0) + 0.5);
+			// A real mown lawn: the grass texture, with faint mowing stripes and soft, slightly yellower or darker patches.
+			vec2 grass_uv = camp_delta / grass_metres;
+			vec3 turf;
+			vec3 grass_normal_map;
+			float grass_rough;
+			grass_sample(grass_uv, dFdx(grass_uv) * lod_scale, dFdy(grass_uv) * lod_scale, turf, grass_normal_map, grass_rough);
+			float stripe = step(0.5, fract(camp_delta.x / 3.0));
+			float patch = store_noise(wrapped, 9.0, 14) * 0.6 + store_noise(wrapped, 3.0, 15) * 0.4 - 0.5;
+			float dry = smoothstep(0.62, 0.85, store_noise(wrapped, 6.0, 16));
+			turf *= (0.95 + 0.1 * stripe) * (1.0 + patch * 0.25);
+			turf = mix(turf, turf * vec3(1.25, 1.12, 0.6), dry * 0.35);
+			// Boardwalk: planks 20 cm wide laid across the path with dark gaps, each plank a slightly different wood.
+			vec2 doubled = camp.ba * 2.0 - 1.0;
+			float angle = atan(doubled.y, doubled.x) * 0.5;
+			float along = dot(camp_delta, vec2(cos(angle), sin(angle)));
+			float plank = floor(along / 0.22);
+			float shade = fract(sin(plank * 12.9898 + 78.233) * 43758.5453);
+			// 1 on a plank, 0 in the gap: by the distance to the plank's nearer edge.
+			float gap = smoothstep(0.004, 0.014, 0.11 - abs(fract(along / 0.22) - 0.5) * 0.22);
+			vec3 wood = vec3(0.34, 0.17, 0.064) * (0.85 + 0.3 * shade) * (0.92 + 0.16 * store_noise(wrapped, 0.6, 13));
+			vec3 boardwalk = mix(wood, vec3(0.05, 0.03, 0.015), 1.0 - gap);
+			color = mix(color, turf, camp.r);
+			color = mix(color, boardwalk, camp.g);
+			// Grass blades scatter light: no glossy sheen at a grazing view.
+			roughness = mix(roughness, max(grass_rough, 0.85), camp.r);
+			// The Departments' metal transition strips are under the lawn.
+			border *= 1.0 - max(camp.r, camp.g);
+			roughness = mix(roughness, 0.7, camp.g);
+			normal_map = mix(normal_map, grass_normal_map, camp.r);
+			normal_map = mix(normal_map, vec3(0.5, 0.5, 1.0), camp.g);
 			NORMAL_MAP = normal_map;
 		}
 	}

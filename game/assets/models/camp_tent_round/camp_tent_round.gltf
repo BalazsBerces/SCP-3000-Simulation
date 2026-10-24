@@ -1,0 +1,285 @@
+{
+ "accessors": [
+  {
+   "bufferView": 2,
+   "componentType": 5126,
+   "count": 4699,
+   "max": [
+    377.1353759765625,
+    377.1160888671875,
+    39.494598388671875
+   ],
+   "min": [
+    -377.1353759765625,
+    -377.1546630859375,
+    -379.736572265625
+   ],
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 2,
+   "byteOffset": 56388,
+   "componentType": 5126,
+   "count": 4699,
+   "max": [
+    0.9969180226325989,
+    0.9969179630279541,
+    1.0
+   ],
+   "min": [
+    -0.9969180226325989,
+    -0.9969175457954407,
+    -1.0
+   ],
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 3,
+   "componentType": 5126,
+   "count": 4699,
+   "max": [
+    0.9969174265861511,
+    0.9980131983757019,
+    0.9940298199653625,
+    1.0
+   ],
+   "min": [
+    -0.997629702091217,
+    -0.9971060156822205,
+    -1.0,
+    -1.0
+   ],
+   "type": "VEC4"
+  },
+  {
+   "bufferView": 1,
+   "componentType": 5126,
+   "count": 4699,
+   "max": [
+    0.9952293634414673,
+    0.9951736927032471
+   ],
+   "min": [
+    0.0006032268865965307,
+    0.0018526403000578284
+   ],
+   "type": "VEC2"
+  },
+  {
+   "bufferView": 0,
+   "componentType": 5125,
+   "count": 7137,
+   "type": "SCALAR"
+  }
+ ],
+ "asset": {
+  "extras": {
+   "author": "Periklis (https://sketchfab.com/periklis)",
+   "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+   "source": "https://sketchfab.com/3d-models/circus-tent-4998d155bd654544a577dec078ef5aea",
+   "title": "Circus Tent"
+  },
+  "generator": "Sketchfab-12.66.0",
+  "version": "2.0"
+ },
+ "bufferViews": [
+  {
+   "buffer": 0,
+   "byteLength": 28548,
+   "name": "floatBufferViews",
+   "target": 34963
+  },
+  {
+   "buffer": 0,
+   "byteLength": 37592,
+   "byteOffset": 28548,
+   "byteStride": 8,
+   "name": "floatBufferViews",
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteLength": 112776,
+   "byteOffset": 66140,
+   "byteStride": 12,
+   "name": "floatBufferViews",
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteLength": 75184,
+   "byteOffset": 178916,
+   "byteStride": 16,
+   "name": "floatBufferViews",
+   "target": 34962
+  }
+ ],
+ "buffers": [
+  {
+   "uri": "camp_tent_round.bin",
+   "byteLength": 254100
+  }
+ ],
+ "images": [
+  {
+   "uri": "textures/bakedMaterial_baseColor.jpg"
+  },
+  {
+   "uri": "textures/bakedMaterial_metallicRoughness.jpg"
+  },
+  {
+   "uri": "textures/bakedMaterial_normal.jpg"
+  }
+ ],
+ "materials": [
+  {
+   "doubleSided": true,
+   "name": "bakedMaterial",
+   "normalTexture": {
+    "index": 2
+   },
+   "pbrMetallicRoughness": {
+    "baseColorTexture": {
+     "index": 0
+    },
+    "metallicFactor": 0.0,
+    "metallicRoughnessTexture": {
+     "index": 1
+    }
+   }
+  }
+ ],
+ "meshes": [
+  {
+   "name": "Circus Tent_bakedMaterial_0",
+   "primitives": [
+    {
+     "attributes": {
+      "NORMAL": 1,
+      "POSITION": 0,
+      "TANGENT": 2,
+      "TEXCOORD_0": 3
+     },
+     "indices": 4,
+     "material": 0,
+     "mode": 4
+    }
+   ]
+  }
+ ],
+ "nodes": [
+  {
+   "children": [
+    1
+   ],
+   "matrix": [
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    2.220446049250313e-16,
+    -1.0,
+    0.0,
+    0.0,
+    1.0,
+    2.220446049250313e-16,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0
+   ],
+   "name": "Sketchfab_model"
+  },
+  {
+   "children": [
+    2
+   ],
+   "matrix": [
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    -1.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0
+   ],
+   "name": "baked_CircusTent.fbx"
+  },
+  {
+   "children": [
+    3
+   ],
+   "name": "RootNode"
+  },
+  {
+   "children": [
+    4
+   ],
+   "matrix": [
+    4.1115641593933105,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    -6.698588262114624e-07,
+    -4.111564159393256,
+    0.0,
+    0.0,
+    4.111564159393256,
+    -6.698588262114624e-07,
+    0.0,
+    3.9430764445569366e-05,
+    1561.0185546875,
+    -0.07932128757238388,
+    1.0
+   ],
+   "name": "Circus Tent"
+  },
+  {
+   "mesh": 0,
+   "name": "Circus Tent_bakedMaterial_0"
+  }
+ ],
+ "samplers": [
+  {
+   "magFilter": 9729,
+   "minFilter": 9987,
+   "wrapS": 10497,
+   "wrapT": 10497
+  }
+ ],
+ "scene": 0,
+ "scenes": [
+  {
+   "name": "Sketchfab_Scene",
+   "nodes": [
+    0
+   ]
+  }
+ ],
+ "textures": [
+  {
+   "sampler": 0,
+   "source": 0
+  },
+  {
+   "sampler": 0,
+   "source": 1
+  },
+  {
+   "sampler": 0,
+   "source": 2
+  }
+ ]
+}

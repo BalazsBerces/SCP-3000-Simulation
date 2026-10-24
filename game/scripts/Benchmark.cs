@@ -46,6 +46,45 @@ public partial class Benchmark : Node
     private bool _overviewOnly;
     private double? _progress;
     private float? _holdZoom;
+    private bool _fxaa, _farOnly, _noSsao, _noGlow, _noVolumetricFog;
+    private Viewport.Msaa? _msaa;
+    private bool? _taa;
+    private float? _scale;
+    private bool _bilinear;
+    private string[] _hide = [];
+    private bool _plainFloor, _noSunShadow;
+
+    private void ApplyOverrides()
+    {
+        var viewport = GetViewport();
+        if (_msaa is { } msaa)
+            viewport.Msaa3D = msaa;
+        if (_taa is { } taa)
+            viewport.UseTaa = taa;
+        if (_fxaa)
+            viewport.ScreenSpaceAA = Viewport.ScreenSpaceAAEnum.Fxaa;
+        if (_scale is { } scale)
+        {
+            viewport.Scaling3DMode = _bilinear ? Viewport.Scaling3DModeEnum.Bilinear : Viewport.Scaling3DModeEnum.Fsr2;
+            viewport.Scaling3DScale = scale;
+            viewport.TextureMipmapBias = Mathf.Log(scale) / Mathf.Log(2f);
+            RenderingServer.GlobalShaderParameterSet("lod_scale", scale);
+        }
+        var environment = Atmosphere.World.Environment;
+        if (_noSsao)
+            environment.SsaoEnabled = false;
+        if (_noGlow)
+            environment.GlowEnabled = false;
+        if (_noVolumetricFog)
+            environment.VolumetricFogEnabled = false;
+        if (_noSunShadow)
+            Atmosphere.StoreLight.ShadowEnabled = false;
+        foreach (var name in _hide)
+            if (GetNodeOrNull<Node3D>("../Main/" + name) is { } node)
+                node.Visible = false;
+        if (_plainFloor && GetNodeOrNull<StoreFloor>("../Main/StoreFloor") is { } floor && floor.MaterialOverride is ShaderMaterial)
+            floor.MaterialOverride = new StandardMaterial3D { AlbedoColor = new Color(0.5f, 0.45f, 0.4f) };
+    }
 
     // HoldZoom: hold the far point of the path at this zoom, approached from closer, as zooming out.
     // OverviewHeight: hold the StoreOverview over the Store centre with the camera this high, in metres.
@@ -81,7 +120,38 @@ public partial class Benchmark : Node
                 _reproductionDirectory = arg["--lamp-reproduction=".Length..];
             else if (arg == "--benchmark-overview")
                 _overviewOnly = true;
+            else if (arg == "--benchmark-far-only")
+                _farOnly = true;
+            else if (arg.StartsWith("--bench-msaa="))
+                _msaa = arg["--bench-msaa=".Length..] switch { "0" => Viewport.Msaa.Disabled, "2" => Viewport.Msaa.Msaa2X, _ => Viewport.Msaa.Msaa4X };
+            else if (arg.StartsWith("--bench-taa="))
+                _taa = arg.EndsWith('1');
+            else if (arg == "--bench-fxaa")
+                _fxaa = true;
+            else if (arg == "--bench-no-ssao")
+                _noSsao = true;
+            else if (arg == "--bench-no-glow")
+                _noGlow = true;
+            else if (arg == "--bench-no-vfog")
+                _noVolumetricFog = true;
+            else if (arg.StartsWith("--bench-hide="))
+                _hide = arg["--bench-hide=".Length..].Split(',');
+            else if (arg == "--bench-plain-floor")
+                _plainFloor = true;
+            else if (arg == "--bench-no-sun-shadow")
+                _noSunShadow = true;
+            else if (arg.StartsWith("--bench-pool-cap="))
+                RenderingServer.GlobalShaderParameterSet("lamp_pool_cap", float.Parse(arg["--bench-pool-cap=".Length..], CultureInfo.InvariantCulture));
+            else if (arg.StartsWith("--bench-pool-far="))
+                RenderingServer.GlobalShaderParameterSet("lamp_pool_far", float.Parse(arg["--bench-pool-far=".Length..], CultureInfo.InvariantCulture));
+            else if (arg == "--bench-bilinear")
+                _bilinear = true;
+            else if (arg.StartsWith("--bench-scale="))
+                _scale = float.Parse(arg["--bench-scale=".Length..], CultureInfo.InvariantCulture);
         }
+
+        // Experiment overrides: applied after all processing, before each draw, so StoreAtmosphere cannot undo them.
+        RenderingServer.Singleton.FramePreDraw += ApplyOverrides;
 
         DisplayServer.WindowSetVsyncMode(DisplayServer.VSyncMode.Disabled);
         Engine.MaxFps = 0;
@@ -114,6 +184,15 @@ public partial class Benchmark : Node
             foreach (var height in OverviewHeights)
                 results.Add(await Measure(new Lighting($"Overview at {height:0} m", TimeSpan.FromHours(23), OverviewHeight: height)));
             StoreOverview.Set(false);
+            Report(results);
+            return;
+        }
+        if (_farOnly)
+        {
+            Host.AdvanceTo(TimeSpan.FromHours(23));
+            Host.HoldClearWeather();
+            Host.PlaceFogBank(new System.Numerics.Vector2(Start.X + 50f, Start.Y + 20f), 160f);
+            results.Add(await Measure(new Lighting("Closing time far", TimeSpan.FromHours(23), HoldFar: true)));
             Report(results);
             return;
         }
@@ -209,6 +288,10 @@ public partial class Benchmark : Node
                 throw new InvalidOperationException("Lamp lights exceeded the ADR 0004 budget.");
         }
 
+        GD.Print($"  [{lighting.Name}] last frame: visible {viewport.GetRenderInfo(Viewport.RenderInfoType.Visible, Viewport.RenderInfo.PrimitivesInFrame) / 1e6:0.00} M prims / " +
+                 $"{viewport.GetRenderInfo(Viewport.RenderInfoType.Visible, Viewport.RenderInfo.DrawCallsInFrame)} calls, shadow " +
+                 $"{viewport.GetRenderInfo(Viewport.RenderInfoType.Shadow, Viewport.RenderInfo.PrimitivesInFrame) / 1e6:0.00} M prims / " +
+                 $"{viewport.GetRenderInfo(Viewport.RenderInfoType.Shadow, Viewport.RenderInfo.DrawCallsInFrame)} calls; coarse {FurnitureDetail.Coarse}");
         _holdZoom = null;
         if (lighting.HoldZoom is not null && FurnitureDetail.Coarse)
             throw new InvalidOperationException("Furniture was coarse at the LOD switch zoom.");

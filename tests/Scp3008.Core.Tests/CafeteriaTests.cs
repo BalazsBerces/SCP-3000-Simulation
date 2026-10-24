@@ -21,13 +21,12 @@ public class CafeteriaTests
     [Theory]
     [InlineData(3008)]
     [InlineData(42)]
-    public void The_showcase_has_one_24_by_20_metre_cafeteria_in_place_of_the_canteen(int seed)
+    public void The_showcase_has_one_24_by_20_metre_cafeteria(int seed)
     {
         var snapshot = Showcase(seed);
 
         var (cafeteria, _) = CafeteriaOf(snapshot);
         Assert.Equal(new Vector2(24f, 20f), cafeteria.Size);
-        Assert.DoesNotContain(snapshot.PointsOfInterest, p => p.Type == PointOfInterestType.Canteen);
     }
 
     [Theory]
@@ -101,16 +100,53 @@ public class CafeteriaTests
         Assert.True(plans.Count >= 2, "Every seed put the serving line in the same place.");
     }
 
-    [Theory]
-    [InlineData(3008)]
-    [InlineData(42)]
-    public void A_normal_store_keeps_its_canteens_and_has_no_cafeteria_yet(int seed)
+    public static TheoryData<PillarLayout, int> LayoutsAndSeeds()
     {
-        using var sim = Simulation.Create(new WorldConfig(seed, RuntimeRngSeed: 1));
+        var data = new TheoryData<PillarLayout, int>();
+        foreach (var layout in Enum.GetValues<PillarLayout>())
+            foreach (var seed in new[] { 3008, 42, 7, 1, 2, 3, 4, 5 })
+                data.Add(layout, seed);
+        return data;
+    }
+
+    [Theory]
+    [MemberData(nameof(LayoutsAndSeeds))]
+    public void Every_normal_store_has_two_or_three_cafeterias_each_on_one_food_market_department_and_no_old_canteen(PillarLayout layout, int seed)
+    {
+        using var sim = Simulation.Create(new WorldConfig(seed, RuntimeRngSeed: 1, PillarLayout: layout));
         var snapshot = sim.Snapshot;
 
-        Assert.DoesNotContain(snapshot.PointsOfInterest, p => p.Type == PointOfInterestType.Cafeteria);
-        Assert.InRange(snapshot.PointsOfInterest.Count(p => p.Type == PointOfInterestType.Canteen), 3, 4);
-        Assert.Empty(snapshot.CounterMeals);
+        var cafeterias = snapshot.PointsOfInterest.Where(p => p.Type == PointOfInterestType.Cafeteria).ToList();
+        Assert.InRange(cafeterias.Count, 2, 3);
+        Assert.All(cafeterias, cafeteria =>
+        {
+            var half = cafeteria.Size / 2f;
+            var departments = new[] { new Vector2(-1, -1), new Vector2(1, -1), new Vector2(-1, 1), new Vector2(1, 1), Vector2.Zero }
+                .Select(corner => snapshot.Departments.At(cafeteria.Centre + corner * half * 0.99f)).ToList();
+            Assert.All(departments, d => Assert.Equal(DepartmentType.RestaurantAndFoodMarket, d.Type));
+            Assert.Single(departments.Select(d => d.Id).Distinct());
+        });
+        Assert.NotEmpty(snapshot.CounterMeals);
+    }
+
+    [Theory]
+    [MemberData(nameof(LayoutsAndSeeds))]
+    public void No_other_point_of_interest_stands_on_a_cafeterias_block_of_cells(PillarLayout layout, int seed)
+    {
+        using var sim = Simulation.Create(new WorldConfig(seed, RuntimeRngSeed: 1, PillarLayout: layout));
+        var snapshot = sim.Snapshot;
+        var cell = snapshot.Departments.CellSize;
+
+        foreach (var cafeteria in snapshot.PointsOfInterest.Where(p => p.Type == PointOfInterestType.Cafeteria))
+        {
+            // The 2 x 2 block of cells the Cafeteria's middle lies on the corner of.
+            var block = new Vector2(MathF.Round(cafeteria.Centre.X / cell) * cell, MathF.Round(cafeteria.Centre.Y / cell) * cell);
+            foreach (var other in snapshot.PointsOfInterest.Where(p => p.Id != cafeteria.Id))
+            {
+                var d = other.Centre - block;
+                var apart = MathF.Abs(d.X) >= cell + other.Size.X / 2f || MathF.Abs(d.Y) >= cell + other.Size.Y / 2f;
+                Assert.True(apart, $"{other.Type} #{other.Id} overlaps the block of Cafeteria #{cafeteria.Id}.");
+            }
+        }
     }
 }

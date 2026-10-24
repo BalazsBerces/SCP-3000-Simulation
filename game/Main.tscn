@@ -1,4 +1,4 @@
-[gd_scene load_steps=22 format=3]
+[gd_scene load_steps=23 format=3]
 
 [ext_resource type="Script" path="res://scripts/SimulationHost.cs" id="1_host"]
 [ext_resource type="Script" path="res://scripts/StoreFloor.cs" id="2_floor"]
@@ -7,6 +7,7 @@
 [ext_resource type="Script" path="res://scripts/DevCapture.cs" id="5_capture"]
 [ext_resource type="Shader" path="res://shaders/store_floor.gdshader" id="6_floor_shader"]
 [ext_resource type="Script" path="res://scripts/WrapDebugOverlay.cs" id="7_wrap_debug"]
+[ext_resource type="Script" path="res://scripts/LandmarkMarkers.cs" id="99_markers"]
 [ext_resource type="Script" path="res://scripts/FurnitureRenderer.cs" id="8_furniture"]
 [ext_resource type="Script" path="res://scripts/SeedPanel.cs" id="9_seed"]
 [ext_resource type="Script" path="res://scripts/StoreAtmosphere.cs" id="10_atmosphere"]
@@ -125,11 +126,9 @@ Visibility = SubResource("Resource_visibility")
 Host = NodePath("../SimulationHost")
 Rig = NodePath("../CameraRig")
 
-[node name="GroundRenderer" type="Node3D" parent="." node_paths=PackedStringArray("Host", "Rig")]
+[node name="GroundRenderer" type="Node3D" parent="." node_paths=PackedStringArray("Host")]
 script = ExtResource("18_ground")
-Visibility = SubResource("Resource_visibility")
 Host = NodePath("../SimulationHost")
-Rig = NodePath("../CameraRig")
 
 [node name="FurnitureMap" type="Node" parent="." node_paths=PackedStringArray("Host", "Rig", "Floor")]
 script = ExtResource("17_furniture_map")
@@ -164,6 +163,11 @@ script = ExtResource("7_wrap_debug")
 Host = NodePath("../SimulationHost")
 Rig = NodePath("../CameraRig")
 Floor = NodePath("../StoreFloor")
+
+[node name="LandmarkMarkers" type="Node3D" parent="." node_paths=PackedStringArray("Host", "Rig")]
+script = ExtResource("99_markers")
+Host = NodePath("../SimulationHost")
+Rig = NodePath("../CameraRig")
 
 [node name="DevCapture" type="Node" parent="." node_paths=PackedStringArray("Rig", "Host", "Seeds", "Atmosphere", "Audio", "Lamps")]
 script = ExtResource("5_capture")

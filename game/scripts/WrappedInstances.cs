@@ -300,6 +300,12 @@ public partial class WrappedInstances : Node3D
         }
     }
 
+    // Benchmark ablation (--bench-plain-furniture, --bench-no-furniture-shadows).
+    private static readonly string[] UserArgs = OS.GetCmdlineUserArgs();
+    private static readonly bool AblatePlain = UserArgs.Contains("--bench-plain-furniture");
+    private static readonly bool AblateShadows = UserArgs.Contains("--bench-no-furniture-shadows");
+    private static StandardMaterial3D? _plainMaterial;
+
     /// <summary>One wrapped image of a chunk: its detailed and coarse instances and its occluder.</summary>
     private Image NewImage(ChunkImages images)
     {
@@ -321,6 +327,20 @@ public partial class WrappedInstances : Node3D
             RenderingServer.InstanceGeometrySetCastShadowsSetting(coarse, (RenderingServer.ShadowCastingSetting)CastShadow);
             RenderingServer.InstanceSetLayerMask(image.Detail, FurnitureDetail.FullLayer);
             RenderingServer.InstanceSetLayerMask(coarse, FurnitureDetail.CoarseLayer);
+        }
+        if (AblatePlain || AblateShadows)
+        {
+            if (AblatePlain)
+                _plainMaterial ??= new StandardMaterial3D { AlbedoColor = new Color(0.6f, 0.55f, 0.5f) };
+            foreach (var rid in new[] { image.Detail, image.Coarse ?? default })
+            {
+                if (!rid.IsValid)
+                    continue;
+                if (AblatePlain)
+                    RenderingServer.InstanceGeometrySetMaterialOverride(rid, _plainMaterial!.GetRid());
+                if (AblateShadows)
+                    RenderingServer.InstanceGeometrySetCastShadowsSetting(rid, RenderingServer.ShadowCastingSetting.Off);
+            }
         }
         ShowRanges(image, StoreOverview.Enabled);
         return image;

@@ -1,0 +1,575 @@
+ok   Armchair 0 is drawn from a model
+ok   Sofa 0 is drawn from a model
+ok   Sofa 1 is drawn from a model
+ok   Sofa 2 is drawn from a model
+ok   Sofa 3 is drawn from a model
+ok   Chair 0 is drawn from a model
+ok   Chair 1 is drawn from a model
+ok   Chair 2 is drawn from a model
+ok   Toilet 0 is drawn from a model
+ok   VanityUnit 0 is drawn from a model
+ok   DiningTable 0 is drawn from a model
+ok   DiningTable 1 is drawn from a model
+ok   DiningTable 2 is drawn from a model
+ok   Sideboard 0 is drawn from a model
+ok   MealPlate 0 is drawn from a model
+ok   Rug 0 is drawn from a model
+ok   ShoppingCart 0 is drawn from a model
+ok   ShelfUnit 0 is drawn from a model
+ok   ExitSign 0 is drawn from a model
+ok   DoorFrame 0 is drawn from a model
+ok   Tent 0 is drawn from a model
+ok   Tent 1 is drawn from a model
+ok   Tent 2 is drawn from a model
+ok   Tent 3 is drawn from a model
+ok   Tent 4 is drawn from a model
+ok   Tent 5 is drawn from a model
+ok   Tree 0 is drawn from a model
+ok   Tree 1 is drawn from a model
+ok   Tree 2 is drawn from a model
+ok   Tree 3 is drawn from a model
+ok   TreeHouse 0 is drawn from a model
+ok   CampfireRing 0 is drawn from a model
+ok   LogSeat 0 is drawn from a model
+ok   Kayak 0 is drawn from a model
+ok   PlushBear 0 is drawn from a model
+ok   Axe 0 is drawn from a model
+ok   MarshmallowStick 0 is drawn from a model
+ok   SleepingBag 0 is drawn from a model
+ok   Hammock 0 is drawn from a model
+ok   FishingRod 0 is drawn from a model
+ok   RubberDuck 0 is drawn from a model
+ok   TrailSign 0 is drawn from a model
+ok   CampChair 0 is drawn from a model
+ok   Armchair 0 (ArmChair_01) fills 0.85 x 0.85 x 0.9 m (W x D x H): bounds 0.85 x 0.85 x 0.9 m from -0.425, 0, -0.425
+ok   Armchair 0 (ArmChair_01) coarse stays inside its Furniture size: bounds 0.85 x 0.85 x 0.9 m
+ok   Armchair 0 (ArmChair_01) coarse silhouette: ok   Armchair-0: coverage front 100,0%, side 100,0%, top 100,0%, floor contact 100,0%, base 0,000/0,000 m, triangles 2803/174
+ok   Armchair 0 (ArmChair_01) has 2803 triangles, budget 3500
+ok   Armchair 0 (ArmChair_01) coarse has 174 triangles, at most the full 2803
+ok   Armchair 0 (ArmChair_01) coarse has 1 surface(s), one wanted
+ok   Armchair 0 (ArmChair_01) surface Armchair_01 has albedo, normal and roughness maps
+ok   Armchair 0 (ArmChair_01) licence CC0 is CC0 or CC-BY
+ok   Armchair 0 (ArmChair_01) is in CREDITS.md with source https://polyhaven.com/a/ArmChair_01, author Kirill Sannikov and licence CC0
+ok   Sofa 0 (fabric_sofa) fills 2.2 x 0.95 x 0.85 m (W x D x H): bounds 2.2 x 0.95 x 0.85 m from -1.1, 0, -0.475
+ok   Sofa 0 (fabric_sofa) coarse stays inside its Furniture size: bounds 2.2 x 0.95 x 0.85 m
+ok   Sofa 0 (fabric_sofa) coarse silhouette: ok   Sofa-0: coverage front 100,0%, side 100,0%, top 100,0%, floor contact 100,0%, base 0,000/0,000 m, triangles 2582/74
+ok   Sofa 0 (fabric_sofa) has 2582 triangles, budget 4500
+ok   Sofa 0 (fabric_sofa) coarse has 74 triangles, at most the full 2582
+ok   Sofa 0 (fabric_sofa) coarse has 1 surface(s), one wanted
+ok   Sofa 0 (fabric_sofa) surface Plain_Grey_Velvet.001 has albedo, normal and roughness maps
+ok   Sofa 0 (fabric_sofa) surface Material.003 has albedo, normal and roughness maps
+ok   Sofa 0 (fabric_sofa) licence CC-BY is CC0 or CC-BY
+ok   Sofa 0 (fabric_sofa) is in CREDITS.md with source https://sketchfab.com/3d-models/modern-minimalist-fabric-sofa-be39bf64cf4c4a02b55a0ef1d40e1fbb, author Sempay_3D and licence CC-BY
+ok   Sofa 1 (fabric_loveseat) fills 1.6 x 0.9 x 0.85 m (W x D x H): bounds 1.6 x 0.9 x 0.85 m from -0.8, 0, -0.45
+ok   Sofa 1 (fabric_loveseat) coarse stays inside its Furniture size: bounds 1.6 x 0.9 x 0.85 m
+ok   Sofa 1 (fabric_loveseat) coarse silhouette: ok   Sofa-1: coverage front 100,0%, side 100,0%, top 100,0%, floor contact 100,0%, base 0,000/0,000 m, triangles 3968/70
+ok   Sofa 1 (fabric_loveseat) has 3968 triangles, budget 4500
+ok   Sofa 1 (fabric_loveseat) coarse has 70 triangles, at most the full 3968
+ok   Sofa 1 (fabric_loveseat) coarse has 1 surface(s), one wanted
+ok   Sofa 1 (fabric_loveseat) surface M_Koltuk. has albedo, normal and roughness maps
+ok   Sofa 1 (fabric_loveseat) licence CC-BY is CC0 or CC-BY
+ok   Sofa 1 (fabric_loveseat) is in CREDITS.md with source https://sketchfab.com/3d-models/modern-fabric-sofa-low-poly-game-ready-5a1ccfe43ffd4f1883abe4dca7d2b3bb, author Renend Studio and licence CC-BY
+ok   Sofa 2 (fabric_sofa) fills 2.7 x 1 x 0.9 m (W x D x H): bounds 2.7 x 1 x 0.9 m from -1.35, 0, -0.5
+ok   Sofa 2 (fabric_sofa) coarse stays inside its Furniture size: bounds 2.7 x 1 x 0.9 m
+ok   Sofa 2 (fabric_sofa) coarse silhouette: ok   Sofa-2: coverage front 100,0%, side 100,0%, top 100,0%, floor contact 100,0%, base 0,000/0,000 m, triangles 2582/64
+ok   Sofa 2 (fabric_sofa) has 2582 triangles, budget 4500
+ok   Sofa 2 (fabric_sofa) coarse has 64 triangles, at most the full 2582
+ok   Sofa 2 (fabric_sofa) coarse has 1 surface(s), one wanted
+ok   Sofa 2 (fabric_sofa) surface Plain_Grey_Velvet.001 has albedo, normal and roughness maps
+ok   Sofa 2 (fabric_sofa) surface Material.003 has albedo, normal and roughness maps
+ok   Sofa 2 (fabric_sofa) licence CC-BY is CC0 or CC-BY
+ok   Sofa 2 (fabric_sofa) is in CREDITS.md with source https://sketchfab.com/3d-models/modern-minimalist-fabric-sofa-be39bf64cf4c4a02b55a0ef1d40e1fbb, author Sempay_3D and licence CC-BY
+ok   Sofa 3 (sofa_02) fills 2.2 x 0.95 x 0.85 m (W x D x H): bounds 2.2 x 0.95 x 0.85 m from -1.1, 0, -0.475
+ok   Sofa 3 (sofa_02) coarse stays inside its Furniture size: bounds 2.2 x 0.95 x 0.85 m
+ok   Sofa 3 (sofa_02) coarse silhouette: ok   Sofa-3: coverage front 100,0%, side 100,0%, top 100,0%, floor contact 100,0%, base 0,000/0,000 m, triangles 2728/176
+ok   Sofa 3 (sofa_02) has 2728 triangles, budget 4500
+ok   Sofa 3 (sofa_02) coarse has 176 triangles, at most the full 2728
+ok   Sofa 3 (sofa_02) coarse has 1 surface(s), one wanted
+ok   Sofa 3 (sofa_02) surface sofa_02 has albedo, normal and roughness maps
+ok   Sofa 3 (sofa_02) licence CC0 is CC0 or CC-BY
+ok   Sofa 3 (sofa_02) is in CREDITS.md with source https://polyhaven.com/a/sofa_02, author Kirill Sannikov and licence CC0
+ok   Chair 0 (painted_wooden_chair_01) fills 0.45 x 0.5 x 0.9 m (W x D x H): bounds 0.45 x 0.5 x 0.9 m from -0.225, 0, -0.25
+ok   Chair 0 (painted_wooden_chair_01) coarse stays inside its Furniture size: bounds 0.45 x 0.5 x 0.9 m
+ok   Chair 0 (painted_wooden_chair_01) coarse silhouette: ok   Chair-0: coverage front 100,0%, side 100,0%, top 100,0%, floor contact 100,0%, base 0,000/0,000 m, triangles 724/54
+ok   Chair 0 (painted_wooden_chair_01) has 724 triangles, budget 1500
+ok   Chair 0 (painted_wooden_chair_01) coarse has 54 triangles, at most the full 724
+ok   Chair 0 (painted_wooden_chair_01) coarse has 1 surface(s), one wanted
+ok   Chair 0 (painted_wooden_chair_01) surface painted_wooden_chair_01 has albedo, normal and roughness maps
+ok   Chair 0 (painted_wooden_chair_01) licence CC0 is CC0 or CC-BY
+ok   Chair 0 (painted_wooden_chair_01) is in CREDITS.md with source https://polyhaven.com/a/painted_wooden_chair_01, author Kuutti Siitonen and licence CC0
+ok   Chair 1 (dining_chair_02) fills 0.45 x 0.5 x 1.05 m (W x D x H): bounds 0.45 x 0.5 x 1.05 m from -0.225, 0, -0.25
+ok   Chair 1 (dining_chair_02) coarse stays inside its Furniture size: bounds 0.45 x 0.5 x 1.05 m
+ok   Chair 1 (dining_chair_02) coarse silhouette: ok   Chair-1: coverage front 100,0%, side 100,0%, top 100,0%, floor contact 100,0%, base 0,322/0,000 m, triangles 1491/58
+ok   Chair 1 (dining_chair_02) has 1491 triangles, budget 1500
+ok   Chair 1 (dining_chair_02) coarse has 58 triangles, at most the full 1491
+ok   Chair 1 (dining_chair_02) coarse has 1 surface(s), one wanted
+ok   Chair 1 (dining_chair_02) surface dining_chair_02 has albedo, normal and roughness maps
+ok   Chair 1 (dining_chair_02) licence CC0 is CC0 or CC-BY
+ok   Chair 1 (dining_chair_02) is in CREDITS.md with source https://polyhaven.com/a/dining_chair_02, author James Ray Cock and licence CC0
+ok   Chair 2 (GreenChair_01) fills 0.55 x 0.55 x 0.85 m (W x D x H): bounds 0.55 x 0.55 x 0.85 m from -0.275, 0, -0.275
+ok   Chair 2 (GreenChair_01) coarse stays inside its Furniture size: bounds 0.55 x 0.55 x 0.85 m
+ok   Chair 2 (GreenChair_01) coarse silhouette: ok   Chair-2: coverage front 100,0%, side 100,0%, top 100,0%, floor contact 100,0%, base 0,000/0,000 m, triangles 1195/66
+ok   Chair 2 (GreenChair_01) has 1195 triangles, budget 1500
+ok   Chair 2 (GreenChair_01) coarse has 66 triangles, at most the full 1195
+ok   Chair 2 (GreenChair_01) coarse has 1 surface(s), one wanted
+ok   Chair 2 (GreenChair_01) surface GreenChair_01 has albedo, normal and roughness maps
+ok   Chair 2 (GreenChair_01) licence CC0 is CC0 or CC-BY
+ok   Chair 2 (GreenChair_01) is in CREDITS.md with source https://polyhaven.com/a/GreenChair_01, author Kirill Sannikov and licence CC0
+ok   Toilet 0 (toilet) fills 0.4 x 0.65 x 0.8 m (W x D x H): bounds 0.4 x 0.65 x 0.8 m from -0.2, 0, -0.325
+ok   Toilet 0 (toilet) coarse stays inside its Furniture size: bounds 0.4 x 0.65 x 0.8 m
+ok   Toilet 0 (toilet) coarse silhouette: ok   Toilet-0: coverage front 100,0%, side 100,0%, top 100,0%, floor contact 100,0%, base 0,000/0,000 m, triangles 2676/46
+ok   Toilet 0 (toilet) has 2676 triangles, budget 8000
+ok   Toilet 0 (toilet) coarse has 46 triangles, at most the full 2676
+ok   Toilet 0 (toilet) coarse has 1 surface(s), one wanted
+ok   Toilet 0 (toilet) surface Toilet_Elongated_A has albedo, normal and roughness maps
+ok   Toilet 0 (toilet) surface Toilet_pipes_flush_Mat has albedo, normal and roughness maps
+ok   Toilet 0 (toilet) surface Toilet_Elongated_Seat_Mat has albedo, normal and roughness maps
+ok   Toilet 0 (toilet) licence CC0 is CC0 or CC-BY
+ok   Toilet 0 (toilet) is in CREDITS.md with source https://opengameart.org/content/toilets, author loafbrr_1 and licence CC0
+ok   VanityUnit 0 (washbasin) fills 0.8 x 0.5 x 0.85 m (W x D x H): bounds 0.8 x 0.5 x 0.85 m from -0.4, 0, -0.25
+ok   VanityUnit 0 (washbasin) coarse stays inside its Furniture size: bounds 0.8 x 0.5 x 0.85 m
+ok   VanityUnit 0 (washbasin) coarse silhouette: ok   VanityUnit-0: coverage front 100,0%, side 100,0%, top 100,0%, floor contact 100,0%, base 0,000/0,000 m, triangles 718/58
+ok   VanityUnit 0 (washbasin) has 718 triangles, budget 8000
+ok   VanityUnit 0 (washbasin) coarse has 58 triangles, at most the full 718
+ok   VanityUnit 0 (washbasin) coarse has 1 surface(s), one wanted
+ok   VanityUnit 0 (washbasin) surface Sink_C_Mat has albedo, normal and roughness maps
+ok   VanityUnit 0 (washbasin) licence CC0 is CC0 or CC-BY
+ok   VanityUnit 0 (washbasin) is in CREDITS.md with source https://opengameart.org/content/toilets, author loafbrr_1 and licence CC0
+ok   OutOfOrderSign 0 (WetFloorSign_01) fills 0.3 x 0.36 x 0.63 m (W x D x H): bounds 0.3 x 0.36 x 0.63 m from -0.15, 0, -0.18
+ok   OutOfOrderSign 0 (WetFloorSign_01) coarse stays inside its Furniture size: bounds 0.3 x 0.36 x 0.63 m
+ok   OutOfOrderSign 0 (WetFloorSign_01) coarse silhouette: ok   OutOfOrderSign-0: coverage front 100,0%, side 100,0%, top 100,0%, floor contact 100,0%, base 0,000/0,000 m, triangles 228/10
+ok   OutOfOrderSign 0 (WetFloorSign_01) has 228 triangles, budget 5000
+ok   OutOfOrderSign 0 (WetFloorSign_01) coarse has 10 triangles, at most the full 228
+ok   OutOfOrderSign 0 (WetFloorSign_01) coarse has 1 surface(s), one wanted
+ok   OutOfOrderSign 0 (WetFloorSign_01) surface WetFloorSign_01 has albedo, normal and roughness maps
+ok   OutOfOrderSign 0 (WetFloorSign_01) licence CC0 is CC0 or CC-BY
+ok   OutOfOrderSign 0 (WetFloorSign_01) is in CREDITS.md with source https://polyhaven.com/a/WetFloorSign_01, author Fran Calvente and licence CC0
+ok   HandDryer 0 (hand_dryer) fills 0.28 x 0.2 x 0.32 m (W x D x H): bounds 0.28 x 0.2 x 0.32 m from -0.14, 0, -0.1
+ok   HandDryer 0 (hand_dryer) coarse stays inside its Furniture size: bounds 0.28 x 0.2 x 0.32 m
+ok   HandDryer 0 (hand_dryer) coarse silhouette: ok   HandDryer-0: coverage front 100,0%, side 100,0%, top 100,0%, floor contact 100,0%, base 0,000/0,000 m, triangles 1344/10
+ok   HandDryer 0 (hand_dryer) has 1344 triangles, budget 5000
+ok   HandDryer 0 (hand_dryer) coarse has 10 triangles, at most the full 1344
+ok   HandDryer 0 (hand_dryer) coarse has 1 surface(s), one wanted
+ok   HandDryer 0 (hand_dryer) surface T_hand_dryer_1001 has albedo, normal and roughness maps
+ok   HandDryer 0 (hand_dryer) licence CC-BY is CC0 or CC-BY
+ok   HandDryer 0 (hand_dryer) is in CREDITS.md with source https://sketchfab.com/3d-models/hand-dryer-67031384356e40dc96ec1d4fb61a18fd, author Sousinho and licence CC-BY
+ok   PaperTowelDispenser 0 (paper_towel_dispenser) fills 0.3 x 0.18 x 0.4 m (W x D x H): bounds 0.3 x 0.18 x 0.4 m from -0.15, 0, -0.09
+ok   PaperTowelDispenser 0 (paper_towel_dispenser) coarse stays inside its Furniture size: bounds 0.3 x 0.18 x 0.4 m
+ok   PaperTowelDispenser 0 (paper_towel_dispenser) coarse silhouette: ok   PaperTowelDispenser-0: coverage front 100,0%, side 100,0%, top 100,0%, floor contact 100,0%, base 0,000/0,000 m, triangles 1024/22
+ok   PaperTowelDispenser 0 (paper_towel_dispenser) has 1024 triangles, budget 5000
+ok   PaperTowelDispenser 0 (paper_towel_dispenser) coarse has 22 triangles, at most the full 1024
+ok   PaperTowelDispenser 0 (paper_towel_dispenser) coarse has 1 surface(s), one wanted
+ok   PaperTowelDispenser 0 (paper_towel_dispenser) surface Dispenser has albedo, normal and roughness maps
+ok   PaperTowelDispenser 0 (paper_towel_dispenser) surface Dispenser_Bottom has albedo, normal and roughness maps
+ok   PaperTowelDispenser 0 (paper_towel_dispenser) surface Paper_Towel has albedo, normal and roughness maps
+ok   PaperTowelDispenser 0 (paper_towel_dispenser) licence CC-BY is CC0 or CC-BY
+ok   PaperTowelDispenser 0 (paper_towel_dispenser) is in CREDITS.md with source https://sketchfab.com/3d-models/paper-towel-dispenser-15c4a2aa81994874a8dfc8038339b08d, author Carolyn Wong and licence CC-BY
+ok   BabyChangingTable 0 (baby_changing_station) fills 0.88 x 0.55 x 0.5 m (W x D x H): bounds 0.88 x 0.55 x 0.5 m from -0.44, 0, -0.275
+ok   BabyChangingTable 0 (baby_changing_station) coarse stays inside its Furniture size: bounds 0.88 x 0.55 x 0.5 m
+ok   BabyChangingTable 0 (baby_changing_station) coarse silhouette: ok   BabyChangingTable-0: coverage front 100,0%, side 100,0%, top 100,0%, floor contact 100,0%, base 0,000/0,000 m, triangles 716/10
+ok   BabyChangingTable 0 (baby_changing_station) has 716 triangles, budget 5000
+ok   BabyChangingTable 0 (baby_changing_station) coarse has 10 triangles, at most the full 716
+ok   BabyChangingTable 0 (baby_changing_station) coarse has 1 surface(s), one wanted
+ok   BabyChangingTable 0 (baby_changing_station) surface Material.001 has albedo, normal and roughness maps
+ok   BabyChangingTable 0 (baby_changing_station) surface Material has albedo, normal and roughness maps
+ok   BabyChangingTable 0 (baby_changing_station) surface Material.003 has albedo, normal and roughness maps
+ok   BabyChangingTable 0 (baby_changing_station) surface Material.002 has albedo, normal and roughness maps
+ok   BabyChangingTable 0 (baby_changing_station) licence CC-BY is CC0 or CC-BY
+ok   BabyChangingTable 0 (baby_changing_station) is in CREDITS.md with source https://sketchfab.com/3d-models/changing-station-8d9e952dc3c34536b30337450c29300f, author JakeBradley and licence CC-BY
+ok   RestroomSign 0 (restroom_sign) fills 0.4 x 0.05 x 0.3 m (W x D x H): bounds 0.4 x 0.05 x 0.3 m from -0.2, 0, -0.025
+ok   RestroomSign 0 (restroom_sign) coarse stays inside its Furniture size: bounds 0.4 x 0.05 x 0.3 m
+ok   RestroomSign 0 (restroom_sign) coarse silhouette: ok   RestroomSign-0: coverage front 100,0%, side 100,0%, top 100,0%, floor contact 100,0%, base 0,000/0,000 m, triangles 74/10
+ok   RestroomSign 0 (restroom_sign) has 74 triangles, budget 5000
+ok   RestroomSign 0 (restroom_sign) coarse has 10 triangles, at most the full 74
+ok   RestroomSign 0 (restroom_sign) coarse has 1 surface(s), one wanted
+ok   RestroomSign 0 (restroom_sign) surface Scene_-_Root has albedo, normal and roughness maps
+ok   RestroomSign 0 (restroom_sign) licence CC-BY is CC0 or CC-BY
+ok   RestroomSign 0 (restroom_sign) is in CREDITS.md with source https://sketchfab.com/3d-models/airport-toiletrestroom-sign-562555b57b5540ed81e25593a2d62791, author Ellis Fossett and licence CC-BY
+ok   LabelledBox 0 (cardboard_box_01) fills 0.5 x 0.4 x 0.35 m (W x D x H): bounds 0.5 x 0.4 x 0.35 m from -0.25, 0, -0.2
+ok   LabelledBox 0 (cardboard_box_01) coarse stays inside its Furniture size: bounds 0.5 x 0.4 x 0.35 m
+ok   LabelledBox 0 (cardboard_box_01) coarse silhouette: ok   LabelledBox-0: coverage front 100,0%, side 100,0%, top 100,0%, floor contact 100,0%, base 0,000/0,000 m, triangles 16952/10
+ok   LabelledBox 0 (cardboard_box_01) has 16952 triangles, budget 20000
+ok   LabelledBox 0 (cardboard_box_01) coarse has 10 triangles, at most the full 16952
+ok   LabelledBox 0 (cardboard_box_01) coarse has 1 surface(s), one wanted
+ok   LabelledBox 0 (cardboard_box_01) surface cardboard_box_01 has albedo, normal and roughness maps
+ok   LabelledBox 0 (cardboard_box_01) licence CC0 is CC0 or CC-BY
+ok   LabelledBox 0 (cardboard_box_01) is in CREDITS.md with source https://polyhaven.com/a/cardboard_box_01, author Rahul Chaudhary and licence CC0
+ok   UnsortedCart 0 (industrial_storage_cart) fills 0.9 x 0.6 x 0.95 m (W x D x H): bounds 0.9 x 0.6 x 0.95 m from -0.45, 0, -0.3
+ok   UnsortedCart 0 (industrial_storage_cart) coarse stays inside its Furniture size: bounds 0.9 x 0.6 x 0.95 m
+ok   UnsortedCart 0 (industrial_storage_cart) coarse silhouette: ok   UnsortedCart-0: coverage front 100,0%, side 100,0%, top 100,0%, floor contact 100,0%, base 0,000/0,000 m, triangles 18902/56
+ok   UnsortedCart 0 (industrial_storage_cart) has 18902 triangles, budget 20000
+ok   UnsortedCart 0 (industrial_storage_cart) coarse has 56 triangles, at most the full 18902
+ok   UnsortedCart 0 (industrial_storage_cart) coarse has 1 surface(s), one wanted
+ok   UnsortedCart 0 (industrial_storage_cart) surface industrial_storage_cart has albedo, normal and roughness maps
+ok   UnsortedCart 0 (industrial_storage_cart) licence CC0 is CC0 or CC-BY
+ok   UnsortedCart 0 (industrial_storage_cart) is in CREDITS.md with source https://polyhaven.com/a/industrial_storage_cart, author Jule Bielitz and licence CC0
+ok   ServiceBell 0 (desk_bell) fills 0.12 x 0.12 x 0.1 m (W x D x H): bounds 0.12 x 0.12 x 0.1 m from -0.06, 0, -0.06
+ok   ServiceBell 0 (desk_bell) coarse stays inside its Furniture size: bounds 0.12 x 0.12 x 0.1 m
+ok   ServiceBell 0 (desk_bell) coarse silhouette: ok   ServiceBell-0: coverage front 100,0%, side 100,0%, top 100,0%, floor contact 100,0%, base 0,000/0,000 m, triangles 1024/10
+ok   ServiceBell 0 (desk_bell) has 1024 triangles, budget 5000
+ok   ServiceBell 0 (desk_bell) coarse has 10 triangles, at most the full 1024
+ok   ServiceBell 0 (desk_bell) coarse has 1 surface(s), one wanted
+ok   ServiceBell 0 (desk_bell) surface aiStandardSurface1SG has albedo, normal and roughness maps
+ok   ServiceBell 0 (desk_bell) surface aiStandardSurface2SG has albedo, normal and roughness maps
+ok   ServiceBell 0 (desk_bell) licence CC-BY is CC0 or CC-BY
+ok   ServiceBell 0 (desk_bell) is in CREDITS.md with source https://sketchfab.com/3d-models/desk-bell-cc21b304c4bb4750bdde7a8fb538b116, author ClintonAbbott.Art and licence CC-BY
+ok   NoticeBoard 0 (notice_board) fills 1.2 x 0.05 x 0.8 m (W x D x H): bounds 1.2 x 0.05 x 0.8 m from -0.6, 0, -0.025
+ok   NoticeBoard 0 (notice_board) coarse stays inside its Furniture size: bounds 1.2 x 0.05 x 0.8 m
+ok   NoticeBoard 0 (notice_board) coarse silhouette: ok   NoticeBoard-0: coverage front 100,0%, side 100,0%, top 100,0%, floor contact 100,0%, base 0,000/0,000 m, triangles 1228/22
+ok   NoticeBoard 0 (notice_board) has 1228 triangles, budget 5000
+ok   NoticeBoard 0 (notice_board) coarse has 22 triangles, at most the full 1228
+ok   NoticeBoard 0 (notice_board) coarse has 1 surface(s), one wanted
+ok   NoticeBoard 0 (notice_board) surface Scene_-_Root has albedo, normal and roughness maps
+ok   NoticeBoard 0 (notice_board) licence CC-BY is CC0 or CC-BY
+ok   NoticeBoard 0 (notice_board) is in CREDITS.md with source https://sketchfab.com/3d-models/notice-board-9a2ae180dae541d2abfec62864dd9ef4, author Mehdi Shahsavan and licence CC-BY
+ok   LostAndFoundSign 0 (lost_and_found_sign) fills 0.8 x 0.06 x 0.4 m (W x D x H): bounds 0.8 x 0.06 x 0.4 m from -0.4, 0, -0.03
+ok   LostAndFoundSign 0 (lost_and_found_sign) coarse stays inside its Furniture size: bounds 0.8 x 0.06 x 0.4 m
+ok   LostAndFoundSign 0 (lost_and_found_sign) coarse silhouette: ok   LostAndFoundSign-0: coverage front 100,0%, side 100,0%, top 100,0%, floor contact 100,0%, base 0,000/0,000 m, triangles 616/26
+ok   LostAndFoundSign 0 (lost_and_found_sign) has 616 triangles, budget 5000
+ok   LostAndFoundSign 0 (lost_and_found_sign) coarse has 26 triangles, at most the full 616
+ok   LostAndFoundSign 0 (lost_and_found_sign) coarse has 1 surface(s), one wanted
+ok   LostAndFoundSign 0 (lost_and_found_sign) surface M_signage_1_1001 has albedo, normal and roughness maps
+ok   LostAndFoundSign 0 (lost_and_found_sign) licence CC-BY is CC0 or CC-BY
+ok   LostAndFoundSign 0 (lost_and_found_sign) is in CREDITS.md with source https://sketchfab.com/3d-models/hospital-hanging-signage-74157aae9eb746d9a0cfe7f9c5c7f83f, author Sousinho and licence CC-BY
+ok   ServiceCounter 0 (service_counter) fills 2.2 x 0.8 x 1.05 m (W x D x H): bounds 2.2 x 0.8 x 1.05 m from -1.1, 0, -0.4
+ok   ServiceCounter 0 (service_counter) coarse stays inside its Furniture size: bounds 2.2 x 0.8 x 1.05 m
+ok   ServiceCounter 0 (service_counter) coarse silhouette: ok   ServiceCounter-0: coverage front 100,0%, side 100,0%, top 100,0%, floor contact 100,0%, base 0,000/0,000 m, triangles 2616/92
+ok   ServiceCounter 0 (service_counter) has 2616 triangles, budget 5000
+ok   ServiceCounter 0 (service_counter) coarse has 92 triangles, at most the full 2616
+ok   ServiceCounter 0 (service_counter) coarse has 1 surface(s), one wanted
+ok   ServiceCounter 0 (service_counter) surface Wood_Bamboo has albedo, normal and roughness maps
+ok   ServiceCounter 0 (service_counter) surface 0047_Khaki has albedo, normal and roughness maps
+ok   ServiceCounter 0 (service_counter) surface material has albedo, normal and roughness maps
+ok   ServiceCounter 0 (service_counter) surface 0128_White has albedo, normal and roughness maps
+ok   ServiceCounter 0 (service_counter) surface Color_M07 has albedo, normal and roughness maps
+ok   ServiceCounter 0 (service_counter) licence CC-BY is CC0 or CC-BY
+ok   ServiceCounter 0 (service_counter) is in CREDITS.md with source https://sketchfab.com/3d-models/small-modern-reception-counter-c8392731f0da42d68042013df924ea66, author DZigner and licence CC-BY
+ok   DiningTable 0 (dining_table) fills 1.6 x 0.9 x 0.75 m (W x D x H): bounds 1.6 x 0.9 x 0.75 m from -0.8, 0, -0.45
+ok   DiningTable 0 (dining_table) coarse stays inside its Furniture size: bounds 1.6 x 0.9 x 0.75 m
+ok   DiningTable 0 (dining_table) coarse silhouette: ok   DiningTable-0: coverage front 100,0%, side 100,0%, top 100,0%, floor contact 100,0%, base 0,000/0,000 m, triangles 1048/86
+ok   DiningTable 0 (dining_table) has 1048 triangles, budget 10000
+ok   DiningTable 0 (dining_table) coarse has 86 triangles, at most the full 1048
+ok   DiningTable 0 (dining_table) coarse has 1 surface(s), one wanted
+ok   DiningTable 0 (dining_table) surface dining_table has albedo, normal and roughness maps
+ok   DiningTable 0 (dining_table) licence CC0 is CC0 or CC-BY
+ok   DiningTable 0 (dining_table) is in CREDITS.md with source https://polyhaven.com/a/dining_table, author Aron Łyczek and licence CC0
+ok   DiningTable 1 (round_wooden_table_01) fills 1.1 x 1.1 x 0.75 m (W x D x H): bounds 1.1 x 1.1 x 0.75 m from -0.55, 0, -0.55
+ok   DiningTable 1 (round_wooden_table_01) coarse stays inside its Furniture size: bounds 1.1 x 1.1 x 0.75 m
+ok   DiningTable 1 (round_wooden_table_01) coarse silhouette: ok   DiningTable-1: coverage front 99,8%, side 99,6%, top 100,0%, floor contact 100,0%, base 0,000/0,000 m, triangles 1422/158
+ok   DiningTable 1 (round_wooden_table_01) has 1422 triangles, budget 2000
+ok   DiningTable 1 (round_wooden_table_01) coarse has 158 triangles, at most the full 1422
+ok   DiningTable 1 (round_wooden_table_01) coarse has 1 surface(s), one wanted
+ok   DiningTable 1 (round_wooden_table_01) surface round_wooden_table_01 has albedo, normal and roughness maps
+ok   DiningTable 1 (round_wooden_table_01) licence CC0 is CC0 or CC-BY
+ok   DiningTable 1 (round_wooden_table_01) is in CREDITS.md with source https://polyhaven.com/a/round_wooden_table_01, author Ulan Cabanilla and licence CC0
+ok   DiningTable 2 (painted_wooden_table) fills 2.2 x 0.95 x 0.75 m (W x D x H): bounds 2.2 x 0.95 x 0.75 m from -1.1, 0, -0.475
+ok   DiningTable 2 (painted_wooden_table) coarse stays inside its Furniture size: bounds 2.2 x 0.95 x 0.75 m
+ok   DiningTable 2 (painted_wooden_table) coarse silhouette: ok   DiningTable-2: coverage front 100,0%, side 100,0%, top 100,0%, floor contact 100,0%, base 0,000/0,000 m, triangles 600/64
+ok   DiningTable 2 (painted_wooden_table) has 600 triangles, budget 10000
+ok   DiningTable 2 (painted_wooden_table) coarse has 64 triangles, at most the full 600
+ok   DiningTable 2 (painted_wooden_table) coarse has 1 surface(s), one wanted
+ok   DiningTable 2 (painted_wooden_table) surface painted_wooden_table has albedo, normal and roughness maps
+ok   DiningTable 2 (painted_wooden_table) licence CC0 is CC0 or CC-BY
+ok   DiningTable 2 (painted_wooden_table) is in CREDITS.md with source https://polyhaven.com/a/painted_wooden_table, author Kirill Sannikov and licence CC0
+ok   Sideboard 0 (modern_wooden_cabinet) fills 1.6 x 0.5 x 0.85 m (W x D x H): bounds 1.6 x 0.5 x 0.85 m from -0.8, 0, -0.25
+ok   Sideboard 0 (modern_wooden_cabinet) coarse stays inside its Furniture size: bounds 1.6 x 0.5 x 0.85 m
+ok   Sideboard 0 (modern_wooden_cabinet) coarse silhouette: ok   Sideboard-0: coverage front 100,0%, side 100,0%, top 100,0%, floor contact 100,0%, base 0,167/0,000 m, triangles 1188/34
+ok   Sideboard 0 (modern_wooden_cabinet) has 1188 triangles, budget 1200
+ok   Sideboard 0 (modern_wooden_cabinet) coarse has 34 triangles, at most the full 1188
+ok   Sideboard 0 (modern_wooden_cabinet) coarse has 1 surface(s), one wanted
+ok   Sideboard 0 (modern_wooden_cabinet) surface modern_wooden_cabinet has albedo, normal and roughness maps
+ok   Sideboard 0 (modern_wooden_cabinet) licence CC0 is CC0 or CC-BY
+ok   Sideboard 0 (modern_wooden_cabinet) is in CREDITS.md with source https://polyhaven.com/a/modern_wooden_cabinet, author Patrik Pangerl and licence CC0
+ok   ShelfUnit 0 (steel_frame_shelves_01) fills 2 x 0.6 x 2.1 m (W x D x H): bounds 2 x 0.6 x 2.1 m from -1, 0, -0.3
+ok   ShelfUnit 0 (steel_frame_shelves_01) coarse stays inside its Furniture size: bounds 2 x 0.6 x 2.1 m
+ok   ShelfUnit 0 (steel_frame_shelves_01) coarse silhouette: ok   ShelfUnit-0: coverage front 100,0%, side 100,0%, top 100,0%, floor contact 100,0%, base 0,000/0,000 m, triangles 1184/166
+ok   ShelfUnit 0 (steel_frame_shelves_01) has 1184 triangles, budget 1500
+ok   ShelfUnit 0 (steel_frame_shelves_01) coarse has 166 triangles, at most the full 1184
+ok   ShelfUnit 0 (steel_frame_shelves_01) coarse has 1 surface(s), one wanted
+ok   ShelfUnit 0 (steel_frame_shelves_01) surface steel_frame_shelves_01 has albedo, normal and roughness maps
+ok   ShelfUnit 0 (steel_frame_shelves_01) licence CC0 is CC0 or CC-BY
+ok   ShelfUnit 0 (steel_frame_shelves_01) is in CREDITS.md with source https://polyhaven.com/a/steel_frame_shelves_01, author James Ray Cock and licence CC0
+ok   ShoppingCart 0 (shopping_cart) fills 0.55 x 1 x 1 m (W x D x H): bounds 0.55 x 1 x 1 m from -0.275, 0, -0.5
+ok   ShoppingCart 0 (shopping_cart) coarse stays inside its Furniture size: bounds 0.55 x 1 x 1 m
+ok   ShoppingCart 0 (shopping_cart) coarse silhouette: ok   ShoppingCart-0: coverage front 100,0%, side 100,0%, top 100,0%, floor contact 100,0%, base 0,000/0,000 m, triangles 2712/78
+ok   ShoppingCart 0 (shopping_cart) has 2712 triangles, budget 3500
+ok   ShoppingCart 0 (shopping_cart) coarse has 78 triangles, at most the full 2712
+ok   ShoppingCart 0 (shopping_cart) coarse has 1 surface(s), one wanted
+ok   ShoppingCart 0 (shopping_cart) surface carritocompras has albedo, normal and roughness maps
+ok   ShoppingCart 0 (shopping_cart) licence CC-BY is CC0 or CC-BY
+ok   ShoppingCart 0 (shopping_cart) is in CREDITS.md with source https://sketchfab.com/3d-models/shopping-cart-8b2de85475184aa3a7fa9f244307dadf, author Sebastian ramirez muñoz and licence CC-BY
+ok   MealPlate 0 (meal_plate) fills 0.3 x 0.3 x 0.05 m (W x D x H): bounds 0.3 x 0.3 x 0.05 m from -0.15, 0, -0.15
+ok   MealPlate 0 (meal_plate) coarse stays inside its Furniture size: bounds 0.3 x 0.3 x 0.05 m
+ok   MealPlate 0 (meal_plate) coarse silhouette: ok   MealPlate-0: coverage front 100,0%, side 100,0%, top 100,0%, floor contact 100,0%, base 0,000/0,000 m, triangles 1521/10
+ok   MealPlate 0 (meal_plate) has 1521 triangles, budget 2000
+ok   MealPlate 0 (meal_plate) coarse has 10 triangles, at most the full 1521
+ok   MealPlate 0 (meal_plate) coarse has 1 surface(s), one wanted
+ok   MealPlate 0 (meal_plate) surface plate has albedo, normal and roughness maps
+ok   MealPlate 0 (meal_plate) surface potato has albedo, normal and roughness maps
+ok   MealPlate 0 (meal_plate) surface mushroom has albedo, normal and roughness maps
+ok   MealPlate 0 (meal_plate) surface bread has albedo, normal and roughness maps
+ok   MealPlate 0 (meal_plate) surface eggs has albedo, normal and roughness maps
+ok   MealPlate 0 (meal_plate) surface sausage has albedo, normal and roughness maps
+ok   MealPlate 0 (meal_plate) licence CC-BY is CC0 or CC-BY
+ok   MealPlate 0 (meal_plate) is in CREDITS.md with source https://sketchfab.com/3d-models/plate-of-food-49a9493f884d405997d0f021639b22cf, author _dark_alice_ and licence CC-BY
+ok   Rug 0 (rug) fills 2.4 x 1.7 x 0.01 m (W x D x H): bounds 2.4 x 1.7 x 0.01 m from -1.2, 0, -0.85
+ok   Rug 0 (rug) coarse stays inside its Furniture size: bounds 2.4 x 1.7 x 0.01 m
+ok   Rug 0 (rug) coarse silhouette: ok   Rug-0: coverage front 100,0%, side 100,0%, top 100,0%, floor contact 100,0%, base 0,000/0,000 m, triangles 1022/128
+ok   Rug 0 (rug) has 1022 triangles, budget 1200
+ok   Rug 0 (rug) coarse has 128 triangles, at most the full 1022
+ok   Rug 0 (rug) coarse has 1 surface(s), one wanted
+ok   Rug 0 (rug) surface carpet has albedo, normal and roughness maps
+ok   Rug 0 (rug) surface carpet.back has albedo, normal and roughness maps
+ok   Rug 0 (rug) licence CC-BY is CC0 or CC-BY
+ok   Rug 0 (rug) is in CREDITS.md with source https://sketchfab.com/3d-models/kuuma-ye-rug-by-kristiina-lassus-5f5de1ba643746fc9da76d2cac94fbb3, author mfb64 and licence CC-BY
+ok   DoorFrame 0 (door_frame) fills 1.3 x 0.3 x 2.3 m (W x D x H): bounds 1.3 x 0.3 x 2.3 m from -0.65, 0, -0.15
+ok   DoorFrame 0 (door_frame) coarse stays inside its Furniture size: bounds 1.3 x 0.3 x 2.3 m
+ok   DoorFrame 0 (door_frame) coarse silhouette: ok   DoorFrame-0: coverage front 100,0%, side 100,0%, top 100,0%, floor contact 100,0%, base 0,000/0,000 m, triangles 2624/32
+ok   DoorFrame 0 (door_frame) has 2624 triangles, budget 3000
+ok   DoorFrame 0 (door_frame) coarse has 32 triangles, at most the full 2624
+ok   DoorFrame 0 (door_frame) coarse has 1 surface(s), one wanted
+ok   DoorFrame 0 (door_frame) surface Glossy has albedo, normal and roughness maps
+ok   DoorFrame 0 (door_frame) surface Door has albedo, normal and roughness maps
+ok   DoorFrame 0 (door_frame) licence CC-BY is CC0 or CC-BY
+ok   DoorFrame 0 (door_frame) is in CREDITS.md with source https://sketchfab.com/3d-models/door-with-frame-2f2f149f3ec44d658a02c1f924dfa449, author witnessk and licence CC-BY
+ok   ExitSign 0 (exit_sign) fills 1.4 x 0.3 x 2.7 m (W x D x H): bounds 1.4 x 0.3 x 2.7 m from -0.7, 0, -0.15
+ok   ExitSign 0 (exit_sign) coarse stays inside its Furniture size: bounds 1.4 x 0.3 x 2.7 m
+ok   ExitSign 0 (exit_sign) coarse silhouette: ok   ExitSign-0: coverage front 100,0%, side 100,0%, top 100,0%, floor contact 100,0%, base 0,000/0,000 m, triangles 208/56
+ok   ExitSign 0 (exit_sign) has 208 triangles, budget 5000
+ok   ExitSign 0 (exit_sign) coarse has 56 triangles, at most the full 208
+ok   ExitSign 0 (exit_sign) coarse has 1 surface(s), one wanted
+ok   ExitSign 0 (exit_sign) surface lambert1 has albedo, normal and roughness maps
+ok   ExitSign 0 (exit_sign) surface SteelPost has albedo, normal and roughness maps
+ok   ExitSign 0 (exit_sign) licence CC-BY is CC0 or CC-BY
+ok   ExitSign 0 (exit_sign) is in CREDITS.md with source https://sketchfab.com/3d-models/exit-sign-46b52e08b8b64b81ad9ff5fb752bcc06, author tboiston and licence CC-BY
+ok   ExitSign 0 (exit_sign) preserves the sign's emissive texture independently of Lamps
+ok   ExitSign 0 (exit_sign) still glows in the coarse mesh
+ok   Tent 0 (camp_tent_dome) fills 2.6 x 2.6 x 1.75 m (W x D x H): bounds 2.6 x 2.6 x 1.75 m from -1.3, 0, -1.3
+ok   Tent 0 (camp_tent_dome) coarse stays inside its Furniture size: bounds 2.6 x 2.6 x 1.75 m
+ok   Tent 0 (camp_tent_dome) coarse silhouette: ok   Tent-0: coverage front 100,0%, side 100,0%, top 100,0%, floor contact 100,0%, base 0,000/0,000 m, triangles 4482/790
+ok   Tent 0 (camp_tent_dome) has 4482 triangles, budget 6000
+ok   Tent 0 (camp_tent_dome) coarse has 790 triangles, at most the full 4482
+ok   Tent 0 (camp_tent_dome) coarse has 1 surface(s), one wanted
+ok   Tent 0 (camp_tent_dome) surface Tent has albedo, normal and roughness maps
+ok   Tent 0 (camp_tent_dome) licence CC-BY is CC0 or CC-BY
+ok   Tent 0 (camp_tent_dome) is in CREDITS.md with source https://sketchfab.com/3d-models/modern-camping-tent-3f624d58d582430595179bdf9a156be3, author Guy in a Poncho and licence CC-BY
+ok   Tent 1 (camp_tent_tipi) fills 3.1 x 3.3 x 4.1 m (W x D x H): bounds 3.1 x 3.3 x 4.1 m from -1.55, 0, -1.65
+ok   Tent 1 (camp_tent_tipi) coarse stays inside its Furniture size: bounds 3.1 x 3.3 x 4.1 m
+ok   Tent 1 (camp_tent_tipi) coarse silhouette: ok   Tent-1: coverage front 100,0%, side 100,0%, top 100,0%, floor contact 100,0%, base 0,002/0,000 m, triangles 3222/622
+ok   Tent 1 (camp_tent_tipi) has 3222 triangles, budget 6000
+ok   Tent 1 (camp_tent_tipi) coarse has 622 triangles, at most the full 3222
+ok   Tent 1 (camp_tent_tipi) coarse has 1 surface(s), one wanted
+ok   Tent 1 (camp_tent_tipi) surface teepee_material has albedo, normal and roughness maps
+ok   Tent 1 (camp_tent_tipi) licence CC-BY is CC0 or CC-BY
+ok   Tent 1 (camp_tent_tipi) is in CREDITS.md with source https://sketchfab.com/3d-models/teepee-63e67c40b3994278a09705941b6981b7, author lampyre3d and licence CC-BY
+ok   Tent 2 (camp_tent_family) fills 4.6 x 3.6 x 2.7 m (W x D x H): bounds 4.6 x 3.6 x 2.7 m from -2.3, 0, -1.8
+ok   Tent 2 (camp_tent_family) coarse stays inside its Furniture size: bounds 4.6 x 3.6 x 2.7 m
+ok   Tent 2 (camp_tent_family) coarse silhouette: ok   Tent-2: coverage front 100,0%, side 100,0%, top 100,0%, floor contact 100,0%, base 0,000/0,000 m, triangles 576/320
+ok   Tent 2 (camp_tent_family) has 576 triangles, budget 6000
+ok   Tent 2 (camp_tent_family) coarse has 320 triangles, at most the full 576
+ok   Tent 2 (camp_tent_family) coarse has 1 surface(s), one wanted
+ok   Tent 2 (camp_tent_family) surface Material.001 has albedo, normal and roughness maps
+ok   Tent 2 (camp_tent_family) licence CC-BY is CC0 or CC-BY
+ok   Tent 2 (camp_tent_family) is in CREDITS.md with source https://sketchfab.com/3d-models/camping-tent-5fa10f0a207d4c9580b6e77bd45f774e, author Alex272005 and licence CC-BY
+ok   Tent 3 (camp_tent_round) fills 5 x 5 x 2.8 m (W x D x H): bounds 5 x 5 x 2.8 m from -2.5, 0, -2.5
+ok   Tent 3 (camp_tent_round) coarse stays inside its Furniture size: bounds 5 x 5 x 2.8 m
+ok   Tent 3 (camp_tent_round) coarse silhouette: ok   Tent-3: coverage front 100,0%, side 100,0%, top 100,0%, floor contact 100,0%, base 0,000/0,000 m, triangles 2379/1002
+ok   Tent 3 (camp_tent_round) has 2379 triangles, budget 6000
+ok   Tent 3 (camp_tent_round) coarse has 1002 triangles, at most the full 2379
+ok   Tent 3 (camp_tent_round) coarse has 1 surface(s), one wanted
+ok   Tent 3 (camp_tent_round) surface bakedMaterial has albedo, normal and roughness maps
+ok   Tent 3 (camp_tent_round) licence CC-BY is CC0 or CC-BY
+ok   Tent 3 (camp_tent_round) is in CREDITS.md with source https://sketchfab.com/3d-models/circus-tent-4998d155bd654544a577dec078ef5aea, author Periklis and licence CC-BY
+ok   Tent 4 (camp_tent_ridge) fills 2.4 x 2.8 x 1.45 m (W x D x H): bounds 2.4 x 2.8 x 1.45 m from -1.2, 0, -1.4
+ok   Tent 4 (camp_tent_ridge) coarse stays inside its Furniture size: bounds 2.4 x 2.8 x 1.45 m
+ok   Tent 4 (camp_tent_ridge) coarse silhouette: ok   Tent-4: coverage front 100,0%, side 100,0%, top 100,0%, floor contact 100,0%, base 0,000/0,000 m, triangles 5642/436
+ok   Tent 4 (camp_tent_ridge) has 5642 triangles, budget 6000
+ok   Tent 4 (camp_tent_ridge) coarse has 436 triangles, at most the full 5642
+ok   Tent 4 (camp_tent_ridge) coarse has 1 surface(s), one wanted
+ok   Tent 4 (camp_tent_ridge) surface Stake has albedo, normal and roughness maps
+ok   Tent 4 (camp_tent_ridge) surface Rope has albedo, normal and roughness maps
+ok   Tent 4 (camp_tent_ridge) surface knot has albedo, normal and roughness maps
+ok   Tent 4 (camp_tent_ridge) surface Part_1 has albedo, normal and roughness maps
+ok   Tent 4 (camp_tent_ridge) surface Part_2 has albedo, normal and roughness maps
+ok   Tent 4 (camp_tent_ridge) licence CC-BY is CC0 or CC-BY
+ok   Tent 4 (camp_tent_ridge) is in CREDITS.md with source https://sketchfab.com/3d-models/camping-tent-21cc274c86104fc997e0f172938d4205, author Adeel Qadir and licence CC-BY
+ok   Tent 5 (camp_tent_popup) fills 3 x 3 x 2.55 m (W x D x H): bounds 3 x 3 x 2.55 m from -1.5, 0, -1.5
+ok   Tent 5 (camp_tent_popup) coarse stays inside its Furniture size: bounds 3 x 3 x 2.55 m
+ok   Tent 5 (camp_tent_popup) coarse silhouette: ok   Tent-5: coverage front 100,0%, side 100,0%, top 100,0%, floor contact 100,0%, base 0,000/0,000 m, triangles 556/280
+ok   Tent 5 (camp_tent_popup) has 556 triangles, budget 6000
+ok   Tent 5 (camp_tent_popup) coarse has 280 triangles, at most the full 556
+ok   Tent 5 (camp_tent_popup) coarse has 1 surface(s), one wanted
+ok   Tent 5 (camp_tent_popup) surface Root has albedo, normal and roughness maps
+ok   Tent 5 (camp_tent_popup) licence CC-BY is CC0 or CC-BY
+ok   Tent 5 (camp_tent_popup) is in CREDITS.md with source https://sketchfab.com/3d-models/carpa-playera-beach-tent-ffdd0519fa604e138d88a0c7fa262bb8, author Harold.Llanos and licence CC-BY
+ok   Tree 0 (camp_tree_oak) fills 8.4 x 8.8 x 6.5 m (W x D x H): bounds 8.4 x 8.8 x 6.5 m from -4.2, 0, -4.4
+ok   Tree 0 (camp_tree_oak) coarse stays inside its Furniture size: bounds 8.4 x 8.8 x 6.5 m
+ok   Tree 0 (camp_tree_oak) coarse silhouette: ok   Tree-0: coverage front 100,0%, side 99,9%, top 100,0%, floor contact 100,0%, base 0,235/0,000 m, triangles 4990/1494
+ok   Tree 0 (camp_tree_oak) has 4990 triangles, budget 5000
+ok   Tree 0 (camp_tree_oak) coarse has 1494 triangles, at most the full 4990
+ok   Tree 0 (camp_tree_oak) coarse has 1 surface(s), one wanted
+ok   Tree 0 (camp_tree_oak) surface leaf has albedo, normal and roughness maps
+ok   Tree 0 (camp_tree_oak) surface Trunk has albedo, normal and roughness maps
+ok   Tree 0 (camp_tree_oak) licence CC-BY is CC0 or CC-BY
+ok   Tree 0 (camp_tree_oak) is in CREDITS.md with source https://sketchfab.com/3d-models/oak-tree-game-ready-2f4ae6b907fd4741abda5d1b71c83b10, author Maple and licence CC-BY
+ok   Tree 1 (camp_tree_spruce) fills 3.7 x 4.2 x 9 m (W x D x H): bounds 3.7 x 4.2 x 9 m from -1.85, 0, -2.1
+ok   Tree 1 (camp_tree_spruce) coarse stays inside its Furniture size: bounds 3.7 x 4.2 x 9 m
+ok   Tree 1 (camp_tree_spruce) coarse silhouette: ok   Tree-1: coverage front 100,0%, side 100,0%, top 100,0%, floor contact 100,0%, base 0,000/0,000 m, triangles 1258/542
+ok   Tree 1 (camp_tree_spruce) has 1258 triangles, budget 5000
+ok   Tree 1 (camp_tree_spruce) coarse has 542 triangles, at most the full 1258
+ok   Tree 1 (camp_tree_spruce) coarse has 1 surface(s), one wanted
+ok   Tree 1 (camp_tree_spruce) surface tree-spruce has albedo, normal and roughness maps
+ok   Tree 1 (camp_tree_spruce) licence CC-BY is CC0 or CC-BY
+ok   Tree 1 (camp_tree_spruce) is in CREDITS.md with source https://sketchfab.com/3d-models/spruce-tree-low-poly-b68f79aee62f4e849be265c903f724f5, author Alan Zimmerman and licence CC-BY
+ok   Tree 2 (camp_bush) fills 2.6 x 2.7 x 1.6 m (W x D x H): bounds 2.6 x 2.7 x 1.6 m from -1.3, 0, -1.35
+ok   Tree 2 (camp_bush) coarse stays inside its Furniture size: bounds 2.6 x 2.7 x 1.6 m
+ok   Tree 2 (camp_bush) coarse silhouette: ok   Tree-2: coverage front 100,0%, side 100,0%, top 100,0%, floor contact 100,0%, base 0,000/0,000 m, triangles 988/726
+ok   Tree 2 (camp_bush) has 988 triangles, budget 1200
+ok   Tree 2 (camp_bush) coarse has 726 triangles, at most the full 988
+ok   Tree 2 (camp_bush) coarse has 1 surface(s), one wanted
+ok   Tree 2 (camp_bush) surface stylized_bush has albedo, normal and roughness maps
+ok   Tree 2 (camp_bush) licence CC-BY is CC0 or CC-BY
+ok   Tree 2 (camp_bush) is in CREDITS.md with source https://sketchfab.com/3d-models/stylized-bush-9d9ce79d3ae040619e96d5b22c7de1a6, author Daniel and licence CC-BY
+ok   Tree 3 (camp_bush_flowering) fills 3 x 2.2 x 1.55 m (W x D x H): bounds 3 x 2.2 x 1.55 m from -1.5, 0, -1.1
+ok   Tree 3 (camp_bush_flowering) coarse stays inside its Furniture size: bounds 3 x 2.2 x 1.55 m
+ok   Tree 3 (camp_bush_flowering) coarse silhouette: ok   Tree-3: coverage front 100,0%, side 100,0%, top 100,0%, floor contact 100,0%, base 0,000/0,000 m, triangles 1180/952
+ok   Tree 3 (camp_bush_flowering) has 1180 triangles, budget 1200
+ok   Tree 3 (camp_bush_flowering) coarse has 952 triangles, at most the full 1180
+ok   Tree 3 (camp_bush_flowering) coarse has 1 surface(s), one wanted
+ok   Tree 3 (camp_bush_flowering) surface lambert1 has albedo, normal and roughness maps
+ok   Tree 3 (camp_bush_flowering) licence CC-BY is CC0 or CC-BY
+ok   Tree 3 (camp_bush_flowering) is in CREDITS.md with source https://sketchfab.com/3d-models/stylized-bush-v1-7ccbbb3307004ad18bed624e356c5975, author SangeetBlaze and licence CC-BY
+ok   TreeHouse 0 (camp_tree_house) fills 14.6 x 15.1 x 22.5 m (W x D x H): bounds 14.6 x 15.1 x 22.5 m from -7.3, 0, -7.55
+ok   TreeHouse 0 (camp_tree_house) coarse stays inside its Furniture size: bounds 14.6 x 15.1 x 22.5 m
+ok   TreeHouse 0 (camp_tree_house) coarse silhouette: ok   TreeHouse-0: coverage front 100,0%, side 100,0%, top 100,0%, floor contact 100,0%, base 0,000/0,000 m, triangles 7327/1380
+ok   TreeHouse 0 (camp_tree_house) has 7327 triangles, budget 8000
+ok   TreeHouse 0 (camp_tree_house) coarse has 1380 triangles, at most the full 7327
+ok   TreeHouse 0 (camp_tree_house) coarse has 1 surface(s), one wanted
+ok   TreeHouse 0 (camp_tree_house) surface planks has albedo, normal and roughness maps
+ok   TreeHouse 0 (camp_tree_house) surface bark03.002 has albedo, normal and roughness maps
+ok   TreeHouse 0 (camp_tree_house) surface oak_leaf.001 has albedo, normal and roughness maps
+ok   TreeHouse 0 (camp_tree_house) licence CC-BY is CC0 or CC-BY
+ok   TreeHouse 0 (camp_tree_house) is in CREDITS.md with source https://sketchfab.com/3d-models/dlx-tree-housewith-tree-1cf11dd38e03427a843fb034d3f7eec9, author d-luX and licence CC-BY
+ok   CampfireRing 0 (camp_campfire) fills 1.8 x 1.8 x 0.19 m (W x D x H): bounds 1.8 x 1.8 x 0.19 m from -0.9, 0, -0.9
+ok   CampfireRing 0 (camp_campfire) coarse stays inside its Furniture size: bounds 1.8 x 1.8 x 0.19 m
+ok   CampfireRing 0 (camp_campfire) coarse silhouette: ok   CampfireRing-0: coverage front 100,0%, side 100,0%, top 100,0%, floor contact 100,0%, base 0,000/0,000 m, triangles 3904/148
+ok   CampfireRing 0 (camp_campfire) has 3904 triangles, budget 4000
+ok   CampfireRing 0 (camp_campfire) coarse has 148 triangles, at most the full 3904
+ok   CampfireRing 0 (camp_campfire) coarse has 1 surface(s), one wanted
+ok   CampfireRing 0 (camp_campfire) surface material has albedo, normal and roughness maps
+ok   CampfireRing 0 (camp_campfire) surface log_ring has albedo, normal and roughness maps
+ok   CampfireRing 0 (camp_campfire) surface rock has albedo, normal and roughness maps
+ok   CampfireRing 0 (camp_campfire) licence CC-BY is CC0 or CC-BY
+ok   CampfireRing 0 (camp_campfire) is in CREDITS.md with source https://sketchfab.com/3d-models/campfire-logs-360f5729f7d447b598170fd66b26c3b5, author Sarah Shahzad and licence CC-BY
+ok   LogSeat 0 (camp_log_bench) fills 1.96 x 0.53 x 0.33 m (W x D x H): bounds 1.96 x 0.53 x 0.33 m from -0.98, 0, -0.265
+ok   LogSeat 0 (camp_log_bench) coarse stays inside its Furniture size: bounds 1.96 x 0.53 x 0.33 m
+ok   LogSeat 0 (camp_log_bench) coarse silhouette: ok   LogSeat-0: coverage front 100,0%, side 100,0%, top 100,0%, floor contact 100,0%, base 0,000/0,000 m, triangles 184/42
+ok   LogSeat 0 (camp_log_bench) has 184 triangles, budget 1000
+ok   LogSeat 0 (camp_log_bench) coarse has 42 triangles, at most the full 184
+ok   LogSeat 0 (camp_log_bench) coarse has 1 surface(s), one wanted
+ok   LogSeat 0 (camp_log_bench) surface Scene_-_Root has albedo, normal and roughness maps
+ok   LogSeat 0 (camp_log_bench) licence CC-BY is CC0 or CC-BY
+ok   LogSeat 0 (camp_log_bench) is in CREDITS.md with source https://sketchfab.com/3d-models/log-bench-55fea7c2f116426a9c7332fcf5ef1705, author AmbiMesh and licence CC-BY
+ok   Kayak 0 (camp_kayak) fills 3.2 x 0.77 x 0.26 m (W x D x H): bounds 3.2 x 0.77 x 0.26 m from -1.6, 0, -0.385
+ok   Kayak 0 (camp_kayak) coarse stays inside its Furniture size: bounds 3.2 x 0.77 x 0.26 m
+ok   Kayak 0 (camp_kayak) coarse silhouette: ok   Kayak-0: coverage front 100,0%, side 100,0%, top 100,0%, floor contact 100,0%, base 0,000/0,000 m, triangles 4996/98
+ok   Kayak 0 (camp_kayak) has 4996 triangles, budget 5000
+ok   Kayak 0 (camp_kayak) coarse has 98 triangles, at most the full 4996
+ok   Kayak 0 (camp_kayak) coarse has 1 surface(s), one wanted
+ok   Kayak 0 (camp_kayak) surface Plastic_Kayak has albedo, normal and roughness maps
+ok   Kayak 0 (camp_kayak) surface Metal has albedo, normal and roughness maps
+ok   Kayak 0 (camp_kayak) surface Elastic_Cord has albedo, normal and roughness maps
+ok   Kayak 0 (camp_kayak) surface Paddles has albedo, normal and roughness maps
+ok   Kayak 0 (camp_kayak) surface Paddle_Handle has albedo, normal and roughness maps
+ok   Kayak 0 (camp_kayak) licence CC-BY is CC0 or CC-BY
+ok   Kayak 0 (camp_kayak) is in CREDITS.md with source https://sketchfab.com/3d-models/kayak-with-paddle-cda3354816af4a0aa1ca5cfee6c5dcd7, author nayangway and licence CC-BY
+ok   PlushBear 0 (camp_teddy_bear) fills 1.06 x 0.71 x 1.5 m (W x D x H): bounds 1.06 x 0.71 x 1.5 m from -0.53, 0, -0.355
+ok   PlushBear 0 (camp_teddy_bear) coarse stays inside its Furniture size: bounds 1.06 x 0.71 x 1.5 m
+ok   PlushBear 0 (camp_teddy_bear) coarse silhouette: ok   PlushBear-0: coverage front 100,0%, side 100,0%, top 100,0%, floor contact 100,0%, base 0,000/0,000 m, triangles 4288/228
+ok   PlushBear 0 (camp_teddy_bear) has 4288 triangles, budget 5000
+ok   PlushBear 0 (camp_teddy_bear) coarse has 228 triangles, at most the full 4288
+ok   PlushBear 0 (camp_teddy_bear) coarse has 1 surface(s), one wanted
+ok   PlushBear 0 (camp_teddy_bear) surface Face_Baked has albedo, normal and roughness maps
+ok   PlushBear 0 (camp_teddy_bear) surface Ear_R_Baked has albedo, normal and roughness maps
+ok   PlushBear 0 (camp_teddy_bear) surface Ear_L_Baked has albedo, normal and roughness maps
+ok   PlushBear 0 (camp_teddy_bear) surface Body_Baked has albedo, normal and roughness maps
+ok   PlushBear 0 (camp_teddy_bear) surface Hands_Baked has albedo, normal and roughness maps
+ok   PlushBear 0 (camp_teddy_bear) surface Legs_Baked has albedo, normal and roughness maps
+ok   PlushBear 0 (camp_teddy_bear) surface Mouth_Baked has albedo, normal and roughness maps
+ok   PlushBear 0 (camp_teddy_bear) surface Eyes_Baked has albedo, normal and roughness maps
+ok   PlushBear 0 (camp_teddy_bear) licence CC-BY is CC0 or CC-BY
+ok   PlushBear 0 (camp_teddy_bear) is in CREDITS.md with source https://sketchfab.com/3d-models/teddy-bear-9c7081efd187447da9a333f89ea43f80, author Xeno Studios and licence CC-BY
+ok   Axe 0 (camp_axe) fills 0.063 x 0.25 x 0.7 m (W x D x H): bounds 0.063 x 0.25 x 0.7 m from -0.0315, 0, -0.125
+ok   Axe 0 (camp_axe) coarse stays inside its Furniture size: bounds 0.063 x 0.25 x 0.7 m
+ok   Axe 0 (camp_axe) coarse silhouette: ok   Axe-0: coverage front 100,0%, side 100,0%, top 100,0%, floor contact 100,0%, base 0,001/0,000 m, triangles 1358/16
+ok   Axe 0 (camp_axe) has 1358 triangles, budget 2000
+ok   Axe 0 (camp_axe) coarse has 16 triangles, at most the full 1358
+ok   Axe 0 (camp_axe) coarse has 1 surface(s), one wanted
+ok   Axe 0 (camp_axe) surface hatchet has albedo, normal and roughness maps
+ok   Axe 0 (camp_axe) licence CC0 is CC0 or CC-BY
+ok   Axe 0 (camp_axe) is in CREDITS.md with source https://polyhaven.com/a/hatchet, author James Ray Cock, Ulan Cabanilla and licence CC0
+ok   MarshmallowStick 0 (camp_marshmallow) fills 0.095 x 0.095 x 0.5 m (W x D x H): bounds 0.095 x 0.095 x 0.5 m from -0.0475, 0, -0.0475
+ok   MarshmallowStick 0 (camp_marshmallow) coarse stays inside its Furniture size: bounds 0.095 x 0.095 x 0.5 m
+ok   MarshmallowStick 0 (camp_marshmallow) coarse silhouette: ok   MarshmallowStick-0: coverage front 100,0%, side 100,0%, top 100,0%, floor contact 100,0%, base 0,000/0,000 m, triangles 320/10
+ok   MarshmallowStick 0 (camp_marshmallow) has 320 triangles, budget 400
+ok   MarshmallowStick 0 (camp_marshmallow) coarse has 10 triangles, at most the full 320
+ok   MarshmallowStick 0 (camp_marshmallow) coarse has 1 surface(s), one wanted
+ok   MarshmallowStick 0 (camp_marshmallow) surface Material has albedo, normal and roughness maps
+ok   MarshmallowStick 0 (camp_marshmallow) licence CC-BY is CC0 or CC-BY
+ok   MarshmallowStick 0 (camp_marshmallow) is in CREDITS.md with source https://sketchfab.com/3d-models/marshmallow-on-a-stick-e7a92ddb4a11433690334eab67f29474, author Sillyy_ and licence CC-BY
+ok   SleepingBag 0 (camp_sleeping_bag) fills 0.75 x 2 x 0.22 m (W x D x H): bounds 0.75 x 2 x 0.22 m from -0.375, 0, -1
+ok   SleepingBag 0 (camp_sleeping_bag) coarse stays inside its Furniture size: bounds 0.75 x 2 x 0.22 m
+ok   SleepingBag 0 (camp_sleeping_bag) coarse silhouette: ok   SleepingBag-0: coverage front 100,0%, side 100,0%, top 100,0%, floor contact 100,0%, base 0,000/0,000 m, triangles 610/18
+ok   SleepingBag 0 (camp_sleeping_bag) has 610 triangles, budget 1000
+ok   SleepingBag 0 (camp_sleeping_bag) coarse has 18 triangles, at most the full 610
+ok   SleepingBag 0 (camp_sleeping_bag) coarse has 1 surface(s), one wanted
+ok   SleepingBag 0 (camp_sleeping_bag) surface DefaultMaterial has albedo, normal and roughness maps
+ok   SleepingBag 0 (camp_sleeping_bag) licence CC-BY is CC0 or CC-BY
+ok   SleepingBag 0 (camp_sleeping_bag) is in CREDITS.md with source https://sketchfab.com/3d-models/sleeping-bag-b1b452fe764a4cc9af3030f69939f506, author Joe and licence CC-BY
+ok   Hammock 0 (camp_hammock) fills 3.2 x 1.38 x 1.09 m (W x D x H): bounds 3.2 x 1.38 x 1.09 m from -1.6, 0, -0.69
+ok   Hammock 0 (camp_hammock) coarse stays inside its Furniture size: bounds 3.2 x 1.38 x 1.09 m
+ok   Hammock 0 (camp_hammock) coarse silhouette: ok   Hammock-0: coverage front 100,0%, side 100,0%, top 100,0%, floor contact 100,0%, base 0,000/0,000 m, triangles 4180/278
+ok   Hammock 0 (camp_hammock) has 4180 triangles, budget 4500
+ok   Hammock 0 (camp_hammock) coarse has 278 triangles, at most the full 4180
+ok   Hammock 0 (camp_hammock) coarse has 1 surface(s), one wanted
+ok   Hammock 0 (camp_hammock) surface Material has albedo, normal and roughness maps
+ok   Hammock 0 (camp_hammock) licence CC-BY is CC0 or CC-BY
+ok   Hammock 0 (camp_hammock) is in CREDITS.md with source https://sketchfab.com/3d-models/hammock-low-poly-c5fd4cef873f44f5a31db1fc6a04c572, author AndreyUEDev and licence CC-BY
+ok   FishingRod 0 (camp_fishing_rod) fills 0.12 x 2 x 1.64 m (W x D x H): bounds 0.12 x 2 x 1.64 m from -0.06, 0, -1
+ok   FishingRod 0 (camp_fishing_rod) coarse stays inside its Furniture size: bounds 0.12 x 2 x 1.64 m
+ok   FishingRod 0 (camp_fishing_rod) coarse silhouette: ok   FishingRod-0: coverage front 100,0%, side 100,0%, top 100,0%, floor contact 100,0%, base 0,001/0,000 m, triangles 2816/104
+ok   FishingRod 0 (camp_fishing_rod) has 2816 triangles, budget 3000
+ok   FishingRod 0 (camp_fishing_rod) coarse has 104 triangles, at most the full 2816
+ok   FishingRod 0 (camp_fishing_rod) coarse has 1 surface(s), one wanted
+ok   FishingRod 0 (camp_fishing_rod) surface map_Spining01 has albedo, normal and roughness maps
+ok   FishingRod 0 (camp_fishing_rod) licence CC-BY is CC0 or CC-BY
+ok   FishingRod 0 (camp_fishing_rod) is in CREDITS.md with source https://sketchfab.com/3d-models/fishing-rod-86c77e3d23d341cd90245c21402f68b9, author emelyarules and licence CC-BY
+ok   RubberDuck 0 (camp_rubber_duck) fills 0.25 x 0.36 x 0.35 m (W x D x H): bounds 0.25 x 0.36 x 0.35 m from -0.125, 0, -0.18
+ok   RubberDuck 0 (camp_rubber_duck) coarse stays inside its Furniture size: bounds 0.25 x 0.36 x 0.35 m
+ok   RubberDuck 0 (camp_rubber_duck) coarse silhouette: ok   RubberDuck-0: coverage front 100,0%, side 100,0%, top 100,0%, floor contact 100,0%, base 0,000/0,000 m, triangles 1072/10
+ok   RubberDuck 0 (camp_rubber_duck) has 1072 triangles, budget 1500
+ok   RubberDuck 0 (camp_rubber_duck) coarse has 10 triangles, at most the full 1072
+ok   RubberDuck 0 (camp_rubber_duck) coarse has 1 surface(s), one wanted
+ok   RubberDuck 0 (camp_rubber_duck) surface rubber_duck_toy has albedo, normal and roughness maps
+ok   RubberDuck 0 (camp_rubber_duck) licence CC0 is CC0 or CC-BY
+ok   RubberDuck 0 (camp_rubber_duck) is in CREDITS.md with source https://polyhaven.com/a/rubber_duck_toy, author Plat251 and licence CC0
+ok   TrailSign 0 (camp_signpost) fills 1.39 x 0.95 x 2.5 m (W x D x H): bounds 1.39 x 0.95 x 2.5 m from -0.695, 0, -0.475
+ok   TrailSign 0 (camp_signpost) coarse stays inside its Furniture size: bounds 1.39 x 0.95 x 2.5 m
+ok   TrailSign 0 (camp_signpost) coarse silhouette: ok   TrailSign-0: coverage front 100,0%, side 100,0%, top 100,0%, floor contact 100,0%, base 0,000/0,000 m, triangles 2156/152
+ok   TrailSign 0 (camp_signpost) has 2156 triangles, budget 2500
+ok   TrailSign 0 (camp_signpost) coarse has 152 triangles, at most the full 2156
+ok   TrailSign 0 (camp_signpost) coarse has 1 surface(s), one wanted
+ok   TrailSign 0 (camp_signpost) surface Material.002 has albedo, normal and roughness maps
+ok   TrailSign 0 (camp_signpost) surface Material.005 has albedo, normal and roughness maps
+ok   TrailSign 0 (camp_signpost) licence CC-BY is CC0 or CC-BY
+ok   TrailSign 0 (camp_signpost) is in CREDITS.md with source https://sketchfab.com/3d-models/signpost-493bcedc8b344a38a9a67587b14bfcff, author Tetiana_Denysenko and licence CC-BY
+ok   CampChair 0 (camp_chair) fills 0.85 x 0.82 x 0.61 m (W x D x H): bounds 0.85 x 0.82 x 0.61 m from -0.425, 0, -0.41
+ok   CampChair 0 (camp_chair) coarse stays inside its Furniture size: bounds 0.85 x 0.82 x 0.61 m
+ok   CampChair 0 (camp_chair) coarse silhouette: ok   CampChair-0: coverage front 100,0%, side 100,0%, top 100,0%, floor contact 100,0%, base 0,000/0,000 m, triangles 2440/70
+ok   CampChair 0 (camp_chair) has 2440 triangles, budget 3000
+ok   CampChair 0 (camp_chair) coarse has 70 triangles, at most the full 2440
+ok   CampChair 0 (camp_chair) coarse has 1 surface(s), one wanted
+ok   CampChair 0 (camp_chair) surface lambert1 has albedo, normal and roughness maps
+ok   CampChair 0 (camp_chair) licence CC-BY is CC0 or CC-BY
+ok   CampChair 0 (camp_chair) is in CREDITS.md with source https://sketchfab.com/3d-models/camping-chair-46b592f41c1f441ca19faadd2b4bb90a, author lpfeffer and licence CC-BY
+54 models, 0 checks failed.

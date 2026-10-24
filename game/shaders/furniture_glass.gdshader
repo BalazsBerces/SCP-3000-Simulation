@@ -16,10 +16,9 @@ void fragment() {
 	ROUGHNESS = roughness;
 	METALLIC = 0.0;
 	SPECULAR = 0.7;
-	if (on_ground_rect((INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xz, ground_dark_rect)) {
-		ALBEDO = vec3(0.0);
-		SPECULAR = 0.0;
-	} else {
-		EMISSION = lamp_pools(VERTEX, NORMAL, INV_VIEW_MATRIX, ALBEDO, roughness, 0.0, 0.7);
-	}
+	float dark = ground_dark_amount((INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xz);
+	EMISSION = lamp_pools(VERTEX, NORMAL, INV_VIEW_MATRIX, ALBEDO, roughness, 0.0, 0.7);
+	ALBEDO *= 1.0 - dark;
+	SPECULAR *= 1.0 - dark;
+	EMISSION *= 1.0 - dark;
 }

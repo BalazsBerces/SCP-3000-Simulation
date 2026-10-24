@@ -21,13 +21,12 @@ public class RestroomTests
     [Theory]
     [InlineData(3008)]
     [InlineData(42)]
-    public void The_showcase_has_one_10_4_by_6_metre_restroom_in_place_of_the_old_one(int seed)
+    public void The_showcase_has_one_10_4_by_6_metre_restroom(int seed)
     {
         var snapshot = Showcase(seed);
 
         var (restroom, _) = RestroomOf(snapshot);
         Assert.Equal(new Vector2(10.4f, 6.0f), restroom.Size);
-        Assert.DoesNotContain(snapshot.PointsOfInterest, p => p.Type == PointOfInterestType.Restroom);
     }
 
     [Theory]
@@ -153,12 +152,12 @@ public class RestroomTests
     [Theory]
     [InlineData(3008)]
     [InlineData(42)]
-    public void A_normal_store_keeps_its_old_restrooms_and_has_no_store_restroom_yet(int seed)
+    public void A_normal_store_has_one_to_three_restrooms_per_sector(int seed)
     {
         using var sim = Simulation.Create(new WorldConfig(seed, RuntimeRngSeed: 1));
         var snapshot = sim.Snapshot;
 
-        Assert.DoesNotContain(snapshot.PointsOfInterest, p => p.Type == PointOfInterestType.StoreRestroom);
-        Assert.InRange(snapshot.PointsOfInterest.Count(p => p.Type == PointOfInterestType.Restroom), 9, 27);
+        Assert.All(snapshot.Sectors, sector =>
+            Assert.InRange(snapshot.PointsOfInterest.Count(p => p.Type == PointOfInterestType.StoreRestroom && p.SectorId == sector.Id), 1, 3));
     }
 }

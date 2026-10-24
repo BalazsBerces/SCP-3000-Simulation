@@ -26,3 +26,4 @@ All textures are CC0 (public domain), downscaled to 512 px.
 - floor layer TextilesAndDecor: [rectangular_parquet](https://polyhaven.com/a/rectangular_parquet) from Poly Haven (CC0)
 - floor layer Outdoor: [rectangular_paving](https://polyhaven.com/a/rectangular_paving) from Poly Haven (CC0)
 - floor layer DiningAndHallway: [herringbone_parquet](https://polyhaven.com/a/herringbone_parquet) from Poly Haven (CC0)
+- `grass_*`: [Grass004](https://ambientcg.com/view?id=Grass004) from ambientCG (CC0), the Camping ground lawn

@@ -17,7 +17,11 @@ public static class ModelCheck
     public static readonly FurnitureType[] HeroTypes =
         [FurnitureType.Armchair, FurnitureType.Sofa, FurnitureType.Chair, FurnitureType.Toilet, FurnitureType.VanityUnit,
          FurnitureType.DiningTable, FurnitureType.Sideboard, FurnitureType.MealPlate, FurnitureType.Rug,
-         FurnitureType.ShoppingCart, FurnitureType.ShelfUnit, FurnitureType.ExitSign, FurnitureType.DoorFrame];
+         FurnitureType.ShoppingCart, FurnitureType.ShelfUnit, FurnitureType.ExitSign, FurnitureType.DoorFrame,
+         FurnitureType.Tent, FurnitureType.Tree, FurnitureType.TreeHouse, FurnitureType.CampfireRing, FurnitureType.LogSeat,
+         FurnitureType.Kayak, FurnitureType.PlushBear, FurnitureType.Axe, FurnitureType.MarshmallowStick, FurnitureType.SleepingBag,
+         FurnitureType.Hammock, FurnitureType.FishingRod, FurnitureType.RubberDuck, FurnitureType.TrailSign, FurnitureType.CampChair,
+         FurnitureType.SunLounger];
 
     // In metres.
     private const float Tolerance = 0.001f;

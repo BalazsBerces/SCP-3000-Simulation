@@ -158,11 +158,11 @@ public enum FurnitureType
     /// <summary>Store service sign marking the Lost and found service point.</summary>
     LostAndFoundSign,
     // The Camping ground's Furniture (ticket 07z), found only in that Landmark
-    /// <summary>Fake tree: a trunk and a crown (variant 0: broad, 1: tall conifer, 2: giant tree a tree house is built in).</summary>
+    /// <summary>Fake tree: a trunk and a crown (variant 0: broad oak, 1: tall conifer), or a fake bush (2: round, 3: flowering).</summary>
     Tree,
-    /// <summary>Dome tent.</summary>
+    /// <summary>Tent, of the kinds in <see cref="TentKind"/> (the variant is the kind).</summary>
     Tent,
-    /// <summary>Dome tent with a lantern inside: a Lamp whose fabric glows with a silhouette inside it when lit.</summary>
+    /// <summary>The lantern-lit door of a tent: a Lamp in a tent's doorway whose cloth glows with a person's silhouette against it when lit.</summary>
     LanternTent,
     /// <summary>Fake campfire flame: a glowing red-orange cloth flame with a Lamp inside it.</summary>
     CampfireFlame,
@@ -182,8 +182,42 @@ public enum FurnitureType
     TrailSign,
     /// <summary>Camping axe (Gear): the decorative axe stuck in a tree.</summary>
     Axe,
-    /// <summary>Sleeping bag (a Dwelling's bedding).</summary>
+    /// <summary>Sleeping bag (a Dwelling's bedding): variant 0 laid out flat, 1 rolled up.</summary>
     SleepingBag,
+    // The Camping ground's showroom staging (ticket 07z2)
+    /// <summary>Tree house shell: a cabin on a deck high in its own big tree. A fixed part of the Camping ground, never taken (<see cref="FurnitureSpec.IsFixed"/>).</summary>
+    TreeHouse,
+    /// <summary>Tasting tray on the marshmallow stand, holding marshmallows on sticks.</summary>
+    MarshmallowTray,
+    /// <summary>Advertising banner stretched between two poles.</summary>
+    CampBanner,
+    /// <summary>Price tag on a stake beside a showroom display.</summary>
+    PriceTag,
+    /// <summary>Folding camping chair.</summary>
+    CampChair,
+    /// <summary>Camping lantern: a small Lamp.</summary>
+    CampLantern,
+    /// <summary>Stone ring of a campfire with its logs; the cloth flame stands in it.</summary>
+    CampfireRing,
+    /// <summary>A marshmallow on a roasting stick, standing in the tasting tray.</summary>
+    MarshmallowStick,
+}
+
+/// <summary>The kinds of tent, as the variant of a <see cref="FurnitureType.Tent"/>.</summary>
+public enum TentKind
+{
+    /// <summary>Small dome tent.</summary>
+    Dome,
+    /// <summary>Cone-shaped tipi.</summary>
+    Tipi,
+    /// <summary>Large family tent with windows, tall enough to stand in.</summary>
+    Family,
+    /// <summary>Wide canvas bell tent.</summary>
+    Bell,
+    /// <summary>Classic ridge tent with an A-shaped front.</summary>
+    AFrame,
+    /// <summary>Pop-up shelter: a quick-pitch canopy on four legs.</summary>
+    PopUp,
 }
 
 /// <summary>
@@ -236,8 +270,9 @@ public readonly record struct FurniturePiece(int Id, FurnitureType Type, Vector2
 /// Upholstered in leather rather than fabric (the leather sofa). Leather versions are rare: a type's leather
 /// versions together are chosen about <see cref="FurnitureCatalog.LeatherShare"/> of the time.
 /// </param>
+/// <param name="IsFixed">A fixed part of its Landmark that no one can take or disassemble (the Camping ground's tree house shell).</param>
 public sealed record FurnitureSpec(FurnitureType Type, float Width, float Depth, float Height, bool IsFloorCovering = false, float LightRadius = 0f,
-    int Variant = 0, bool IsLeather = false)
+    int Variant = 0, bool IsLeather = false, bool IsFixed = false)
 {
     /// <summary>Whether this is a Lamp: Furniture that gives light.</summary>
     public bool IsLamp => LightRadius > 0f;
@@ -306,6 +341,8 @@ public static class FurnitureCatalog
         FurnitureType.Tree, FurnitureType.Tent, FurnitureType.LanternTent, FurnitureType.CampfireFlame, FurnitureType.LogSeat,
         FurnitureType.Hammock, FurnitureType.Kayak, FurnitureType.FishingRod, FurnitureType.RubberDuck, FurnitureType.PlushBear,
         FurnitureType.TrailSign, FurnitureType.Axe, FurnitureType.SleepingBag,
+        FurnitureType.TreeHouse, FurnitureType.MarshmallowTray, FurnitureType.CampBanner, FurnitureType.PriceTag,
+        FurnitureType.CampChair, FurnitureType.CampLantern, FurnitureType.CampfireRing, FurnitureType.MarshmallowStick,
     ];
 
     /// <summary>The Furniture types found only in the Camping ground.</summary>
@@ -314,6 +351,8 @@ public static class FurnitureCatalog
         FurnitureType.Tree, FurnitureType.Tent, FurnitureType.LanternTent, FurnitureType.CampfireFlame, FurnitureType.LogSeat,
         FurnitureType.Hammock, FurnitureType.Kayak, FurnitureType.FishingRod, FurnitureType.RubberDuck, FurnitureType.PlushBear,
         FurnitureType.TrailSign, FurnitureType.Axe, FurnitureType.SleepingBag,
+        FurnitureType.TreeHouse, FurnitureType.MarshmallowTray, FurnitureType.CampBanner, FurnitureType.PriceTag,
+        FurnitureType.CampChair, FurnitureType.CampLantern, FurnitureType.CampfireRing, FurnitureType.MarshmallowStick,
     ];
 
     /// <summary>The Furniture types found only in Points of interest, never on display.</summary>
@@ -406,7 +445,7 @@ public static class FurnitureCatalog
             new(FurnitureType.FrameDisplay, 1.2f, 0.5f, 1.6f),
             new(FurnitureType.GardenTable, 1.4f, 0.9f, 0.75f),
             new(FurnitureType.GardenChair, 0.6f, 0.6f, 0.9f),
-            new(FurnitureType.SunLounger, 0.7f, 1.9f, 0.65f),
+            new(FurnitureType.SunLounger, 0.62f, 1.95f, 0.8f),                 // wooden slatted lounger
             new(FurnitureType.Parasol, 2.4f, 2.4f, 2.4f),
             new(FurnitureType.Grill, 0.9f, 0.6f, 1.05f),
             new(FurnitureType.DisplayCabinet, 1.2f, 0.45f, 1.8f),
@@ -474,19 +513,28 @@ public static class FurnitureCatalog
             new(FurnitureType.NoticeBoard, 1.20f, 0.05f, 0.80f),
             new(FurnitureType.LostAndFoundSign, 0.80f, 0.06f, 0.40f),
             // Camping ground Furniture (ticket 07z)
-            new(FurnitureType.Tree, 4.0f, 4.0f, 6.0f),
-            new(FurnitureType.Tent, 3.0f, 3.0f, 1.8f),
-            new(FurnitureType.LanternTent, 3.0f, 3.0f, 1.8f, LightRadius: 4f),
+            new(FurnitureType.Tree, 8.4f, 8.8f, 6.5f),                         // broad oak
+            new(FurnitureType.Tent, 2.6f, 2.6f, 1.75f),                        // dome
+            new(FurnitureType.LanternTent, 1.0f, 0.2f, 1.2f, LightRadius: 4f),
             new(FurnitureType.CampfireFlame, 1.4f, 1.4f, 1.7f, LightRadius: 8f),
-            new(FurnitureType.LogSeat, 1.8f, 0.5f, 0.45f),
-            new(FurnitureType.Hammock, 3.2f, 0.9f, 0.5f),
-            new(FurnitureType.Kayak, 3.2f, 0.7f, 0.4f),
-            new(FurnitureType.FishingRod, 0.4f, 0.4f, 2.0f),
-            new(FurnitureType.RubberDuck, 0.35f, 0.35f, 0.35f),
-            new(FurnitureType.PlushBear, 1.2f, 1.0f, 1.5f),
-            new(FurnitureType.TrailSign, 1.2f, 0.15f, 2.0f),
-            new(FurnitureType.Axe, 0.5f, 0.9f, 0.1f),
-            new(FurnitureType.SleepingBag, 0.8f, 2.0f, 0.25f),
+            new(FurnitureType.LogSeat, 1.96f, 0.53f, 0.33f),
+            new(FurnitureType.Hammock, 3.2f, 1.38f, 1.09f),
+            new(FurnitureType.Kayak, 3.2f, 0.77f, 0.26f),
+            new(FurnitureType.FishingRod, 0.12f, 2.0f, 1.64f),
+            new(FurnitureType.RubberDuck, 0.25f, 0.36f, 0.35f),
+            new(FurnitureType.PlushBear, 1.06f, 0.71f, 1.5f),
+            new(FurnitureType.TrailSign, 1.39f, 0.95f, 2.5f),
+            new(FurnitureType.Axe, 0.063f, 0.25f, 0.7f),
+            new(FurnitureType.SleepingBag, 0.75f, 2.0f, 0.22f),
+            // Camping ground showroom staging (ticket 07z2)
+            new(FurnitureType.TreeHouse, 14.6f, 15.1f, 22.5f, IsFixed: true),
+            new(FurnitureType.MarshmallowTray, 0.6f, 0.4f, 0.08f),
+            new(FurnitureType.CampBanner, 3.0f, 0.1f, 3.2f),
+            new(FurnitureType.PriceTag, 0.4f, 0.05f, 1.0f),
+            new(FurnitureType.CampChair, 0.85f, 0.82f, 0.61f),
+            new(FurnitureType.CampLantern, 0.2f, 0.2f, 0.35f, LightRadius: 3f),
+            new(FurnitureType.CampfireRing, 1.8f, 1.8f, 0.19f),
+            new(FurnitureType.MarshmallowStick, 0.095f, 0.095f, 0.5f),
 
             // Variants of the most repeated types: other proportions, backs, legs or materials.
             new(FurnitureType.LabelledBox, 0.50f, 0.40f, 0.35f, Variant: 1), // open / spilled box
@@ -528,10 +576,19 @@ public static class FurnitureCatalog
             new(FurnitureType.FountainBowl, 6.0f, 6.0f, 1.0f, Variant: 2),
             new(FurnitureType.FountainBowl, 9.0f, 9.0f, 1.2f, Variant: 3),
             new(FurnitureType.FountainColumn, 0.5f, 0.5f, 2.0f, Variant: 1),   // slender column
-            new(FurnitureType.Tree, 3.0f, 3.0f, 9.0f, Variant: 1),             // tall conifer
-            new(FurnitureType.Tree, 5.0f, 5.0f, 22.0f, Variant: 2),            // giant tree, for the tree house
-            new(FurnitureType.Tent, 3.2f, 3.2f, 3.4f, Variant: 1),             // tipi
-            new(FurnitureType.Tent, 6.0f, 3.2f, 2.2f, Variant: 2),             // family tunnel tent
+            // The camping ground's sizes keep the proportions of their models (see game/CREDITS.md).
+            new(FurnitureType.Tree, 3.7f, 4.2f, 9.0f, Variant: 1),             // tall conifer
+            new(FurnitureType.Tree, 2.6f, 2.7f, 1.6f, Variant: 2),             // round bush
+            new(FurnitureType.Tree, 3.0f, 2.2f, 1.55f, Variant: 3),            // flowering bush
+            new(FurnitureType.Tent, 3.1f, 3.3f, 4.1f, Variant: 1),             // tipi
+            new(FurnitureType.Tent, 4.6f, 3.6f, 2.7f, Variant: 2),             // family cabin tent
+            new(FurnitureType.Tent, 5.0f, 5.0f, 2.8f, Variant: 3),             // round striped canvas bell tent
+            new(FurnitureType.Tent, 2.4f, 2.8f, 1.45f, Variant: 4),            // A-frame ridge tent
+            new(FurnitureType.Tent, 3.0f, 3.0f, 2.55f, Variant: 5),            // pop-up shelter
+            new(FurnitureType.SleepingBag, 0.22f, 0.52f, 0.22f, Variant: 1),   // rolled up, lying along its depth
+            new(FurnitureType.SunLounger, 0.7f, 1.9f, 0.95f, Variant: 1),      // white plastic lounger
+            new(FurnitureType.SunLounger, 0.66f, 1.05f, 0.93f, Variant: 2),    // folding canvas deck chair
+            new(FurnitureType.Parasol, 1.8f, 2.07f, 2.3f, Variant: 1),         // tilted beach umbrella
         ];
         var byType = new FurnitureSpec[Enum.GetValues<FurnitureType>().Length][];
         foreach (var group in specs.GroupBy(s => s.Type))

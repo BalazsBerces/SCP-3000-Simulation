@@ -50,6 +50,8 @@ MATERIALS = [
     ("linen", "polyhaven", "rough_linen"),
     ("painted_metal", "polyhaven", "painted_metal_shutter"),
     ("wool", "polyhaven", "poly_wool_herringbone"),
+    # The Camping ground's lawn (store_floor.gdshader): a real, uneven mown lawn rather than flat artificial turf.
+    ("grass", "ambientcg", "Grass004"),
 ]
 
 
@@ -98,28 +100,35 @@ def main():
     credits = ["# Texture credits", "", "All textures are CC0 (public domain), downscaled to 512 px.", ""]
 
     for name, source, asset in MATERIALS:
-        print(name, asset)
-        albedo, normal, roughness, metres = fetch(source, asset)
-        save(albedo, OUT / f"{name}_albedo.jpg")
-        save(normal, OUT / f"{name}_normal.jpg")
-        save(roughness, OUT / f"{name}_roughness.jpg")
+        # Each material is downloaded once; delete its files to fetch it again.
+        if not (OUT / f"{name}_albedo.jpg").exists():
+            print(name, asset)
+            albedo, normal, roughness, metres = fetch(source, asset)
+            save(albedo, OUT / f"{name}_albedo.jpg")
+            save(normal, OUT / f"{name}_normal.jpg")
+            save(roughness, OUT / f"{name}_roughness.jpg")
         credits.append(f"- `{name}_*`: {asset} from [{'Poly Haven' if source == 'polyhaven' else 'ambientCG'}]({'https://polyhaven.com/a/' if source == 'polyhaven' else 'https://ambientcg.com/view?id='}{asset})")
 
     layers = {"albedo": [], "normal": [], "roughness": []}
+    fetch_floors = not (OUT / "floor_albedo.jpg").exists()
     for department, source, asset in FLOORS:
-        albedo, normal, roughness, metres = fetch(source, asset)
-        print(department, asset, f"real width {metres} m" if metres else "")
-        layers["albedo"].append(albedo)
-        layers["normal"].append(normal)
-        layers["roughness"].append(roughness)
+        if fetch_floors:
+            albedo, normal, roughness, metres = fetch(source, asset)
+            print(department, asset, f"real width {metres} m" if metres else "")
+            layers["albedo"].append(albedo)
+            layers["normal"].append(normal)
+            layers["roughness"].append(roughness)
         credits.append(f"- floor layer {department}: {asset} from [Poly Haven](https://polyhaven.com/a/{asset})")
-    for kind, images in layers.items():
+    for kind, images in layers.items() if fetch_floors else []:
         atlas = Image.new(images[0].mode, (SIZE, SIZE * len(images)))
         for i, image in enumerate(images):
             atlas.paste(image, (0, i * SIZE))
         save(atlas, OUT / f"floor_{kind}.jpg")
 
-    (OUT / "CREDITS.md").write_text("\n".join(credits) + "\n", encoding="utf-8")
+    # CREDITS.md carries hand-made notes (the Bathrooms floor layer is interior_tiles): only a missing one is written,
+    # otherwise a new material's line is added to it by hand.
+    if not (OUT / "CREDITS.md").exists():
+        (OUT / "CREDITS.md").write_text("\n".join(credits) + "\n", encoding="utf-8", newline="\n")
 
 
 if __name__ == "__main__":

@@ -1121,6 +1121,53 @@ internal sealed class LandmarkBuilder(StoreSpace space, LandmarkSite site, Seede
         return Put(type, local - centre, bottom - corners.Min(c => c.Z), rotation, tilt, variant, tint);
     }
 
+    /// <summary>
+    /// Places a piece turned any way: the middle of its box at a local position and height (Z up), its width axis along one
+    /// direction and its top facing another, perpendicular to it.
+    /// </summary>
+    public bool PutTurned(FurnitureType type, Vector3 middle, Vector3 width, Vector3 top, int variant = 0, int tint = 0)
+    {
+        width = Vector3.Normalize(width);
+        top = Vector3.Normalize(top - width * Vector3.Dot(top, width));
+        var (rotation, tilt, roll) = Orientation(width, top);
+        var bottom = middle - top * (FurnitureCatalog.Spec(type, variant).Height / 2f);
+        return Put(type, new Vector2(bottom.X, bottom.Y), bottom.Z, rotation, tilt, variant, tint, roll);
+    }
+
+    /// <summary>
+    /// The rotation, tilt and roll (see <see cref="FurniturePiece"/>) that turn a piece's width axis onto one direction and its
+    /// top onto another, both unit and perpendicular (Z up).
+    /// </summary>
+    internal static (float Rotation, float Tilt, float Roll) Orientation(Vector3 width, Vector3 top)
+    {
+        var depth = Vector3.Cross(width, top);
+        var angles = Angles(width, depth);
+        return Vector3.Dot(TopOf(angles), top) >= 0f ? angles : Angles(width, -depth);
+    }
+
+    private static (float Rotation, float Tilt, float Roll) Angles(Vector3 width, Vector3 depth)
+    {
+        var tilt = MathF.Asin(Math.Clamp(-depth.Z, -1f, 1f));
+        var cos = MathF.Cos(tilt);
+        if (cos < 1e-3f)
+            return (MathF.Atan2(width.Y, width.X), tilt, 0f);
+        var front = new Vector2(depth.X, depth.Y) / cos;
+        var rotation = MathF.Atan2(-front.X, front.Y);
+        var across = new Vector2(MathF.Cos(rotation), MathF.Sin(rotation));
+        var roll = MathF.Atan2(width.Z / cos, width.X * across.X + width.Y * across.Y);
+        return (rotation, tilt, roll);
+    }
+
+    /// <summary>Where a piece's top faces once turned by these angles (as <see cref="FurnitureCatalog.Corners"/> turns it).</summary>
+    private static Vector3 TopOf((float Rotation, float Tilt, float Roll) a)
+    {
+        var across = new Vector3(MathF.Cos(a.Rotation), MathF.Sin(a.Rotation), 0f);
+        var front = new Vector3(-MathF.Sin(a.Rotation), MathF.Cos(a.Rotation), 0f);
+        var (sinT, cosT) = MathF.SinCos(a.Tilt);
+        var (sinR, cosR) = MathF.SinCos(a.Roll);
+        return -across * sinR + front * (cosR * sinT) + Vector3.UnitZ * (cosR * cosT);
+    }
+
     internal static Vector2 Turn(Vector2 local, int quarters) => (quarters & 3) switch
     {
         0 => local,

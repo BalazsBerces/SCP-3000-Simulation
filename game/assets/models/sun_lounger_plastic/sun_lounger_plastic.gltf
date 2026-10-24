@@ -1,0 +1,255 @@
+{
+ "accessors": [
+  {
+   "bufferView": 2,
+   "componentType": 5126,
+   "count": 3635,
+   "max": [
+    -0.16180360317230225,
+    6.5199408531188965,
+    6.29918098449707
+   ],
+   "min": [
+    -4.9288787841796875,
+    -0.003143131732940674,
+    -6.708267688751221
+   ],
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 2,
+   "byteOffset": 43620,
+   "componentType": 5126,
+   "count": 3635,
+   "max": [
+    1.0,
+    0.9999987483024597,
+    0.9999987483024597
+   ],
+   "min": [
+    -1.0,
+    -0.9999987483024597,
+    -0.9999987483024597
+   ],
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 1,
+   "componentType": 5126,
+   "count": 3635,
+   "max": [
+    0.875,
+    1.0
+   ],
+   "min": [
+    0.125,
+    -1.4127671791677336e-16
+   ],
+   "type": "VEC2"
+  },
+  {
+   "bufferView": 0,
+   "componentType": 5125,
+   "count": 14538,
+   "type": "SCALAR"
+  }
+ ],
+ "asset": {
+  "extras": {
+   "author": "rodestrela (https://sketchfab.com/rodestrela)",
+   "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+   "source": "https://sketchfab.com/3d-models/sun-lounger-3d-974e74f55bbd4dc9a85c4a48fc987a18",
+   "title": "Sun lounger 3D"
+  },
+  "generator": "Sketchfab-12.65.0",
+  "version": "2.0"
+ },
+ "bufferViews": [
+  {
+   "buffer": 0,
+   "byteLength": 58152,
+   "name": "floatBufferViews",
+   "target": 34963
+  },
+  {
+   "buffer": 0,
+   "byteLength": 29080,
+   "byteOffset": 58152,
+   "byteStride": 8,
+   "name": "floatBufferViews",
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteLength": 87240,
+   "byteOffset": 87232,
+   "byteStride": 12,
+   "name": "floatBufferViews",
+   "target": 34962
+  }
+ ],
+ "buffers": [
+  {
+   "uri": "sun_lounger_plastic.bin",
+   "byteLength": 174472
+  }
+ ],
+ "images": [
+  {
+   "uri": "textures/cadeira_baseColor.jpg"
+  },
+  {
+   "uri": "textures/sun_lounger_plastic_material0_orm.jpg"
+  },
+  {
+   "uri": "textures/sun_lounger_plastic_material0_normal.jpg"
+  }
+ ],
+ "materials": [
+  {
+   "doubleSided": true,
+   "name": "cadeira",
+   "pbrMetallicRoughness": {
+    "baseColorTexture": {
+     "index": 0
+    },
+    "metallicRoughnessTexture": {
+     "index": 1
+    }
+   },
+   "normalTexture": {
+    "index": 2
+   }
+  }
+ ],
+ "meshes": [
+  {
+   "name": "pCube44_cadeira_0",
+   "primitives": [
+    {
+     "attributes": {
+      "NORMAL": 1,
+      "POSITION": 0,
+      "TEXCOORD_0": 2
+     },
+     "indices": 3,
+     "material": 0,
+     "mode": 4
+    }
+   ]
+  }
+ ],
+ "nodes": [
+  {
+   "children": [
+    1
+   ],
+   "matrix": [
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    2.220446049250313e-16,
+    -1.0,
+    0.0,
+    0.0,
+    1.0,
+    2.220446049250313e-16,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0
+   ],
+   "name": "Sketchfab_model"
+  },
+  {
+   "children": [
+    2
+   ],
+   "matrix": [
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    -1.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0
+   ],
+   "name": "cfa7c4838c804862adeb6f61b055ea71.fbx"
+  },
+  {
+   "children": [
+    3
+   ],
+   "name": "RootNode"
+  },
+  {
+   "children": [
+    4
+   ],
+   "matrix": [
+    17.211654663085938,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    17.211654663085938,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    17.211654663085938,
+    0.0,
+    80.30130004882812,
+    -2.1934568881988525,
+    3.3171660900115967,
+    1.0
+   ],
+   "name": "pCube44"
+  },
+  {
+   "mesh": 0,
+   "name": "pCube44_cadeira_0"
+  }
+ ],
+ "samplers": [
+  {
+   "magFilter": 9729,
+   "minFilter": 9987,
+   "wrapS": 10497,
+   "wrapT": 10497
+  }
+ ],
+ "scene": 0,
+ "scenes": [
+  {
+   "name": "Sketchfab_Scene",
+   "nodes": [
+    0
+   ]
+  }
+ ],
+ "textures": [
+  {
+   "sampler": 0,
+   "source": 0
+  },
+  {
+   "source": 1
+  },
+  {
+   "source": 2
+  }
+ ]
+}

@@ -15,6 +15,9 @@ global uniform sampler2D lamp_bulbs;
 // Per Lamp (RF): energy of its pool, the Lamp energy minus the share its real light gives.
 global uniform sampler2D lamp_pool_energy;
 global uniform float lamp_cell_size;
+// Experiment: at most this many Lamps per pixel, and no pools beyond this view distance.
+global uniform float lamp_pool_cap;
+global uniform float lamp_pool_far;
 // The Store size; 0 while there are no Lamps.
 global uniform float lamp_store_size;
 // Linear warm light colour, the same as the real Lamp lights.
@@ -42,14 +45,14 @@ vec3 lamp_pools(vec3 vertex, vec3 normal, mat4 inv_view, vec3 albedo, float roug
 	vec3 dndv = dFdy(normal);
 	float kernel_roughness2 = min(2.0 * 0.25 * (dot(dndu, dndu) + dot(dndv, dndv)), 0.18);
 	roughness = sqrt(min(1.0, roughness * roughness + kernel_roughness2));
-	if (lamp_store_size <= 0.0) {
+	if (lamp_store_size <= 0.0 || -vertex.z > lamp_pool_far) {
 		return vec3(0.0);
 	}
 	vec3 position = (inv_view * vec4(vertex, 1.0)).xyz;
 	vec2 wrapped = mod(position.xz, lamp_store_size);
 	ivec2 cells = textureSize(lamp_cells, 0);
 	vec2 entry = texelFetch(lamp_cells, min(ivec2(wrapped / lamp_cell_size), cells - 1), 0).rg;
-	int count = int(entry.y);
+	int count = min(int(entry.y), int(lamp_pool_cap));
 	if (count == 0) {
 		return vec3(0.0);
 	}

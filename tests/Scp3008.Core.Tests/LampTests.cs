@@ -29,7 +29,7 @@ public class LampTests
     }
 
     private static readonly FurnitureType[] LampTypes = [FurnitureType.TableLamp, FurnitureType.FloorLamp, FurnitureType.DeskLamp, FurnitureType.ArcLamp,
-        FurnitureType.LanternTent, FurnitureType.CampfireFlame];
+        FurnitureType.LanternTent, FurnitureType.CampfireFlame, FurnitureType.CampLantern];
 
     [Fact]
     public void Lamps_give_light_and_other_furniture_does_not()

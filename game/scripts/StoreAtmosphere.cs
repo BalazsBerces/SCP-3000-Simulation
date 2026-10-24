@@ -37,8 +37,8 @@ public partial class StoreAtmosphere : Node
     [Export] public float ShadowReachPerZoomMetre { get; set; } = 2.6f;
     [Export] public float ShadowReachMargin { get; set; } = 20f;
     [Export] public float MinShadowReach { get; set; } = 60f;
-    /// <summary>The farthest shadows reach at any zoom; far zooms see small, coarse Furniture whose shadows hardly show.</summary>
-    [Export] public float MaxShadowReach { get; set; } = 180f;
+    /// <summary>The farthest shadows reach at any zoom; a whole Landmark (the Rack Canyon is 160 m by 112 m) still shows its shadows from the farthest zoom.</summary>
+    [Export] public float MaxShadowReach { get; set; } = 260f;
 
     /// <summary>Screen-space ambient occlusion strength while the Store is open; it fades with the Store lights.</summary>
     [Export] public float OpenSsaoIntensity { get; set; } = 2.5f;
@@ -124,6 +124,41 @@ public partial class StoreAtmosphere : Node
         StoreOverview.Changed += OnOverviewChanged;
         FurnitureDetail.Changed += ShowDetail;
         ShowDetail(FurnitureDetail.Coarse);
+        if (OS.GetCmdlineUserArgs().Contains("--perf-candidate"))
+            RenderingServer.Singleton.FramePreDraw += ApplyPerfCandidate;
+        if (OS.GetCmdlineUserArgs().FirstOrDefault(a => a.StartsWith("--perf-msaa=")) is { } msaa)
+        {
+            var mode = msaa["--perf-msaa=".Length..] switch { "0" => Viewport.Msaa.Disabled, "2" => Viewport.Msaa.Msaa2X, _ => Viewport.Msaa.Msaa4X };
+            RenderingServer.Singleton.FramePreDraw += () => GetViewport().Msaa3D = mode;
+        }
+        var fsr = OS.GetCmdlineUserArgs().FirstOrDefault(a => a.StartsWith("--perf-fsr="));
+        if (fsr is not null)
+        {
+            var scale = float.Parse(fsr["--perf-fsr=".Length..], System.Globalization.CultureInfo.InvariantCulture);
+            RenderingServer.Singleton.FramePreDraw += () => ApplyPerfFsr(scale);
+        }
+    }
+
+    // Dev flag: FSR2 (its own temporal anti-aliasing replaces TAA) at this render scale, no MSAA.
+    private void ApplyPerfFsr(float scale)
+    {
+        var viewport = GetViewport();
+        viewport.Msaa3D = Viewport.Msaa.Disabled;
+        viewport.Scaling3DMode = Viewport.Scaling3DModeEnum.Fsr2;
+        viewport.Scaling3DScale = scale;
+        // Sharper textures, as FSR2 asks for: hardware-sampled ones through the bias, the Store floor through lod_scale.
+        viewport.TextureMipmapBias = Mathf.Log(scale) / Mathf.Log(2f);
+        RenderingServer.GlobalShaderParameterSet("lod_scale", scale);
+    }
+
+    // Dev flag for judging the faster look by eye: no MSAA or TAA, FXAA, no glow.
+    private void ApplyPerfCandidate()
+    {
+        var viewport = GetViewport();
+        viewport.Msaa3D = Viewport.Msaa.Disabled;
+        viewport.UseTaa = false;
+        viewport.ScreenSpaceAA = Viewport.ScreenSpaceAAEnum.Fxaa;
+        _environment.GlowEnabled = false;
     }
 
     public override void _ExitTree()
