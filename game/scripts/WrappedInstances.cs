@@ -306,6 +306,13 @@ public partial class WrappedInstances : Node3D
     private static readonly bool AblateShadows = UserArgs.Contains("--bench-no-furniture-shadows");
     private static StandardMaterial3D? _plainMaterial;
 
+    // How soon the detailed meshes switch to their simpler levels (Godot's LOD bias; --detail-lod-bias=x overrides it).
+    // A level is chosen per chunk, from the camera's distance to the chunk's nearest corner, so with the default 1
+    // nearly every chunk in view draws the most detailed level: at the LOD switch zoom the dense model triangles
+    // cost 2 ms of GPU time in the benchmark. A sixteenth leaves no difference that shows in screenshots.
+    private static readonly float DetailLodBias = UserArgs.FirstOrDefault(a => a.StartsWith("--detail-lod-bias=")) is { } bias
+        ? float.Parse(bias["--detail-lod-bias=".Length..], System.Globalization.CultureInfo.InvariantCulture) : 1f / 16f;
+
     /// <summary>One wrapped image of a chunk: its detailed and coarse instances and its occluder.</summary>
     private Image NewImage(ChunkImages images)
     {
@@ -322,6 +329,7 @@ public partial class WrappedInstances : Node3D
             images.Occluder is null ? null : Instance(images.Occluder.GetRid()),
             GlobalTransform, IsVisibleInTree());
         RenderingServer.InstanceGeometrySetCastShadowsSetting(image.Detail, (RenderingServer.ShadowCastingSetting)CastShadow);
+        RenderingServer.InstanceGeometrySetLodBias(image.Detail, DetailLodBias);
         if (image.Coarse is { } coarse)
         {
             RenderingServer.InstanceGeometrySetCastShadowsSetting(coarse, (RenderingServer.ShadowCastingSetting)CastShadow);

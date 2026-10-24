@@ -29,14 +29,6 @@ public enum LandmarkType
     /// </summary>
     FountainCourt,
     /// <summary>
-    /// A half-finished Furniture stair climbing 40–60 m up one Pillar on its walkway ring (the one exception to the ring
-    /// being Furniture-free; see <see cref="Landmark.PillarId"/>), winding round several of its faces, with 3–6 abandoned,
-    /// half-furnished rooms bolted to the Pillar's sides along the way. Its Lookout is in the topmost room. Exactly one
-    /// in every world, on top of the one-Landmark-per-Sector limit; a Village can finish it as a Pillar scaffold with
-    /// fewer Materials.
-    /// </summary>
-    AbandonedScaffold,
-    /// <summary>
     /// A trade-fair camping showroom on artificial turf: three huge dinosaurs built of Furniture (<see cref="Landmark.Dinosaurs"/>), tents,
     /// fake trees, a fake campfire, a lake, a tree house and a camper van. Lookouts: the top of the tree house and the
     /// Brachiosaurus's back. Its ground is visual only (<see cref="GroundProperty.None"/>).
@@ -62,8 +54,7 @@ public enum GroundProperty
 /// <summary>
 /// A huge, far-visible, unique place of the Store, made entirely of individual Furniture: the pieces
 /// whose <see cref="FurniturePiece.LandmarkId"/> is its <see cref="Id"/>. It stands on a rectangle of
-/// whole department cells inside one Sector, which no Display Furniture enters; the abandoned scaffold's
-/// rectangle is instead its Pillar with the walkway ring.
+/// whole department cells inside one Sector, which no Display Furniture enters.
 /// </summary>
 /// <param name="Id">Index in <see cref="WorldSnapshot.Landmarks"/>.</param>
 /// <param name="Type">Which Landmark it is.</param>
@@ -103,9 +94,6 @@ public sealed record Landmark(int Id, LandmarkType Type, int SectorId, Vector2 C
     /// differ, so no two clocks show the same time; only the true clock's is zero. Empty for other Landmarks.
     /// </summary>
     public IReadOnlyDictionary<int, TimeSpan> ClockOffsets { get; init; } = new Dictionary<int, TimeSpan>();
-
-    /// <summary>The Pillar the abandoned scaffold climbs, by <see cref="Pillar.Id"/>; -1 for other Landmarks.</summary>
-    public int PillarId { get; init; } = -1;
 
     /// <summary>The Camping ground's dinosaurs, one of each kind with its own main colour; empty for other Landmarks.</summary>
     public IReadOnlyList<Dinosaur> Dinosaurs { get; init; } = [];

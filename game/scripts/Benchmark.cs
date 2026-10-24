@@ -19,6 +19,8 @@ namespace Scp3008.Game;
 ///   --lamp-reproduction=dir  capture a continuous pan, rotation and zoom over the Lamp displays;
 ///   --benchmark-overview  measure only the <see cref="StoreOverview"/>, held over the Store centre at
 ///   fixed camera heights at Closing time.
+///   --benchmark-passes  also report the average GPU time of each render pass (run Godot with --gpu-profile, or
+///   only the whole frame is timed).
 /// </summary>
 public partial class Benchmark : Node
 {
@@ -52,7 +54,7 @@ public partial class Benchmark : Node
     private float? _scale;
     private bool _bilinear;
     private string[] _hide = [];
-    private bool _plainFloor, _noSunShadow;
+    private bool _plainFloor, _noSunShadow, _passes;
 
     private void ApplyOverrides()
     {
@@ -136,6 +138,8 @@ public partial class Benchmark : Node
                 _noVolumetricFog = true;
             else if (arg.StartsWith("--bench-hide="))
                 _hide = arg["--bench-hide=".Length..].Split(',');
+            else if (arg == "--benchmark-passes")
+                _passes = true;
             else if (arg == "--bench-plain-floor")
                 _plainFloor = true;
             else if (arg == "--bench-no-sun-shadow")
@@ -263,6 +267,8 @@ public partial class Benchmark : Node
         var viewport = GetViewport();
         RenderingServer.ViewportSetMeasureRenderTime(viewport.GetViewportRid(), true);
         var (gpu, cpu, drawCalls, primitives) = (0.0, 0.0, 0.0, 0.0);
+        var passes = new Dictionary<string, double>();
+        var device = RenderingServer.GetRenderingDevice();
         var start = Now;
         var last = start;
         while (last - start < MeasureSeconds)
@@ -284,6 +290,12 @@ public partial class Benchmark : Node
                          + viewport.GetRenderInfo(Viewport.RenderInfoType.Shadow, Viewport.RenderInfo.DrawCallsInFrame);
             primitives += viewport.GetRenderInfo(Viewport.RenderInfoType.Visible, Viewport.RenderInfo.PrimitivesInFrame)
                           + viewport.GetRenderInfo(Viewport.RenderInfoType.Shadow, Viewport.RenderInfo.PrimitivesInFrame);
+            if (_passes)
+                for (var i = 1; i < (int)device.GetCapturedTimestampsCount(); i++)
+                {
+                    var name = device.GetCapturedTimestampName((uint)(i - 1));
+                    passes[name] = passes.GetValueOrDefault(name) + (device.GetCapturedTimestampGpuTime((uint)i) - device.GetCapturedTimestampGpuTime((uint)(i - 1))) / 1e6;
+                }
             if (Lamps.ActiveLights > Lamps.MaxLights || Lamps.ShadowedLights > Lamps.ShadowBudget)
                 throw new InvalidOperationException("Lamp lights exceeded the ADR 0004 budget.");
         }
@@ -292,6 +304,8 @@ public partial class Benchmark : Node
                  $"{viewport.GetRenderInfo(Viewport.RenderInfoType.Visible, Viewport.RenderInfo.DrawCallsInFrame)} calls, shadow " +
                  $"{viewport.GetRenderInfo(Viewport.RenderInfoType.Shadow, Viewport.RenderInfo.PrimitivesInFrame) / 1e6:0.00} M prims / " +
                  $"{viewport.GetRenderInfo(Viewport.RenderInfoType.Shadow, Viewport.RenderInfo.DrawCallsInFrame)} calls; coarse {FurnitureDetail.Coarse}");
+        foreach (var (name, total) in passes.OrderByDescending(p => p.Value).Take(25))
+            GD.Print($"  [{lighting.Name}] GPU {total / frameSeconds.Count,6:0.000} ms after {name}");
         _holdZoom = null;
         if (lighting.HoldZoom is not null && FurnitureDetail.Coarse)
             throw new InvalidOperationException("Furniture was coarse at the LOD switch zoom.");

@@ -6,7 +6,7 @@ namespace Scp3008.Game;
 /// <summary>
 /// Checks the external Furniture models (<see cref="FurnitureModels"/>): every variant of the hero
 /// types has one; each fitted full mesh fills its Furniture size (footprint and height) within
-/// <see cref="Tolerance"/> and keeps to its triangle budget; the coarse mesh stays inside that size,
+/// <see cref="FillTolerance"/> and keeps to its triangle budget; the coarse mesh stays inside that size,
 /// passes <see cref="SilhouetteCheck"/> and has no more triangles; every material has albedo, normal and roughness maps; the licence is CC0 or CC-BY;
 /// and CREDITS.md lists the model with its source, author and licence. Run by DevCapture's
 /// <c>--model-check</c>.
@@ -25,6 +25,10 @@ public static class ModelCheck
 
     // In metres.
     private const float Tolerance = 0.001f;
+
+    // How far a full mesh's outline may lie inside its Furniture size, in metres: simplifying a detailed model
+    // moves its edges in by a few millimetres, while a lost leg or seat leaves tens of centimetres.
+    private const float FillTolerance = 0.01f;
 
     /// <summary>One line per check that failed or passed; true if every check passed.</summary>
     public static (bool Passed, List<string> Lines) Run()
@@ -52,7 +56,7 @@ public static class ModelCheck
             var bounds = full.GetAabb();
             var (low, high) = ((bounds.Position - expected.Position).Abs(), (bounds.End - expected.End).Abs());
             var error = new[] { low.X, low.Y, low.Z, high.X, high.Y, high.Z }.Max();
-            Check(error <= Tolerance, FormattableString.Invariant(
+            Check(error <= FillTolerance, FormattableString.Invariant(
                 $"{name} fills {spec.Width:0.###} x {spec.Depth:0.###} x {spec.Height:0.###} m (W x D x H): bounds {bounds.Size.X:0.####} x {bounds.Size.Z:0.####} x {bounds.Size.Y:0.####} m from {bounds.Position.X:0.####}, {bounds.Position.Y:0.####}, {bounds.Position.Z:0.####}"));
             var coarseBounds = coarse.GetAabb();
             Check(expected.Grow(Tolerance).Encloses(coarseBounds), FormattableString.Invariant(

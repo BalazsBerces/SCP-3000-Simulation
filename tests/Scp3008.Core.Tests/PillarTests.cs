@@ -86,10 +86,7 @@ public class PillarTests
         {
             var clear = pillar.ClearHalfWidth;
             Assert.Equal(pillar.Width / 2f + 3f, clear);
-            // The abandoned scaffold (a Landmark) is the one exception: it climbs its Pillar's walkway ring.
-            var scaffold = snapshot.Landmarks.Single(l => l.Type == LandmarkType.AbandonedScaffold);
-            var nearby = snapshot.Furniture.Where(p => snapshot.Space.Distance(p.Position, pillar.Position) < clear + 10f)
-                .Where(p => p.LandmarkId != scaffold.Id || scaffold.PillarId != pillar.Id).ToArray();
+            var nearby = snapshot.Furniture.Where(p => snapshot.Space.Distance(p.Position, pillar.Position) < clear + 10f).ToArray();
             // The Store goes on right up to the walkway.
             Assert.NotEmpty(nearby);
             foreach (var piece in nearby)

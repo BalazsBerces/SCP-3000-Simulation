@@ -5,7 +5,7 @@ namespace Scp3008.Game;
 
 /// <summary>
 /// In the <see cref="StoreOverview"/>, zoomed far out, a letter over each Landmark (V Ruined Village, C Rack canyon,
-/// B Box fort, M Mattress mountain, D Dead zone, K Clock wall, F Fountain court, S Abandoned scaffold), kept the
+/// B Box fort, M Mattress mountain, D Dead zone, K Clock wall, F Fountain court, G Camping ground), kept the
 /// same size on screen however far the camera is. The markers are rebuilt when a new world is created.
 /// </summary>
 public partial class LandmarkMarkers : Node3D
@@ -76,7 +76,6 @@ public partial class LandmarkMarkers : Node3D
         LandmarkType.DeadZone => "D",
         LandmarkType.ClockWall => "K",
         LandmarkType.FountainCourt => "F",
-        LandmarkType.AbandonedScaffold => "S",
         LandmarkType.CampingGround => "G",
         _ => "?",
     };

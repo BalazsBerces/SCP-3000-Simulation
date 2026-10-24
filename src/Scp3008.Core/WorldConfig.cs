@@ -14,7 +14,7 @@ namespace Scp3008.Core;
 /// </param>
 /// <param name="LandmarkShowcase">
 /// Builds the Landmark showcase instead of a normal Store: every Landmark type once, side by side
-/// in one row on empty Store floor (the abandoned scaffold on the Pillar nearest the row), with no Displays
+/// in one row on empty Store floor, with no Displays
 /// and no Points of interest. The seed still varies how each Landmark is built.
 /// </param>
 /// <param name="PointOfInterestShowcase">

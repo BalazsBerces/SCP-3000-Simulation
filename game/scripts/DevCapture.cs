@@ -54,6 +54,8 @@ namespace Scp3008.Game;
 ///   --zoom-sweep=seconds   zoom slowly from 20 m inside the level-of-detail switch to 20 m beyond
 ///                          it and back over this many seconds, wobbling by 1.5 m like an unsteady
 ///                          hand, then report how often the level switched (2 means no flicker).
+///   --zoom-to=metres       after three seconds, ease the zoom to this distance as the mouse wheel does
+///                          (capture during it to see what moving the camera does to the view);
 ///   --zoom-in-test         zoom in fast with the mouse wheel, from the farthest zoom in the normal
 ///                          view and then in the <see cref="StoreOverview"/>, and report every frame
 ///                          that took over twice the median, with the zoom and level of detail then.
@@ -91,6 +93,7 @@ public partial class DevCapture : Node
     private string? _seedToEnter;
     private PillarLayout? _layoutToChoose;
     private double _zoomSweepSeconds;
+    private float? _zoomTo;
     private int _detailSwitches;
     private float? _overviewDistance;
     private Vector3? _focusToJump;
@@ -211,6 +214,8 @@ public partial class DevCapture : Node
                 _seedToEnter = arg["--enter-seed=".Length..];
             else if (arg == "--lod-debug")
                 FurnitureMeshes.ShowCoarseInMagenta(true);
+            else if (arg.StartsWith("--zoom-to="))
+                _zoomTo = float.Parse(arg["--zoom-to=".Length..], CultureInfo.InvariantCulture);
             else if (arg.StartsWith("--zoom-sweep="))
                 _zoomSweepSeconds = double.Parse(arg["--zoom-sweep=".Length..], CultureInfo.InvariantCulture);
             else if (arg == "--zoom-in-test")
@@ -276,6 +281,11 @@ public partial class DevCapture : Node
             Rig.MoveTargetBy(_panVelocity * (float)delta);
         if (_rotateDegreesPerSecond != 0f)
             Rig.JumpToYaw(Mathf.DegToRad(30f + _rotateDegreesPerSecond * (float)_elapsed));
+        if (_zoomTo is { } zoomTo && _elapsed >= 3.0)
+        {
+            Rig.FlyTo(Rig.Focus.ToStore(), zoomTo);
+            _zoomTo = null;
+        }
         if (_zoomSweepSeconds > 0 && _elapsed <= _zoomSweepSeconds)
         {
             // Out and back in, a triangle wave, with a wobble faster than the sweep.

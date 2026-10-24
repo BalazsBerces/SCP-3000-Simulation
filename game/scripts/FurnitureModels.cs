@@ -29,14 +29,19 @@ public static class FurnitureModels
 
     // Fewer triangles for the types repeated most (chairs come in sets around every table).
     private const int ChairBudget = 1500;
+    // The carved dining chair needs this many even at its simplest.
+    private const int CarvedChairBudget = 2500;
     private const int SeatBudget = 3500;
     private const int SofaBudget = 4500;
-    private const int BathroomBudget = 8000;
+    // Toilets and washbasins fill whole bathroom Displays.
+    private const int BathroomBudget = 1500;
     // The Camping ground shows up to nine tents and about fifteen trees at once.
     private const int TentBudget = 6000;
     private const int TreeBudget = 5000;
     // And about thirty bushes, small enough that their sources' ~1000 triangles are plenty.
     private const int BushBudget = 1200;
+    // Rugs lie flat under nearly every Display: a fringe and a few folds are all they show.
+    private const int RugBudget = 300;
 
     // The coarse mesh's voxel size, in metres (see Proxy): it is drawn only from the switch zoom
     // out (160 m), where a pixel spans about 20 cm, so a voxel is half a pixel.
@@ -61,6 +66,12 @@ public static class FurnitureModels
     // Roughness the coarse mesh adds in place of the normal map it does not have.
     private const float NormalSpread = 0.4f;
 
+    // A piece whose lowest point is under this height (metres) stands on the floor.
+    private const float StandsOn = 0.01f;
+
+    // A part that shows the Observer less than this share of its area (it faces the floor) is left out.
+    private const float HiddenShare = 0.02f;
+
     // Simplified levels keep a normal seam sharper than this, in degrees.
     private const float LodMergeAngle = 60f;
 
@@ -75,7 +86,7 @@ public static class FurnitureModels
         new(FurnitureType.Sofa, 2, "fabric_sofa", 0f, SofaBudget, true, "Sempay_3D", "CC-BY", "https://sketchfab.com/3d-models/modern-minimalist-fabric-sofa-be39bf64cf4c4a02b55a0ef1d40e1fbb"),
         new(FurnitureType.Sofa, 3, "sofa_02", 0f, SofaBudget, false, "Kirill Sannikov", "CC0", "https://polyhaven.com/a/sofa_02"),
         new(FurnitureType.Chair, 0, "painted_wooden_chair_01", 0f, ChairBudget, false, "Kuutti Siitonen", "CC0", "https://polyhaven.com/a/painted_wooden_chair_01"),
-        new(FurnitureType.Chair, 1, "dining_chair_02", 0f, ChairBudget, false, "James Ray Cock", "CC0", "https://polyhaven.com/a/dining_chair_02"),
+        new(FurnitureType.Chair, 1, "dining_chair_02", 0f, CarvedChairBudget, false, "James Ray Cock", "CC0", "https://polyhaven.com/a/dining_chair_02"),
         new(FurnitureType.Chair, 2, "GreenChair_01", 0f, ChairBudget, false, "Kirill Sannikov", "CC0", "https://polyhaven.com/a/GreenChair_01"),
         new(FurnitureType.Toilet, 0, "toilet", 0f, BathroomBudget, false, "loafbrr_1", "CC0", "https://opengameart.org/content/toilets"),
         new(FurnitureType.VanityUnit, 0, "washbasin", 0f, BathroomBudget, false, "loafbrr_1", "CC0", "https://opengameart.org/content/toilets"),
@@ -97,7 +108,7 @@ public static class FurnitureModels
         new(FurnitureType.ShelfUnit, 0, "steel_frame_shelves_01", 0f, 1500, false, "James Ray Cock", "CC0", "https://polyhaven.com/a/steel_frame_shelves_01"),
         new(FurnitureType.ShoppingCart, 0, "shopping_cart", 0f, 3500, false, "Sebastian ramirez muñoz", "CC-BY", "https://sketchfab.com/3d-models/shopping-cart-8b2de85475184aa3a7fa9f244307dadf"),
         new(FurnitureType.MealPlate, 0, "meal_plate", 0f, 2000, false, "_dark_alice_", "CC-BY", "https://sketchfab.com/3d-models/plate-of-food-49a9493f884d405997d0f021639b22cf"),
-        new(FurnitureType.Rug, 0, "rug", 0f, 1200, true, "mfb64", "CC-BY", "https://sketchfab.com/3d-models/kuuma-ye-rug-by-kristiina-lassus-5f5de1ba643746fc9da76d2cac94fbb3"),
+        new(FurnitureType.Rug, 0, "rug", 0f, RugBudget, true, "mfb64", "CC-BY", "https://sketchfab.com/3d-models/kuuma-ye-rug-by-kristiina-lassus-5f5de1ba643746fc9da76d2cac94fbb3"),
         new(FurnitureType.DoorFrame, 0, "door_frame", 0f, 3000, false, "witnessk", "CC-BY", "https://sketchfab.com/3d-models/door-with-frame-2f2f149f3ec44d658a02c1f924dfa449"),
         new(FurnitureType.ExitSign, 0, "exit_sign", 0f, 5000, false, "tboiston", "CC-BY", "https://sketchfab.com/3d-models/exit-sign-46b52e08b8b64b81ad9ff5fb752bcc06"),
         // The Camping ground (ticket 07z2). Its Lamps (the cloth flame, the tent's lantern-lit door, the lanterns) stay
@@ -189,7 +200,58 @@ public static class FurnitureModels
     private static (ArrayMesh Full, ArrayMesh Coarse) Get(Model model)
     {
         if (!Cache.TryGetValue((model.Type, model.Variant), out var meshes))
-            Cache[(model.Type, model.Variant)] = meshes = Build(model);
+        {
+            var stamp = Stamp(model);
+            Cache[(model.Type, model.Variant)] = meshes = Saved(model, stamp) ?? Save(model, stamp, Build(model));
+        }
+        return meshes;
+    }
+
+    // Building every model (simplifying it, voxelising its coarse mesh, averaging its textures) takes
+    // seconds, so the built meshes are saved here and loaded again while nothing they are built from changes.
+    private const string SavedDirectory = "user://model_cache";
+
+    private static string SavedPath(Model model, string stamp, string mesh) => $"{SavedDirectory}/{model.Type}-{model.Variant}-{stamp}-{mesh}.res";
+
+    /// <summary>
+    /// What a model's meshes are built from: its record, the coarse voxel size, this code (the assembly's
+    /// version id changes with every change to it), the coarse gains and the model's files.
+    /// </summary>
+    private static string Stamp(Model model)
+    {
+        var text = new System.Text.StringBuilder(FormattableString.Invariant(
+            $"{model}|{CoarseCell}|{typeof(FurnitureModels).Assembly.ManifestModule.ModuleVersionId}|{Godot.FileAccess.GetModifiedTime(GainsPath)}"));
+        void Add(string directory)
+        {
+            foreach (var file in DirAccess.GetFilesAt(directory))
+                text.Append($"|{file}:{Godot.FileAccess.GetModifiedTime($"{directory}/{file}")}");
+            foreach (var child in DirAccess.GetDirectoriesAt(directory))
+                Add($"{directory}/{child}");
+        }
+        Add($"res://assets/models/{model.Folder}");
+        return text.ToString().Md5Text();
+    }
+
+    private static (ArrayMesh Full, ArrayMesh Coarse)? Saved(Model model, string stamp)
+    {
+        var (fullPath, coarsePath) = (SavedPath(model, stamp, "full"), SavedPath(model, stamp, "coarse"));
+        if (!Godot.FileAccess.FileExists(fullPath) || !Godot.FileAccess.FileExists(coarsePath)
+            || ResourceLoader.Load<ArrayMesh>(fullPath) is not { } full || ResourceLoader.Load<ArrayMesh>(coarsePath) is not { } coarse)
+            return null;
+        var material = (ShaderMaterial)coarse.SurfaceGetMaterial(0);
+        material.SetShaderParameter("lod_debug", _coarseInMagenta);
+        CoarseMaterials.Add(material);
+        return (full, coarse);
+    }
+
+    private static (ArrayMesh Full, ArrayMesh Coarse) Save(Model model, string stamp, (ArrayMesh Full, ArrayMesh Coarse) meshes)
+    {
+        DirAccess.MakeDirRecursiveAbsolute(SavedDirectory);
+        // Meshes built from anything older are stale.
+        foreach (var file in DirAccess.GetFilesAt(SavedDirectory).Where(f => f.StartsWith($"{model.Type}-{model.Variant}-")))
+            DirAccess.RemoveAbsolute($"{SavedDirectory}/{file}");
+        ResourceSaver.Save(meshes.Full, SavedPath(model, stamp, "full"));
+        ResourceSaver.Save(meshes.Coarse, SavedPath(model, stamp, "coarse"));
         return meshes;
     }
 
@@ -212,6 +274,8 @@ public static class FurnitureModels
         Collect(scene, new Transform3D(new Basis(Vector3.Up, Mathf.DegToRad(model.Yaw)), Vector3.Zero), parts);
         scene.Free();
         Fit(parts, FurnitureCatalog.Spec(model.Type, model.Variant));
+        // A part the Observer never sees (a rug's back, flat on the floor) is drawn for nothing.
+        parts.RemoveAll(p => Shown(p) < HiddenShare * Area(p));
 
         var levels = parts.Select(ComponentLevels).ToList();
 
@@ -242,15 +306,17 @@ public static class FurnitureModels
 
     /// <summary>
     /// A model whose pieces are still over budget at their simplest (a cabinet with many small
-    /// bevelled details) loses its smallest pieces, by bounding-box volume, until it fits.
+    /// bevelled details) loses its smallest pieces, by bounding-box volume, until it fits. The pieces it
+    /// stands on (legs, feet, a plinth) go last: a thin leg is as small as a screw, but without it the
+    /// model floats.
     /// </summary>
     private static void DropSmallestPieces(List<Part> parts, List<List<int[][]>> levels, int budget)
     {
         var floor = levels.Sum(l => l.Sum(p => p[^1].Length / 3));
         if (floor <= budget)
             return;
-        var pieces = levels.SelectMany((list, s) => list.Select(piece => (Part: s, Piece: piece, Volume: Volume(parts[s], piece[0]))))
-            .OrderBy(p => p.Volume).ToList();
+        var pieces = levels.SelectMany((list, s) => list.Select(piece => (Part: s, Piece: piece, Box: Bounds(parts[s].Positions, piece[0]))))
+            .OrderBy(p => p.Box.Position.Y < StandsOn).ThenBy(p => p.Box.Volume).ToList();
         foreach (var (part, piece, _) in pieces)
         {
             if (floor <= budget)
@@ -260,13 +326,13 @@ public static class FurnitureModels
         }
     }
 
-    /// <summary>The volume of the bounding box around the triangles of <paramref name="indices"/>.</summary>
-    private static float Volume(Part part, int[] indices)
+    /// <summary>The bounding box around the vertices of <paramref name="indices"/>.</summary>
+    private static Aabb Bounds(IReadOnlyList<Vector3> positions, IEnumerable<int> indices)
     {
-        var box = new Aabb(part.Positions[indices[0]], Vector3.Zero);
+        Aabb? box = null;
         foreach (var i in indices)
-            box = box.Expand(part.Positions[i]);
-        return box.Size.X * box.Size.Y * box.Size.Z;
+            box = box?.Expand(positions[i]) ?? new Aabb(positions[i], Vector3.Zero);
+        return box ?? new Aabb();
     }
 
     /// <summary>
@@ -419,15 +485,32 @@ public static class FurnitureModels
             }
     }
 
+    /// <summary>
+    /// A surface of only the vertices its triangles use, in the order they first use them: a simplified
+    /// level uses a small share of a detailed model's vertices, and the rest would bloat every instance's
+    /// vertex fetch.
+    /// </summary>
     private static Godot.Collections.Array Arrays(Part part, int[] indices)
     {
+        var local = new Dictionary<int, int>();
+        var used = new List<int>();
+        var remapped = new int[indices.Length];
+        for (var i = 0; i < indices.Length; i++)
+        {
+            if (!local.TryGetValue(indices[i], out var index))
+            {
+                local[indices[i]] = index = used.Count;
+                used.Add(indices[i]);
+            }
+            remapped[i] = index;
+        }
         var arrays = new Godot.Collections.Array();
         arrays.Resize((int)Mesh.ArrayType.Max);
-        arrays[(int)Mesh.ArrayType.Vertex] = part.Positions.ToArray();
-        arrays[(int)Mesh.ArrayType.Normal] = part.Normals.ToArray();
-        arrays[(int)Mesh.ArrayType.Tangent] = part.Tangents.ToArray();
-        arrays[(int)Mesh.ArrayType.TexUV] = part.Uvs.ToArray();
-        arrays[(int)Mesh.ArrayType.Index] = indices;
+        arrays[(int)Mesh.ArrayType.Vertex] = used.Select(v => part.Positions[v]).ToArray();
+        arrays[(int)Mesh.ArrayType.Normal] = used.Select(v => part.Normals[v]).ToArray();
+        arrays[(int)Mesh.ArrayType.Tangent] = used.SelectMany(v => part.Tangents.GetRange(4 * v, 4)).ToArray();
+        arrays[(int)Mesh.ArrayType.TexUV] = used.Select(v => part.Uvs[v]).ToArray();
+        arrays[(int)Mesh.ArrayType.Index] = remapped;
         return arrays;
     }
 
@@ -709,6 +792,22 @@ public static class FurnitureModels
 
     /// <summary>The average area a triangle (its area vector, front-face normal times area) shows over the Observer's <see cref="Views"/>.</summary>
     private static float Shown(Vector3 areaVector) => Views.Average(v => Mathf.Max(0f, areaVector.Dot(v)));
+
+    /// <summary>The area a part shows over the Observer's <see cref="Views"/>, summed over its triangles.</summary>
+    private static float Shown(Part part) => Triangles(part).Sum(Shown);
+
+    /// <summary>A part's surface area.</summary>
+    private static float Area(Part part) => Triangles(part).Sum(t => t.Length());
+
+    /// <summary>Each triangle's area vector: its front-face normal times its area.</summary>
+    private static IEnumerable<Vector3> Triangles(Part part)
+    {
+        for (var i = 0; i + 2 < part.Indices.Count; i += 3)
+        {
+            var (a, b, c) = (part.Positions[part.Indices[i]], part.Positions[part.Indices[i + 1]], part.Positions[part.Indices[i + 2]]);
+            yield return (c - a).Cross(b - a) / 2f;
+        }
+    }
 
     private static float Luminance(Color linear) => 0.2126f * linear.R + 0.7152f * linear.G + 0.0722f * linear.B;
 

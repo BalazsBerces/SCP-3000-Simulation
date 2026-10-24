@@ -11,7 +11,7 @@ namespace Scp3008.Game;
 /// whose look this also sets: lit and greyish while the Store is open, dark and bluish at Closing time.
 /// The one other depth effect is the Edge fade: a distance fade applied only in the last stretch before
 /// the draw distance, so content dissolves softly where drawing stops. The volumetric fog (Fog banks only)
-/// reaches as far as the camera can see at its current zoom, so distant Fog banks show, while close views keep their detail.
+/// always reaches as far as the camera can see at the farthest zoom, so distant Fog banks show.
 /// The Store light shines almost straight down (12 degrees from vertical) and casts soft, short shadows
 /// out to the far edge of the view at the current zoom, fading softly beyond it; they fade with the
 /// light and are gone at Closing time, and the overview has none. Screen-space ambient occlusion
@@ -24,11 +24,12 @@ public partial class StoreAtmosphere : Node
     [Export] public WorldEnvironment World { get; set; } = null!;
     [Export] public DirectionalLight3D StoreLight { get; set; } = null!;
 
-    /// <summary>Farthest floor the camera sees per metre of zoom distance, plus a margin: how far the volumetric fog must reach.</summary>
-    [Export] public float VolumetricReachPerZoomMetre { get; set; } = 2.6f;
-    [Export] public float VolumetricReachMargin { get; set; } = 60f;
-    [Export] public float MinVolumetricReach { get; set; } = 150f;
-    [Export] public float MaxVolumetricReach { get; set; } = 640f;
+    /// <summary>
+    /// How far the volumetric fog reaches, in metres: the farthest floor the camera sees at its farthest zoom.
+    /// It stays the same at every zoom: the fog blends each frame with the last, and a reach that changed while
+    /// zooming moved every fog cell, so the Fog banks faded out for a second as the camera rose.
+    /// </summary>
+    [Export] public float VolumetricReach { get; set; } = 640f;
 
     /// <summary>
     /// How far Store-light shadows reach per metre of zoom distance, plus a margin: past the far edge
@@ -118,6 +119,7 @@ public partial class StoreAtmosphere : Node
         _environment.FogDepthCurve = 1f;
         _environment.FogDensity = 0f;
         _environment.VolumetricFogDensity = 0f;
+        _environment.VolumetricFogLength = VolumetricReach;
         Apply(Look.Blend(Closed, Open, _appliedLevel = 1f));
         _fogEnabled = _environment.FogEnabled;
         _volumetricFogEnabled = _environment.VolumetricFogEnabled;
@@ -194,8 +196,6 @@ public partial class StoreAtmosphere : Node
         if (ShownLightLevel != _appliedLevel)
             Apply(Look.Blend(Closed, Open, _appliedLevel = ShownLightLevel));
 
-        _environment.VolumetricFogLength = Mathf.Clamp(
-            Rig.Distance * VolumetricReachPerZoomMetre + VolumetricReachMargin, MinVolumetricReach, MaxVolumetricReach);
         StoreLight.DirectionalShadowMaxDistance = Mathf.Clamp(
             Rig.Distance * ShadowReachPerZoomMetre + ShadowReachMargin, MinShadowReach, MaxShadowReach);
     }

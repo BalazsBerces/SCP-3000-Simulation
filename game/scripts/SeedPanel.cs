@@ -196,7 +196,7 @@ public partial class SeedPanel : CanvasLayer
     }
 
     /// <summary>
-    /// How big a Landmark looks: its longer side, or for a tall, narrow one (the abandoned scaffold) its height,
+    /// How big a Landmark looks: its longer side, or for a tall, narrow one its height,
     /// so the camera backs off far enough to see it whole.
     /// </summary>
     private static float Extent(Landmark landmark) =>
@@ -326,7 +326,6 @@ public static class LandmarkNames
         LandmarkType.DeadZone => "Dead zone",
         LandmarkType.ClockWall => "Clock wall",
         LandmarkType.FountainCourt => "Fountain court",
-        LandmarkType.AbandonedScaffold => "Abandoned scaffold",
         LandmarkType.CampingGround => "Camping ground",
         _ => type.ToString(),
     };
