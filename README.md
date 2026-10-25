@@ -104,9 +104,11 @@ The presentation interpolates each bank's position along the shortest wrapped pa
 
 Dev weather tools (debug builds): F6 places a Fog bank at the camera focus. `--clear-weather` removes banks and disables natural formation; `--fog-bank=x,y[,radius]` places one through the facade's scenario builder. For a fixed capture, pass both arguments in that order. Scenario placement deliberately permits arbitrary coverage for testing; the coverage budget applies to natural formation.
 
+Dev Villager tools (debug builds): F7 places a Villager at the camera focus, F8 sends the Villager placed last walking there, F9 skips one Store hour. `--villager=x,y`, `--villager-to=x,y` and `--follow-villager` do the same from the command line. Villagers walk at 60 m per Store hour around Furniture and Pillars, by the shortest wrapped path; Furniture at least 1.8 m above the floor is walked under and floor coverings are walked over.
+
 ## Controls
 
-- Camera: WASD or arrow keys pan, Q/E rotate, mouse wheel or R/F zoom; middle-drag pans, right-drag rotates. The Store wraps: pan in any direction forever.
+- Camera: WASD or arrow keys pan, Q/E rotate, mouse wheel or R/F zoom; middle-drag pans, right-drag rotates. The Store wraps: pan in any direction forever. V follows the next Villager with the camera (past the last, lets go); a pan lets go too.
 - F3: wrap overlay (chunk lines in blue, seams in orange, marker posts on the seams with their ghost copies, and the focus position and chunk).
 - Seed (top right): type a number or any text and press Enter or Generate for a new Store (the same seed always gives the same Store); Random picks one. The panel also names the Department under the camera.
 - Time: Space toggles pause; 1-5 select 1x, 2x, 4x, 8x, 16x (or use the buttons). One Store day lasts 10 minutes at 1x.

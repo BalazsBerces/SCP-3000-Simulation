@@ -52,6 +52,9 @@ public sealed record WorldSnapshot(
     /// <summary>Whether this is the Point of interest showcase (every Point of interest in a row, no Displays or Landmarks) rather than a normal Store.</summary>
     public bool PointOfInterestShowcase { get; init; }
 
+    /// <summary>The Villagers in the Store.</summary>
+    public IReadOnlyList<Villager> Villagers { get; init; } = [];
+
     /// <summary>The live fish in every tank of the Aquarium aisles, one entry per <see cref="FurnitureType.FishTank"/>, in tank order.</summary>
     public IReadOnlyList<TankFish> TankFish { get; init; } = Array.Empty<TankFish>();
 

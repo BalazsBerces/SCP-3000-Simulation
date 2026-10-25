@@ -116,6 +116,11 @@ GOODS_MODELS = [
     ("goods_tape", "polyhaven", "medical_tape", "Medical Tape", "Tape"),
 ]
 
+# People (ticket 09): one figure for every Villager, fitted to a Villager's height.
+PEOPLE_MODELS = [
+    ("villager", "sketchfab", "24ad029f3a094a679bc0b0b109ee40e3", "Male Character In Caual Clothing", "Villager"),
+]
+
 # Packs of several items where only one is wanted: folder -> the names of the nodes to keep as the scene (the rest are cut out).
 KEEP_NODES = {
     "goods_tinned_food": {"long_life_food_tomatoes"},
@@ -527,6 +532,12 @@ def main():
         "Copied along the shelves of Stock Furniture, as many as the shelf's stock (ticket 08r).",
         "",
         *credit_lines(GOODS_MODELS),
+        "",
+        "## People models",
+        "",
+        "Drawn for every Villager, scaled to a Villager's height (ticket 09).",
+        "",
+        *credit_lines(PEOPLE_MODELS),
         "",
         "## Textures",
         "",

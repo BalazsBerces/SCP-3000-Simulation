@@ -5,9 +5,13 @@ namespace Scp3008.Game;
 
 /// <summary>
 /// The dev debug panel: sets up situations through the core's scenario builder, in debug builds
-/// only. So far: F6 places a Fog bank on the camera focus. User arguments after "--":
+/// only. Keys: F6 places a Fog bank on the camera focus, F7 places a Villager there, F8 sends the
+/// Villager placed last walking to it, F9 skips one Store hour. User arguments after "--":
 ///   --clear-weather          remove every Fog bank and stop new ones forming (fixed views, benchmarks);
-///   --fog-bank=x,y[,radius]  place a Fog bank at Store position (x, y), 160 m across by default.
+///   --fog-bank=x,y[,radius]  place a Fog bank at Store position (x, y), 160 m across by default;
+///   --villager=x,y           place a Villager at Store position (x, y);
+///   --villager-to=x,y        send the Villager placed last walking to (x, y);
+///   --follow-villager        follow the Villager placed last with the camera.
 /// </summary>
 public partial class DebugPanel : Node
 {
@@ -15,6 +19,8 @@ public partial class DebugPanel : Node
     [Export] public CameraRig Rig { get; set; } = null!;
 
     [Export] public float FogBankRadius { get; set; } = 160f;
+
+    private int? _lastVillager;
 
     public override void _Ready()
     {
@@ -29,25 +35,74 @@ public partial class DebugPanel : Node
                 Host.HoldClearWeather();
             else if (arg.StartsWith("--fog-bank="))
             {
-                var parts = arg["--fog-bank=".Length..].Split(',')
-                    .Select(p => float.Parse(p, CultureInfo.InvariantCulture)).ToArray();
+                var parts = Numbers(arg["--fog-bank=".Length..]);
                 PlaceFogBank(new System.Numerics.Vector2(parts[0], parts[1]), parts.Length > 2 ? parts[2] : FogBankRadius);
             }
+            else if (arg.StartsWith("--villager="))
+            {
+                var parts = Numbers(arg["--villager=".Length..]);
+                PlaceVillager(new System.Numerics.Vector2(parts[0], parts[1]));
+            }
+            else if (arg.StartsWith("--villager-to="))
+            {
+                var parts = Numbers(arg["--villager-to=".Length..]);
+                SendVillager(new System.Numerics.Vector2(parts[0], parts[1]));
+            }
+            else if (arg == "--follow-villager" && _lastVillager is { } id)
+                Rig.Follow(id);
         }
     }
 
     public override void _UnhandledKeyInput(InputEvent @event)
     {
-        if (@event is InputEventKey { Pressed: true, Echo: false, Keycode: Key.F6 })
+        if (@event is not InputEventKey { Pressed: true, Echo: false } key)
+            return;
+        switch (key.Keycode)
         {
-            PlaceFogBank(Rig.Focus.ToStore(), FogBankRadius);
-            GetViewport().SetInputAsHandled();
+            case Key.F6:
+                PlaceFogBank(Rig.Focus.ToStore(), FogBankRadius);
+                break;
+            case Key.F7:
+                PlaceVillager(Rig.Focus.ToStore());
+                break;
+            case Key.F8:
+                SendVillager(Rig.Focus.ToStore());
+                break;
+            case Key.F9:
+                Host.SkipTime(TimeSpan.FromHours(1));
+                var clock = Host.Snapshot.Clock;
+                GD.Print($"Debug: skipped one Store hour, now day {clock.Day} {clock.TimeOfDay.Hours:00}:{clock.TimeOfDay.Minutes:00}.");
+                break;
+            default:
+                return;
         }
+        GetViewport().SetInputAsHandled();
     }
+
+    private static float[] Numbers(string list) =>
+        list.Split(',').Select(p => float.Parse(p, CultureInfo.InvariantCulture)).ToArray();
 
     private void PlaceFogBank(System.Numerics.Vector2 position, float radius)
     {
         var bank = Host.PlaceFogBank(position, radius);
         GD.Print($"Debug: placed Fog bank {bank.Id} at ({bank.Position.X:0}, {bank.Position.Y:0}), radius {bank.Radius:0} m.");
+    }
+
+    private void PlaceVillager(System.Numerics.Vector2 position)
+    {
+        var villager = Host.PlaceVillager(position);
+        _lastVillager = villager.Id;
+        GD.Print($"Debug: placed Villager {villager.Id} at ({villager.Position.X:0.0}, {villager.Position.Y:0.0}).");
+    }
+
+    private void SendVillager(System.Numerics.Vector2 destination)
+    {
+        if (_lastVillager is not { } id)
+            return;
+        Host.SendVillager(id, destination);
+        var villager = Host.Snapshot.Villagers.First(v => v.Id == id);
+        GD.Print(villager.Destination is { } to
+            ? $"Debug: Villager {id} walks to ({to.X:0.0}, {to.Y:0.0})."
+            : $"Debug: Villager {id} finds no way to ({destination.X:0.0}, {destination.Y:0.0}).");
     }
 }

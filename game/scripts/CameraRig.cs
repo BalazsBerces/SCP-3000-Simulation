@@ -5,7 +5,7 @@ namespace Scp3008.Game;
 /// <summary>
 /// The Observer's angled top-down camera. Input only moves target values; the camera eases
 /// towards them every frame, so pan, zoom and rotate stay smooth with no swoops or shake.
-/// Keys: WASD/arrows pan, Q/E rotate, wheel or R/F zoom. Mouse: middle-drag pan, right-drag rotate.
+/// Keys: WASD/arrows pan, Q/E rotate, wheel or R/F zoom, V follows the next Villager (panning lets go). Mouse: middle-drag pan, right-drag rotate.
 /// </summary>
 public partial class CameraRig : Node3D
 {
@@ -64,6 +64,7 @@ public partial class CameraRig : Node3D
     [Export] public int RecentreStoreLengths { get; set; } = 8;
 
     private Vector3 _targetFocus;
+    private int? _following;
     private float _targetYaw;
     private float _targetDistance;
     private float _yaw;
@@ -139,10 +140,24 @@ public partial class CameraRig : Node3D
         }
     }
 
+    /// <summary>The Villager the camera follows, if any.</summary>
+    public int? Following => _following;
+
+    /// <summary>Keeps the focus on a Villager as they walk, until <see cref="StopFollowing"/> or a pan.</summary>
+    public void Follow(int villagerId) => _following = villagerId;
+
+    public void StopFollowing() => _following = null;
+
     public override void _UnhandledInput(InputEvent @event)
     {
         switch (@event)
         {
+            case InputEventKey { Pressed: true, Echo: false, Keycode: Key.V }:
+                // The next Villager by id after the one followed; past the last, let go.
+                var ids = Host.Snapshot.Villagers.Select(v => v.Id).Order().ToList();
+                var next = ids.FirstOrDefault(id => _following is null || id > _following, -1);
+                _following = next < 0 ? null : next;
+                break;
             case InputEventMouseButton { ButtonIndex: MouseButton.WheelUp, Pressed: true }:
                 _targetDistance = ClampDistance(_targetDistance / WheelZoomFactor);
                 break;
@@ -170,6 +185,16 @@ public partial class CameraRig : Node3D
     {
         var dt = (float)delta;
         ReadKeyboard(dt);
+        if (_following is { } followed)
+        {
+            // A Villager just placed is in the snapshot before the interpolation sees them.
+            var villager = Host.InterpolatedVillagers.FirstOrDefault(v => v.Id == followed)
+                           ?? Host.Snapshot.Villagers.FirstOrDefault(v => v.Id == followed);
+            if (villager is null)
+                _following = null;
+            else
+                FlyTo(villager.Position, _targetDistance);
+        }
 
         // Frame-rate independent exponential easing towards the targets.
         var blend = 1f - Mathf.Exp(-Smoothing * dt);
@@ -180,7 +205,8 @@ public partial class CameraRig : Node3D
             ClampIntoStore();
         else if (WrapFocus)
             WrapIntoStore();
-        ApplyTransform();    }
+        ApplyTransform();
+    }
 
     /// <summary>Eases the focus to the nearest image of a Store position and the zoom to a distance, as if panned and zoomed there.</summary>
     public void FlyTo(System.Numerics.Vector2 target, float distance)
@@ -259,6 +285,7 @@ public partial class CameraRig : Node3D
     {
         var right = new Vector3(Mathf.Cos(_targetYaw), 0f, -Mathf.Sin(_targetYaw));
         var down = new Vector3(Mathf.Sin(_targetYaw), 0f, Mathf.Cos(_targetYaw));
+        _following = null;
         // No clamping: the Store wraps, so the focus may pan across a seam.
         _targetFocus += right * screenMetres.X + down * screenMetres.Y;
     }

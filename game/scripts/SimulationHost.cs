@@ -109,6 +109,18 @@ public partial class SimulationHost : Node
     /// <summary>Fast-forwards the Store clock to the next <paramref name="timeOfDay"/> (dev tool, e.g. for the benchmark).</summary>
     public void AdvanceTo(TimeSpan timeOfDay) => _simulation.AdvanceTo(timeOfDay);
 
+    /// <summary>The Villagers, blended between the last two snapshots for smooth walking.</summary>
+    public IEnumerable<Villager> InterpolatedVillagers => _interpolator.Villagers(NowSeconds);
+
+    /// <summary>Dev tool (debug panel): places a standing Villager through the scenario builder.</summary>
+    public Villager PlaceVillager(System.Numerics.Vector2 position) => _simulation.Scenario.PlaceVillager(position);
+
+    /// <summary>Dev tool (debug panel): sends a Villager walking to a Store position through the scenario builder.</summary>
+    public void SendVillager(int villagerId, System.Numerics.Vector2 destination) => _simulation.Scenario.SendVillager(villagerId, destination);
+
+    /// <summary>Dev tool (debug panel): lets Store time pass at once, simulated tick by tick.</summary>
+    public void SkipTime(TimeSpan storeTime) => _simulation.Advance(storeTime);
+
     /// <summary>Dev tool (debug panel, benchmark): places a fully formed Fog bank through the scenario builder.</summary>
     public FogBank PlaceFogBank(System.Numerics.Vector2 position, float radius) =>
         _simulation.Scenario.PlaceFogBank(position, radius);

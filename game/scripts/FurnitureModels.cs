@@ -340,10 +340,10 @@ public static class FurnitureModels
     /// <summary>
     /// A model of a Goods product (ticket 08r), turned by <paramref name="yaw"/> so its front faces +Z and scaled
     /// evenly so its longest side is <paramref name="longest"/> metres, its footprint centred on the origin and its
-    /// base at Y = 0; one surface per material at most <see cref="ProductBudget"/> triangles, no levels of detail
+    /// base at Y = 0; one surface per material at most <paramref name="budget"/> triangles, no levels of detail
     /// (<see cref="ShelfGoods"/> copies it along a shelf and simplifies the whole load). Built once per folder and shared.
     /// </summary>
-    public static ArrayMesh Product(string folder, float yaw, float longest)
+    public static ArrayMesh Product(string folder, float yaw, float longest, int budget = ProductBudget)
     {
         if (Products.TryGetValue(folder, out var cached))
             return cached;
@@ -352,7 +352,7 @@ public static class FurnitureModels
         Collect(scene, new Transform3D(new Basis(Vector3.Up, Mathf.DegToRad(yaw)), Vector3.Zero), parts);
         scene.Free();
         Fit(parts, size => Vector3.One * (longest / size[(int)size.MaxAxisIndex()]));
-        var indices = Simplified(parts, ProductBudget);
+        var indices = Simplified(parts, budget);
         var mesh = new ArrayMesh();
         for (var s = 0; s < parts.Count; s++)
         {

@@ -74,4 +74,30 @@ public sealed class SnapshotInterpolator(TimeSpan stepInterval)
             };
         }
     }
+
+    /// <summary>
+    /// The Villagers to display at <paramref name="nowSeconds"/>, each blended from where they stood in the previous
+    /// snapshot along the shortest wrapped path, so a Villager crossing a seam walks on smoothly.
+    /// </summary>
+    public IEnumerable<Villager> Villagers(double nowSeconds)
+    {
+        if (_previous is null || _latest is null)
+            yield break;
+        var blend = (float)Blend(nowSeconds);
+        foreach (var villager in _latest.Villagers)
+        {
+            var before = _previous.Villagers.FirstOrDefault(v => v.Id == villager.Id);
+            if (before is null)
+            {
+                yield return villager;
+                continue;
+            }
+            var turn = MathF.IEEERemainder(villager.Heading - before.Heading, MathF.Tau);
+            yield return villager with
+            {
+                Position = before.Position + _latest.Space.Delta(before.Position, villager.Position) * blend,
+                Heading = before.Heading + turn * blend,
+            };
+        }
+    }
 }

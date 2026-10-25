@@ -95,6 +95,12 @@ Copied along the shelves of Stock Furniture, as many as the shelf's stock (ticke
 - Cables: [Power strip extension lead](https://sketchfab.com/3d-models/power-strip-extension-lead-2180b1f7b55b433285cbe08181a9e88a) by Sousinho, Sketchfab, CC-BY ([CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)) (`models/goods_cables`)
 - Tape: [Medical Tape](https://polyhaven.com/a/medical_tape) by Miroslav Turura, Poly Haven, CC0 (`models/goods_tape`)
 
+## People models
+
+Drawn for every Villager, scaled to a Villager's height (ticket 09).
+
+- Villager: [Male Character In Caual Clothing](https://sketchfab.com/3d-models/male-character-in-caual-clothing-24ad029f3a094a679bc0b0b109ee40e3) by gamedevme, Sketchfab, CC-BY ([CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)) (`models/villager`)
+
 ## Textures
 
 PBR textures for the procedural Furniture and the floors are listed in `game/assets/textures/CREDITS.md`; all CC0, from Poly Haven and ambientCG.

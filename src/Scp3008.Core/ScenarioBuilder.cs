@@ -62,4 +62,34 @@ public sealed class ScenarioBuilder
     /// </summary>
     /// <exception cref="ArgumentException">A piece is not Stock Furniture; nothing is set.</exception>
     public void SetStock(IEnumerable<(int FurnitureId, GoodsKind Kind)> goods, int amount) => _simulation.SetStock(goods, amount);
+
+    /// <summary>Places a standing Villager at a Store position, or on the nearest free floor if Furniture or a Pillar stands there.</summary>
+    public Villager PlaceVillager(Vector2 position) => _simulation.PlaceVillager(position);
+
+    /// <summary>
+    /// Sends a Villager walking the shortest way, around Furniture and Pillars and across the seams, to a Store position
+    /// (beside it, if Furniture stands there). A Villager with no way there stays where they are.
+    /// </summary>
+    /// <exception cref="ArgumentException">There is no Villager with that id.</exception>
+    public void SendVillager(int villagerId, Vector2 destination) => _simulation.SendVillager(villagerId, destination);
+
+    /// <summary>
+    /// Moves the Store clock on to the next moment it shows <paramref name="timeOfDay"/>, at once: no time is simulated
+    /// in between and no events are raised. Does nothing if the clock already shows it.
+    /// </summary>
+    public void SetTimeOfDay(TimeSpan timeOfDay)
+    {
+        if (timeOfDay < TimeSpan.Zero || timeOfDay >= TimeSpan.FromDays(1))
+            throw new ArgumentOutOfRangeException(nameof(timeOfDay), "A time of day lies from 00:00 up to 24:00.");
+        _simulation.SetTimeOfDay(timeOfDay);
+    }
+
+    /// <summary>Puts a new piece of Furniture on the floor (the next free id), standing upright; walking Villagers find their way around it.</summary>
+    public FurniturePiece PlaceFurniture(FurnitureType type, Vector2 position, float rotation = 0f, int variant = 0) =>
+        _simulation.PlaceFurniture(type, position, rotation, variant);
+
+    /// <summary>Moves a piece of Furniture to a new position and rotation; walking Villagers find their way again.</summary>
+    /// <exception cref="ArgumentException">There is no piece with that id.</exception>
+    public FurniturePiece MoveFurniture(int furnitureId, Vector2 position, float rotation) =>
+        _simulation.MoveFurniture(furnitureId, position, rotation);
 }

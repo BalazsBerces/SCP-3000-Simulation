@@ -1,4 +1,4 @@
-[gd_scene load_steps=25 format=3]
+[gd_scene load_steps=26 format=3]
 
 [ext_resource type="Script" path="res://scripts/SimulationHost.cs" id="1_host"]
 [ext_resource type="Script" path="res://scripts/StoreFloor.cs" id="2_floor"]
@@ -17,6 +17,7 @@
 [ext_resource type="Script" path="res://scripts/LampLights.cs" id="12_lamps"]
 [ext_resource type="Script" path="res://scripts/FogBankRenderer.cs" id="13_fog_banks"]
 [ext_resource type="Script" path="res://scripts/DebugPanel.cs" id="14_debug"]
+[ext_resource type="Script" path="res://scripts/VillagerRenderer.cs" id="21_villagers"]
 
 [ext_resource type="Script" path="res://scripts/StoreVisibility.cs" id="15_visibility"]
 [ext_resource type="Script" path="res://scripts/PillarRenderer.cs" id="16_pillars"]
@@ -179,6 +180,11 @@ Lamps = NodePath("../LampLights")
 Rig = NodePath("../CameraRig")
 Host = NodePath("../SimulationHost")
 Seeds = NodePath("../SeedPanel")
+
+[node name="VillagerRenderer" type="Node3D" parent="." node_paths=PackedStringArray("Host", "Rig")]
+script = ExtResource("21_villagers")
+Host = NodePath("../SimulationHost")
+Rig = NodePath("../CameraRig")
 
 [node name="DebugPanel" type="Node" parent="." node_paths=PackedStringArray("Host", "Rig")]
 script = ExtResource("14_debug")

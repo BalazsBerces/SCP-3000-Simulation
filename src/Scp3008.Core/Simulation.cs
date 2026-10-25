@@ -42,6 +42,8 @@ public sealed class Simulation : IDisposable
     private IReadOnlyList<WaterPoint> _waterPoints;
     private IReadOnlyList<SectorStock> _sectorStocks;
     private readonly Weather _weather;
+    private readonly Navigation _navigation;
+    private readonly Villagers _villagers;
     private long _tick;
     private SimulationSpeed _speed = SimulationSpeed.Normal;
     private TimeSpan _unspentRealTime;
@@ -94,6 +96,8 @@ public sealed class Simulation : IDisposable
         var runtimeSeed = config.RuntimeRngSeed ?? Random.Shared.Next();
         _weather = new Weather(_space, SeededRandom.For(runtimeSeed, WeatherStream));
         _weather.WarmUp(WeatherWarmUpHours);
+        _navigation = new Navigation(_space, () => _furniture.Pieces, _pillars);
+        _villagers = new Villagers(_space, _navigation);
         Scenario = new ScenarioBuilder(this);
         _snapshot = BuildSnapshot();
     }
@@ -276,6 +280,7 @@ public sealed class Simulation : IDisposable
         _tick++;
         var clock = new StoreClock(_tick);
         _weather.Advance(StoreClock.TickDuration.TotalHours, clock, Emit);
+        _villagers.Advance(StoreClock.TickDuration.TotalHours);
         var timeOfDay = clock.TimeOfDay;
         if (timeOfDay == TimeSpan.Zero)
             Emit(new StoreDayBegan(clock, clock.Day));
@@ -319,7 +324,10 @@ public sealed class Simulation : IDisposable
             var removed = _furniture.Pieces.Count - kept.Count;
             if (removed > 0)
             {
+                var keptIds = kept.Select(p => p.Id).ToHashSet();
+                _navigation.Update(_furniture.Pieces.Where(p => !keptIds.Contains(p.Id)), []);
                 _furniture = _furniture with { Pieces = kept.AsReadOnly() };
+                _villagers.Replan();
                 // Goods go with the Furniture that held them.
                 var ids = kept.Select(p => p.Id).ToHashSet();
                 _stock = _stock.Where(g => ids.Contains(g.FurnitureId)).ToList().AsReadOnly();
@@ -349,6 +357,60 @@ public sealed class Simulation : IDisposable
         }
     }
 
+    /// <summary>Puts a new piece of Furniture on the floor (the next free id), lets walking Villagers find their way again and publishes a new snapshot.</summary>
+    internal FurniturePiece PlaceFurniture(FurnitureType type, Vector2 position, float rotation, int variant) =>
+        Publish(() =>
+        {
+            var piece = new FurniturePiece(_furniture.Pieces.Count == 0 ? 0 : _furniture.Pieces.Max(p => p.Id) + 1, type, _space.Wrap(position), 0f,
+                rotation, variant);
+            _furniture = _furniture with { Pieces = _furniture.Pieces.Append(piece).ToList().AsReadOnly() };
+            _navigation.Update([], [piece]);
+            _villagers.Replan();
+            return piece;
+        });
+
+    /// <summary>Moves a piece of Furniture across the floor, lets walking Villagers find their way again and publishes a new snapshot.</summary>
+    internal FurniturePiece MoveFurniture(int furnitureId, Vector2 position, float rotation) =>
+        Publish(() =>
+        {
+            var index = _furniture.Pieces.ToList().FindIndex(p => p.Id == furnitureId);
+            if (index < 0)
+                throw new ArgumentException($"No piece {furnitureId}.", nameof(furnitureId));
+            var before = _furniture.Pieces[index];
+            var moved = before with { Position = _space.Wrap(position), Rotation = rotation };
+            _furniture = _furniture with { Pieces = _furniture.Pieces.Select((p, i) => i == index ? moved : p).ToList().AsReadOnly() };
+            _navigation.Update([before], [moved]);
+            _villagers.Replan();
+            return moved;
+        });
+
+    internal Villager PlaceVillager(Vector2 position) => Publish(() => _villagers.Place(position));
+
+    internal void SendVillager(int villagerId, Vector2 destination) => Publish(() =>
+    {
+        _villagers.Send(villagerId, destination);
+        return true;
+    });
+
+    /// <summary>Moves the clock on to the next moment it shows the time of day, without running the ticks between, and publishes a new snapshot.</summary>
+    internal void SetTimeOfDay(TimeSpan timeOfDay) => Publish(() =>
+    {
+        var target = StoreClock.TicksFor(timeOfDay) % StoreClock.TicksPerStoreDay;
+        var now = StoreClock.TicksFor(new StoreClock(_tick).TimeOfDay);
+        _tick += (target - now + StoreClock.TicksPerStoreDay) % StoreClock.TicksPerStoreDay;
+        return true;
+    });
+
+    private T Publish<T>(Func<T> change)
+    {
+        lock (_stepLock)
+        {
+            var result = change();
+            _snapshot = BuildSnapshot();
+            return result;
+        }
+    }
+
     private StockConfig StockConfig => _config.Stock ?? new StockConfig();
 
     private void Unsubscribe(Action<DomainEvent> handler)
@@ -373,6 +435,7 @@ public sealed class Simulation : IDisposable
             WaterPoints = _waterPoints,
             ShelfCapacity = StockConfig.ShelfCapacity,
             PointOfInterestShowcase = _config.PointOfInterestShowcase,
+            Villagers = _villagers.Snapshot(),
         };
 
     private sealed class Subscription(Simulation owner, Action<DomainEvent> handler) : IDisposable
