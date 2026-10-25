@@ -1,4 +1,4 @@
-[gd_scene load_steps=24 format=3]
+[gd_scene load_steps=25 format=3]
 
 [ext_resource type="Script" path="res://scripts/SimulationHost.cs" id="1_host"]
 [ext_resource type="Script" path="res://scripts/StoreFloor.cs" id="2_floor"]
@@ -11,6 +11,7 @@
 [ext_resource type="Script" path="res://scripts/FurnitureRenderer.cs" id="8_furniture"]
 [ext_resource type="Script" path="res://scripts/SeedPanel.cs" id="9_seed"]
 [ext_resource type="Script" path="res://scripts/SectorInspector.cs" id="19_sector_inspector"]
+[ext_resource type="Script" path="res://scripts/OverviewHeatmap.cs" id="20_heatmap"]
 [ext_resource type="Script" path="res://scripts/StoreAtmosphere.cs" id="10_atmosphere"]
 [ext_resource type="Script" path="res://scripts/AmbientAudio.cs" id="11_audio"]
 [ext_resource type="Script" path="res://scripts/LampLights.cs" id="12_lamps"]
@@ -186,5 +187,10 @@ Rig = NodePath("../CameraRig")
 
 [node name="SectorInspector" type="CanvasLayer" parent="." node_paths=PackedStringArray("Host", "Rig")]
 script = ExtResource("19_sector_inspector")
+Host = NodePath("../SimulationHost")
+Rig = NodePath("../CameraRig")
+
+[node name="OverviewHeatmap" type="CanvasLayer" parent="." node_paths=PackedStringArray("Host", "Rig")]
+script = ExtResource("20_heatmap")
 Host = NodePath("../SimulationHost")
 Rig = NodePath("../CameraRig")

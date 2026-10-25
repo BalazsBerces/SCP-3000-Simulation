@@ -38,6 +38,7 @@ namespace Scp3008.Game;
 ///   --show-credits         after one second, open the Credits dialog as the seed panel's Credits button does.
 ///   --inspect=x,y          (read by SectorInspector) once the overview is on, turn on Sector inspection and click the
 ///                          screen point over Store position (x, y), wrapped (e.g. -20,960 picks the Sector east of the west Seam).
+///   --heatmap=Mode         (read by OverviewHeatmap) turn on the overview heatmap of Water, Food, Drink, Comfort or Supplies.
 ///   --furniture-tour=dir  save 1080p JPG captures into dir, then quit: every Department type
 ///                          (Department-*), every layout archetype (Archetype-*) and every
 ///                          Furniture variant (Variant-*-n).
