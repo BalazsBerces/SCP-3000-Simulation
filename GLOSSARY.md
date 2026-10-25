@@ -46,6 +46,9 @@ _Avoid_: Point of interest (small, seen only up close)
 A world for looking at the Landmarks rather than a Store to simulate: every Landmark type once, side by side in one row on empty Store floor (the abandoned scaffold on the Pillar nearest the row), with no Displays and no Points of interest. The seed still varies how each Landmark is built.
 _Avoid_: Test map, gallery level
 
+**Villager sandbox**:
+A tiny wrapping Store of 2 × 2 Chunks (128 × 128 m), with one Pillar and hand-placed Furniture, Goods, Gear and people, for developing and checking behaviour before checking the full Store at a stage end. A named **preset** is a JSON scenario loaded through the core's Scenario builder both in the game and in facade tests. The default preset is scavenge; empty, starving, closing soon and staff nearby provide other starting situations.
+
 **Point of interest showcase**:
 Like the Landmark showcase, for the Points of interest: every kind once, side by side in one row on empty Store floor, with no Displays and no Landmarks. The seed still varies how each is built.
 _Avoid_: Test map, gallery level

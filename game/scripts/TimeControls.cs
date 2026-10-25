@@ -54,7 +54,9 @@ public partial class TimeControls : CanvasLayer
         var row = new HBoxContainer();
         column.AddChild(row);
         var group = new ButtonGroup();
-        foreach (var (speed, label, _) in Speeds)
+        var speeds = Host.Snapshot.VillagerSandbox
+            ? Speeds.Append((SimulationSpeed.Fast60, "60x", Key.Key6)) : Speeds;
+        foreach (var (speed, label, _) in speeds)
         {
             var button = new Button
             {
@@ -65,6 +67,12 @@ public partial class TimeControls : CanvasLayer
             row.AddChild(button);
             _buttons[speed] = button;
         }
+        if (Host.Snapshot.VillagerSandbox)
+        {
+            var step = new Button { Text = "Step", FocusMode = Control.FocusModeEnum.None, TooltipText = "Pause and advance one simulation tick (7.2 Store seconds)" };
+            step.Pressed += Step;
+            row.AddChild(step);
+        }
         _nightButton = new Button { FocusMode = Control.FocusModeEnum.None, CustomMinimumSize = new Vector2(64, 0) };
         _nightButton.Pressed += ToggleNight;
         row.AddChild(_nightButton);
@@ -74,6 +82,15 @@ public partial class TimeControls : CanvasLayer
     {
         if (@event is not InputEventKey { Pressed: true, Echo: false } key)
             return;
+        if (Host.Snapshot.VillagerSandbox && key.Keycode is Key.Key6 or Key.Period)
+        {
+            if (key.Keycode == Key.Key6)
+                SetSpeed(SimulationSpeed.Fast60);
+            else
+                Step();
+            GetViewport().SetInputAsHandled();
+            return;
+        }
         if (key.Keycode == Key.N)
         {
             ToggleNight();
@@ -116,6 +133,12 @@ public partial class TimeControls : CanvasLayer
     {
         var timeOfDay = TimeSpan.FromTicks(Host.InterpolatedStoreTime.Ticks % TimeSpan.TicksPerDay);
         Host.AdvanceTo(StoreHours.PhaseAt(timeOfDay) == DayPhase.Open ? Night : Day);
+    }
+
+    private void Step()
+    {
+        SetSpeed(SimulationSpeed.Paused);
+        Host.SkipTime(StoreClock.TickDuration);
     }
 
     private void SetSpeed(SimulationSpeed speed)

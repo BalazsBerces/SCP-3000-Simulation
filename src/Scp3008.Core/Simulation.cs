@@ -44,6 +44,10 @@ public sealed class Simulation : IDisposable
     private readonly Weather _weather;
     private readonly Navigation _navigation;
     private readonly Villagers _villagers;
+    private readonly Villagers _staff;
+    private readonly List<Band> _bands = [];
+    private readonly List<Gear> _gear = [];
+    private readonly List<(int Id, Vector2[] Route, int Next)> _patrols = [];
     private long _tick;
     private SimulationSpeed _speed = SimulationSpeed.Normal;
     private TimeSpan _unspentRealTime;
@@ -56,7 +60,10 @@ public sealed class Simulation : IDisposable
     {
         _config = config;
         _space = config.PillarLayout.Space();
-        _departments = DepartmentGenerator.Generate(config.Seed, _space);
+        var sandbox = config.PillarLayout == PillarLayout.VillagerSandbox;
+        _departments = sandbox
+            ? new DepartmentMap(16f, 8, new int[64], [new Department(0, DepartmentType.RestaurantAndFoodMarket, new Vector2(64), 64, 128 * 128)])
+            : DepartmentGenerator.Generate(config.Seed, _space);
         _sectors = PillarGenerator.Sectors(_space, config.PillarLayout);
         _pillars = PillarGenerator.Pillars(_sectors, config.PillarLayout);
         // The Landmarks are placed first, so the Displays keep off them; their Furniture follows the Displays'.
@@ -64,18 +71,18 @@ public sealed class Simulation : IDisposable
         // The Point of interest showcase has no Landmarks and no Displays either.
         if (config.LandmarkShowcase && config.PointOfInterestShowcase)
             throw new ArgumentException("A world is at most one showcase.", nameof(config));
-        var sites = config.LandmarkShowcase
+        var sites = sandbox ? [] : config.LandmarkShowcase
             ? LandmarkGenerator.Showcase(_space, _sectors, _pillars, _departments.CellSize)
             : config.PointOfInterestShowcase
                 ? []
                 : LandmarkGenerator.Plan(config.Seed, _space, _sectors, _pillars, _departments.CellSize);
         // The Points of interest are planned next, so the Displays keep off them too; the Landmark showcase has none.
-        IReadOnlyList<PointOfInterestSite> poiSites = config.LandmarkShowcase
+        IReadOnlyList<PointOfInterestSite> poiSites = sandbox || config.LandmarkShowcase
             ? []
             : config.PointOfInterestShowcase
                 ? PointOfInterestGenerator.Showcase(_space, _sectors, _pillars)
                 : PointOfInterestGenerator.Plan(config.Seed, _space, _departments, _sectors, _pillars, sites);
-        var furniture = config.LandmarkShowcase || config.PointOfInterestShowcase
+        var furniture = sandbox || config.LandmarkShowcase || config.PointOfInterestShowcase
             ? new FurnitureLayout([], [], [])
             : FurnitureGenerator.Generate(config.Seed, _space, _departments, _pillars, sites, poiSites);
         var landmarks = LandmarkGenerator.Build(config.Seed, _space, sites, furniture.Pieces.Count);
@@ -87,7 +94,7 @@ public sealed class Simulation : IDisposable
         _ballPitNetwork = pointsOfInterest.BallPitNetwork;
         _tankFish = pointsOfInterest.TankFish;
         _counterMeals = pointsOfInterest.CounterMeals;
-        _stock = StockGenerator.Generate(config.Seed, config.Stock ?? new StockConfig(), _furniture.Pieces, _furniture.Displays, _departments,
+        _stock = sandbox ? [] : StockGenerator.Generate(config.Seed, config.Stock ?? new StockConfig(), _furniture.Pieces, _furniture.Displays, _departments,
             _pointsOfInterest, _tankFish, _counterMeals, _campGoods, _landmarks, _space, config.PillarLayout);
         _sectorStocks = StockGenerator.Summarize(_stock, _furniture.Pieces, _space, config.PillarLayout, config.Stock ?? new StockConfig());
         _waterPoints = WaterGenerator.Generate(config.Seed, config.Water ?? new WaterConfig(), _furniture.Pieces, _furniture.Displays,
@@ -95,9 +102,13 @@ public sealed class Simulation : IDisposable
         // Runtime randomness never comes from the Store seed (ADR 0003); it is unseeded unless a test fixes it.
         var runtimeSeed = config.RuntimeRngSeed ?? Random.Shared.Next();
         _weather = new Weather(_space, SeededRandom.For(runtimeSeed, WeatherStream));
-        _weather.WarmUp(WeatherWarmUpHours);
+        if (sandbox)
+            _weather.SetFormation(false);
+        else
+            _weather.WarmUp(WeatherWarmUpHours);
         _navigation = new Navigation(_space, () => _furniture.Pieces, _pillars);
         _villagers = new Villagers(_space, _navigation);
+        _staff = new Villagers(_space, _navigation);
         Scenario = new ScenarioBuilder(this);
         _snapshot = BuildSnapshot();
     }
@@ -281,6 +292,21 @@ public sealed class Simulation : IDisposable
         var clock = new StoreClock(_tick);
         _weather.Advance(StoreClock.TickDuration.TotalHours, clock, Emit);
         _villagers.Advance(StoreClock.TickDuration.TotalHours);
+        // Sandbox patrols use the same footprint navigation; daytime Staff remain dormant.
+        if (clock.Phase == DayPhase.ClosingTime && _patrols.Count > 0)
+        {
+            var staff = _staff.Snapshot();
+            for (var i = 0; i < _patrols.Count; i++)
+            {
+                var patrol = _patrols[i];
+                if (staff.Single(s => s.Id == patrol.Id).Destination is null)
+                {
+                    _staff.Send(patrol.Id, patrol.Route[patrol.Next]);
+                    _patrols[i] = (patrol.Id, patrol.Route, (patrol.Next + 1) % patrol.Route.Length);
+                }
+            }
+            _staff.Advance(StoreClock.TickDuration.TotalHours);
+        }
         var timeOfDay = clock.TimeOfDay;
         if (timeOfDay == TimeSpan.Zero)
             Emit(new StoreDayBegan(clock, clock.Day));
@@ -328,6 +354,7 @@ public sealed class Simulation : IDisposable
                 _navigation.Update(_furniture.Pieces.Where(p => !keptIds.Contains(p.Id)), []);
                 _furniture = _furniture with { Pieces = kept.AsReadOnly() };
                 _villagers.Replan();
+                _staff.Replan();
                 // Goods go with the Furniture that held them.
                 var ids = kept.Select(p => p.Id).ToHashSet();
                 _stock = _stock.Where(g => ids.Contains(g.FurnitureId)).ToList().AsReadOnly();
@@ -366,6 +393,7 @@ public sealed class Simulation : IDisposable
             _furniture = _furniture with { Pieces = _furniture.Pieces.Append(piece).ToList().AsReadOnly() };
             _navigation.Update([], [piece]);
             _villagers.Replan();
+            _staff.Replan();
             return piece;
         });
 
@@ -381,8 +409,30 @@ public sealed class Simulation : IDisposable
             _furniture = _furniture with { Pieces = _furniture.Pieces.Select((p, i) => i == index ? moved : p).ToList().AsReadOnly() };
             _navigation.Update([before], [moved]);
             _villagers.Replan();
+            _staff.Replan();
             return moved;
         });
+
+    internal Band PlaceBand(IReadOnlyList<Vector2> positions) => Publish(() =>
+    {
+        var band = new Band(_bands.Count, Array.AsReadOnly(positions.Select(p => _villagers.Place(p).Id).ToArray()));
+        _bands.Add(band);
+        return band;
+    });
+
+    internal Gear PlaceGear(GearKind kind, Vector2 position) => Publish(() =>
+    {
+        var gear = new Gear(_gear.Count, kind, _space.Wrap(position));
+        _gear.Add(gear);
+        return gear;
+    });
+
+    internal Staff PlaceStaff(Vector2 position, Vector2[] route) => Publish(() =>
+    {
+        var staff = _staff.Place(position);
+        _patrols.Add((staff.Id, route.Select(_space.Wrap).ToArray(), 0));
+        return new Staff(staff.Id, staff.Position, staff.Destination, staff.Heading);
+    });
 
     internal Villager PlaceVillager(Vector2 position) => Publish(() => _villagers.Place(position));
 
@@ -435,7 +485,10 @@ public sealed class Simulation : IDisposable
             WaterPoints = _waterPoints,
             ShelfCapacity = StockConfig.ShelfCapacity,
             PointOfInterestShowcase = _config.PointOfInterestShowcase,
-            Villagers = _villagers.Snapshot(),
+            Villagers = Array.AsReadOnly(_villagers.Snapshot()),
+            Bands = _bands.ToList().AsReadOnly(),
+            Gear = _gear.ToList().AsReadOnly(),
+            Staff = Array.AsReadOnly(_staff.Snapshot().Select(s => new Staff(s.Id, s.Position, s.Destination, s.Heading)).ToArray()),
         };
 
     private sealed class Subscription(Simulation owner, Action<DomainEvent> handler) : IDisposable

@@ -1,5 +1,6 @@
 using System.Globalization;
 using Godot;
+using Scp3008.Core;
 
 namespace Scp3008.Game;
 
@@ -29,6 +30,8 @@ public partial class DebugPanel : Node
             SetProcessUnhandledKeyInput(false);
             return;
         }
+        if (Host.Snapshot.VillagerSandbox)
+            AddSandboxPanel();
         foreach (var arg in OS.GetCmdlineUserArgs())
         {
             if (arg == "--clear-weather")
@@ -48,9 +51,44 @@ public partial class DebugPanel : Node
                 var parts = Numbers(arg["--villager-to=".Length..]);
                 SendVillager(new System.Numerics.Vector2(parts[0], parts[1]));
             }
-            else if (arg == "--follow-villager" && _lastVillager is { } id)
+            else if (arg == "--follow-villager" && (_lastVillager ?? Host.Snapshot.Villagers.FirstOrDefault()?.Id) is { } id)
                 Rig.Follow(id);
         }
+    }
+
+    private void AddSandboxPanel()
+    {
+        var layer = new CanvasLayer();
+        AddChild(layer);
+        var panel = new PanelContainer { Position = new Vector2(16, 148) };
+        layer.AddChild(panel);
+        var column = new VBoxContainer();
+        panel.AddChild(column);
+        column.AddChild(new Label { Text = "Villager sandbox" });
+        var presets = new OptionButton { Name = "SandboxPreset" };
+        foreach (var name in ScenarioBuilder.VillagerSandboxPresets)
+            presets.AddItem(name);
+        presets.Select(ScenarioBuilder.VillagerSandboxPresets.ToList().IndexOf(Host.SandboxPreset!));
+        presets.ItemSelected += index => Host.LoadSandboxPreset(presets.GetItemText((int)index));
+        column.AddChild(presets);
+        var follow = new Button { Text = "Follow Villager (V)", FocusMode = Control.FocusModeEnum.None };
+        follow.Pressed += () =>
+        {
+            if (Host.Snapshot.Villagers.FirstOrDefault() is { } villager)
+                Rig.Follow(villager.Id);
+        };
+        column.AddChild(follow);
+        column.AddChild(new Label { Text = "F7: place | F8: walk to focus\nF9: +1 Store hour | .: step | 6: 60x" });
+        var status = new Label();
+        column.AddChild(status);
+        void Refresh(WorldSnapshot snapshot)
+        {
+            _lastVillager = snapshot.Villagers.LastOrDefault()?.Id;
+            status.Text = $"{snapshot.Bands.Count} Band | {snapshot.Villagers.Count} Villagers | {snapshot.Staff.Count} Staff\n" +
+                $"{snapshot.Stock.Sum(g => g.Amount)} Goods | Gear: {string.Join(", ", snapshot.Gear.Select(g => g.Kind))}";
+        }
+        Refresh(Host.Snapshot);
+        Host.WorldCreated += Refresh;
     }
 
     public override void _UnhandledKeyInput(InputEvent @event)

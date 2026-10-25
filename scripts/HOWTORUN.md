@@ -46,3 +46,41 @@ Same switches as v4, apart from `-HardAgent`. One CSV row per ticket goes to `.t
 | `run-tickets.ps1` | v1: Claude Code only. |
 | `run-tickets-0255.ps1` | v1, starting at the next 02:55 Budapest time. Keep the computer awake; Ctrl+C cancels. |
 | `run-tickets-codex.ps1` | v1: Codex only. |
+
+## Villager sandbox (09a)
+
+```powershell
+.\scripts\run-game.ps1 -- --villager-sandbox
+.\scripts\run-game.ps1 -- --villager-sandbox --sandbox-preset=starving
+.\scripts\run-game.ps1 -- --villager-sandbox '--sandbox-preset=closing soon'
+.\scripts\run-game.ps1 -- --villager-sandbox '--sandbox-preset=staff nearby'
+```
+
+The sandbox is a 128 × 128 m wrapping Store with one Pillar. It defaults to `scavenge`.
+The dev debug panel selects `empty`, `scavenge`, `starving`, `closing soon` or `staff nearby`;
+selection replaces the world and resets its people, Furniture, Goods and clock, retaining time speed.
+Space pauses; 1–5 select 1x–16x, 6 selects 60x, and the Step button or period pauses and advances
+one tick (7.2 Store seconds). V cycles camera follow; F7 places a Villager, F8 sends the last
+Villager to the camera focus, F9 simulates one Store hour. The debug panel requires a dev build.
+
+Presets live in `game/scenarios/villager-sandbox/*.json`, embedded in the core at build time.
+To add one, copy a JSON file, rename it, edit its contents and rebuild. It appears automatically
+in the debug selector and the facade test that runs every preset for one Store day at 60x:
+
+```powershell
+dotnet test tests/Scp3008.Core.Tests -c Release --filter FullyQualifiedName~VillagerSandboxTests
+```
+
+Each file has `time` (`HH:mm`), `furniture` (type, `[x,y]` position, optional rotation in radians
+and stock entries with Goods kind and amount), `bands` (arrays of member positions), `gear`
+(kind and position), and `staff` (position and a non-empty `patrol` array of destinations).
+Collection fields default to empty. Coordinates are metres and wrap; names match the core enums.
+Only Grocery shelves can hold stock in the sandbox. Found tools currently support `HexKey` and
+`Screwdriver`, shown in the debug panel. Bands record membership; needs and autonomous scavenging
+arrive in later tickets. Staff follow their looping patrol at Closing time and stand while open;
+their sandbox figure reuses the existing faceless mannequin pending the Staff presentation ticket.
+
+Headless fixtures use `ScenarioBuilder.LoadVillagerSandbox("scavenge")` and `Simulation.Advance(...)`.
+For an unembedded custom file, pass `File.ReadAllText(path)` to `ScenarioBuilder.LoadVillagerSandboxJson`.
+The core has no Godot dependency. An unattended windowed UI check is available after Godot's `--`:
+`--villager-sandbox --sandbox-check=<report.txt>` (quits with nonzero status on failure).

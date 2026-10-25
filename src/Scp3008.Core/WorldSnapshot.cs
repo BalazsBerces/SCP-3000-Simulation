@@ -52,6 +52,13 @@ public sealed record WorldSnapshot(
     /// <summary>Whether this is the Point of interest showcase (every Point of interest in a row, no Displays or Landmarks) rather than a normal Store.</summary>
     public bool PointOfInterestShowcase { get; init; }
 
+    /// <summary>Whether this is the tiny hand-placed Villager sandbox.</summary>
+    public bool VillagerSandbox => PillarLayout == PillarLayout.VillagerSandbox;
+
+    public IReadOnlyList<Band> Bands { get; init; } = [];
+    public IReadOnlyList<Gear> Gear { get; init; } = [];
+    public IReadOnlyList<Staff> Staff { get; init; } = [];
+
     /// <summary>The Villagers in the Store.</summary>
     public IReadOnlyList<Villager> Villagers { get; init; } = [];
 
@@ -77,6 +84,7 @@ public sealed record WorldSnapshot(
     /// or not any are on it now.
     /// </summary>
     public bool IsStockFurniture(FurniturePiece piece) =>
+        (VillagerSandbox && piece.Type == FurnitureType.GroceryShelf) ||
         Generation.StockGenerator.IsStockFurniture(piece, Displays, Departments, PointsOfInterest, CampGoods, Landmarks);
 
     /// <summary>

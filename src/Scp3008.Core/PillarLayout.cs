@@ -32,6 +32,9 @@ public enum PillarLayout
     /// the Seams into one 1280 m empty square.
     /// </summary>
     DiamondLarge,
+
+    /// <summary>One Pillar in the 128 m Villager sandbox; never a generated Store layout.</summary>
+    VillagerSandbox,
 }
 
 /// <summary>Names, grids, Pillar placement and Store sizes of the <see cref="PillarLayout"/>s.</summary>
@@ -46,6 +49,7 @@ public static class PillarLayouts
     {
         PillarLayout.ThreeByThree or PillarLayout.ThreeByThreeLarge or PillarLayout.CornersLarge or PillarLayout.DiamondLarge => 3,
         PillarLayout.TwoByTwo => 2,
+        PillarLayout.VillagerSandbox => 1,
         _ => throw new ArgumentOutOfRangeException(nameof(layout)),
     };
 
@@ -75,6 +79,7 @@ public static class PillarLayouts
     /// <summary>The Store the layout stands in: the standard 1344 m Store, or the 1920 m one for the large layouts.</summary>
     public static StoreSpace Space(this PillarLayout layout) => layout switch
     {
+        PillarLayout.VillagerSandbox => new StoreSpace(64f, 2),
         PillarLayout.ThreeByThree or PillarLayout.TwoByTwo => StoreSpace.Standard,
         PillarLayout.ThreeByThreeLarge or PillarLayout.CornersLarge or PillarLayout.DiamondLarge => StoreSpace.Large,
         _ => throw new ArgumentOutOfRangeException(nameof(layout)),
@@ -89,6 +94,7 @@ public static class PillarLayouts
     /// </summary>
     public static string Name(this PillarLayout layout) => layout switch
     {
+        PillarLayout.VillagerSandbox => "sandbox",
         PillarLayout.ThreeByThree => "3x3",
         PillarLayout.TwoByTwo => "2x2",
         PillarLayout.ThreeByThreeLarge => "3x3L",

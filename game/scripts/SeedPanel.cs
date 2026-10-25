@@ -287,7 +287,9 @@ public partial class SeedPanel : CanvasLayer
         if (OS.GetCmdlineUserArgs().Any(a => a.StartsWith("--focus=") || a.StartsWith("--poi=")))
             return;
         var snapshot = Host.Snapshot;
-        if (snapshot.LandmarkShowcase && snapshot.Landmarks.MinBy(l => l.Centre.X) is { } landmark)
+        if (snapshot.VillagerSandbox)
+            Rig.FlyTo(new System.Numerics.Vector2(68, 105), 30f);
+        else if (snapshot.LandmarkShowcase && snapshot.Landmarks.MinBy(l => l.Centre.X) is { } landmark)
             Rig.FlyTo(landmark.Centre, Extent(landmark) * ShowcaseDistancePerMetre);
         else if (snapshot.PointOfInterestShowcase && snapshot.PointsOfInterest.MinBy(p => p.Centre.X) is { } poi)
             Rig.FlyTo(poi.Centre, MathF.Max(poi.Size.X, poi.Size.Y) * ShowcaseDistancePerMetre);

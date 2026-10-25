@@ -1,0 +1,91 @@
+{
+  "time": "21:57",
+  "furniture": [
+    {
+      "type": "GroceryShelf",
+      "position": [
+        50,
+        104
+      ],
+      "stock": [
+        {
+          "kind": "TinnedFood",
+          "amount": 3
+        }
+      ]
+    },
+    {
+      "type": "GroceryShelf",
+      "position": [
+        54,
+        104
+      ],
+      "stock": [
+        {
+          "kind": "BottledWater",
+          "amount": 3
+        }
+      ]
+    },
+    {
+      "type": "DiningTable",
+      "position": [
+        72,
+        104
+      ]
+    },
+    {
+      "type": "Chair",
+      "position": [
+        72,
+        107
+      ]
+    },
+    {
+      "type": "FloorLamp",
+      "position": [
+        76,
+        104
+      ]
+    },
+    {
+      "type": "Wardrobe",
+      "position": [
+        88,
+        100
+      ]
+    }
+  ],
+  "bands": [
+    [
+      [
+        62,
+        108
+      ],
+      [
+        64,
+        108
+      ],
+      [
+        66,
+        108
+      ]
+    ]
+  ],
+  "gear": [
+    {
+      "kind": "HexKey",
+      "position": [
+        72,
+        102
+      ]
+    },
+    {
+      "kind": "Screwdriver",
+      "position": [
+        74,
+        102
+      ]
+    }
+  ]
+}

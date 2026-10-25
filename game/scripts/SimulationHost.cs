@@ -33,6 +33,8 @@ public partial class SimulationHost : Node
     /// <summary>Whether the latest world asked for is the Point of interest showcase (<c>--poi-showcase</c> for the first).</summary>
     public bool PointOfInterestShowcase { get; private set; }
 
+    public string? SandboxPreset { get; private set; }
+
     private readonly ConcurrentQueue<DomainEvent> _pendingEvents = new();
     private SnapshotInterpolator _interpolator = new(Simulation.RealTimeStep);
     private Simulation _simulation = null!;
@@ -71,9 +73,14 @@ public partial class SimulationHost : Node
         TimeSpan? startTime = null;
         var startPaused = false;
         Layout = StartLayout;
-        foreach (var arg in OS.GetCmdlineUserArgs())
+        var args = OS.GetCmdlineUserArgs();
+        if (args.Contains("--villager-sandbox"))
+            SandboxPreset = "scavenge";
+        foreach (var arg in args)
         {
-            if (arg.StartsWith("--seed="))
+            if (arg.StartsWith("--sandbox-preset="))
+                SandboxPreset = arg["--sandbox-preset=".Length..];
+            else if (arg.StartsWith("--seed="))
                 Seed = int.Parse(arg["--seed=".Length..], CultureInfo.InvariantCulture);
             else if (arg.StartsWith("--pillars="))
                 Layout = PillarLayouts.Parse(arg["--pillars=".Length..]);
@@ -90,8 +97,11 @@ public partial class SimulationHost : Node
         if (LandmarkShowcase && PointOfInterestShowcase)
             PointOfInterestShowcase = false;
         var generating = Time.GetTicksMsec();
-        var simulation = Simulation.Create(new WorldConfig(Seed, PillarLayout: Layout, LandmarkShowcase: LandmarkShowcase,
-            PointOfInterestShowcase: PointOfInterestShowcase));
+        var simulation = SandboxPreset is { } preset
+            ? ScenarioBuilder.LoadVillagerSandbox(preset)
+            : Simulation.Create(new WorldConfig(Seed, PillarLayout: Layout, LandmarkShowcase: LandmarkShowcase,
+                PointOfInterestShowcase: PointOfInterestShowcase));
+        Layout = simulation.Snapshot.PillarLayout;
         GD.Print($"Store generated in {Time.GetTicksMsec() - generating} ms, from {generating} ms after start.");
         if (startTime is { } target)
             simulation.AdvanceTo(target);
@@ -157,12 +167,24 @@ public partial class SimulationHost : Node
         if (_nextWorld is not null)
             return;
         Seed = seed;
-        Layout = layout ?? Layout;
+        Layout = layout ?? (Snapshot.VillagerSandbox ? StartLayout : Layout);
         LandmarkShowcase = landmarkShowcase ?? (pointOfInterestShowcase == true ? false : LandmarkShowcase);
         PointOfInterestShowcase = pointOfInterestShowcase ?? (landmarkShowcase == true ? false : PointOfInterestShowcase);
         var config = new WorldConfig(seed, PillarLayout: Layout, LandmarkShowcase: LandmarkShowcase,
             PointOfInterestShowcase: PointOfInterestShowcase);
+        SandboxPreset = null;
         _nextWorld = Task.Run(() => Simulation.Create(config));
+    }
+
+    /// <summary>Replaces the sandbox through the same loader used by facade tests.</summary>
+    public void LoadSandboxPreset(string preset)
+    {
+        if (_nextWorld is not null)
+            return;
+        SandboxPreset = preset;
+        Layout = PillarLayout.VillagerSandbox;
+        LandmarkShowcase = PointOfInterestShowcase = false;
+        _nextWorld = Task.Run(() => ScenarioBuilder.LoadVillagerSandbox(preset));
     }
 
     public override void _Process(double delta)

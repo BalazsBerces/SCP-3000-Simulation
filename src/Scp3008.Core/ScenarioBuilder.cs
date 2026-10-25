@@ -7,7 +7,7 @@ namespace Scp3008.Core;
 /// <see cref="Simulation.Scenario"/>. Each change takes effect at once, is safe while the
 /// simulation thread runs, and shows in the next <see cref="Simulation.Snapshot"/>.
 /// </summary>
-public sealed class ScenarioBuilder
+public sealed partial class ScenarioBuilder
 {
     private readonly Simulation _simulation;
 

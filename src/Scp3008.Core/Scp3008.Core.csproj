@@ -9,4 +9,8 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
 
+  <ItemGroup>
+    <EmbeddedResource Include="../../game/scenarios/villager-sandbox/*.json" Link="Scenarios/%(Filename)%(Extension)" />
+  </ItemGroup>
+
 </Project>

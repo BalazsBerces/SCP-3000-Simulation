@@ -131,6 +131,12 @@ public partial class DevCapture : Node
     {
         foreach (var arg in OS.GetCmdlineUserArgs())
         {
+            if (arg.StartsWith("--sandbox-check="))
+            {
+                SetProcess(false);
+                CheckSandbox(arg["--sandbox-check=".Length..]);
+                return;
+            }
             if (arg.StartsWith("--silhouette-check="))
             {
                 RunSilhouetteCheck(arg["--silhouette-check=".Length..]);
@@ -463,6 +469,65 @@ public partial class DevCapture : Node
         var until = Time.GetTicksMsec() + (ulong)(seconds * 1000);
         while (Time.GetTicksMsec() < until)
             await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+    }
+
+    // Exercises the real debug selector and time-control buttons in a rendered sandbox.
+    private async void CheckSandbox(string report)
+    {
+        var lines = new List<string>();
+        try
+        {
+            await Wait(0.5);
+            void Check(bool passed, string message)
+            {
+                if (!passed)
+                    throw new InvalidOperationException(message);
+                lines.Add($"PASS {message}");
+            }
+            var root = GetTree().CurrentScene;
+            var selector = root.FindChild("SandboxPreset", true, false) as OptionButton;
+            Check(selector is not null, "Sandbox preset selector is present");
+            foreach (var name in ScenarioBuilder.VillagerSandboxPresets)
+            {
+                Host.Speed = SimulationSpeed.Paused;
+                var before = Host.Snapshot;
+                var index = ScenarioBuilder.VillagerSandboxPresets.ToList().IndexOf(name);
+                selector!.Select(index);
+                selector.EmitSignal(OptionButton.SignalName.ItemSelected, index);
+                var deadline = Time.GetTicksMsec() + 10000;
+                while (ReferenceEquals(before, Host.Snapshot) && Time.GetTicksMsec() < deadline)
+                    await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+                Check(!ReferenceEquals(before, Host.Snapshot) && Host.Snapshot.VillagerSandbox && Host.SandboxPreset == name,
+                    $"Debug selector loads {name}");
+                Check(Host.Snapshot.Villagers.Count == (name == "empty" ? 0 : 3), $"{name} replaces previous Villagers");
+            }
+            var controls = root.FindChildren("*", "Button", true, false).Cast<Button>().ToList();
+            var tick = Host.Snapshot.Clock.Tick;
+            controls.Single(b => b.Text == "Step").EmitSignal(Button.SignalName.Pressed);
+            Check(Host.Speed == SimulationSpeed.Paused && Host.Snapshot.Clock.Tick == tick + 1, "Step pauses and advances one tick");
+            controls.Single(b => b.Text == "60x").EmitSignal(Button.SignalName.Pressed);
+            Check(Host.Speed == SimulationSpeed.Fast60, "60x button sets simulation speed");
+            await Wait(1);
+            Check(Host.Snapshot.Clock.Tick >= tick + 1000, "60x clock advances on the simulation thread");
+            Host.Speed = SimulationSpeed.Paused;
+            Rig.Follow(Host.Snapshot.Villagers[0].Id);
+            Host.SendVillager(Host.Snapshot.Villagers[0].Id, new System.Numerics.Vector2(65, 112));
+            Host.SkipTime(TimeSpan.FromMinutes(10));
+            await Wait(2);
+            Check(Host.Snapshot.Space.Distance(Rig.Focus.ToStore(), Host.Snapshot.Villagers[0].Position) < 0.5f,
+                "Follow camera reaches walking Villager");
+            lines.Add("Sandbox UI check passed.");
+            System.IO.File.WriteAllLines(report, lines);
+            GD.Print(lines[^1]);
+            GetTree().Quit();
+        }
+        catch (Exception error)
+        {
+            lines.Add($"FAIL {error}");
+            System.IO.File.WriteAllLines(report, lines);
+            GD.PushError(error.ToString());
+            GetTree().Quit(2);
+        }
     }
 
     private async void CaptureFurnitureTour()

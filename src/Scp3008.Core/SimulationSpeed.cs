@@ -12,4 +12,5 @@ public enum SimulationSpeed
     Fast4 = 4,
     Fast8 = 8,
     Fast16 = 16,
+    Fast60 = 60,
 }

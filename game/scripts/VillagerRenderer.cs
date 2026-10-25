@@ -37,12 +37,19 @@ public partial class VillagerRenderer : Node3D
         var space = Host.Snapshot.Space;
         var focus = Rig.Focus;
         var seen = new HashSet<int>();
-        foreach (var villager in Host.InterpolatedVillagers)
+        var figures = Host.InterpolatedVillagers.Concat(Host.Snapshot.Staff.Select(s =>
+            new Villager(-s.Id - 1, s.Position, s.Destination, s.Heading)));
+        foreach (var villager in figures)
         {
             seen.Add(villager.Id);
             if (!_figures.TryGetValue(villager.Id, out var figure))
             {
-                figure = new MeshInstance3D { Mesh = _mesh, Name = $"Villager{villager.Id}" };
+                // Reuse the existing faceless mannequin in the sandbox until the Staff presentation ticket.
+                figure = new MeshInstance3D
+                {
+                    Mesh = villager.Id < 0 ? FurnitureMeshes.For(FurnitureType.Mannequin) : _mesh,
+                    Name = villager.Id < 0 ? $"Staff{-villager.Id - 1}" : $"Villager{villager.Id}",
+                };
                 AddChild(figure);
                 _figures[villager.Id] = figure;
             }

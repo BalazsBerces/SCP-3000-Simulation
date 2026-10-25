@@ -107,7 +107,7 @@ public class CafeteriaTests
     public static TheoryData<PillarLayout, int> LayoutsAndSeeds()
     {
         var data = new TheoryData<PillarLayout, int>();
-        foreach (var layout in Enum.GetValues<PillarLayout>())
+        foreach (var layout in PillarLayouts.All)
             foreach (var seed in new[] { 3008, 42, 7, 1, 2, 3, 4, 5 })
                 data.Add(layout, seed);
         return data;
