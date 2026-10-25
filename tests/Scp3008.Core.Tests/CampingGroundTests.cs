@@ -303,7 +303,7 @@ public class CampingGroundTests
             Assert.Contains(PiecesOf(snapshot, camp), p => p.Type == FurnitureType.MarshmallowTray &&
                 Vector2.Distance(p.Position, piece.Position) < 1f && MathF.Abs(p.Elevation - top) < 0.01f);
             Assert.True(PiecesOf(snapshot, camp).Count(p => p.Type == FurnitureType.MarshmallowStick &&
-                Vector2.Distance(p.Position, piece.Position) < 1.2f && p.Elevation > top) >= 6, "The tasting stand has too few marshmallows.");
+                Vector2.Distance(p.Position, piece.Position) < 1.2f && p.Elevation > top) >= 30, "The tasting stand has too few marshmallows.");
             Assert.Contains(snapshot.CampGoods, g => g.Kind == CampGoodsKind.TinnedFood);
             Assert.Contains(snapshot.CampGoods, g => g.Kind == CampGoodsKind.Backpack);
             Assert.All(snapshot.CampGoods, g => Assert.Contains(snapshot.Furniture, p => p.Id == g.StandId));

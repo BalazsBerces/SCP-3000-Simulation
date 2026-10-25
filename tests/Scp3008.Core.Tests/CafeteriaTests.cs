@@ -153,4 +153,23 @@ public class CafeteriaTests
             }
         }
     }
+
+    [Theory]
+    [MemberData(nameof(LayoutsAndSeeds))]
+    public void The_three_cafeterias_stand_about_equally_far_apart_across_the_seams_and_seeded(PillarLayout layout, int seed)
+    {
+        Vector2[] Centres(int s)
+        {
+            using var sim = Simulation.Create(new WorldConfig(s, RuntimeRngSeed: 1, PillarLayout: layout));
+            return sim.Snapshot.PointsOfInterest.Where(p => p.Type == PointOfInterestType.Cafeteria).Select(p => p.Centre).ToArray();
+        }
+        using var world = Simulation.Create(new WorldConfig(seed, RuntimeRngSeed: 1, PillarLayout: layout));
+        var space = world.Snapshot.Space;
+        var c = Centres(seed);
+        var d = new[] { space.Distance(c[0], c[1]), space.Distance(c[1], c[2]), space.Distance(c[2], c[0]) };
+        // Usually within a few percent; a Pillar or Landmark on one of the food market sites can push a trio a little further out.
+        Assert.True((d.Max() - d.Min()) / d.Max() <= 0.2f, $"Cafeteria distances {string.Join(", ", d.Select(x => x.ToString("0")))} m are uneven.");
+        Assert.True(d.Min() >= 0.3f * space.Size, $"Two Cafeterias are only {d.Min():0} m apart.");
+        Assert.NotEqual(c, Centres(seed + 1000));
+    }
 }

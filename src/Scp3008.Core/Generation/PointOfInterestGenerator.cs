@@ -30,6 +30,14 @@ internal static class PointOfInterestGenerator
     private const int CafeteriaCount = 3;
     /// <summary>The side of the block of Department cells a Cafeteria stands on.</summary>
     private const int CafeteriaBlockCells = 3;
+    /// <summary>The nearest two Cafeterias are at least this share of the Store's side apart.</summary>
+    public const float CafeteriaMinApart = 0.3f;
+    /// <summary>
+    /// How unequal the Cafeterias' distances to each other may be, as the gap between the farthest and the nearest pair over the farthest;
+    /// the seeded draw stops at the first trio this even, else keeps the most even one it found.
+    /// </summary>
+    public const float CafeteriaSpreadTolerance = 0.08f;
+    private const int CafeteriaDraws = 20000;
 
     /// <summary>Free floor kept between a Point of interest and a Pillar's walkway ring or a Landmark.</summary>
     private const float Clearance = 1f;
@@ -64,11 +72,11 @@ internal static class PointOfInterestGenerator
         // The 3 × 3 blocks of Department cells the Cafeterias stand on: no other Point of interest may touch them.
         var reserved = new List<(Vector2 Centre, Vector2 Size)>();
 
-        bool TryPlace(PointOfInterestType type, int firstCellX, int firstCellY, int cellsX, int cellsY, Func<int, int, bool> allowed, int blockCells = 1)
+        bool TryPlace(PointOfInterestType type, int firstCellX, int firstCellY, int cellsX, int cellsY, Func<int, int, bool> allowed)
         {
             var cells = new List<(int X, int Y)>();
-            for (var y = firstCellY; y < firstCellY + cellsY - (blockCells - 1); y++)
-                for (var x = firstCellX; x < firstCellX + cellsX - (blockCells - 1); x++)
+            for (var y = firstCellY; y < firstCellY + cellsY; y++)
+                for (var x = firstCellX; x < firstCellX + cellsX; x++)
                     if (allowed(x, y))
                         cells.Add((x, y));
             while (cells.Count > 0)
@@ -81,15 +89,13 @@ internal static class PointOfInterestGenerator
                 var own = OwnSize(type);
                 var size = (quarters & 1) == 0 ? own : new Vector2(own.Y, own.X);
                 // A Point of interest bigger than a department cell (the Armchair henge) stands centred on its cell.
-                var block = new Vector2(cellSize * blockCells);
-                var slack = Vector2.Max(Vector2.Zero, (block - size) / 2f - new Vector2(Clearance));
-                var centre = new Vector2((cx + blockCells / 2f) * cellSize, (cy + blockCells / 2f) * cellSize)
+                var slack = Vector2.Max(Vector2.Zero, (new Vector2(cellSize) - size) / 2f - new Vector2(Clearance));
+                var centre = new Vector2((cx + 0.5f) * cellSize, (cy + 0.5f) * cellSize)
                     + new Vector2(random.Range(-slack.X, slack.X), random.Range(-slack.Y, slack.Y));
                 if (!IsFree(space, pillars, landmarks, sites, centre, size))
                     continue;
-                // Only a Cafeteria may stand on a Cafeteria's block of cells.
-                if (type != PointOfInterestType.Cafeteria &&
-                    reserved.Any(r => !Apart(space.Delta(r.Centre, centre), r.Size / 2f, size / 2f, 0f)))
+                // Nothing else may stand on a Cafeteria's block of cells.
+                if (reserved.Any(r => !Apart(space.Delta(r.Centre, centre), r.Size / 2f, size / 2f, 0f)))
                     continue;
                 var sector = sectors.First(s => centre.X >= s.Origin.X && centre.X < s.Origin.X + s.Size &&
                                                 centre.Y >= s.Origin.Y && centre.Y < s.Origin.Y + s.Size);
@@ -97,8 +103,6 @@ internal static class PointOfInterestGenerator
                     centre.Y - size.Y / 2f < sector.Origin.Y || centre.Y + size.Y / 2f > sector.Origin.Y + sector.Size)
                     continue;
                 sites.Add(new PointOfInterestSite(sites.Count, type, sector.Id, centre, size, quarters));
-                if (type == PointOfInterestType.Cafeteria)
-                    reserved.Add((new Vector2((cx + blockCells / 2f) * cellSize, (cy + blockCells / 2f) * cellSize), block));
                 return true;
             }
             return false;
@@ -128,9 +132,65 @@ internal static class PointOfInterestGenerator
             (x, y) => Block(x, y, FoodMarket),
             (x, y) => FoodMarket(x + CafeteriaBlockCells / 2, y + CafeteriaBlockCells / 2),
         ];
-        for (var n = CafeteriaCount; n > 0; n--)
-            if (!cafeteriaBlocks.Any(allowed => TryPlace(PointOfInterestType.Cafeteria, 0, 0, side, side, allowed, CafeteriaBlockCells)))
-                throw new InvalidOperationException("No room for a Cafeteria.");
+        PlaceCafeterias();
+        void PlaceCafeterias()
+        {
+            // Every block that would take a Cafeteria, at a seeded turn and offset; the three are then drawn from the best kind of
+            // block that has room for them, about equally far apart across the seams and well spread over the floor.
+            var spots = new List<(int Tier, PointOfInterestSite Site, Vector2 Block)>();
+            var block = new Vector2(cellSize * CafeteriaBlockCells);
+            for (var cy = 0; cy < side - (CafeteriaBlockCells - 1); cy++)
+                for (var cx = 0; cx < side - (CafeteriaBlockCells - 1); cx++)
+                {
+                    var tier = Array.FindIndex(cafeteriaBlocks, allowed => allowed(cx, cy));
+                    if (tier < 0)
+                        continue;
+                    var quarters = random.Next(4);
+                    var own = OwnSize(PointOfInterestType.Cafeteria);
+                    var size = (quarters & 1) == 0 ? own : new Vector2(own.Y, own.X);
+                    var slack = Vector2.Max(Vector2.Zero, (block - size) / 2f - new Vector2(Clearance));
+                    var middle = new Vector2((cx + CafeteriaBlockCells / 2f) * cellSize, (cy + CafeteriaBlockCells / 2f) * cellSize);
+                    var centre = middle + new Vector2(random.Range(-slack.X, slack.X), random.Range(-slack.Y, slack.Y));
+                    if (!IsFree(space, pillars, landmarks, sites, centre, size))
+                        continue;
+                    var sector = sectors.First(s => centre.X >= s.Origin.X && centre.X < s.Origin.X + s.Size &&
+                                                    centre.Y >= s.Origin.Y && centre.Y < s.Origin.Y + s.Size);
+                    if (centre.X - size.X / 2f < sector.Origin.X || centre.X + size.X / 2f > sector.Origin.X + sector.Size ||
+                        centre.Y - size.Y / 2f < sector.Origin.Y || centre.Y + size.Y / 2f > sector.Origin.Y + sector.Size)
+                        continue;
+                    spots.Add((tier, new PointOfInterestSite(0, PointOfInterestType.Cafeteria, sector.Id, centre, size, quarters), middle));
+                }
+
+            for (var tier = 0; tier < cafeteriaBlocks.Length; tier++)
+            {
+                var pool = spots.Where(s => s.Tier <= tier).ToList();
+                if (pool.Count < CafeteriaCount)
+                    continue;
+                var best = ((int A, int B, int C)?)null;
+                var bestSpread = float.MaxValue;
+                for (var attempt = 0; attempt < CafeteriaDraws && bestSpread > CafeteriaSpreadTolerance; attempt++)
+                {
+                    var (a, b, c) = (random.Next(pool.Count), random.Next(pool.Count), random.Next(pool.Count));
+                    float Between(int i, int j) => space.Distance(pool[i].Site.Centre, pool[j].Site.Centre);
+                    var (ab, bc, ca) = (Between(a, b), Between(b, c), Between(c, a));
+                    var (nearest, farthest) = (MathF.Min(ab, MathF.Min(bc, ca)), MathF.Max(ab, MathF.Max(bc, ca)));
+                    if (nearest < CafeteriaMinApart * space.Size)
+                        continue;
+                    var spread = (farthest - nearest) / farthest;
+                    if (spread < bestSpread)
+                        (best, bestSpread) = ((a, b, c), spread);
+                }
+                if (best is not var (first, second, third))
+                    continue;
+                foreach (var pick in new[] { first, second, third })
+                {
+                    sites.Add(pool[pick].Site with { Id = sites.Count });
+                    reserved.Add((pool[pick].Block, block));
+                }
+                return;
+            }
+            throw new InvalidOperationException("No room for the Cafeterias.");
+        }
         for (var n = 2 + random.Next(3); n > 0; n--)
             Place(PointOfInterestType.ShoppingCartGraveyard, 0, 0, side, side, (_, _) => true);
         foreach (var sector in sectors)
@@ -995,12 +1055,13 @@ internal static class PointOfInterestGenerator
             zones.Add(zone);
             for (var r = DiningZoneRadius - reach; r > 0f; r -= table.Depth + 2.2f)
             {
-                if (r < 0.8f * table.Width)
+                // Counted along the inner chairs' backs, where the ring is tightest, so neighbouring tables' chairs keep apart even pushed back.
+                var count = (int)MathF.Floor(2f * MathF.PI * MathF.Max(r - reach, 0f) / (table.Width + 0.5f));
+                if (count < 3)
                 {
                     places.Add((zone, random.Range(0f, MathF.PI)));
                     break;
                 }
-                var count = (int)MathF.Floor(2f * MathF.PI * r / (table.Width + 1f));
                 var phase = random.Range(0f, 2f * MathF.PI);
                 for (var i = 0; i < count; i++)
                 {

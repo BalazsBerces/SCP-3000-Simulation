@@ -5,7 +5,8 @@ namespace Scp3008.Game;
 
 /// <summary>
 /// The Goods on the shelves of Stock Furniture (ticket 08r): copies of each Goods kind's product model along the shelves of
-/// grocery shelves, shelf units, pallet racks, toy shelves, cushion bins, chest freezers and on the Rack canyon's boxes, as many as the stock's fill step
+/// grocery shelves, shelf units, pallet racks, toy shelves, cushion bins, chest freezers and on the Rack canyon's boxes, and the food
+/// left on a table (a left-behind find), as many as the stock's fill step
 /// (<see cref="WorldSnapshot.FillStep"/>) shows. A lower step leaves gaps, in a fixed shuffled order, so a low shelf looks
 /// picked over rather than half built; a bare shelf (no stock) shows none. Display Furniture holds no stock and stays empty;
 /// a fridge's and a counter's stock stays behind their closed bodies. One instance group per Furniture type, Goods kind and
@@ -72,7 +73,7 @@ public partial class ShelfGoods : Node3D
         if (System.Environment.GetEnvironmentVariable("NOGOODS") != null) return;
         var pieces = snapshot.Furniture.ToDictionary(p => p.Id);
         var shown = snapshot.Stock
-            .Where(g => !g.LeftBehind && Products.ContainsKey(g.Kind))
+            .Where(g => (!g.LeftBehind || GoodsCatalog.FoodTables.Contains(pieces[g.FurnitureId].Type)) && Products.ContainsKey(g.Kind))
             .Select(g => (Goods: g, Piece: pieces[g.FurnitureId]))
             .Where(s => Runs(s.Piece.Type, s.Piece.Variant).Any());
         // shortcut: a second kind on one piece (only SetStock makes one) is drawn over the first; give each kind its share of the runs if pieces ever stock two kinds.
@@ -130,6 +131,9 @@ public partial class ShelfGoods : Node3D
                 // Lying in the open tub under the clear lid.
                 return [new(new(0f, FurnitureMeshes.FreezerFloor, hd - 0.15f), 0f, w - 0.2f, h - 0.08f - FurnitureMeshes.FreezerFloor,
                     Rows: 3, RowPitch: (spec.Depth - 0.3f) / 2f)];
+            case var table when GoodsCatalog.FoodTables.Contains(table):
+                // A little left in the middle of the table top.
+                return [new(new(0f, h + 0.003f, 0f), 0f, Mathf.Min(w * 0.4f, 0.5f), 0.3f)];
             case FurnitureType.FlatPackBox:
                 // On the lid of a Rack canyon box, under the next beam of its rack.
                 return [new(new(0f, h + 0.003f, hd - 0.15f), 0f, w - 0.2f, 0.4f, Rows: 3, RowPitch: (spec.Depth - 0.3f) / 2f)];

@@ -44,12 +44,12 @@ public enum GoodsKind
 
 /// <summary>
 /// Goods on one piece of Furniture: a kind and an amount. Store stock lies on Stock Furniture
-/// (<see cref="WorldSnapshot.IsStockFurniture"/>); a <paramref name="LeftBehind"/> find is the rare thing on Display Furniture.
+/// (<see cref="WorldSnapshot.IsStockFurniture"/>); a <paramref name="LeftBehind"/> find is the rare thing in Display Furniture or on a table.
 /// </summary>
 /// <param name="FurnitureId">The piece holding the Goods, by <see cref="FurniturePiece.Id"/>.</param>
 /// <param name="Kind">What the Goods are.</param>
 /// <param name="Amount">How many units of them, at least one.</param>
-/// <param name="LeftBehind">A rare thing left behind in Display Furniture (a showroom fridge or kitchen cabinet), not store stock.</param>
+/// <param name="LeftBehind">A rare thing left behind in Display Furniture (a showroom fridge or kitchen cabinet) or a bit of food on a table, not store stock.</param>
 public readonly record struct StockedGoods(int FurnitureId, GoodsKind Kind, int Amount, bool LeftBehind = false);
 
 /// <summary>
@@ -66,17 +66,21 @@ public sealed record StockConfig
     /// <summary>The units at which a shelf of Stock Furniture looks full (<see cref="WorldSnapshot.FillStep"/>).</summary>
     public int ShelfCapacity { get; init; } = 3;
     /// <summary>Portions on each Cafeteria serving counter.</summary>
-    public int MealPortionsMin { get; init; } = 40;
+    public int MealPortionsMin { get; init; } = 25;
     /// <inheritdoc cref="MealPortionsMin"/>
-    public int MealPortionsMax { get; init; } = 80;
+    public int MealPortionsMax { get; init; } = 50;
     /// <summary>Live fish in each Aquarium tank.</summary>
     public int FishMin { get; init; } = 4;
     /// <inheritdoc cref="FishMin"/>
     public int FishMax { get; init; } = 14;
-    /// <summary>Units on each Camping ground stand.</summary>
+    /// <summary>Units on each Camping ground stand but the marshmallow one.</summary>
     public int CampStandAmountMin { get; init; } = 10;
     /// <inheritdoc cref="CampStandAmountMin"/>
     public int CampStandAmountMax { get; init; } = 24;
+    /// <summary>Marshmallows on the Camping ground's marshmallow stand, three times another stand's units.</summary>
+    public int MarshmallowAmountMin { get; init; } = 30;
+    /// <inheritdoc cref="MarshmallowAmountMin"/>
+    public int MarshmallowAmountMax { get; init; } = 72;
     /// <summary>
     /// Units on each stocked flat-pack box of the Rack canyon, twice a shelf's; a box is stocked as often as a shelf is
     /// (<see cref="StockedShelfShare"/>), with any kind of shop Goods but Food, in the mix of <see cref="TargetPerHectare"/>.
@@ -95,6 +99,8 @@ public sealed record StockConfig
     /// that holds one left-behind find; the number of finds is this share of them, rounded down.
     /// </summary>
     public float LeftBehindShare { get; init; } = 0.004f;
+    /// <summary>The chance that a table (<see cref="GoodsCatalog.FoodTables"/>) has a unit of food left on it, as a left-behind find.</summary>
+    public float TableFoodChance { get; init; } = 0.01f;
 
     /// <summary>
     /// Whether the generator reshapes the Display stock's amounts so every Sector has a Surplus and a Shortage and each Goods
@@ -107,11 +113,12 @@ public sealed record StockConfig
     public float ShortageRatio { get; init; } = 0.6f;
     /// <summary>
     /// The target Store-wide units of each Goods class per hectare of floor; the defaults are about what the Departments' shelves
-    /// hold on average across seeds and layouts (a fifth of them stocked, a few units each).
+    /// hold on average across seeds and layouts (a fifth of them stocked, a few units each), but Food's, which gives the food shelves
+    /// half what they held before (beside the meals, fish and camp goods).
     /// </summary>
     public IReadOnlyDictionary<GoodsClass, float> TargetPerHectare { get; init; } = new Dictionary<GoodsClass, float>
     {
-        [GoodsClass.Food] = 33.5f, [GoodsClass.Drink] = 2.6f, [GoodsClass.Comfort] = 21f, [GoodsClass.Supplies] = 32.5f,
+        [GoodsClass.Food] = 21f, [GoodsClass.Drink] = 2.6f, [GoodsClass.Comfort] = 21f, [GoodsClass.Supplies] = 32.5f,
     };
     /// <summary>
     /// How far, as a share of its target, each Goods class's Store total may stray from <see cref="TargetPerHectare"/>; a Store
@@ -137,6 +144,13 @@ public static class GoodsCatalog
     /// <summary>The ordinary shop kinds, which Lost and founds and left-behind finds draw from: every kind but those of one Point of interest or Landmark.</summary>
     public static IReadOnlyList<GoodsKind> ShopKinds { get; } = Enum.GetValues<GoodsKind>()
         .Where(k => k is not (GoodsKind.LiveFish or GoodsKind.Meatballs or GoodsKind.AlmondCake or GoodsKind.Marshmallows)).ToArray();
+
+    /// <summary>The tables a unit of food may be left on (<see cref="StockConfig.TableFoodChance"/>), wherever they stand.</summary>
+    public static IReadOnlySet<FurnitureType> FoodTables { get; } = new HashSet<FurnitureType>
+    {
+        FurnitureType.DisplayTable, FurnitureType.CoffeeTable, FurnitureType.DiningTable, FurnitureType.PlantTable, FurnitureType.KidsTable,
+        FurnitureType.MeetingTable, FurnitureType.GardenTable,
+    };
 
     // Which Display Furniture is Stock Furniture, and the kinds it may hold: by its Department type, its Display's theme and its type.
     private static readonly Dictionary<(DepartmentType, Theme, FurnitureType), GoodsKind[]> DisplayStock = BuildDisplayStock();
@@ -189,9 +203,8 @@ public static class GoodsCatalog
         // Lighting & electrical: bulbs and batteries, on the shelving rows and the lamp displays' wall shelves.
         Add(DepartmentType.LightingAndElectrical, Theme.ShelvingRows, shelvingRows, GoodsKind.Bulbs, GoodsKind.Batteries);
         Add(DepartmentType.LightingAndElectrical, Theme.LampDisplay, [FurnitureType.ShelfUnit], GoodsKind.Bulbs, GoodsKind.Batteries);
-        // Self-serve warehouse: tinned and dry food, cables and tape on the pallet racks.
-        Add(DepartmentType.SelfServeWarehouse, Theme.WarehouseRacks, [FurnitureType.PalletRack],
-            GoodsKind.TinnedFood, GoodsKind.DryFood, GoodsKind.Cables, GoodsKind.Tape);
+        // Self-serve warehouse: cables and tape on the pallet racks; no food up there.
+        Add(DepartmentType.SelfServeWarehouse, Theme.WarehouseRacks, [FurnitureType.PalletRack], GoodsKind.Cables, GoodsKind.Tape);
         // Textiles & Decor: candles in the boutique's bins.
         Add(DepartmentType.TextilesAndDecor, Theme.TextileBoutique, [FurnitureType.CushionBin], GoodsKind.Candles);
         // Kids' area: sweets on the shelving rows.

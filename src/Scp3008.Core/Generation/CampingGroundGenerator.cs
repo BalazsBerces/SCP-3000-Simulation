@@ -156,15 +156,16 @@ internal static class CampingGroundGenerator
         {
             var at = stand + along * offset;
             b.Put(FurnitureType.MarshmallowTray, at, counterTop, Facing(fire - stand));
-            // A fan of sticks standing in the tray, leaning out towards the visitors.
-            for (var k = 0; k < 5; k++)
-            {
-                var spread = (k - 2f) * 0.1f;
-                var lean = Vector3.Normalize(new Vector3(-standOut * 0.35f + along * (spread * 1.5f), 1f));
-                var foot = at + along * spread;
-                var middle = new Vector3(foot, counterTop + tray.Height) + lean * (stick.Height / 2f);
-                b.PutTurned(FurnitureType.MarshmallowStick, middle, new Vector3(along, 0f), lean);
-            }
+            // Three rows of sticks fanned out in the tray, leaning out towards the visitors.
+            foreach (var row in new[] { -0.12f, 0f, 0.12f })
+                for (var k = 0; k < 5; k++)
+                {
+                    var spread = (k - 2f) * 0.1f;
+                    var lean = Vector3.Normalize(new Vector3(-standOut * 0.35f + along * (spread * 1.5f), 1f));
+                    var foot = at + along * spread + standOut * row;
+                    var middle = new Vector3(foot, counterTop + tray.Height) + lean * (stick.Height / 2f);
+                    b.PutTurned(FurnitureType.MarshmallowStick, middle, new Vector3(along, 0f), lean);
+                }
         }
         b.Put(FurnitureType.PriceTag, stand + along * 1.35f - standOut * 0.3f, 0f, Facing(fire - stand));
         var supply = fire + new Vector2(MathF.Cos(supplyAngle), MathF.Sin(supplyAngle)) * 5.6f;

@@ -68,7 +68,7 @@ public class StockTests(ITestOutputHelper output)
             if (goods.LeftBehind)
             {
                 Assert.False(snapshot.IsStockFurniture(piece));
-                Assert.True(piece.DisplayId >= 0, "Left-behind finds lie on Display Furniture.");
+                Assert.True(piece.DisplayId >= 0 || GoodsCatalog.FoodTables.Contains(piece.Type), "Left-behind finds lie on Display Furniture or a table.");
             }
             else
             {
@@ -86,6 +86,18 @@ public class StockTests(ITestOutputHelper output)
         Assert.Contains(FurnitureType.GroceryShelf, stockTypes);
         Assert.Contains(FurnitureType.Freezer, stockTypes);
         Assert.Contains(FurnitureType.PalletRack, stockTypes);
+    }
+
+    [Theory]
+    [InlineData(3008)]
+    [InlineData(42)]
+    public void No_food_lies_on_the_pallet_racks(int seed)
+    {
+        var snapshot = Store(seed);
+        var pieces = PiecesById(snapshot);
+
+        Assert.DoesNotContain(snapshot.Stock, goods =>
+            pieces[goods.FurnitureId].Type == FurnitureType.PalletRack && GoodsCatalog.ClassOf(goods.Kind) == GoodsClass.Food);
     }
 
     [Fact]
@@ -126,7 +138,8 @@ public class StockTests(ITestOutputHelper output)
             var snapshot = sim.Snapshot;
             var candidates = snapshot.Furniture.Count(p => p.DisplayId >= 0 && !snapshot.IsStockFurniture(p) &&
                 p.Type is FurnitureType.Fridge or FurnitureType.Freezer or FurnitureType.KitchenCabinet or FurnitureType.Sideboard or FurnitureType.DisplayCabinet);
-            var finds = snapshot.Stock.Count(g => g.LeftBehind);
+            var pieces = PiecesById(snapshot);
+            var finds = snapshot.Stock.Count(g => g.LeftBehind && !GoodsCatalog.FoodTables.Contains(pieces[g.FurnitureId].Type));
             Assert.True(finds <= share * candidates, $"{finds} finds among {candidates} pieces at share {share}.");
             if (share > 0f)
                 Assert.True(finds >= share * candidates - 1, $"{finds} finds among {candidates} pieces at share {share}.");
@@ -174,7 +187,7 @@ public class StockTests(ITestOutputHelper output)
                 GoodsKind.FreshFood, GoodsKind.TinnedFood, GoodsKind.DryFood, GoodsKind.BottledWater, GoodsKind.SoftDrinks, GoodsKind.Coffee,
             ],
             [DepartmentType.LightingAndElectrical] = [GoodsKind.Bulbs, GoodsKind.Batteries],
-            [DepartmentType.SelfServeWarehouse] = [GoodsKind.TinnedFood, GoodsKind.DryFood, GoodsKind.Cables, GoodsKind.Tape],
+            [DepartmentType.SelfServeWarehouse] = [GoodsKind.Cables, GoodsKind.Tape],
             [DepartmentType.TextilesAndDecor] = [GoodsKind.Candles],
             [DepartmentType.KidsArea] = [GoodsKind.Sweets],
         };
@@ -188,10 +201,9 @@ public class StockTests(ITestOutputHelper output)
             Assert.Contains(goods.Kind, expected[department]);
             (seen.TryGetValue(department, out var kinds) ? kinds : seen[department] = []).Add(goods.Kind);
         }
-        // The food market sells both food and drink; the warehouse shelving both food and supplies.
+        // The food market sells both food and drink; the warehouse shelving supplies.
         Assert.Contains(seen[DepartmentType.RestaurantAndFoodMarket], k => GoodsCatalog.ClassOf(k) == GoodsClass.Food);
         Assert.Contains(seen[DepartmentType.RestaurantAndFoodMarket], k => GoodsCatalog.ClassOf(k) == GoodsClass.Drink);
-        Assert.Contains(seen[DepartmentType.SelfServeWarehouse], k => GoodsCatalog.ClassOf(k) == GoodsClass.Food);
         Assert.Contains(seen[DepartmentType.SelfServeWarehouse], k => GoodsCatalog.ClassOf(k) == GoodsClass.Supplies);
     }
 
@@ -278,6 +290,48 @@ public class StockTests(ITestOutputHelper output)
         Assert.All(stocked, g => Assert.InRange(g.Amount, config.CanyonBoxAmountMin, config.CanyonBoxAmountMax));
         Assert.True(stocked.Select(g => GoodsCatalog.ClassOf(g.Kind)).Distinct().Count() > 1, "The canyon's boxes hold only one class of Goods.");
         Assert.DoesNotContain(stocked, g => GoodsCatalog.ClassOf(g.Kind) == GoodsClass.Food);
+    }
+
+    [Fact]
+    public void About_one_table_in_a_hundred_has_a_unit_of_shop_food_left_on_it()
+    {
+        int tables = 0, withFood = 0;
+        foreach (var seed in Seeds)
+        {
+            var snapshot = Store(seed);
+            var pieces = PiecesById(snapshot);
+            tables += snapshot.Furniture.Count(p => GoodsCatalog.FoodTables.Contains(p.Type));
+            var onTables = snapshot.Stock.Where(g => GoodsCatalog.FoodTables.Contains(pieces[g.FurnitureId].Type)).ToList();
+            Assert.All(onTables, g =>
+            {
+                Assert.True(g.LeftBehind);
+                Assert.Equal(1, g.Amount);
+                Assert.Equal(GoodsClass.Food, GoodsCatalog.ClassOf(g.Kind));
+                Assert.Contains(g.Kind, GoodsCatalog.ShopKinds);
+            });
+            withFood += onTables.Count;
+        }
+        var chance = new StockConfig().TableFoodChance;
+        Assert.InRange(withFood / (double)tables, chance * 0.7, chance * 1.3);
+
+        using var sim = Simulation.Create(new WorldConfig(3008, RuntimeRngSeed: 1, Stock: new StockConfig { TableFoodChance = 0f }));
+        var bare = PiecesById(sim.Snapshot);
+        Assert.DoesNotContain(sim.Snapshot.Stock, g => GoodsCatalog.FoodTables.Contains(bare[g.FurnitureId].Type));
+    }
+
+    [Theory]
+    [InlineData(3008)]
+    [InlineData(42)]
+    public void The_marshmallow_stand_holds_three_times_another_stands_units(int seed)
+    {
+        var config = new StockConfig();
+        Assert.Equal(3 * config.CampStandAmountMin, config.MarshmallowAmountMin);
+        Assert.Equal(3 * config.CampStandAmountMax, config.MarshmallowAmountMax);
+        var landmarks = LandmarkShowcase(seed);
+        var stands = landmarks.CampGoods.Select(c => c.StandId).ToHashSet();
+        var camp = landmarks.Stock.Where(g => stands.Contains(g.FurnitureId)).ToList();
+        Assert.All(camp.Where(g => g.Kind == GoodsKind.Marshmallows), g => Assert.InRange(g.Amount, config.MarshmallowAmountMin, config.MarshmallowAmountMax));
+        Assert.All(camp.Where(g => g.Kind != GoodsKind.Marshmallows), g => Assert.InRange(g.Amount, config.CampStandAmountMin, config.CampStandAmountMax));
     }
 
     [Fact]

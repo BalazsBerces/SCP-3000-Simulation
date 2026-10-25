@@ -24,6 +24,9 @@ internal static class DepartmentGenerator
     // the scarce food and electrical types never do.
     private const float LargeSiteChance = 0.05f;
     private const float LargeSiteSizeFactor = 2.4f;
+    // The three Cafeteria sites: how unequal their triangle's sides may be, and how large they grow.
+    private const float CafeteriaTriangleSpread = 0.03f;
+    private const float CafeteriaSiteSize = 1.0f;
 
     /// <summary>
     /// How large Departments of each type grow relative to others. The Restaurant/food market and
@@ -48,7 +51,9 @@ internal static class DepartmentGenerator
     {
         var cellsPerSide = (int)Math.Round(space.Size / CellSize);
         var random = SeededRandom.For(seed, stream: 1);
-        var sites = PlaceSites(random, space, cellsPerSide);
+        // Three more Restaurant/food market sites, from their own stream, stand about equally far apart across the seams, so the
+        // Store's three Cafeterias find room on them at about equal distances; the other sites are as they would be without them.
+        var sites = PlaceSites(random, space, cellsPerSide).Concat(CafeteriaSites(SeededRandom.For(seed, stream: 1, 1), space, cellsPerSide)).ToList();
 
         var typeOfCell = new DepartmentType[cellsPerSide * cellsPerSide];
         var ordinarySites = sites.Where(s => s.Type != DepartmentType.LightingAndElectrical).ToList();
@@ -126,6 +131,33 @@ internal static class DepartmentGenerator
             }
         }
         return sites;
+    }
+
+    /// <summary>
+    /// Three Restaurant/food market sites, larger than the others, at the corners of a seeded triangle (where it starts, how it is turned and how big it
+    /// is) whose sides, measured across the seams, differ by at most a few percent.
+    /// </summary>
+    private static List<Site> CafeteriaSites(SeededRandom random, StoreSpace space, int cellsPerSide)
+    {
+        var size = space.Size;
+        var best = (Corners: Array.Empty<Vector2>(), Spread: float.MaxValue);
+        for (var attempt = 0; attempt < 400 && best.Spread > CafeteriaTriangleSpread; attempt++)
+        {
+            var start = new Vector2(random.Range(0f, size), random.Range(0f, size));
+            var turn = random.Range(0f, 2f * MathF.PI);
+            var side = random.Range(0.36f, 0.5f) * size;
+            Vector2 Corner(float angle) => space.Wrap(start + side * new Vector2(MathF.Cos(angle), MathF.Sin(angle)));
+            var corners = new[] { space.Wrap(start), Corner(turn), Corner(turn + MathF.PI / 3f) };
+            var d = new[] { space.Distance(corners[0], corners[1]), space.Distance(corners[1], corners[2]), space.Distance(corners[2], corners[0]) };
+            var spread = (d.Max() - d.Min()) / d.Max();
+            if (spread < best.Spread)
+                best = (corners, spread);
+        }
+        return best.Corners
+            .Select(c => new Site(DepartmentType.RestaurantAndFoodMarket,
+                CellCentre(Math.Min((int)(c.X / CellSize), cellsPerSide - 1), Math.Min((int)(c.Y / CellSize), cellsPerSide - 1)),
+                CafeteriaSiteSize * random.Range(0.95f, 1.05f)))
+            .ToList();
     }
 
     private static Site ClosestSite(List<Site> sites, StoreSpace space, Vector2 position)

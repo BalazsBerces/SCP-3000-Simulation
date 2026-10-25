@@ -3,8 +3,8 @@ namespace Scp3008.Core.Generation;
 /// <summary>
 /// Gives Goods to the Store's Stock Furniture as real store stock, one kind and amount per piece: the Display stock by its
 /// Department type, the Cafeteria meals, Aquarium fish and Camping ground goods the Points of interest and Landmarks set, any
-/// non-Food kind on some of the Rack canyon's boxes, a few random finds in each Lost and found and, rarely, a thing left behind in Display Furniture. It then reshapes the Display stock's
-/// amounts so every Sector is rich in at least one Goods class (its Surplus) and short of at least one (its Shortage), and each
+/// non-Food kind on some of the Rack canyon's boxes, a few random finds in each Lost and found and, rarely, a thing left behind in Display Furniture
+/// or a bit of food on a table. It then reshapes the amounts of the Display stock, the Cafeteria meals and the Aquarium fish so every Sector is rich in at least one Goods class (its Surplus) and short of at least one (its Shortage), and each
 /// class's Store total keeps to a band around its target.
 /// </summary>
 internal static class StockGenerator
@@ -108,8 +108,9 @@ internal static class StockGenerator
         // The backpacks of the supplies stand are Gear, not Goods, so they are not store stock.
         foreach (var goods in campGoods)
             if (goods.Kind != CampGoodsKind.Backpack)
-                stock.Add(new StockedGoods(goods.StandId, goods.Kind == CampGoodsKind.Marshmallows ? GoodsKind.Marshmallows : GoodsKind.TinnedFood,
-                    Amount(config.CampStandAmountMin, config.CampStandAmountMax)));
+                stock.Add(goods.Kind == CampGoodsKind.Marshmallows
+                    ? new StockedGoods(goods.StandId, GoodsKind.Marshmallows, Amount(config.MarshmallowAmountMin, config.MarshmallowAmountMax))
+                    : new StockedGoods(goods.StandId, GoodsKind.TinnedFood, Amount(config.CampStandAmountMin, config.CampStandAmountMax)));
 
         // Each Lost and found: a few rare, random Goods of any class, each on its own labelled box or cart.
         foreach (var holders in lostAndFound.OrderBy(e => e.Key).Select(e => e.Value))
@@ -123,6 +124,13 @@ internal static class StockGenerator
         var leftBehind = (int)MathF.Floor(Math.Clamp(config.LeftBehindShare, 0f, 1f) * leftBehindCandidates.Count);
         foreach (var id in PickDistinct(random, leftBehindCandidates, leftBehind))
             stock.Add(new StockedGoods(id, random.Pick(GoodsCatalog.ShopKinds), 1, LeftBehind: true));
+
+        // Now and then a unit of shop food left on a table, of any Department, Point of interest or Landmark.
+        var held = stock.Select(g => g.FurnitureId).ToHashSet();
+        var food = GoodsCatalog.ShopKinds.Where(k => GoodsCatalog.ClassOf(k) == GoodsClass.Food).ToList();
+        foreach (var piece in pieces)
+            if (GoodsCatalog.FoodTables.Contains(piece.Type) && !held.Contains(piece.Id) && random.Chance(config.TableFoodChance))
+                stock.Add(new StockedGoods(piece.Id, random.Pick(food), 1, LeftBehind: true));
 
         if (config.SectorGuarantee)
             Balance(stock, pieces, space, layout, config);
@@ -154,7 +162,7 @@ internal static class StockGenerator
     private const double Margin = 0.12;
 
     /// <summary>
-    /// Reshapes the Display stock's amounts (meals, fish, camp goods and finds keep theirs): first each Goods class's Store total into its
+    /// Reshapes the amounts of the Display stock, the Cafeteria meals and the Aquarium fish (camp goods, canyon boxes and finds keep theirs): first each Goods class's Store total into its
     /// band, then, for each Sector without a Surplus, its best-stocked class is raised at the expense of the Sectors that can give
     /// it, and for each Sector without a Shortage its worst-stocked class is lowered in favour of the Sectors not short of it.
     /// Moving stock between Sectors keeps each class's total, so the band holds; every shelf keeps at least one unit, except in a
@@ -267,7 +275,9 @@ internal static class StockGenerator
         stock.RemoveAll(g => g.Amount == 0);
     }
 
-    private static bool Reshaped(FurniturePiece piece, StockedGoods goods) => piece.DisplayId >= 0 && !goods.LeftBehind;
+    // The meals and fish count with the shelves, so a Sector whose Cafeteria or Aquarium holds plenty of food can still be lowered to a Shortage of it.
+    private static bool Reshaped(FurniturePiece piece, StockedGoods goods) =>
+        !goods.LeftBehind && (piece.DisplayId >= 0 || goods.Kind is GoodsKind.Meatballs or GoodsKind.AlmondCake or GoodsKind.LiveFish);
 
     // A partial Fisher-Yates shuffle of a copy: count distinct items, in random order.
     private static IEnumerable<int> PickDistinct(SeededRandom random, IReadOnlyList<int> items, int count)
