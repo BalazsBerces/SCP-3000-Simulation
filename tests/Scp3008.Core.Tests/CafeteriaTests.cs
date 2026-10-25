@@ -42,10 +42,10 @@ public class CafeteriaTests
         [
             FurnitureType.HotFoodCounter, FurnitureType.DessertCounter, FurnitureType.TrayRail, FurnitureType.TrayStation,
             FurnitureType.CoffeeMachine, FurnitureType.Till, FurnitureType.TrayTrolley, FurnitureType.HighChair,
-            FurnitureType.DiningTable, FurnitureType.Chair, FurnitureType.Tray,
+            FurnitureType.DiningTable, FurnitureType.Chair, FurnitureType.MealPlate,
         ];
         Assert.All(expected, type => Assert.Contains(type, types));
-        Assert.True(pieces.Count(p => p.Type == FurnitureType.DiningTable) >= 120, "A large dining hall seats many: at least 120 tables.");
+        Assert.True(pieces.Count(p => p.Type == FurnitureType.DiningTable) >= 100, "A large dining hall seats many: at least 100 tables.");
         Assert.Equal(4, pieces.Count(p => p.Type == FurnitureType.HotFoodCounter));
         Assert.Equal(2, pieces.Count(p => p.Type == FurnitureType.DessertCounter));
     }
@@ -86,20 +86,22 @@ public class CafeteriaTests
     }
 
     [Fact]
-    public void The_floor_plan_differs_between_seeds()
+    public void The_serving_island_stands_in_the_middle_and_the_floor_plan_differs_between_seeds()
     {
-        var plans = new HashSet<(int, int)>();
+        var plans = new HashSet<string>();
         for (var seed = 1; seed <= 20; seed++)
         {
             var snapshot = Showcase(seed);
             var (cafeteria, pieces) = CafeteriaOf(snapshot);
-            var hot = pieces.Where(p => p.Type == FurnitureType.HotFoodCounter).ToList();
-            Assert.NotEmpty(hot);
-            var mean = hot.Aggregate(Vector2.Zero, (sum, p) => sum + snapshot.Space.Delta(cafeteria.Centre, p.Position)) / hot.Count;
-            plans.Add(((int)MathF.Round(mean.X), (int)MathF.Round(mean.Y)));
+            var counters = pieces.Where(p => p.Type is FurnitureType.HotFoodCounter or FurnitureType.DessertCounter)
+                .Select(p => snapshot.Space.Delta(cafeteria.Centre, p.Position)).ToList();
+            Assert.NotEmpty(counters);
+            Assert.All(counters, c => Assert.True(c.Length() < 10f, $"A serving counter stands {c.Length():0.0} m from the middle."));
+            var tables = pieces.Where(p => p.Type == FurnitureType.DiningTable).ToList();
+            plans.Add($"{tables[0].Variant}|{string.Join(";", counters.Select(c => $"{MathF.Round(c.X)},{MathF.Round(c.Y)}").Order())}");
         }
 
-        Assert.True(plans.Count >= 2, "Every seed put the serving line in the same place.");
+        Assert.True(plans.Count >= 2, "Every seed laid out the Cafeteria the same way.");
     }
 
     public static TheoryData<PillarLayout, int> LayoutsAndSeeds()

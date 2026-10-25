@@ -21,16 +21,21 @@ public static class FurnitureModels
     /// <summary>
     /// One external model: which Furniture type and variant it draws, its folder under
     /// assets/models, the turn (degrees about Y) that brings its front to +Z, its triangle budget,
-    /// whether its light fabric takes the piece's Palette tint, and where it comes from.
+    /// whether its light fabric takes the piece's Palette tint, and where it comes from. A model whose
+    /// simpler levels fall apart (a chair's thin seat and back) keeps only the levels with at least
+    /// <c>SimplestShare</c> of its triangles.
     /// </summary>
     public sealed record Model(
         FurnitureType Type, int Variant, string Folder, float Yaw, int TriangleBudget, bool Tinted,
-        string Author, string Licence, string Source);
+        string Author, string Licence, string Source, float SimplestShare = 0f);
 
     // Fewer triangles for the types repeated most (chairs come in sets around every table).
     private const int ChairBudget = 1500;
     // The carved dining chair needs this many even at its simplest.
     private const int CarvedChairBudget = 2500;
+    // A dining chair's simpler levels lose its seat and back first, leaving a few legs: from about 30 m it
+    // all but vanished, so it keeps only the levels with at least this share of its triangles.
+    private const float ChairShare = 0.4f;
     private const int SeatBudget = 3500;
     private const int SofaBudget = 4500;
     // Toilets and washbasins fill whole bathroom Displays.
@@ -85,9 +90,9 @@ public static class FurnitureModels
         new(FurnitureType.Sofa, 1, "fabric_loveseat", 90f, SofaBudget, true, "Renend Studio", "CC-BY", "https://sketchfab.com/3d-models/modern-fabric-sofa-low-poly-game-ready-5a1ccfe43ffd4f1883abe4dca7d2b3bb"),
         new(FurnitureType.Sofa, 2, "fabric_sofa", 0f, SofaBudget, true, "Sempay_3D", "CC-BY", "https://sketchfab.com/3d-models/modern-minimalist-fabric-sofa-be39bf64cf4c4a02b55a0ef1d40e1fbb"),
         new(FurnitureType.Sofa, 3, "sofa_02", 0f, SofaBudget, false, "Kirill Sannikov", "CC0", "https://polyhaven.com/a/sofa_02"),
-        new(FurnitureType.Chair, 0, "painted_wooden_chair_01", 0f, ChairBudget, false, "Kuutti Siitonen", "CC0", "https://polyhaven.com/a/painted_wooden_chair_01"),
-        new(FurnitureType.Chair, 1, "dining_chair_02", 0f, CarvedChairBudget, false, "James Ray Cock", "CC0", "https://polyhaven.com/a/dining_chair_02"),
-        new(FurnitureType.Chair, 2, "GreenChair_01", 0f, ChairBudget, false, "Kirill Sannikov", "CC0", "https://polyhaven.com/a/GreenChair_01"),
+        new(FurnitureType.Chair, 0, "painted_wooden_chair_01", 0f, ChairBudget, false, "Kuutti Siitonen", "CC0", "https://polyhaven.com/a/painted_wooden_chair_01", ChairShare),
+        new(FurnitureType.Chair, 1, "dining_chair_02", 0f, CarvedChairBudget, false, "James Ray Cock", "CC0", "https://polyhaven.com/a/dining_chair_02", ChairShare),
+        new(FurnitureType.Chair, 2, "GreenChair_01", 0f, ChairBudget, false, "Kirill Sannikov", "CC0", "https://polyhaven.com/a/GreenChair_01", ChairShare),
         new(FurnitureType.Toilet, 0, "toilet", 0f, BathroomBudget, false, "loafbrr_1", "CC0", "https://opengameart.org/content/toilets"),
         new(FurnitureType.VanityUnit, 0, "washbasin", 0f, BathroomBudget, false, "loafbrr_1", "CC0", "https://opengameart.org/content/toilets"),
         new(FurnitureType.OutOfOrderSign, 0, "WetFloorSign_01", 0f, 5000, false, "Fran Calvente", "CC0", "https://polyhaven.com/a/WetFloorSign_01"),
@@ -282,10 +287,28 @@ public static class FurnitureModels
         for (var s = 0; s < parts.Count; s++)
             full.AddSurface(Mesh.PrimitiveType.Triangles, Arrays(parts[s], fullIndices[s]), name: parts[s].Name, material: Material(parts[s], model.Tinted));
         full.GenerateLods(LodMergeAngle, 0f, new Godot.Collections.Array());
-        var fullMesh = full.GetMesh();
+        var fullMesh = model.SimplestShare > 0f ? WithLevelsDownTo(full, model.SimplestShare) : full.GetMesh();
         for (var s = 0; s < parts.Count; s++)
             fullMesh.SurfaceSetName(s, parts[s].Name);
         return (fullMesh, CoarseMesh(model, parts));
+    }
+
+    /// <summary>The mesh with only the simpler levels of each surface that keep at least <paramref name="share"/> of its triangles.</summary>
+    private static ArrayMesh WithLevelsDownTo(ImporterMesh mesh, float share)
+    {
+        var result = new ArrayMesh();
+        for (var s = 0; s < mesh.GetSurfaceCount(); s++)
+        {
+            var arrays = mesh.GetSurfaceArrays(s);
+            var full = arrays[(int)Mesh.ArrayType.Index].AsInt32Array().Length;
+            var levels = new Godot.Collections.Dictionary();
+            for (var level = 0; level < mesh.GetSurfaceLodCount(s); level++)
+                if (mesh.GetSurfaceLodIndices(s, level) is var indices && indices.Length >= share * full)
+                    levels[mesh.GetSurfaceLodSize(s, level)] = indices;
+            result.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, arrays, lods: levels);
+            result.SurfaceSetMaterial(s, mesh.GetSurfaceMaterial(s));
+        }
+        return result;
     }
 
     /// <summary>

@@ -932,32 +932,31 @@ internal static class PointOfInterestGenerator
         b.Put(FurnitureType.HallBench, new Vector2(x - 2.4f + random.Range(-0.2f, 0.2f), 0f), 0f, -Quarter);
     }
 
+    // The length of a Cafeteria serving line, from its tray station to its last high chair.
+    private const float ServingLineLength = 18.6f;
+    // The radius of a Cafeteria's round dining zones, chairs included.
+    private const float DiningZoneRadius = 9.2f;
+
     /// <summary>
-    /// A large self-service dining hall: two serving lines along one wall (each with trays, two hot food counters, a dessert counter, coffee,
-    /// a till, then tray trolleys and high chairs) with menu boards behind their counters, and a dining zone of tables left mid-meal.
-    /// The seed picks the wall (north, west or east) and the tables (rectangular, round or long).
+    /// A large self-service dining hall: a serving island down the middle, two serving lines back to back along it (each with trays,
+    /// two hot food counters, a dessert counter, coffee, a till, then tray trolleys and high chairs, running the other way to the
+    /// other line) with menu boards over their counters, and about it four round dining zones of tables in rings, left mid-meal.
+    /// The seed picks which way the lines run, how the rings are turned and the tables (rectangular, round or long).
     /// </summary>
     private static void BuildCafeteria(PointOfInterestBuilder b)
     {
         var random = b.Random;
-        var plan = random.Next(3);
         var half = OwnSize(PointOfInterestType.Cafeteria) / 2f;
-        // The serving lines run from a corner along u, with their pieces facing n, into the hall.
-        var (corner, u, n) = plan switch
+        // The island runs north–south between the west and the east dining zones; one line faces east, the other west.
+        var south = random.Chance(0.5f) ? 1f : -1f;
+        foreach (var side in new[] { 1f, -1f })
         {
-            0 => (-half, new Vector2(1f, 0f), new Vector2(0f, 1f)),
-            1 => (-half, new Vector2(0f, 1f), new Vector2(1f, 0f)),
-            _ => (half, new Vector2(0f, -1f), new Vector2(-1f, 0f)),
-        };
-        var facing = MathF.Atan2(-n.X, n.Y);
-        // Two serving lines along the wall, the second starting halfway along it.
-        var wall = plan == 0 ? 2f * half.X : 2f * half.Y;
-        foreach (var start in new[] { 0f, wall / 2f })
-        {
-            Vector2 Along(float s, float d) => corner + u * (start + s) + n * d;
+            var (u, n) = (new Vector2(0f, south * side), new Vector2(side, 0f));
+            var facing = MathF.Atan2(-n.X, n.Y);
+            Vector2 Along(float s, float d) => u * (s - ServingLineLength / 2f) + n * d;
             bool Line(FurnitureType type, float s, float d, float elevation = 0f) => b.Put(type, Along(s, d), elevation, facing);
 
-            Line(FurnitureType.TrayStation, 1.6f, 0.6f);
+            Line(FurnitureType.TrayStation, 1.6f, 0.5f);
             foreach (var (type, s, meal) in new[]
             {
                 (FurnitureType.HotFoodCounter, 3.25f, MealKind.Meatballs),
@@ -965,69 +964,87 @@ internal static class PointOfInterestGenerator
                 (FurnitureType.DessertCounter, 7.35f, MealKind.AlmondCake),
             })
             {
-                if (Line(type, s, 0.7f))
+                // The board stands on the island's spine, behind its counter.
+                Line(FurnitureType.MenuBoard, s, 0.08f);
+                if (Line(type, s, 0.55f))
                     b.Serve(meal);
-                Line(FurnitureType.TrayRail, s, 1.295f);
+                Line(FurnitureType.TrayRail, s, 1.145f);
             }
-            Line(FurnitureType.Counter, 9.4f, 0.65f);
-            Line(FurnitureType.CoffeeMachine, 8.95f, 0.6f, FurnitureCatalog.Spec(FurnitureType.Counter).Height);
-            Line(FurnitureType.Till, 12f, 0.65f);
+            Line(FurnitureType.Counter, 9.4f, 0.5f);
+            Line(FurnitureType.CoffeeMachine, 8.95f, 0.45f, FurnitureCatalog.Spec(FurnitureType.Counter).Height);
+            Line(FurnitureType.Till, 12f, 0.5f);
             var trolleys = 2 + random.Next(2);
             for (var i = 0; i < trolleys; i++)
-                Line(FurnitureType.TrayTrolley, 14f + 0.9f * i, 0.5f);
+                Line(FurnitureType.TrayTrolley, 14f + 0.9f * i, 0.53f);
             var highChairs = 2 + random.Next(2);
             for (var i = 0; i < highChairs; i++)
-                Line(FurnitureType.HighChair, 16.8f + 0.7f * i, 0.5f);
+                Line(FurnitureType.HighChair, 16.8f + 0.7f * i, 0.6f);
         }
 
-        // The dining zone: the rest of the hall past the customers' lane before the lines (up to 2.6 m from the wall).
-        var (min, max) = plan switch
-        {
-            0 => (new Vector2(-half.X + 0.8f, -half.Y + 3.4f), new Vector2(half.X - 0.8f, half.Y - 0.4f)),
-            1 => (new Vector2(-half.X + 3.4f, -half.Y + 0.4f), new Vector2(half.X - 0.4f, half.Y - 0.4f)),
-            _ => (new Vector2(-half.X + 0.4f, -half.Y + 0.4f), new Vector2(half.X - 3.4f, half.Y - 0.4f)),
-        };
-        var tableVariant = plan;
+        // The dining zones: one in each corner of the hall, rings of tables about its middle, each table along its ring with
+        // its chairs inside and outside it; an innermost ring too small for its tables is one table in the middle.
+        var tableVariant = random.Next(3);
         var table = FurnitureCatalog.Spec(FurnitureType.DiningTable, tableVariant);
         var sideSeats = tableVariant == 1 ? 1 : 2;
-        var pitch = new Vector2(table.Width + 0.9f, table.Depth + 2.2f);
-        var extent = max - min;
-        var columns = (int)MathF.Floor(extent.X / pitch.X);
-        var rows = (int)MathF.Floor(extent.Y / pitch.Y);
-        var origin = min + (extent - new Vector2(columns * pitch.X, rows * pitch.Y)) / 2f;
-        var abandoned = random.Next(columns * rows);
-        var tables = new List<Vector2>();
-        for (var row = 0; row < rows; row++)
-            for (var column = 0; column < columns; column++)
+        var reach = table.Depth / 2f + 0.8f;
+        var zones = new List<Vector2>();
+        var places = new List<(Vector2 At, float Rotation)>();
+        foreach (var corner in new[] { new Vector2(-1f, -1f), new Vector2(1f, -1f), new Vector2(-1f, 1f), new Vector2(1f, 1f) })
+        {
+            var zone = corner * (half - new Vector2(DiningZoneRadius + 0.6f, DiningZoneRadius + 0.4f));
+            zones.Add(zone);
+            for (var r = DiningZoneRadius - reach; r > 0f; r -= table.Depth + 2.2f)
             {
-                var at = origin + new Vector2(pitch.X * (column + 0.5f), pitch.Y * (row + 0.5f));
-                b.Put(FurnitureType.DiningTable, at, 0f, 0f, tableVariant);
-                LeftSeats(b, at, tableVariant, sideSeats, forced: tables.Count == abandoned);
-                tables.Add(at);
+                if (r < 0.8f * table.Width)
+                {
+                    places.Add((zone, random.Range(0f, MathF.PI)));
+                    break;
+                }
+                var count = (int)MathF.Floor(2f * MathF.PI * r / (table.Width + 1f));
+                var phase = random.Range(0f, 2f * MathF.PI);
+                for (var i = 0; i < count; i++)
+                {
+                    var angle = phase + 2f * MathF.PI * i / count;
+                    places.Add((zone + r * new Vector2(MathF.Cos(angle), MathF.Sin(angle)), angle - Quarter + random.Range(-0.06f, 0.06f)));
+                }
             }
+        }
+        var abandoned = random.Next(places.Count);
+        for (var i = 0; i < places.Count; i++)
+        {
+            var (at, rotation) = places[i];
+            b.Put(FurnitureType.DiningTable, at, 0f, rotation, tableVariant);
+            LeftSeats(b, at, rotation, tableVariant, sideSeats, forced: i == abandoned);
+        }
 
         var spills = 2 + random.Next(3);
         for (var i = 0; i < spills; i++)
-            b.Put(FurnitureType.Spill, new Vector2(random.Range(min.X + 0.5f, max.X - 0.5f), random.Range(min.Y + 0.5f, max.Y - 0.5f)),
-                0f, random.Range(0f, 2f * MathF.PI));
+        {
+            var angle = random.Range(0f, 2f * MathF.PI);
+            var at = zones[random.Next(zones.Count)] + random.Range(0f, DiningZoneRadius - 1f) * new Vector2(MathF.Cos(angle), MathF.Sin(angle));
+            b.Put(FurnitureType.Spill, at, 0f, random.Range(0f, 2f * MathF.PI));
+        }
         var notes = 1 + random.Next(2);
         for (var i = 0; i < notes; i++)
         {
-            var at = tables[random.Next(tables.Count)];
-            b.Put(FurnitureType.Note, at + new Vector2(random.Range(-0.3f, 0.3f), random.Range(-0.15f, 0.15f)), table.Height,
+            var (at, rotation) = places[random.Next(places.Count)];
+            b.Put(FurnitureType.Note, at + Rotated(new Vector2(random.Range(-0.3f, 0.3f), random.Range(-0.15f, 0.15f)), rotation), table.Height,
                 random.Range(0f, 2f * MathF.PI));
         }
     }
 
+    /// <summary>A local offset turned as a piece with this rotation is.</summary>
+    private static Vector2 Rotated(Vector2 v, float rotation) =>
+        new(v.X * MathF.Cos(rotation) - v.Y * MathF.Sin(rotation), v.X * MathF.Sin(rotation) + v.Y * MathF.Cos(rotation));
+
     /// <summary>
-    /// The chairs of a Cafeteria table left mid-meal: some pushed back, some knocked over onto their backs, and perhaps a meal left
-    /// on its tray before one of them. A forced table always has a knocked-over chair and a meal left.
+    /// The chairs of a Cafeteria table (turned by <paramref name="turn"/>) left mid-meal: some pushed back, some knocked over onto
+    /// their backs, and perhaps a meal left on the table before one of them. A forced table always has a knocked-over chair and a meal left.
     /// </summary>
-    private static void LeftSeats(PointOfInterestBuilder b, Vector2 table, int variant, int sideSeats, bool forced)
+    private static void LeftSeats(PointOfInterestBuilder b, Vector2 table, float turn, int variant, int sideSeats, bool forced)
     {
         var random = b.Random;
         var spec = FurnitureCatalog.Spec(FurnitureType.DiningTable, variant);
-        var trayHeight = FurnitureCatalog.Spec(FurnitureType.Tray).Height;
         var edge = spec.Depth / 2f + 0.27f;
         var left = forced || random.Chance(0.45f);
         var mealSeat = forced ? 0 : random.Next(2 * sideSeats);
@@ -1037,8 +1054,8 @@ internal static class PointOfInterestGenerator
             var x = (i - (sideSeats - 1) / 2f) * (spec.Width / sideSeats);
             foreach (var side in new[] { -1f, 1f })
             {
-                // The north chair (side -1) faces south (0), the south chair north (π).
-                var rotation = side < 0f ? 0f : MathF.PI;
+                // In the table's frame the north chair (side -1) faces south (0), the south chair north (π).
+                var rotation = turn + (side < 0f ? 0f : MathF.PI);
                 var offset = new Vector2(x, side * edge);
                 var tilt = 0f;
                 if ((forced && seat == 0) || random.Chance(0.12f))
@@ -1050,12 +1067,11 @@ internal static class PointOfInterestGenerator
                 }
                 else
                     rotation += random.Range(-0.08f, 0.08f);
-                b.Put(FurnitureType.Chair, table + offset, 0f, rotation, tilt: tilt);
+                b.Put(FurnitureType.Chair, table + Rotated(offset, turn), 0f, rotation, tilt: tilt);
                 if (left && seat == mealSeat)
                 {
-                    var plate = table + new Vector2(x, side * 0.24f);
-                    b.Put(FurnitureType.Tray, plate, spec.Height, 0f);
-                    b.Put(FurnitureType.MealPlate, plate, spec.Height + trayHeight, 0f);
+                    var plate = table + Rotated(new Vector2(x, side * 0.24f), turn);
+                    b.Put(FurnitureType.MealPlate, plate, spec.Height, turn);
                 }
                 seat++;
             }
