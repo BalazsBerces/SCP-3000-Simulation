@@ -58,11 +58,13 @@ public readonly record struct StockedGoods(int FurnitureId, GoodsKind Kind, int 
 public sealed record StockConfig
 {
     /// <summary>Units on each piece of Display Stock Furniture (grocery shelves, freezers, warehouse shelving and the like).</summary>
-    public int ShelfAmountMin { get; init; } = 8;
+    public int ShelfAmountMin { get; init; } = 1;
     /// <inheritdoc cref="ShelfAmountMin"/>
-    public int ShelfAmountMax { get; init; } = 30;
+    public int ShelfAmountMax { get; init; } = 3;
+    /// <summary>The share of Display Stock Furniture that holds Goods; the rest stands bare until something stocks it.</summary>
+    public float StockedShelfShare { get; init; } = 0.2f;
     /// <summary>The units at which a shelf of Stock Furniture looks full (<see cref="WorldSnapshot.FillStep"/>).</summary>
-    public int ShelfCapacity { get; init; } = 30;
+    public int ShelfCapacity { get; init; } = 3;
     /// <summary>Portions on each Cafeteria serving counter.</summary>
     public int MealPortionsMin { get; init; } = 20;
     /// <inheritdoc cref="MealPortionsMin"/>
@@ -75,6 +77,13 @@ public sealed record StockConfig
     public int CampStandAmountMin { get; init; } = 10;
     /// <inheritdoc cref="CampStandAmountMin"/>
     public int CampStandAmountMax { get; init; } = 24;
+    /// <summary>
+    /// Units on each stocked flat-pack box of the Rack canyon, twice a shelf's; a box is stocked as often as a shelf is
+    /// (<see cref="StockedShelfShare"/>), with any kind of shop Goods of all classes but one, in the mix of <see cref="TargetPerHectare"/>.
+    /// </summary>
+    public int CanyonBoxAmountMin { get; init; } = 2;
+    /// <inheritdoc cref="CanyonBoxAmountMin"/>
+    public int CanyonBoxAmountMax { get; init; } = 6;
     /// <summary>How many finds each Lost and found holds, each on its own labelled box or cart.</summary>
     public int LostAndFoundFindsMin { get; init; } = 2;
     /// <inheritdoc cref="LostAndFoundFindsMin"/>
@@ -85,7 +94,7 @@ public sealed record StockConfig
     /// The share of storage-like Display Furniture (fridges, freezers, kitchen cabinets, sideboards, display cabinets that are not Stock Furniture)
     /// that holds one left-behind find; the number of finds is this share of them, rounded down.
     /// </summary>
-    public float LeftBehindShare { get; init; } = 0.02f;
+    public float LeftBehindShare { get; init; } = 0.004f;
 
     /// <summary>
     /// Whether the generator reshapes the Display stock's amounts so every Sector has a Surplus and a Shortage and each Goods
@@ -98,11 +107,11 @@ public sealed record StockConfig
     public float ShortageRatio { get; init; } = 0.6f;
     /// <summary>
     /// The target Store-wide units of each Goods class per hectare of floor; the defaults are about what the Departments' shelves
-    /// hold on average across seeds and layouts.
+    /// hold on average across seeds and layouts (a fifth of them stocked, a few units each).
     /// </summary>
     public IReadOnlyDictionary<GoodsClass, float> TargetPerHectare { get; init; } = new Dictionary<GoodsClass, float>
     {
-        [GoodsClass.Food] = 1470f, [GoodsClass.Drink] = 105f, [GoodsClass.Comfort] = 1050f, [GoodsClass.Supplies] = 1470f,
+        [GoodsClass.Food] = 33.5f, [GoodsClass.Drink] = 2.6f, [GoodsClass.Comfort] = 21f, [GoodsClass.Supplies] = 32.5f,
     };
     /// <summary>
     /// How far, as a share of its target, each Goods class's Store total may stray from <see cref="TargetPerHectare"/>; a Store

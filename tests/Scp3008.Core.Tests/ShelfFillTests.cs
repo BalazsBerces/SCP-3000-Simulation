@@ -44,7 +44,7 @@ public class ShelfFillTests
         }
 
         Assert.Equal(3, StepAfter(capacity));
-        Assert.Equal(2, StepAfter(capacity / 2));
+        Assert.Equal(2, StepAfter((capacity + 1) / 2));
         Assert.Equal(1, StepAfter(1));
         Assert.Equal(0, StepAfter(0));
 

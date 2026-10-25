@@ -86,7 +86,7 @@ public sealed class Simulation : IDisposable
         _tankFish = pointsOfInterest.TankFish;
         _counterMeals = pointsOfInterest.CounterMeals;
         _stock = StockGenerator.Generate(config.Seed, config.Stock ?? new StockConfig(), _furniture.Pieces, _furniture.Displays, _departments,
-            _pointsOfInterest, _tankFish, _counterMeals, _campGoods, _space, config.PillarLayout);
+            _pointsOfInterest, _tankFish, _counterMeals, _campGoods, _landmarks, _space, config.PillarLayout);
         _sectorStocks = StockGenerator.Summarize(_stock, _furniture.Pieces, _space, config.PillarLayout, config.Stock ?? new StockConfig());
         _waterPoints = WaterGenerator.Generate(config.Seed, config.Water ?? new WaterConfig(), _furniture.Pieces, _furniture.Displays,
             _pointsOfInterest, _landmarks);

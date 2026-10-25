@@ -20,7 +20,7 @@ namespace Scp3008.Game;
 ///   --pillar=coordinate    focus beside a Pillar, by its grid coordinate (e.g. B-2), if the layout has it;
 ///   --pause                freeze Store time for comparable captures;
 ///   --shelf-stock=amount   after the focus jumps, set every Goods kind on the Stock Furniture around the focus to this
-///                          amount (30 full, 0 bare), to capture the shelves' fill steps (ticket 08r);
+///                          amount (3 full, 0 bare), to capture the shelves' fill steps (ticket 08r);
 ///   --clear-weather        hold clear Weather for comparable captures (the air has no base fog);
 ///   --pan=vx,vy            pan the camera focus at (vx, vy) metres per second, then report how
 ///                          often it crossed a seam and its largest per-frame step, overall

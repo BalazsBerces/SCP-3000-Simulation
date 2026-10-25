@@ -5,7 +5,7 @@ namespace Scp3008.Game;
 
 /// <summary>
 /// The Goods on the shelves of Stock Furniture (ticket 08r): copies of each Goods kind's product model along the shelves of
-/// grocery shelves, shelf units, pallet racks, toy shelves, cushion bins and chest freezers, as many as the stock's fill step
+/// grocery shelves, shelf units, pallet racks, toy shelves, cushion bins, chest freezers and on the Rack canyon's boxes, as many as the stock's fill step
 /// (<see cref="WorldSnapshot.FillStep"/>) shows. A lower step leaves gaps, in a fixed shuffled order, so a low shelf looks
 /// picked over rather than half built; a bare shelf (no stock) shows none. Display Furniture holds no stock and stays empty;
 /// a fridge's and a counter's stock stays behind their closed bodies. One instance group per Furniture type, Goods kind and
@@ -24,6 +24,9 @@ public partial class ShelfGoods : Node3D
 
     // At most this many products side by side along a run: a long pallet rack beam shows a row, not a hundred tins.
     private const int MostAlongARun = 20;
+
+    // The share of a run's slots a full shelf (StockConfig.ShelfCapacity units) fills: a few products spread along it, not a packed row.
+    private const double FullShare = 0.1;
 
     /// <summary>A Goods kind's product model: its folder, the turn that brings its front to +Z, and its real longest side in metres.</summary>
     private sealed record Product(string Folder, float Yaw, float Longest);
@@ -71,7 +74,7 @@ public partial class ShelfGoods : Node3D
         var shown = snapshot.Stock
             .Where(g => !g.LeftBehind && Products.ContainsKey(g.Kind))
             .Select(g => (Goods: g, Piece: pieces[g.FurnitureId]))
-            .Where(s => s.Piece.LandmarkId < 0 && Runs(s.Piece.Type, s.Piece.Variant).Any());
+            .Where(s => Runs(s.Piece.Type, s.Piece.Variant).Any());
         // shortcut: a second kind on one piece (only SetStock makes one) is drawn over the first; give each kind its share of the runs if pieces ever stock two kinds.
         foreach (var group in shown.GroupBy(s => (s.Piece.Type, s.Piece.Variant, s.Goods.Kind, Step: snapshot.FillStep(s.Goods))))
         {
@@ -127,6 +130,9 @@ public partial class ShelfGoods : Node3D
                 // Lying in the open tub under the clear lid.
                 return [new(new(0f, FurnitureMeshes.FreezerFloor, hd - 0.15f), 0f, w - 0.2f, h - 0.08f - FurnitureMeshes.FreezerFloor,
                     Rows: 3, RowPitch: (spec.Depth - 0.3f) / 2f)];
+            case FurnitureType.FlatPackBox:
+                // On the lid of a Rack canyon box, under the next beam of its rack.
+                return [new(new(0f, h + 0.003f, hd - 0.15f), 0f, w - 0.2f, 0.4f, Rows: 3, RowPitch: (spec.Depth - 0.3f) / 2f)];
             default:
                 return [];
         }
@@ -155,7 +161,7 @@ public partial class ShelfGoods : Node3D
             var turn = new Basis(Vector3.Up, run.Yaw);
             var columns = (from c in Enumerable.Range(0, along) from r in Enumerable.Range(0, run.Rows) select (c, r))
                 .Select(slot => (Slot: slot, Order: random.Next(), Jitter: (float)(random.NextDouble() - 0.5) * 0.3f)).ToList();
-            var shownCount = (int)Math.Ceiling(columns.Count * step / (double)WorldSnapshot.FillSteps);
+            var shownCount = (int)Math.Ceiling(columns.Count * FullShare * step / WorldSnapshot.FillSteps);
             foreach (var (slot, _, jitter) in columns.OrderBy(c => c.Order).Take(shownCount))
                 for (var t = 0; t < tiers; t++)
                 {

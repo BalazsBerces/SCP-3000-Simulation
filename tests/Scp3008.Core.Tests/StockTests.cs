@@ -42,13 +42,13 @@ public class StockTests(ITestOutputHelper output)
         snapshot.Departments.All[snapshot.Displays[piece.DisplayId].DepartmentId].Type;
 
     // The store stock the ticket names: grocery shelves, freezers, warehouse shelving, Cafeteria counters, Aquarium tanks,
-    // the Camping ground's stands, and the shelves of the Lighting, Kids' and Textiles departments.
+    // the Camping ground's stands, the Rack canyon's boxes, and the shelves of the Lighting, Kids' and Textiles departments.
     private static readonly HashSet<FurnitureType> StockTypes =
     [
         FurnitureType.GroceryShelf, FurnitureType.Freezer, FurnitureType.Fridge, FurnitureType.Counter, FurnitureType.PalletRack,
         FurnitureType.ShelfUnit, FurnitureType.ToyShelf, FurnitureType.CushionBin,
         FurnitureType.HotFoodCounter, FurnitureType.DessertCounter, FurnitureType.FishTank,
-        FurnitureType.LabelledBox, FurnitureType.UnsortedCart,
+        FurnitureType.LabelledBox, FurnitureType.UnsortedCart, FurnitureType.FlatPackBox,
     ];
 
     [Theory]
@@ -76,9 +76,11 @@ public class StockTests(ITestOutputHelper output)
                 Assert.Contains(piece.Type, StockTypes);
             }
         });
-        // Every piece of Stock Furniture holds its own Goods.
+        // About the stocked share of the Display Stock Furniture holds Goods; the rest stands bare.
         var stocked = snapshot.Stock.Select(g => g.FurnitureId).ToHashSet();
-        Assert.All(snapshot.Furniture.Where(p => p.DisplayId >= 0 && snapshot.IsStockFurniture(p)), p => Assert.Contains(p.Id, stocked));
+        var displayStock = snapshot.Furniture.Where(p => p.DisplayId >= 0 && snapshot.IsStockFurniture(p)).ToList();
+        var share = new StockConfig().StockedShelfShare;
+        Assert.InRange(displayStock.Count(p => stocked.Contains(p.Id)) / (double)displayStock.Count, share * 0.8, share * 1.2);
         // Grocery shelves, freezers and warehouse shelving are stock in every Store.
         var stockTypes = snapshot.Stock.Where(g => !g.LeftBehind).Select(g => pieces[g.FurnitureId].Type).ToHashSet();
         Assert.Contains(FurnitureType.GroceryShelf, stockTypes);
@@ -97,7 +99,9 @@ public class StockTests(ITestOutputHelper output)
             var snapshot = Store(seed);
             var held = snapshot.Stock.Select(g => g.FurnitureId).ToHashSet();
             var showroom = snapshot.Furniture
-                .Where(p => p.Type is FurnitureType.Fridge or FurnitureType.KitchenCabinet && p.DisplayId >= 0 && !snapshot.IsStockFurniture(p))
+                // Every type a find can be left in, so the finds cannot crowd into a subset of them past the share.
+                .Where(p => p.Type is FurnitureType.Fridge or FurnitureType.Freezer or FurnitureType.KitchenCabinet or FurnitureType.Sideboard
+                    or FurnitureType.DisplayCabinet && p.DisplayId >= 0 && !snapshot.IsStockFurniture(p))
                 .ToList();
             showroomPieces += showroom.Count;
             holding += showroom.Count(p => held.Contains(p.Id));
@@ -254,6 +258,25 @@ public class StockTests(ITestOutputHelper output)
         var pieces = PiecesById(landmarks);
         Assert.All(landmarks.CampGoods, c => Assert.True(landmarks.IsStockFurniture(pieces[c.StandId])));
         Assert.All(landmarks.Stock, g => Assert.True(Enum.IsDefined(GoodsCatalog.ClassOf(g.Kind))));
+    }
+
+    [Theory]
+    [InlineData(3008)]
+    [InlineData(42)]
+    public void Some_rack_canyon_boxes_hold_goods_of_any_kind_twice_a_shelfs_amount(int seed)
+    {
+        var landmarks = LandmarkShowcase(seed);
+        var canyon = landmarks.Landmarks.Single(l => l.Type == LandmarkType.RackCanyon).Id;
+        var boxes = landmarks.Furniture.Where(p => p.LandmarkId == canyon && p.Type == FurnitureType.FlatPackBox).ToList();
+        // Only the upright boxes, which Goods can stand on.
+        Assert.All(boxes, box => Assert.Equal(box.Tilt == 0f && box.Roll == 0f, landmarks.IsStockFurniture(box)));
+        boxes = boxes.Where(landmarks.IsStockFurniture).ToList();
+        var ids = boxes.Select(b => b.Id).ToHashSet();
+        var stocked = landmarks.Stock.Where(g => ids.Contains(g.FurnitureId)).ToList();
+        var config = new StockConfig();
+        Assert.InRange(stocked.Count / (double)boxes.Count, config.StockedShelfShare * 0.5, config.StockedShelfShare * 1.5);
+        Assert.All(stocked, g => Assert.InRange(g.Amount, config.CanyonBoxAmountMin, config.CanyonBoxAmountMax));
+        Assert.True(stocked.Select(g => GoodsCatalog.ClassOf(g.Kind)).Distinct().Count() > 1, "The canyon's boxes hold only one class of Goods.");
     }
 
     [Fact]

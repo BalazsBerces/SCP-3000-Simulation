@@ -63,8 +63,8 @@ public partial class FurnitureRenderer : Node3D
                 ViewReach = group.Key.Landmark
                     ? Visibility.LandmarkPlacementReach(Rig, snapshot.Space.ChunkSize)
                     : Visibility.PlacementReach(Rig, snapshot.Space.ChunkSize),
-                Mesh = FurnitureMeshes.For(group.Key.Type, group.Key.Variant),
-                CoarseMesh = FurnitureMeshes.CoarseFor(group.Key.Type, group.Key.Variant),
+                Mesh = FurnitureMeshes.For(group.Key.Type, group.Key.Variant, group.Key.Landmark),
+                CoarseMesh = FurnitureMeshes.CoarseFor(group.Key.Type, group.Key.Variant, group.Key.Landmark),
                 // Landmark Furniture hides nothing: the panels of thousands of stacked, tilted and touching
                 // pieces stalled the first render with occlusion culling on, as the crossing pantry panels did.
                 OccluderQuads = group.Key.Landmark ? [] : FurnitureMeshes.OccluderQuads(group.Key.Type, group.Key.Variant),
@@ -73,6 +73,7 @@ public partial class FurnitureRenderer : Node3D
             instances.SetInstances(snapshot.Space, group.Select(p => (Placement(p), Colour(snapshot, p))));
         }
         AddFish(snapshot);
+        AddRackDecks(snapshot);
         var goods = new ShelfGoods { Name = "ShelfGoods", Host = Host, Rig = Rig, Visibility = Visibility };
         AddChild(goods);
         goods.Build(snapshot);
@@ -125,6 +126,49 @@ public partial class FurnitureRenderer : Node3D
 
     /// <summary>How far from the camera the fish in the tanks show, in metres; farther they are a few pixels at most.</summary>
     private const float FishDistance = 60f;
+
+    /// <summary>
+    /// The steel decks of the Rack canyon's racks, whose meshes are bare beams: on each beam level, half a deck under each box
+    /// standing on it, so a level with one box is half decked, one with two fully, and an empty one not at all.
+    /// </summary>
+    private void AddRackDecks(WorldSnapshot snapshot)
+    {
+        var spec = FurnitureCatalog.Spec(FurnitureType.PalletRack);
+        var racks = snapshot.Furniture.Where(p => p.LandmarkId >= 0 && p.Type == FurnitureType.PalletRack)
+            .ToLookup(p => (Mathf.RoundToInt(p.Position.X), Mathf.RoundToInt(p.Position.Y)));
+        var decks = new List<Transform3D>();
+        foreach (var box in snapshot.Furniture.Where(p => p.LandmarkId >= 0 && p.Type == FurnitureType.FlatPackBox && p.Tilt == 0f && p.Roll == 0f))
+        {
+            var near = from dx in Enumerable.Range(-2, 5)
+                       from dy in Enumerable.Range(-2, 5)
+                       from rack in racks[(Mathf.RoundToInt(box.Position.X) + dx, Mathf.RoundToInt(box.Position.Y) + dy)]
+                       select rack;
+            foreach (var rack in near)
+            {
+                // The box in the rack's own frame: on one of its beam levels, within its footprint.
+                var placement = Placement(rack);
+                var local = placement.AffineInverse() * box.Position.ToWorld(box.Elevation);
+                if (Mathf.Abs(local.X) > spec.Width / 2f || Mathf.Abs(local.Z) > spec.Depth / 2f)
+                    continue;
+                var level = FurnitureCatalog.PalletRackLevels.Where(l => Mathf.Abs(local.Y - l) < 0.05f).Cast<float?>().FirstOrDefault();
+                if (level is null)
+                    continue;
+                decks.Add(placement * new Transform3D(new Basis(Vector3.Up, local.X < 0f ? Mathf.Pi : 0f), new Vector3(0f, level.Value, 0f)));
+                break;
+            }
+        }
+        var instances = new WrappedInstances
+        {
+            Name = "Landmark-RackDecks",
+            Rig = Rig,
+            FarDistance = Visibility.LandmarkDistance,
+            ViewReach = Visibility.LandmarkPlacementReach(Rig, snapshot.Space.ChunkSize),
+            Mesh = FurnitureMeshes.RackHalfDeck(coarse: false),
+            CoarseMesh = FurnitureMeshes.RackHalfDeck(coarse: true),
+        };
+        AddChild(instances);
+        instances.SetInstances(snapshot.Space, decks.Select(d => (d, Colors.White)));
+    }
 
     /// <summary>
     /// The piece's transform in world space. Core rotations turn east towards south, which is a

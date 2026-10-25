@@ -70,10 +70,11 @@ public sealed record WorldSnapshot(
 
     /// <summary>
     /// Whether a piece is Stock Furniture, which holds Goods as real store stock (grocery shelves, freezers, warehouse shelving,
-    /// Cafeteria counters, Aquarium tanks, the Camping ground's stands, a Lost and found's boxes), whether or not any are on it now.
+    /// Cafeteria counters, Aquarium tanks, the Camping ground's stands, the Rack canyon's boxes, a Lost and found's boxes), whether
+    /// or not any are on it now.
     /// </summary>
     public bool IsStockFurniture(FurniturePiece piece) =>
-        Generation.StockGenerator.IsStockFurniture(piece, Displays, Departments, PointsOfInterest, CampGoods);
+        Generation.StockGenerator.IsStockFurniture(piece, Displays, Departments, PointsOfInterest, CampGoods, Landmarks);
 
     /// <summary>
     /// Each Sector's stock per Goods class and its Surplus and Shortage classes, derived from <see cref="Stock"/>, indexed by

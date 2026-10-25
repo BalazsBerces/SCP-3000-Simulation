@@ -109,7 +109,7 @@ public static class FurnitureMeshes
     private const float CoarseMinSheetThickness = 0.01f;
     private const float CoarseMaxStripWidth = 0.3f;
 
-    private static readonly Dictionary<(FurnitureType, int Variant, bool Coarse), ArrayMesh> Cache = new();
+    private static readonly Dictionary<(FurnitureType, int Variant, bool Coarse, bool Bare), ArrayMesh> Cache = new();
     private static Dictionary<Part, ShaderMaterial>? _materials;
     private static ShaderMaterial? _coarseMaterial;
 
@@ -125,7 +125,22 @@ public static class FurnitureMeshes
     }
 
     /// <summary>The coarse mesh for a Furniture type and variant, drawn in the distance; built once and shared.</summary>
-    public static ArrayMesh CoarseFor(FurnitureType type, int variant = 0) => Get(type, variant, coarse: true);
+    public static ArrayMesh CoarseFor(FurnitureType type, int variant = 0, bool landmark = false) => Get(type, variant, coarse: true, landmark);
+
+    /// <summary>
+    /// Half a pallet rack's steel deck, from the middle of the rack to its +X end, its top just under a beam level at y 0: the
+    /// deck under one box on a Rack canyon rack, turned half a turn for the other half. Built once and shared.
+    /// </summary>
+    public static ArrayMesh RackHalfDeck(bool coarse)
+    {
+        if (Cache.TryGetValue((FurnitureType.PalletRack, -1, coarse, false), out var mesh))
+            return mesh;
+        var spec = FurnitureCatalog.Spec(FurnitureType.PalletRack);
+        var (hw, hd) = (spec.Width / 2f, spec.Depth / 2f);
+        var b = new Builder(coarse, CoarseMinThickness, 0);
+        b.Box(Part.LightSteel, new Vector3(0f, -0.015f, -hd + 0.07f), new Vector3(hw - 0.08f, -0.003f, hd - 0.07f));
+        return Cache[(FurnitureType.PalletRack, -1, coarse, false)] = b.Commit();
+    }
 
     /// <summary>The height of an open chest freezer's floor, which its Goods lie on (<see cref="ShelfGoods"/>).</summary>
     public const float FreezerFloor = 0.48f;
@@ -183,14 +198,16 @@ public static class FurnitureMeshes
             BulbHeight(type), 0f);
 
     /// <summary>The mesh for a Furniture type and variant; built once and shared.</summary>
-    public static ArrayMesh For(FurnitureType type, int variant = 0) => Get(type, variant, coarse: false);
+    public static ArrayMesh For(FurnitureType type, int variant = 0, bool landmark = false) => Get(type, variant, coarse: false, landmark);
 
-    private static ArrayMesh Get(FurnitureType type, int variant, bool coarse)
+    private static ArrayMesh Get(FurnitureType type, int variant, bool coarse, bool landmark = false)
     {
         if (FurnitureModels.Find(type, variant) is { } model)
             return coarse ? FurnitureModels.Coarse(model) : FurnitureModels.Full(model);
-        if (!Cache.TryGetValue((type, variant, coarse), out var mesh))
-            Cache[(type, variant, coarse)] = mesh = Build(type, variant, coarse);
+        // The Rack canyon's racks are bare beams, without the decks of the store's racks.
+        var bare = landmark && type == FurnitureType.PalletRack;
+        if (!Cache.TryGetValue((type, variant, coarse, bare), out var mesh))
+            Cache[(type, variant, coarse, bare)] = mesh = Describe(type, variant, coarse, deck: !bare).Commit();
         return mesh;
     }
 
@@ -317,8 +334,6 @@ public static class FurnitureMeshes
         new(0.93f, 0.88f, 0.8f), new(0.82f, 0.76f, 0.66f), new(0.9f, 0.89f, 0.86f), new(0.86f, 0.82f, 0.75f),
     ];
 
-    private static ArrayMesh Build(FurnitureType type, int variant, bool coarse) => Describe(type, variant, coarse).Commit();
-
     /// <summary>
     /// Every pair of visible box faces of a Furniture type's full mesh that lie in one plane, face
     /// the same way and overlap, so they z-fight: one line per pair, empty when there are none (and for a
@@ -329,7 +344,7 @@ public static class FurnitureMeshes
             ? []
             : Describe(type, variant, coarse: false).CoplanarFaces().Select(f => $"{type} {variant}: {f}");
 
-    private static Builder Describe(FurnitureType type, int variant, bool coarse)
+    private static Builder Describe(FurnitureType type, int variant, bool coarse, bool deck = true)
     {
         var spec = FurnitureCatalog.Spec(type, variant);
         var (w, d, h) = (spec.Width, spec.Depth, spec.Height);
@@ -396,6 +411,9 @@ public static class FurnitureMeshes
                 foreach (var level in FurnitureCatalog.PalletRackLevels.Append(h - 0.1f))
                     foreach (var z in new[] { -hd + 0.04f, hd - 0.04f })
                         b.Box(Part.RackBeam, new Vector3(-hw + 0.08f, level - 0.1f, z - 0.03f), new Vector3(hw - 0.08f, level, z + 0.03f));
+                // A steel deck across the beams of each level, so the Goods on it stand on something.
+                foreach (var level in FurnitureCatalog.PalletRackLevels.Where(_ => deck))
+                    b.Box(Part.LightSteel, new Vector3(-hw + 0.08f, level - 0.015f, -hd + 0.07f), new Vector3(hw - 0.08f, level - 0.003f, hd - 0.07f));
                 foreach (var x in new[] { -hw + 0.04f, hw - 0.04f })
                     for (var y = 0.6f; y < h; y += 1.2f)
                         b.Box(Part.RackUpright, new Vector3(x - 0.02f, y, -hd + 0.08f), new Vector3(x + 0.02f, y + 0.04f, hd - 0.08f));

@@ -2,8 +2,8 @@ namespace Scp3008.Core.Generation;
 
 /// <summary>
 /// Gives Goods to the Store's Stock Furniture as real store stock, one kind and amount per piece: the Display stock by its
-/// Department type, the Cafeteria meals, Aquarium fish and Camping ground goods the Points of interest and Landmarks set, a few
-/// random finds in each Lost and found and, rarely, a thing left behind in Display Furniture. It then reshapes the Display stock's
+/// Department type, the Cafeteria meals, Aquarium fish and Camping ground goods the Points of interest and Landmarks set, any
+/// kind on some of the Rack canyon's boxes, a few random finds in each Lost and found and, rarely, a thing left behind in Display Furniture. It then reshapes the Display stock's
 /// amounts so every Sector is rich in at least one Goods class (its Surplus) and short of at least one (its Shortage), and each
 /// class's Store total keeps to a band around its target.
 /// </summary>
@@ -19,7 +19,7 @@ internal static class StockGenerator
 
     /// <summary>Whether a piece is Stock Furniture: whether it holds Goods as store stock, whether or not any are on it now.</summary>
     internal static bool IsStockFurniture(FurniturePiece piece, IReadOnlyList<Display> displays, DepartmentMap departments,
-        IReadOnlyList<PointOfInterest> pointsOfInterest, IReadOnlyList<CampGoods> campGoods)
+        IReadOnlyList<PointOfInterest> pointsOfInterest, IReadOnlyList<CampGoods> campGoods, IReadOnlyList<Landmark> landmarks)
     {
         if (piece.DisplayId >= 0)
         {
@@ -34,6 +34,8 @@ internal static class StockGenerator
                 PointOfInterestType.LostAndFound => piece.Type is FurnitureType.LabelledBox or FurnitureType.UnsortedCart,
                 _ => false,
             };
+        if (IsCanyonBox(piece, landmarks))
+            return true;
         if (piece.LandmarkId >= 0)
             foreach (var goods in campGoods)
                 if (goods.StandId == piece.Id)
@@ -41,16 +43,22 @@ internal static class StockGenerator
         return false;
     }
 
+    // An upright flat-pack box of the Rack canyon, on its racks or spilled from them: Goods of any kind can stand on top of it.
+    private static bool IsCanyonBox(FurniturePiece piece, IReadOnlyList<Landmark> landmarks) =>
+        piece.Type == FurnitureType.FlatPackBox && piece.Tilt == 0f && piece.Roll == 0f && piece.LandmarkId >= 0 && piece.LandmarkId < landmarks.Count &&
+        landmarks[piece.LandmarkId].Type == LandmarkType.RackCanyon;
+
     public static IReadOnlyList<StockedGoods> Generate(int seed, StockConfig config, IReadOnlyList<FurniturePiece> pieces,
         IReadOnlyList<Display> displays, DepartmentMap departments, IReadOnlyList<PointOfInterest> pointsOfInterest,
         IReadOnlyList<TankFish> tankFish, IReadOnlyList<CounterMeal> counterMeals, IReadOnlyList<CampGoods> campGoods,
-        StoreSpace space, PillarLayout layout)
+        IReadOnlyList<Landmark> landmarks, StoreSpace space, PillarLayout layout)
     {
         var random = SeededRandom.For(seed, StockStream);
         int Amount(int min, int max) => min + random.Next(Math.Max(max - min, 0) + 1);
         var stock = new List<StockedGoods>();
         var leftBehindCandidates = new List<int>();
         var lostAndFound = new Dictionary<int, List<int>>();
+        var canyonBoxes = new List<int>();
 
         foreach (var piece in pieces)
         {
@@ -59,7 +67,10 @@ internal static class StockGenerator
                 var display = displays[piece.DisplayId];
                 var kinds = GoodsCatalog.KindsOn(departments.All[display.DepartmentId].Type, display.Theme, piece.Type);
                 if (kinds.Count > 0)
-                    stock.Add(new StockedGoods(piece.Id, random.Pick(kinds), Amount(config.ShelfAmountMin, config.ShelfAmountMax)));
+                {
+                    if (random.Chance(config.StockedShelfShare))
+                        stock.Add(new StockedGoods(piece.Id, random.Pick(kinds), Amount(config.ShelfAmountMin, config.ShelfAmountMax)));
+                }
                 else if (LeftBehindTypes.Contains(piece.Type))
                     leftBehindCandidates.Add(piece.Id);
             }
@@ -69,6 +80,24 @@ internal static class StockGenerator
                 if (!lostAndFound.TryGetValue(piece.PointOfInterestId, out var holders))
                     lostAndFound[piece.PointOfInterestId] = holders = [];
                 holders.Add(piece.Id);
+            }
+            else if (IsCanyonBox(piece, landmarks) && random.Chance(config.StockedShelfShare))
+                canyonBoxes.Add(piece.Id);
+        }
+
+        // The Rack canyon's boxes hold any kind of shop Goods, the classes in the Store's mix, so its few Drinks stay few; but never
+        // one class, so the canyon's Sector can still be short of something however much the canyon holds.
+        if (canyonBoxes.Count > 0)
+        {
+            var missing = random.Pick(Enum.GetValues<GoodsClass>());
+            var classes = Enum.GetValues<GoodsClass>().Where(c => c != missing && config.TargetPerHectare.GetValueOrDefault(c) > 0).ToList();
+            var mix = classes.Sum(c => config.TargetPerHectare[c]);
+            foreach (var id in canyonBoxes)
+            {
+                var roll = random.NextFloat() * mix;
+                var goodsClass = classes.First(c => (roll -= config.TargetPerHectare[c]) < 0 || c == classes[^1]);
+                var kinds = GoodsCatalog.ShopKinds.Where(k => GoodsCatalog.ClassOf(k) == goodsClass).ToList();
+                stock.Add(new StockedGoods(id, random.Pick(kinds), Amount(config.CanyonBoxAmountMin, config.CanyonBoxAmountMax)));
             }
         }
 
@@ -129,7 +158,8 @@ internal static class StockGenerator
     /// Reshapes the Display stock's amounts (meals, fish, camp goods and finds keep theirs): first each Goods class's Store total into its
     /// band, then, for each Sector without a Surplus, its best-stocked class is raised at the expense of the Sectors that can give
     /// it, and for each Sector without a Shortage its worst-stocked class is lowered in favour of the Sectors not short of it.
-    /// Moving stock between Sectors keeps each class's total, so the band holds; every shelf keeps at least one unit.
+    /// Moving stock between Sectors keeps each class's total, so the band holds; every shelf keeps at least one unit, except in a
+    /// Sector lowered to its Shortage, which may leave some bare.
     /// </summary>
     private static void Balance(List<StockedGoods> stock, IReadOnlyList<FurniturePiece> pieces, StoreSpace space, PillarLayout layout,
         StockConfig config)
@@ -174,11 +204,15 @@ internal static class StockGenerator
 
         double Amount(int s, int c) => display[s, c] + other[s, c];
         int StandingOf(int s, int c) => Standing(Amount(s, c), means[c], config);
+        // A standing that rounding to whole units cannot lose: a Sector only just past a threshold is moved further.
+        int FirmStandingOf(int s, int c) =>
+            Amount(s, c) >= config.SurplusRatio * (1 + Margin / 2) * means[c] ? 1 : Amount(s, c) <= config.ShortageRatio * (1 - Margin / 2) * means[c] ? -1 : 0;
         // Moves units of class c into Sector s (out of it, if negative) from the other Sectors that can give (or take) them, each
         // in proportion to what it can; false, changing nothing, if they cannot.
         bool Move(int s, int c, double units)
         {
-            if (shelves[s, c] == 0 || display[s, c] + units < shelves[s, c])
+            // Lowering a Sector may leave some of its shelves bare, but never the whole class.
+            if (shelves[s, c] == 0 || display[s, c] + units < (units < 0 ? 1 : shelves[s, c]))
                 return false;
             var share = new double[sectors];
             for (var d = 0; d < sectors; d++)
@@ -204,21 +238,34 @@ internal static class StockGenerator
             for (var s = 0; s < sectors; s++)
             {
                 var byAmount = Enumerable.Range(0, classCount).OrderByDescending(c => means[c] > 0 ? Amount(s, c) / means[c] : 0).ToArray();
-                if (!byAmount.Any(c => StandingOf(s, c) > 0))
+                if (!byAmount.Any(c => FirmStandingOf(s, c) > 0))
                     changed |= byAmount.Any(c => Move(s, c, config.SurplusRatio * (1 + Margin) * means[c] - Amount(s, c)));
-                if (!byAmount.Any(c => StandingOf(s, c) < 0))
+                if (!byAmount.Any(c => FirmStandingOf(s, c) < 0))
                     changed |= byAmount.Reverse().Any(c => Move(s, c, config.ShortageRatio * (1 - Margin) * means[c] - Amount(s, c)));
             }
             if (!changed)
                 break;
         }
 
-        for (var i = 0; i < stock.Count; i++)
+        // Back to whole units a Sector and class at a time, so its total lands on the reshaped amount even when shelves hold only a few.
+        foreach (var cell in Enumerable.Range(0, stock.Count).Where(i => Reshaped(pieces[stock[i].FurnitureId], stock[i])).GroupBy(i => cellOf[i]))
         {
-            var (s, c) = cellOf[i];
-            if (Reshaped(pieces[stock[i].FurnitureId], stock[i]))
-                stock[i] = stock[i] with { Amount = Math.Max(1, (int)Math.Round(stock[i].Amount * display[s, c] / drawn[s, c])) };
+            var (s, c) = cell.Key;
+            var ideal = cell.ToDictionary(i => i, i => stock[i].Amount * display[s, c] / drawn[s, c]);
+            var total = Math.Max(1, (int)Math.Round(display[s, c]));
+            // Every shelf keeps a unit while there are units enough; a Sector lowered past that leaves some shelves bare.
+            var least = total >= shelves[s, c] ? 1 : 0;
+            var amounts = ideal.ToDictionary(e => e.Key, e => Math.Max(least, (int)Math.Floor(e.Value)));
+            var left = total - amounts.Values.Sum();
+            // Units short go to the shelves the rounding cut most, units over come off those it cut least.
+            foreach (var i in ideal.OrderByDescending(e => e.Value - Math.Floor(e.Value)).Select(e => e.Key).Take(Math.Max(left, 0)))
+                amounts[i]++;
+            foreach (var i in ideal.Where(e => amounts[e.Key] > least).OrderBy(e => e.Value - Math.Floor(e.Value)).Select(e => e.Key).Take(Math.Max(-left, 0)))
+                amounts[i]--;
+            foreach (var (i, amount) in amounts)
+                stock[i] = stock[i] with { Amount = amount };
         }
+        stock.RemoveAll(g => g.Amount == 0);
     }
 
     private static bool Reshaped(FurniturePiece piece, StockedGoods goods) => piece.DisplayId >= 0 && !goods.LeftBehind;
