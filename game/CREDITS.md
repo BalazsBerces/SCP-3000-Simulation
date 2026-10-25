@@ -78,6 +78,23 @@ Fitted into the hot food counter wells and dessert counter shelves (ticket 08n).
 - Whole almond cake: [Carrot Cake](https://polyhaven.com/a/carrot_cake) by Poly Haven, CC0 (`models/whole_cake`)
 - Sliced cake and plate: [Cake Slice](https://sketchfab.com/3d-models/cake-slice-d01a91e1d2484433917dc9435b5a2e57) by omarelone, Sketchfab, CC-BY ([CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)) (`models/cake_slice`)
 
+## Goods models
+
+Copied along the shelves of Stock Furniture, as many as the shelf's stock (ticket 08r).
+
+- Tinned food: [Long Life Food: tin of tomatoes](https://polyhaven.com/a/long_life_food) by Mia Pecina Zorko, Poly Haven, CC0 (`models/goods_tinned_food`)
+- Fresh food: [Long Life Food: milk carton](https://polyhaven.com/a/long_life_food) by Mia Pecina Zorko, Poly Haven, CC0 (`models/goods_fresh_food`)
+- Dry food: [Russian Food Cans 01: salt box](https://polyhaven.com/a/russian_food_cans_01) by Kosan Aziz, Poly Haven, CC0 (`models/goods_dry_food`)
+- Bottled water: [Plastic Bottle Gallon](https://polyhaven.com/a/plastic_bottle_gallon) by Rahul Chaudhary, Poly Haven, CC0 (`models/goods_bottled_water`)
+- Soft drinks: [Soda Can](https://sketchfab.com/3d-models/soda-can-7a54b5302f40454590e876a76146ad80) by CaffeinePainter, Sketchfab, CC-BY ([CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)) (`models/goods_soft_drinks`)
+- Coffee: [coffee bag](https://sketchfab.com/3d-models/coffee-bag-9f9457e0e06444bb84813c896722c93c) by LanaGre, Sketchfab, CC-BY ([CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)) (`models/goods_coffee`)
+- Sweets: [Candies](https://sketchfab.com/3d-models/candies-890c6ccc39ef414bb1c8f79fa821debf) by Sare, Sketchfab, CC-BY ([CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)) (`models/goods_sweets`)
+- Candles: [Candle Low](https://sketchfab.com/3d-models/candle-low-f9ccd7e51c004c9e8354a4c723d20010) by Batuhan13, Sketchfab, CC-BY ([CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)) (`models/goods_candles`)
+- Batteries: [AA Battery](https://sketchfab.com/3d-models/aa-battery-d3e533bb1bd948f68bf0a7ead9a5e211) by HusarL, Sketchfab, CC-BY ([CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)) (`models/goods_batteries`)
+- Bulbs: [Lightbulb LED](https://polyhaven.com/a/lightbulb_led) by Josh Dean, Poly Haven, CC0 (`models/goods_bulbs`)
+- Cables: [Power strip extension lead](https://sketchfab.com/3d-models/power-strip-extension-lead-2180b1f7b55b433285cbe08181a9e88a) by Sousinho, Sketchfab, CC-BY ([CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)) (`models/goods_cables`)
+- Tape: [Medical Tape](https://polyhaven.com/a/medical_tape) by Miroslav Turura, Poly Haven, CC0 (`models/goods_tape`)
+
 ## Textures
 
 PBR textures for the procedural Furniture and the floors are listed in `game/assets/textures/CREDITS.md`; all CC0, from Poly Haven and ambientCG.

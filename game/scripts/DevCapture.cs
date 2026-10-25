@@ -19,6 +19,8 @@ namespace Scp3008.Game;
 ///                          3x3L-corners or 3x3L-diamond (the default);
 ///   --pillar=coordinate    focus beside a Pillar, by its grid coordinate (e.g. B-2), if the layout has it;
 ///   --pause                freeze Store time for comparable captures;
+///   --shelf-stock=amount   after the focus jumps, set every Goods kind on the Stock Furniture around the focus to this
+///                          amount (30 full, 0 bare), to capture the shelves' fill steps (ticket 08r);
 ///   --clear-weather        hold clear Weather for comparable captures (the air has no base fog);
 ///   --pan=vx,vy            pan the camera focus at (vx, vy) metres per second, then report how
 ///                          often it crossed a seam and its largest per-frame step, overall
@@ -101,6 +103,9 @@ public partial class DevCapture : Node
     private Vector3? _focusToJump;
     private float? _distanceToSet;
     private string? _poiName;
+    private int? _shelfStock;
+    // How far around the focus --shelf-stock reaches: farther shelves show no Goods (ShelfGoods.Distance) anyway.
+    private const float ShelfStockRadius = 60f;
 
     public override void _Ready() => Guarded(Configure);
 
@@ -210,6 +215,8 @@ public partial class DevCapture : Node
                 Rig.WrapFocus = false;
             else if (arg == "--eye-level")
                 AddEyeLevelCamera();
+            else if (arg.StartsWith("--shelf-stock="))
+                _shelfStock = int.Parse(arg["--shelf-stock=".Length..], CultureInfo.InvariantCulture);
             else if (arg == "--clear-weather")
                 Host.HoldClearWeather();
             else if (arg.StartsWith("--enter-seed="))
@@ -325,6 +332,12 @@ public partial class DevCapture : Node
         {
             Rig.JumpTo(focus);
             _focusToJump = null;
+        }
+        // After the focus jumps above, so the shelves around the final focus are set.
+        if (_shelfStock is { } amount && _elapsed >= 1.5)
+        {
+            Host.SetShelfStock(Rig.Focus.ToStore(), ShelfStockRadius, amount);
+            _shelfStock = null;
         }
         if (_distanceToSet is { } dist && _elapsed >= 1.0)
         {

@@ -49,4 +49,17 @@ public sealed class ScenarioBuilder
         ArgumentNullException.ThrowIfNull(match);
         return _simulation.RemoveFurniture(match);
     }
+
+    /// <summary>
+    /// Sets how many units of one Goods kind lie on a piece of Stock Furniture, as if they had been taken or restocked; 0 takes the
+    /// kind off it, leaving that shelf bare. The Sector stock follows. Display Furniture cannot be stocked.
+    /// </summary>
+    /// <exception cref="ArgumentException">The piece is not Stock Furniture.</exception>
+    public void SetStock(int furnitureId, GoodsKind kind, int amount) => _simulation.SetStock([(furnitureId, kind)], amount);
+
+    /// <summary>
+    /// <see cref="SetStock(int, GoodsKind, int)"/> for many Goods at once (a whole aisle or Store), with one Sector stock update.
+    /// </summary>
+    /// <exception cref="ArgumentException">A piece is not Stock Furniture; nothing is set.</exception>
+    public void SetStock(IEnumerable<(int FurnitureId, GoodsKind Kind)> goods, int amount) => _simulation.SetStock(goods, amount);
 }

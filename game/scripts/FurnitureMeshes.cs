@@ -127,6 +127,9 @@ public static class FurnitureMeshes
     /// <summary>The coarse mesh for a Furniture type and variant, drawn in the distance; built once and shared.</summary>
     public static ArrayMesh CoarseFor(FurnitureType type, int variant = 0) => Get(type, variant, coarse: true);
 
+    /// <summary>The height of an open chest freezer's floor, which its Goods lie on (<see cref="ShelfGoods"/>).</summary>
+    public const float FreezerFloor = 0.48f;
+
     /// <summary>
     /// Upright rectangles in mesh space, four corners each, inside the solid, full-height parts of
     /// a Furniture type (wardrobe and fridge bodies, shelving back panels) that hide what stands
@@ -525,9 +528,15 @@ public static class FurnitureMeshes
                 b.Box(Part.RackBeam, new Vector3(-hw, h - 0.08f, -0.03f), new Vector3(hw, h, 0.03f));
                 break;
             case FurnitureType.Freezer:
-                b.Box(Part.Ceramic, new Vector3(-hw, 0f, -hd), new Vector3(hw, h - 0.12f, hd));
-                b.Box(Part.LightSteel, new Vector3(-hw, h - 0.12f, -hd), new Vector3(hw, h - 0.08f, hd));
-                b.Box(Part.Glass, new Vector3(-hw + 0.04f, h - 0.08f, -hd + 0.04f), new Vector3(hw - 0.04f, h - 0.06f, hd - 0.04f));
+                // An open chest freezer under a clear lid (ticket 08r), so its stock shows: a tub on a solid base.
+                b.Box(Part.Ceramic, new Vector3(-hw, 0f, -hd), new Vector3(hw, FreezerFloor, hd));
+                b.Box(Part.Ceramic, new Vector3(-hw, FreezerFloor, -hd), new Vector3(hw, h - 0.08f, -hd + 0.05f));
+                b.Box(Part.Ceramic, new Vector3(-hw, FreezerFloor, hd - 0.05f), new Vector3(hw, h - 0.08f, hd));
+                b.Box(Part.Ceramic, new Vector3(-hw, FreezerFloor, -hd + 0.05f), new Vector3(-hw + 0.05f, h - 0.08f, hd - 0.05f));
+                b.Box(Part.Ceramic, new Vector3(hw - 0.05f, FreezerFloor, -hd + 0.05f), new Vector3(hw, h - 0.08f, hd - 0.05f));
+                // Clear glass, drawn by full meshes only: a coarse mesh draws no glass.
+                if (!b.Coarse)
+                    b.Box(Part.TankGlass, new Vector3(-hw + 0.04f, h - 0.08f, -hd + 0.04f), new Vector3(hw - 0.04f, h - 0.06f, hd - 0.04f));
                 b.Box(Part.LightSteel, new Vector3(-hw, h - 0.08f, -hd), new Vector3(hw, h, -hd + 0.04f));
                 b.Box(Part.LightSteel, new Vector3(-hw, h - 0.08f, hd - 0.04f), new Vector3(hw, h, hd));
                 break;

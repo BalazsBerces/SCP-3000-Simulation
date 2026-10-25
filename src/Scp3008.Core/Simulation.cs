@@ -323,12 +323,33 @@ public sealed class Simulation : IDisposable
                 // Goods go with the Furniture that held them.
                 var ids = kept.Select(p => p.Id).ToHashSet();
                 _stock = _stock.Where(g => ids.Contains(g.FurnitureId)).ToList().AsReadOnly();
+                _sectorStocks = StockGenerator.Summarize(_stock, _furniture.Pieces, _space, _config.PillarLayout, StockConfig);
                 _waterPoints = _waterPoints.Where(w => w.FurnitureId < 0 || ids.Contains(w.FurnitureId)).ToList().AsReadOnly();
                 _snapshot = BuildSnapshot();
             }
             return removed;
         }
     }
+
+    /// <summary>Sets the units of one Goods kind on a piece of Stock Furniture (none takes the kind off it) and publishes a new snapshot.</summary>
+    internal void SetStock(IEnumerable<(int FurnitureId, GoodsKind Kind)> goods, int amount)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(amount);
+        var set = goods.ToHashSet();
+        lock (_stepLock)
+        {
+            var ids = set.Select(g => g.FurnitureId).ToHashSet();
+            var stockIds = _furniture.Pieces.Where(p => ids.Contains(p.Id) && _snapshot.IsStockFurniture(p)).Select(p => p.Id).ToHashSet();
+            foreach (var id in ids.Where(id => !stockIds.Contains(id)).Take(1))
+                throw new ArgumentException($"Piece {id} is not Stock Furniture; Display Furniture holds no stock.", nameof(goods));
+            var rest = _stock.Where(g => g.LeftBehind || !set.Contains((g.FurnitureId, g.Kind)));
+            _stock = (amount > 0 ? rest.Concat(set.Select(g => new StockedGoods(g.FurnitureId, g.Kind, amount))) : rest).ToList().AsReadOnly();
+            _sectorStocks = StockGenerator.Summarize(_stock, _furniture.Pieces, _space, _config.PillarLayout, StockConfig);
+            _snapshot = BuildSnapshot();
+        }
+    }
+
+    private StockConfig StockConfig => _config.Stock ?? new StockConfig();
 
     private void Unsubscribe(Action<DomainEvent> handler)
     {
@@ -350,6 +371,7 @@ public sealed class Simulation : IDisposable
             Stock = _stock,
             SectorStocks = _sectorStocks,
             WaterPoints = _waterPoints,
+            ShelfCapacity = StockConfig.ShelfCapacity,
             PointOfInterestShowcase = _config.PointOfInterestShowcase,
         };
 

@@ -73,6 +73,9 @@ public partial class FurnitureRenderer : Node3D
             instances.SetInstances(snapshot.Space, group.Select(p => (Placement(p), Colour(snapshot, p))));
         }
         AddFish(snapshot);
+        var goods = new ShelfGoods { Name = "ShelfGoods", Host = Host, Rig = Rig, Visibility = Visibility };
+        AddChild(goods);
+        goods.Build(snapshot);
         var details = new PointOfInterestDetails { Rig = Rig };
         AddChild(details);
         details.Build(snapshot);

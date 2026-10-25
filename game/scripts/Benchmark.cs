@@ -176,6 +176,9 @@ public partial class Benchmark : Node
         }
     }
 
+    /// <summary>Fills every piece of Stock Furniture to its shelf capacity after each time skip, so the Goods drawn are the most there can be.</summary>
+    private void StockEveryShelf() { if (OS.GetEnvironment("NOSTOCK") != "") return; Host.SetShelfStock(new System.Numerics.Vector2(Start.X, Start.Y), float.PositiveInfinity, new Scp3008.Core.StockConfig().ShelfCapacity); }
+
     private async Task RunBothLightings()
     {
         Host.Speed = Scp3008.Core.SimulationSpeed.Paused;
@@ -184,6 +187,7 @@ public partial class Benchmark : Node
         {
             Host.AdvanceTo(TimeSpan.FromHours(23));
             Host.HoldClearWeather();
+            StockEveryShelf();
             StoreOverview.Set(true);
             foreach (var height in OverviewHeights)
                 results.Add(await Measure(new Lighting($"Overview at {height:0} m", TimeSpan.FromHours(23), OverviewHeight: height)));
@@ -195,6 +199,7 @@ public partial class Benchmark : Node
         {
             Host.AdvanceTo(TimeSpan.FromHours(23));
             Host.HoldClearWeather();
+            StockEveryShelf();
             Host.PlaceFogBank(new System.Numerics.Vector2(Start.X + 50f, Start.Y + 20f), 160f);
             results.Add(await Measure(new Lighting("Closing time far", TimeSpan.FromHours(23), HoldFar: true)));
             Report(results);
@@ -206,6 +211,7 @@ public partial class Benchmark : Node
             // Fix the weather after each time skip so both lightings measure the same bank.
             // The bank covers the near view and stays in view as the camera pulls out.
             Host.HoldClearWeather();
+            StockEveryShelf();
             Host.PlaceFogBank(new System.Numerics.Vector2(Start.X + 50f, Start.Y + 20f), 160f);
             if (_reproductionDirectory is not null)
                 await Reproduce(lighting);

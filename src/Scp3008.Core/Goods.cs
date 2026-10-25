@@ -61,6 +61,8 @@ public sealed record StockConfig
     public int ShelfAmountMin { get; init; } = 8;
     /// <inheritdoc cref="ShelfAmountMin"/>
     public int ShelfAmountMax { get; init; } = 30;
+    /// <summary>The units at which a shelf of Stock Furniture looks full (<see cref="WorldSnapshot.FillStep"/>).</summary>
+    public int ShelfCapacity { get; init; } = 30;
     /// <summary>Portions on each Cafeteria serving counter.</summary>
     public int MealPortionsMin { get; init; } = 20;
     /// <inheritdoc cref="MealPortionsMin"/>

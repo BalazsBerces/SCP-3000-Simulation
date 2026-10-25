@@ -116,6 +116,21 @@ public partial class SimulationHost : Node
     }
 
     /// <summary>
+    /// Dev tool (shelf captures, benchmark): sets the amount of every Goods kind on each piece of Stock Furniture within
+    /// <paramref name="radius"/> metres of <paramref name="around"/> to <paramref name="amount"/> (0 leaves it bare). Only kinds
+    /// a piece already holds are set, so a bare shelf stays bare and a shelf keeps its kind.
+    /// </summary>
+    public void SetShelfStock(System.Numerics.Vector2 around, float radius, int amount)
+    {
+        var snapshot = Snapshot;
+        var pieces = snapshot.Furniture.ToDictionary(p => p.Id);
+        var near = snapshot.Stock.Where(g => !g.LeftBehind
+            && snapshot.Space.Delta(around, pieces[g.FurnitureId].Position).LengthSquared() <= radius * radius).ToList();
+        _simulation.Scenario.SetStock(near.Select(g => (g.FurnitureId, g.Kind)), amount);
+        GD.Print($"Shelf stock: {near.Count} Goods on Stock Furniture within {radius:0} m set to {amount}.");
+    }
+
+    /// <summary>
     /// Generates a new Store from <paramref name="seed"/> in the background, with the given Pillar
     /// layout or else the current one, as the Landmark showcase, the Point of interest showcase or a normal Store (else
     /// as the current world is; choosing one showcase leaves the other), then replaces the current world; its Store clock starts anew.

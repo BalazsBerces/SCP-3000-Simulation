@@ -81,6 +81,18 @@ public sealed record WorldSnapshot(
     /// </summary>
     public IReadOnlyList<SectorStock> SectorStocks { get; init; } = [];
 
+    /// <summary>How many looks a shelf has between bare and full (<see cref="FillStep"/>).</summary>
+    public const int FillSteps = 3;
+
+    internal int ShelfCapacity { get; init; } = new StockConfig().ShelfCapacity;
+
+    /// <summary>
+    /// How full a shelf of Goods looks, from 1 (a few units) to <see cref="FillSteps"/> (full, at the
+    /// <see cref="StockConfig.ShelfCapacity"/> or more); a shelf with none of a kind has no entry in <see cref="Stock"/> and looks bare.
+    /// </summary>
+    public int FillStep(StockedGoods goods) =>
+        Math.Clamp((goods.Amount * FillSteps + ShelfCapacity - 1) / ShelfCapacity, 1, FillSteps);
+
     /// <summary>The units of Goods in the Store per Goods class, every class listed.</summary>
     public IReadOnlyDictionary<GoodsClass, int> StockByClass()
     {

@@ -1,0 +1,300 @@
+{
+ "accessors": [
+  {
+   "bufferView": 2,
+   "componentType": 5126,
+   "count": 592,
+   "max": [
+    0.023281097412109375,
+    0.02103710174560547,
+    0.13868927955627441
+   ],
+   "min": [
+    -0.023361921310424805,
+    -0.023965895175933838,
+    -0.1269136667251587
+   ],
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 2,
+   "byteOffset": 7104,
+   "componentType": 5126,
+   "count": 592,
+   "max": [
+    0.9988890290260315,
+    0.9993888139724731,
+    0.9987871646881104
+   ],
+   "min": [
+    -0.9991458654403687,
+    -0.999844491481781,
+    -0.9999993443489075
+   ],
+   "type": "VEC3"
+  },
+  {
+   "bufferView": 3,
+   "componentType": 5126,
+   "count": 592,
+   "max": [
+    0.9831638932228088,
+    0.8290107846260071,
+    0.9999992251396179,
+    1.0
+   ],
+   "min": [
+    -0.9904376864433289,
+    -0.9210324883460999,
+    -0.9999628663063049,
+    1.0
+   ],
+   "type": "VEC4"
+  },
+  {
+   "bufferView": 1,
+   "componentType": 5126,
+   "count": 592,
+   "max": [
+    0.9967619776725769,
+    0.9967439770698547
+   ],
+   "min": [
+    0.0019460000330582261,
+    0.0019460000330582261
+   ],
+   "type": "VEC2"
+  },
+  {
+   "bufferView": 0,
+   "componentType": 5125,
+   "count": 3114,
+   "type": "SCALAR"
+  }
+ ],
+ "asset": {
+  "extras": {
+   "author": "Batuhan13 (https://sketchfab.com/Batuhan13)",
+   "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+   "source": "https://sketchfab.com/3d-models/candle-low-f9ccd7e51c004c9e8354a4c723d20010",
+   "title": "Candle Low"
+  },
+  "generator": "Sketchfab-12.65.0",
+  "version": "2.0"
+ },
+ "bufferViews": [
+  {
+   "buffer": 0,
+   "byteLength": 12456,
+   "name": "floatBufferViews",
+   "target": 34963
+  },
+  {
+   "buffer": 0,
+   "byteLength": 4736,
+   "byteOffset": 12456,
+   "byteStride": 8,
+   "name": "floatBufferViews",
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteLength": 14208,
+   "byteOffset": 17192,
+   "byteStride": 12,
+   "name": "floatBufferViews",
+   "target": 34962
+  },
+  {
+   "buffer": 0,
+   "byteLength": 9472,
+   "byteOffset": 31400,
+   "byteStride": 16,
+   "name": "floatBufferViews",
+   "target": 34962
+  }
+ ],
+ "buffers": [
+  {
+   "uri": "goods_candles.bin",
+   "byteLength": 40872
+  }
+ ],
+ "images": [
+  {
+   "uri": "textures/Candle_baseColor.jpg"
+  },
+  {
+   "uri": "textures/Candle_metallicRoughness.jpg"
+  },
+  {
+   "uri": "textures/Candle_emissive.jpg"
+  },
+  {
+   "uri": "textures/Candle_normal.jpg"
+  }
+ ],
+ "materials": [
+  {
+   "doubleSided": true,
+   "emissiveFactor": [
+    0.3808524736212784,
+    0.3808524736212784,
+    0.3808524736212784
+   ],
+   "emissiveTexture": {
+    "index": 2
+   },
+   "name": "Candle",
+   "normalTexture": {
+    "index": 3
+   },
+   "pbrMetallicRoughness": {
+    "baseColorTexture": {
+     "index": 0
+    },
+    "metallicFactor": 0.0,
+    "metallicRoughnessTexture": {
+     "index": 1
+    }
+   }
+  }
+ ],
+ "meshes": [
+  {
+   "name": "CandleLow.uvl_Candle_0",
+   "primitives": [
+    {
+     "attributes": {
+      "NORMAL": 1,
+      "POSITION": 0,
+      "TANGENT": 2,
+      "TEXCOORD_0": 3
+     },
+     "indices": 4,
+     "material": 0,
+     "mode": 4
+    }
+   ]
+  }
+ ],
+ "nodes": [
+  {
+   "children": [
+    1
+   ],
+   "matrix": [
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    2.220446049250313e-16,
+    -1.0,
+    0.0,
+    0.0,
+    1.0,
+    2.220446049250313e-16,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0
+   ],
+   "name": "Sketchfab_model"
+  },
+  {
+   "children": [
+    2
+   ],
+   "matrix": [
+    1.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+    0.0,
+    0.0,
+    -1.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    1.0
+   ],
+   "name": "d7f09667470d48e0be64895e4b8fd22b.fbx"
+  },
+  {
+   "children": [
+    3
+   ],
+   "name": "RootNode"
+  },
+  {
+   "children": [
+    4
+   ],
+   "matrix": [
+    100.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    -1.629206793918314e-05,
+    -99.99999999999868,
+    0.0,
+    0.0,
+    99.99999999999868,
+    -1.629206793918314e-05,
+    0.0,
+    197.62039184570312,
+    194.87815856933594,
+    67.05833435058594,
+    1.0
+   ],
+   "name": "CandleLow.uvl"
+  },
+  {
+   "mesh": 0,
+   "name": "CandleLow.uvl_Candle_0"
+  }
+ ],
+ "samplers": [
+  {
+   "magFilter": 9729,
+   "minFilter": 9987,
+   "wrapS": 10497,
+   "wrapT": 10497
+  }
+ ],
+ "scene": 0,
+ "scenes": [
+  {
+   "name": "Sketchfab_Scene",
+   "nodes": [
+    0
+   ]
+  }
+ ],
+ "textures": [
+  {
+   "sampler": 0,
+   "source": 0
+  },
+  {
+   "sampler": 0,
+   "source": 1
+  },
+  {
+   "sampler": 0,
+   "source": 2
+  },
+  {
+   "sampler": 0,
+   "source": 3
+  }
+ ]
+}

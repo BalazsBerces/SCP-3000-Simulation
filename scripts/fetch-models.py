@@ -100,6 +100,29 @@ MODELS = [
     ("camp_sleeping_bag_rolled", "sketchfab", "d2ab6e8a8ffc472e9fca8b920662dafe", "Camping sleeping bag", "Camping ground: rolled sleeping bag"),
 ]
 
+# Goods on Stock Furniture shelves (ticket 08r): one model per Goods kind, copied along the shelves.
+GOODS_MODELS = [
+    ("goods_tinned_food", "polyhaven", "long_life_food", "Long Life Food: tin of tomatoes", "Tinned food"),
+    ("goods_fresh_food", "polyhaven", "long_life_food", "Long Life Food: milk carton", "Fresh food"),
+    ("goods_dry_food", "polyhaven", "russian_food_cans_01", "Russian Food Cans 01: salt box", "Dry food"),
+    ("goods_bottled_water", "polyhaven", "plastic_bottle_gallon", "Plastic Bottle Gallon", "Bottled water"),
+    ("goods_soft_drinks", "sketchfab", "7a54b5302f40454590e876a76146ad80", "Soda Can", "Soft drinks"),
+    ("goods_coffee", "sketchfab", "9f9457e0e06444bb84813c896722c93c", "coffee bag", "Coffee"),
+    ("goods_sweets", "sketchfab", "890c6ccc39ef414bb1c8f79fa821debf", "Candies", "Sweets"),
+    ("goods_candles", "sketchfab", "f9ccd7e51c004c9e8354a4c723d20010", "Candle Low", "Candles"),
+    ("goods_batteries", "sketchfab", "d3e533bb1bd948f68bf0a7ead9a5e211", "AA Battery", "Batteries"),
+    ("goods_bulbs", "polyhaven", "lightbulb_led", "Lightbulb LED", "Bulbs"),
+    ("goods_cables", "sketchfab", "2180b1f7b55b433285cbe08181a9e88a", "Power strip extension lead", "Cables"),
+    ("goods_tape", "polyhaven", "medical_tape", "Medical Tape", "Tape"),
+]
+
+# Packs of several items where only one is wanted: folder -> the names of the nodes to keep as the scene (the rest are cut out).
+KEEP_NODES = {
+    "goods_tinned_food": {"long_life_food_tomatoes"},
+    "goods_fresh_food": {"long_life_food_milk"},
+    "goods_dry_food": {"russian_food_cans_01_salt_box"},
+}
+
 # Sketchfab models whose scene carries helper nodes that are not part of the item: folder -> node names to cut out
 # (the Kayak's source has a camera with a large backdrop plane under it). An entry is a node name, or a node index
 # where the names are not unique.
@@ -153,7 +176,21 @@ def polyhaven(folder, asset):
         for path, entry in files["include"].items():
             (target / path).parent.mkdir(parents=True, exist_ok=True)
             (target / path).write_bytes(get(entry["url"]))
+    keep_nodes(folder)
     return ", ".join(info["authors"].keys()), f"https://polyhaven.com/a/{asset}", "CC0"
+
+
+def keep_nodes(folder):
+    if folder not in KEEP_NODES:
+        return
+    path = OUT / folder / f"{folder}.gltf"
+    gltf = json.loads(path.read_text(encoding="utf-8"))
+    keep = [i for i, node in enumerate(gltf["nodes"]) if node.get("name") in KEEP_NODES[folder]]
+    if not keep:
+        sys.exit(f"{folder}: none of the nodes {KEEP_NODES[folder]} is in the model")
+    if gltf["scenes"][gltf.get("scene", 0)]["nodes"] != keep:
+        gltf["scenes"][gltf.get("scene", 0)]["nodes"] = keep
+        path.write_text(json.dumps(gltf, indent=1), encoding="utf-8")
 
 
 def sketchfab_token():
@@ -363,6 +400,8 @@ def sketchfab_exit_sign(folder, uid):
 
 
 def toilets(pack, folder, root):
+    if pack is None:
+        return "loafbrr_1", TOILETS_PAGE, "CC0"
     data = pack.read("glb/Toilets.glb")
     json_length = struct.unpack("<I", data[12:16])[0]
     gltf = json.loads(data[20:20 + json_length])
@@ -427,22 +466,13 @@ def toilets(pack, folder, root):
     return "loafbrr_1", TOILETS_PAGE, "CC0"
 
 
-def main():
-    OUT.mkdir(parents=True, exist_ok=True)
-    pack = None
-    lines = [
-        "# Credits",
-        "",
-        "External assets in the game. Only CC0 (public domain) and CC-BY licences are used.",
-        "",
-        "## Furniture models",
-        "",
-        "Fetched by `scripts/fetch-models.py` into `game/assets/models`; each is fitted to the core's size of its Furniture type.",
-        "",
-        "Models are simplified for rendering and textures resized. The EXIT sign has added support posts; its transparent cover is omitted when drawing the opaque Furniture. Generic service lettering and lost-item notes overlay the downloaded sign and notice-board frames.",
-        "",
-    ]
-    for folder, source, asset, title, used_for in MODELS:
+pack = None
+
+
+def credit_lines(models):
+    global pack
+    lines = []
+    for folder, source, asset, title, used_for in models:
         print(f"{folder} ...", file=sys.stderr)
         if source == "polyhaven":
             author, url, licence = polyhaven(folder, asset)
@@ -456,11 +486,30 @@ def main():
             where = "Sketchfab"
             licence = "CC-BY ([CC BY 4.0](https://creativecommons.org/licenses/by/4.0/))" if licence == "CC-BY" else licence
         else:
-            if pack is None:
+            # The pack is about 100 MB: download it only while one of its models is missing.
+            if pack is None and not (OUT / folder / f"{folder}.gltf").exists():
                 pack = zipfile.ZipFile(io.BytesIO(get(TOILETS_ZIP)))
             author, url, licence = toilets(pack, folder, asset)
             where = "OpenGameArt"
         lines.append(f"- {used_for}: [{title}]({url}) by {author}, {where}, {licence} (`models/{folder}`)")
+    return lines
+
+
+def main():
+    OUT.mkdir(parents=True, exist_ok=True)
+    lines = [
+        "# Credits",
+        "",
+        "External assets in the game. Only CC0 (public domain) and CC-BY licences are used.",
+        "",
+        "## Furniture models",
+        "",
+        "Fetched by `scripts/fetch-models.py` into `game/assets/models`; each is fitted to the core's size of its Furniture type.",
+        "",
+        "Models are simplified for rendering and textures resized. The EXIT sign has added support posts; its transparent cover is omitted when drawing the opaque Furniture. Generic service lettering and lost-item notes overlay the downloaded sign and notice-board frames.",
+        "",
+    ]
+    lines += credit_lines(MODELS)
     lines += [
         "",
         "## Cafeteria food models",
@@ -472,6 +521,12 @@ def main():
         "- Lingonberry jam: [Cranberry Sauce](https://sketchfab.com/3d-models/cranberry-sauce-e55500d0263346d0a7751fb4be3ea7c2) by shedmon, Sketchfab, CC-BY ([CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)) (`models/lingonberries`)",
         "- Whole almond cake: [Carrot Cake](https://polyhaven.com/a/carrot_cake) by Poly Haven, CC0 (`models/whole_cake`)",
         "- Sliced cake and plate: [Cake Slice](https://sketchfab.com/3d-models/cake-slice-d01a91e1d2484433917dc9435b5a2e57) by omarelone, Sketchfab, CC-BY ([CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)) (`models/cake_slice`)",
+        "",
+        "## Goods models",
+        "",
+        "Copied along the shelves of Stock Furniture, as many as the shelf's stock (ticket 08r).",
+        "",
+        *credit_lines(GOODS_MODELS),
         "",
         "## Textures",
         "",

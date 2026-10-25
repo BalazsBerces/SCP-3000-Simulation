@@ -127,6 +127,10 @@ _Avoid_: Loot, items
 A piece of Furniture that holds Goods as real store stock: grocery shelves, freezers, warehouse shelving, Cafeteria counters, Aquarium tanks, the Camping ground's stands. Each one holds its own Goods, of a kind and amount, so a single shelf can be found, guarded or raided. Display Furniture such as a showroom fridge or kitchen cabinet is empty, apart from the rare thing left behind.
 _Avoid_: Container, loot spot
 
+**Fill step**:
+How full a shelf of one Goods kind looks: one of three looks from a few units to full, or bare when none is left. Stock Furniture shows its Goods in these steps, so the Observer reads the economy from the picture.
+_Avoid_: Fullness level
+
 **Water point**:
 A place where a Villager can drink: a Restroom's washbasins, the fountain court, the Camping ground's lake, and the few showroom taps that, unlike most, still run. Which taps run never changes and is found only by trying them, so a running tap is valuable Known map knowledge.
 _Avoid_: Well, water source (informal)

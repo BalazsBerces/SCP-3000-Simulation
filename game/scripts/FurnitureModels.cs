@@ -277,24 +277,8 @@ public static class FurnitureModels
         // A part the Observer never sees (a rug's back, flat on the floor) is drawn for nothing.
         parts.RemoveAll(p => Shown(p) < HiddenShare * Area(p));
 
-        var levels = parts.Select(ComponentLevels).ToList();
-
-        DropSmallestPieces(parts, levels, model.TriangleBudget);
-
-        // Over budget: the base level is the most detailed simplified level that fits.
-        var total = parts.Sum(p => p.Indices.Count / 3);
-        var fraction = Math.Min(1f, (float)model.TriangleBudget / total);
-        while (fraction > 1e-4f && levels.Sum(l => Level(l, fraction).Length / 3) > model.TriangleBudget)
-            fraction *= 0.8f;
+        var fullIndices = Simplified(parts, model.TriangleBudget);
         var full = new ImporterMesh();
-        var fullIndices = levels.Select(l => Level(l, fraction)).ToList();
-        // A part simplified away entirely has no surface.
-        for (var s = parts.Count - 1; s >= 0; s--)
-            if (fullIndices[s].Length == 0)
-            {
-                parts.RemoveAt(s);
-                fullIndices.RemoveAt(s);
-            }
         for (var s = 0; s < parts.Count; s++)
             full.AddSurface(Mesh.PrimitiveType.Triangles, Arrays(parts[s], fullIndices[s]), name: parts[s].Name, material: Material(parts[s], model.Tinted));
         full.GenerateLods(LodMergeAngle, 0f, new Godot.Collections.Array());
@@ -303,6 +287,64 @@ public static class FurnitureModels
             fullMesh.SurfaceSetName(s, parts[s].Name);
         return (fullMesh, CoarseMesh(model, parts));
     }
+
+    /// <summary>
+    /// Each part's indices at the most detailed simplified level that fits <paramref name="budget"/>
+    /// triangles; a part simplified away entirely is removed.
+    /// </summary>
+    private static List<int[]> Simplified(List<Part> parts, int budget)
+    {
+        var levels = parts.Select(ComponentLevels).ToList();
+
+        DropSmallestPieces(parts, levels, budget);
+
+        // Over budget: the base level is the most detailed simplified level that fits.
+        var total = parts.Sum(p => p.Indices.Count / 3);
+        var fraction = Math.Min(1f, (float)budget / total);
+        while (fraction > 1e-4f && levels.Sum(l => Level(l, fraction).Length / 3) > budget)
+            fraction *= 0.8f;
+        var indices = levels.Select(l => Level(l, fraction)).ToList();
+        // A part simplified away entirely has no surface.
+        for (var s = parts.Count - 1; s >= 0; s--)
+            if (indices[s].Length == 0)
+            {
+                parts.RemoveAt(s);
+                indices.RemoveAt(s);
+            }
+        return indices;
+    }
+
+    /// <summary>
+    /// A model of a Goods product (ticket 08r), turned by <paramref name="yaw"/> so its front faces +Z and scaled
+    /// evenly so its longest side is <paramref name="longest"/> metres, its footprint centred on the origin and its
+    /// base at Y = 0; one surface per material at most <see cref="ProductBudget"/> triangles, no levels of detail
+    /// (<see cref="ShelfGoods"/> copies it along a shelf and simplifies the whole load). Built once per folder and shared.
+    /// </summary>
+    public static ArrayMesh Product(string folder, float yaw, float longest)
+    {
+        if (Products.TryGetValue(folder, out var cached))
+            return cached;
+        var scene = GD.Load<PackedScene>($"res://assets/models/{folder}/{folder}.gltf").Instantiate<Node3D>();
+        var parts = new List<Part>();
+        Collect(scene, new Transform3D(new Basis(Vector3.Up, Mathf.DegToRad(yaw)), Vector3.Zero), parts);
+        scene.Free();
+        Fit(parts, size => Vector3.One * (longest / size[(int)size.MaxAxisIndex()]));
+        var indices = Simplified(parts, ProductBudget);
+        var mesh = new ArrayMesh();
+        for (var s = 0; s < parts.Count; s++)
+        {
+            mesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, Arrays(parts[s], indices[s]));
+            mesh.SurfaceSetMaterial(s, Material(parts[s], tinted: false));
+            mesh.SurfaceSetName(s, parts[s].Name);
+        }
+        return Products[folder] = mesh;
+    }
+
+    // A shelf shows dozens of products and a store aisle hundreds of shelves, each product a few centimetres
+    // across seen from a metre or more away: this many triangles keep its silhouette and label.
+    private const int ProductBudget = 120;
+
+    private static readonly Dictionary<string, ArrayMesh> Products = new();
 
     /// <summary>
     /// A model whose pieces are still over budget at their simplest (a cabinet with many small
@@ -322,7 +364,8 @@ public static class FurnitureModels
             (box.Position - outline.Position).Abs() is var low && (outline.End - box.End).Abs() is var high
             && Mathf.Min(Mathf.Min(low.X, low.Y), Mathf.Min(low.Z, Mathf.Min(high.X, Mathf.Min(high.Y, high.Z)))) < StandsOn;
         pieces = pieces.OrderBy(p => ReachesOutline(p.Box)).ThenBy(p => p.Box.Volume).ToList();
-        foreach (var (part, piece, _) in pieces)
+        // The last piece stays, over budget or not: a model with nothing left draws nothing.
+        foreach (var (part, piece, _) in pieces.SkipLast(1))
         {
             if (floor <= budget)
                 break;
@@ -476,12 +519,16 @@ public static class FurnitureModels
     /// depth along Z, height along Y, the footprint centred on the origin and the base at Y = 0.
     /// Normals and tangents follow the per-axis scale.
     /// </summary>
-    private static void Fit(List<Part> parts, FurnitureSpec spec)
+    private static void Fit(List<Part> parts, FurnitureSpec spec) =>
+        Fit(parts, size => new Vector3(spec.Width / size.X, spec.Height / size.Y, spec.Depth / size.Z));
+
+    /// <summary>Scales the parts by <paramref name="scaleFor"/> their bounds' size, the footprint centred on the origin and the base at Y = 0.</summary>
+    private static void Fit(List<Part> parts, Func<Vector3, Vector3> scaleFor)
     {
         var all = parts.SelectMany(p => p.Positions).ToList();
         var (min, max) = (all.Aggregate(Vector3.Inf, (a, b) => a.Min(b)), all.Aggregate(-Vector3.Inf, (a, b) => a.Max(b)));
         var size = max - min;
-        var scale = new Vector3(spec.Width / size.X, spec.Height / size.Y, spec.Depth / size.Z);
+        var scale = scaleFor(size);
         var centre = new Vector3((min.X + max.X) / 2f, min.Y, (min.Z + max.Z) / 2f);
         var inverse = new Vector3(1f / scale.X, 1f / scale.Y, 1f / scale.Z);
         foreach (var part in parts)
