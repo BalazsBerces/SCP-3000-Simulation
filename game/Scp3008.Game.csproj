@@ -7,10 +7,12 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>Scp3008.Game</RootNamespace>
+    <!-- Godot runs the Debug build; unoptimised, Store generation and model builds took about three times as long to load. -->
+    <Optimize>true</Optimize>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\src\Scp3008.Core\Scp3008.Core.csproj" />
+    <ProjectReference Include="..\src\Scp3008.Core\Scp3008.Core.csproj" SetConfiguration="Configuration=Release" />
   </ItemGroup>
 
 </Project>

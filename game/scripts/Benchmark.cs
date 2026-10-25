@@ -269,6 +269,7 @@ public partial class Benchmark : Node
         }
 
         var frameSeconds = new List<double>();
+        var frameProgress = new List<double>();
         var (mostLights, mostShadowed, mostVisible) = (0, 0, 0);
         var viewport = GetViewport();
         RenderingServer.ViewportSetMeasureRenderTime(viewport.GetViewportRid(), true);
@@ -286,6 +287,7 @@ public partial class Benchmark : Node
             await NextFrame();
             var now = Now;
             frameSeconds.Add(now - last);
+            frameProgress.Add(_progress ?? 0.0);
             last = now;
             mostLights = Math.Max(mostLights, Lamps.ActiveLights);
             mostShadowed = Math.Max(mostShadowed, Lamps.ShadowedLights);
@@ -316,7 +318,11 @@ public partial class Benchmark : Node
         if (lighting.HoldZoom is not null && FurnitureDetail.Coarse)
             throw new InvalidOperationException("Furniture was coarse at the LOD switch zoom.");
         var seconds = last - start;
-        var slowest = frameSeconds.OrderByDescending(s => s).Take(Math.Max(1, frameSeconds.Count / 100)).ToList();
+        var slowestFrames = Enumerable.Range(0, frameSeconds.Count).OrderByDescending(i => frameSeconds[i]).Take(Math.Max(1, frameSeconds.Count / 100)).ToList();
+        var slowest = slowestFrames.Select(i => frameSeconds[i]).ToList();
+        // Where on the path the 1% low comes from: the slowest frames by path progress (tenths), with their worst time.
+        GD.Print($"  [{lighting.Name}] slowest 1%: " + string.Join(", ", slowestFrames.GroupBy(i => Math.Floor(frameProgress[i] * 10) / 10)
+            .OrderBy(g => g.Key).Select(g => $"{g.Key:0.0}: {g.Count()} up to {g.Max(i => frameSeconds[i]) * 1000:0} ms")));
         return new Result(lighting, frameSeconds.Count, seconds, frameSeconds.Count / seconds,
             slowest.Count / slowest.Sum(), mostLights, mostShadowed, mostVisible,
             gpu / frameSeconds.Count, cpu / frameSeconds.Count, drawCalls / frameSeconds.Count, primitives / frameSeconds.Count);

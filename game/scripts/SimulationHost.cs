@@ -89,8 +89,10 @@ public partial class SimulationHost : Node
         // A world is at most one showcase.
         if (LandmarkShowcase && PointOfInterestShowcase)
             PointOfInterestShowcase = false;
+        var generating = Time.GetTicksMsec();
         var simulation = Simulation.Create(new WorldConfig(Seed, PillarLayout: Layout, LandmarkShowcase: LandmarkShowcase,
             PointOfInterestShowcase: PointOfInterestShowcase));
+        GD.Print($"Store generated in {Time.GetTicksMsec() - generating} ms, from {generating} ms after start.");
         if (startTime is { } target)
             simulation.AdvanceTo(target);
         Adopt(simulation, startPaused ? SimulationSpeed.Paused : SimulationSpeed.Normal);
@@ -99,6 +101,9 @@ public partial class SimulationHost : Node
     public override void _Ready()
     {
         _simulation.Start();
+        // Load time, for performance passes: engine start to the first drawn frame of the Store.
+        RenderingServer.Singleton.Connect(RenderingServer.SignalName.FramePostDraw,
+            Callable.From(() => GD.Print($"First frame drawn {Time.GetTicksMsec()} ms after start.")), (uint)ConnectFlags.OneShot);
     }
 
     /// <summary>Fast-forwards the Store clock to the next <paramref name="timeOfDay"/> (dev tool, e.g. for the benchmark).</summary>
