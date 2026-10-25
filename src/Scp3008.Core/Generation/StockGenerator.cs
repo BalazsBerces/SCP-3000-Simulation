@@ -3,7 +3,7 @@ namespace Scp3008.Core.Generation;
 /// <summary>
 /// Gives Goods to the Store's Stock Furniture as real store stock, one kind and amount per piece: the Display stock by its
 /// Department type, the Cafeteria meals, Aquarium fish and Camping ground goods the Points of interest and Landmarks set, any
-/// kind on some of the Rack canyon's boxes, a few random finds in each Lost and found and, rarely, a thing left behind in Display Furniture. It then reshapes the Display stock's
+/// non-Food kind on some of the Rack canyon's boxes, a few random finds in each Lost and found and, rarely, a thing left behind in Display Furniture. It then reshapes the Display stock's
 /// amounts so every Sector is rich in at least one Goods class (its Surplus) and short of at least one (its Shortage), and each
 /// class's Store total keeps to a band around its target.
 /// </summary>
@@ -85,12 +85,11 @@ internal static class StockGenerator
                 canyonBoxes.Add(piece.Id);
         }
 
-        // The Rack canyon's boxes hold any kind of shop Goods, the classes in the Store's mix, so its few Drinks stay few; but never
-        // one class, so the canyon's Sector can still be short of something however much the canyon holds.
+        // The Rack canyon's boxes hold any kind of shop Goods but Food, the other classes in the Store's mix, so its few Drinks stay
+        // few. Food is left to the Cafeterias and the food shelves, and the canyon's Sector can still be short of it.
         if (canyonBoxes.Count > 0)
         {
-            var missing = random.Pick(Enum.GetValues<GoodsClass>());
-            var classes = Enum.GetValues<GoodsClass>().Where(c => c != missing && config.TargetPerHectare.GetValueOrDefault(c) > 0).ToList();
+            var classes = Enum.GetValues<GoodsClass>().Where(c => c != GoodsClass.Food && config.TargetPerHectare.GetValueOrDefault(c) > 0).ToList();
             var mix = classes.Sum(c => config.TargetPerHectare[c]);
             foreach (var id in canyonBoxes)
             {

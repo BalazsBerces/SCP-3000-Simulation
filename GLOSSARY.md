@@ -55,10 +55,10 @@ A small, distinctive place of the Store found only up close, such as a working r
 _Avoid_: Landmark (huge, far-visible)
 
 **Common Points of interest**:
-Five kinds, each made only of Furniture and planned before the Displays, which keep clear of them: the **Restroom** (1–3 per Sector), the **Cafeteria** (2–3 per Store, in Restaurant/food market Departments), the **Set dinner table** (2–3 per Sector), the **Lost and found desk** (about one per Sector) and the **Shopping cart graveyard** (2–4 per Store). At most one per Department cell (a Cafeteria takes a 2 × 2 block of cells of one Department); none overlaps a Landmark, a Pillar or its walkway ring. No real store brand appears in their names, food or signage. The Landmark showcase has none.
+Five kinds, each made only of Furniture and planned before the Displays, which keep clear of them: the **Restroom** (1–3 per Sector), the **Cafeteria** (3 per Store, 48 × 40 m, in Restaurant/food market Departments), the **Set dinner table** (2–3 per Sector), the **Lost and found desk** (about one per Sector) and the **Shopping cart graveyard** (2–4 per Store). At most one per Department cell (a Cafeteria takes a 3 × 3 block of cells of one Department); none overlaps a Landmark, a Pillar or its walkway ring. No real store brand appears in their names, food or signage. The Landmark showcase has none.
 
 **Cafeteria**:
-A large self-service dining hall like a Scandinavian furniture store's restaurant, unmistakable without any brand name, logo or brand colours: a tray line past serving counters, a till, a big dining zone. A large food source: its meals (meatballs with mash and lingonberry, almond cake) are Goods.
+A large self-service dining hall like a Scandinavian furniture store's restaurant, unmistakable without any brand name, logo or brand colours: two tray lines past serving counters, tills, a big dining zone. A large food source: its meals (meatballs with mash and lingonberry, almond cake) are Goods.
 _Avoid_: Canteen, Restaurant (that is a Department type)
 
 **Restroom**:

@@ -26,6 +26,11 @@ internal static class PointOfInterestGenerator
     /// <summary>Ball pits in every Store.</summary>
     private const int BallPitCount = 3;
 
+    /// <summary>Cafeterias in every Store.</summary>
+    private const int CafeteriaCount = 3;
+    /// <summary>The side of the block of Department cells a Cafeteria stands on.</summary>
+    private const int CafeteriaBlockCells = 3;
+
     /// <summary>Free floor kept between a Point of interest and a Pillar's walkway ring or a Landmark.</summary>
     private const float Clearance = 1f;
     /// <summary>Free floor kept between two Points of interest.</summary>
@@ -44,7 +49,7 @@ internal static class PointOfInterestGenerator
         PointOfInterestType.MannequinCrowd => new(12f, 9f),
         PointOfInterestType.DoorToNowhere => new(5f, 11f),
         PointOfInterestType.AquariumAisle => new(12f, 6f),
-        PointOfInterestType.Cafeteria => new Vector2(24f, 20f),
+        PointOfInterestType.Cafeteria => new Vector2(48f, 40f),
         PointOfInterestType.StoreRestroom => new Vector2(10.4f, 6.0f),
         PointOfInterestType.LostAndFound => new Vector2(6.5f, 5.0f),
         _ => throw new ArgumentOutOfRangeException(nameof(type), type, null),
@@ -56,7 +61,7 @@ internal static class PointOfInterestGenerator
         var random = SeededRandom.For(seed, PlanStream);
         var cellSize = departments.CellSize;
         var sites = new List<PointOfInterestSite>();
-        // The 2 × 2 blocks of Department cells the Cafeterias stand on: no other Point of interest may touch them.
+        // The 3 × 3 blocks of Department cells the Cafeterias stand on: no other Point of interest may touch them.
         var reserved = new List<(Vector2 Centre, Vector2 Size)>();
 
         bool TryPlace(PointOfInterestType type, int firstCellX, int firstCellY, int cellsX, int cellsY, Func<int, int, bool> allowed, int blockCells = 1)
@@ -93,7 +98,7 @@ internal static class PointOfInterestGenerator
                     continue;
                 sites.Add(new PointOfInterestSite(sites.Count, type, sector.Id, centre, size, quarters));
                 if (type == PointOfInterestType.Cafeteria)
-                    reserved.Add((new Vector2((cx + 1f) * cellSize, (cy + 1f) * cellSize), block));
+                    reserved.Add((new Vector2((cx + blockCells / 2f) * cellSize, (cy + blockCells / 2f) * cellSize), block));
                 return true;
             }
             return false;
@@ -106,13 +111,25 @@ internal static class PointOfInterestGenerator
         }
 
         var side = departments.CellsPerSide;
-        // Each Cafeteria stands on a 2 × 2 block of cells that all belong to one Restaurant/food market Department.
-        bool FoodMarketBlock(int x, int y) =>
-            departments.AtCell(x, y).Type == DepartmentType.RestaurantAndFoodMarket &&
-            departments.AtCell(x + 1, y) == departments.AtCell(x, y) && departments.AtCell(x, y + 1) == departments.AtCell(x, y) &&
-            departments.AtCell(x + 1, y + 1) == departments.AtCell(x, y);
-        for (var n = 2 + random.Next(2); n > 0; n--)
-            if (!TryPlace(PointOfInterestType.Cafeteria, 0, 0, side, side, FoodMarketBlock, blockCells: 2) && sites.Count(s => s.Type == PointOfInterestType.Cafeteria) < 2)
+        // Each Cafeteria stands on a 3 × 3 block of cells that all belong to one Restaurant/food market Department; failing
+        // that, on cells all of that type, or at least with one in the middle, so every Store has its Cafeterias.
+        bool FoodMarket(int x, int y) => departments.AtCell(x, y).Type == DepartmentType.RestaurantAndFoodMarket;
+        bool Block(int x, int y, Func<int, int, bool> cell)
+        {
+            for (var dy = 0; dy < CafeteriaBlockCells; dy++)
+                for (var dx = 0; dx < CafeteriaBlockCells; dx++)
+                    if (!cell(x + dx, y + dy))
+                        return false;
+            return true;
+        }
+        Func<int, int, bool>[] cafeteriaBlocks =
+        [
+            (x, y) => FoodMarket(x, y) && Block(x, y, (cx, cy) => departments.AtCell(cx, cy) == departments.AtCell(x, y)),
+            (x, y) => Block(x, y, FoodMarket),
+            (x, y) => FoodMarket(x + CafeteriaBlockCells / 2, y + CafeteriaBlockCells / 2),
+        ];
+        for (var n = CafeteriaCount; n > 0; n--)
+            if (!cafeteriaBlocks.Any(allowed => TryPlace(PointOfInterestType.Cafeteria, 0, 0, side, side, allowed, CafeteriaBlockCells)))
                 throw new InvalidOperationException("No room for a Cafeteria.");
         for (var n = 2 + random.Next(3); n > 0; n--)
             Place(PointOfInterestType.ShoppingCartGraveyard, 0, 0, side, side, (_, _) => true);
@@ -916,53 +933,59 @@ internal static class PointOfInterestGenerator
     }
 
     /// <summary>
-    /// A large self-service dining hall: a serving line along one wall (trays, two hot food counters, a dessert counter, coffee,
-    /// a till, then tray trolleys and high chairs) with menu boards behind its counters, and a dining zone of tables left mid-meal.
+    /// A large self-service dining hall: two serving lines along one wall (each with trays, two hot food counters, a dessert counter, coffee,
+    /// a till, then tray trolleys and high chairs) with menu boards behind their counters, and a dining zone of tables left mid-meal.
     /// The seed picks the wall (north, west or east) and the tables (rectangular, round or long).
     /// </summary>
     private static void BuildCafeteria(PointOfInterestBuilder b)
     {
         var random = b.Random;
         var plan = random.Next(3);
-        // The serving line runs from a corner along u, with its pieces facing n, into the hall.
+        var half = OwnSize(PointOfInterestType.Cafeteria) / 2f;
+        // The serving lines run from a corner along u, with their pieces facing n, into the hall.
         var (corner, u, n) = plan switch
         {
-            0 => (new Vector2(-12f, -10f), new Vector2(1f, 0f), new Vector2(0f, 1f)),
-            1 => (new Vector2(-12f, -10f), new Vector2(0f, 1f), new Vector2(1f, 0f)),
-            _ => (new Vector2(12f, 10f), new Vector2(0f, -1f), new Vector2(-1f, 0f)),
+            0 => (-half, new Vector2(1f, 0f), new Vector2(0f, 1f)),
+            1 => (-half, new Vector2(0f, 1f), new Vector2(1f, 0f)),
+            _ => (half, new Vector2(0f, -1f), new Vector2(-1f, 0f)),
         };
         var facing = MathF.Atan2(-n.X, n.Y);
-        Vector2 Along(float s, float d) => corner + u * s + n * d;
-        bool Line(FurnitureType type, float s, float d, float elevation = 0f) => b.Put(type, Along(s, d), elevation, facing);
+        // Two serving lines along the wall, the second starting halfway along it.
+        var wall = plan == 0 ? 2f * half.X : 2f * half.Y;
+        foreach (var start in new[] { 0f, wall / 2f })
+        {
+            Vector2 Along(float s, float d) => corner + u * (start + s) + n * d;
+            bool Line(FurnitureType type, float s, float d, float elevation = 0f) => b.Put(type, Along(s, d), elevation, facing);
 
-        Line(FurnitureType.TrayStation, 1.6f, 0.6f);
-        foreach (var (type, s, meal) in new[]
-        {
-            (FurnitureType.HotFoodCounter, 3.25f, MealKind.Meatballs),
-            (FurnitureType.HotFoodCounter, 5.3f, MealKind.Meatballs),
-            (FurnitureType.DessertCounter, 7.35f, MealKind.AlmondCake),
-        })
-        {
-            if (Line(type, s, 0.7f))
-                b.Serve(meal);
-            Line(FurnitureType.TrayRail, s, 1.295f);
+            Line(FurnitureType.TrayStation, 1.6f, 0.6f);
+            foreach (var (type, s, meal) in new[]
+            {
+                (FurnitureType.HotFoodCounter, 3.25f, MealKind.Meatballs),
+                (FurnitureType.HotFoodCounter, 5.3f, MealKind.Meatballs),
+                (FurnitureType.DessertCounter, 7.35f, MealKind.AlmondCake),
+            })
+            {
+                if (Line(type, s, 0.7f))
+                    b.Serve(meal);
+                Line(FurnitureType.TrayRail, s, 1.295f);
+            }
+            Line(FurnitureType.Counter, 9.4f, 0.65f);
+            Line(FurnitureType.CoffeeMachine, 8.95f, 0.6f, FurnitureCatalog.Spec(FurnitureType.Counter).Height);
+            Line(FurnitureType.Till, 12f, 0.65f);
+            var trolleys = 2 + random.Next(2);
+            for (var i = 0; i < trolleys; i++)
+                Line(FurnitureType.TrayTrolley, 14f + 0.9f * i, 0.5f);
+            var highChairs = 2 + random.Next(2);
+            for (var i = 0; i < highChairs; i++)
+                Line(FurnitureType.HighChair, 16.8f + 0.7f * i, 0.5f);
         }
-        Line(FurnitureType.Counter, 9.4f, 0.65f);
-        Line(FurnitureType.CoffeeMachine, 8.95f, 0.6f, FurnitureCatalog.Spec(FurnitureType.Counter).Height);
-        Line(FurnitureType.Till, 12f, 0.65f);
-        var trolleys = 2 + random.Next(2);
-        for (var i = 0; i < trolleys; i++)
-            Line(FurnitureType.TrayTrolley, 14f + 0.9f * i, 0.5f);
-        var highChairs = 2 + random.Next(2);
-        for (var i = 0; i < highChairs; i++)
-            Line(FurnitureType.HighChair, 16.8f + 0.7f * i, 0.5f);
 
-        // The dining zone: the rest of the hall past the customers' lane before the line (up to 2.6 m from the wall).
+        // The dining zone: the rest of the hall past the customers' lane before the lines (up to 2.6 m from the wall).
         var (min, max) = plan switch
         {
-            0 => (new Vector2(-11.2f, -6.6f), new Vector2(11.2f, 9.6f)),
-            1 => (new Vector2(-8.6f, -9.6f), new Vector2(11.6f, 9.6f)),
-            _ => (new Vector2(-11.6f, -9.6f), new Vector2(8.6f, 9.6f)),
+            0 => (new Vector2(-half.X + 0.8f, -half.Y + 3.4f), new Vector2(half.X - 0.8f, half.Y - 0.4f)),
+            1 => (new Vector2(-half.X + 3.4f, -half.Y + 0.4f), new Vector2(half.X - 0.4f, half.Y - 0.4f)),
+            _ => (new Vector2(-half.X + 0.4f, -half.Y + 0.4f), new Vector2(half.X - 3.4f, half.Y - 0.4f)),
         };
         var tableVariant = plan;
         var table = FurnitureCatalog.Spec(FurnitureType.DiningTable, tableVariant);

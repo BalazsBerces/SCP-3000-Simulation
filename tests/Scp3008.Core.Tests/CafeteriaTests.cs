@@ -21,12 +21,12 @@ public class CafeteriaTests
     [Theory]
     [InlineData(3008)]
     [InlineData(42)]
-    public void The_showcase_has_one_24_by_20_metre_cafeteria(int seed)
+    public void The_showcase_has_one_48_by_40_metre_cafeteria(int seed)
     {
         var snapshot = Showcase(seed);
 
         var (cafeteria, _) = CafeteriaOf(snapshot);
-        Assert.Equal(new Vector2(24f, 20f), cafeteria.Size);
+        Assert.Equal(new Vector2(48f, 40f), cafeteria.Size);
     }
 
     [Theory]
@@ -45,7 +45,9 @@ public class CafeteriaTests
             FurnitureType.DiningTable, FurnitureType.Chair, FurnitureType.Tray,
         ];
         Assert.All(expected, type => Assert.Contains(type, types));
-        Assert.True(pieces.Count(p => p.Type == FurnitureType.DiningTable) >= 30, "A large dining hall seats many: at least 30 tables.");
+        Assert.True(pieces.Count(p => p.Type == FurnitureType.DiningTable) >= 120, "A large dining hall seats many: at least 120 tables.");
+        Assert.Equal(4, pieces.Count(p => p.Type == FurnitureType.HotFoodCounter));
+        Assert.Equal(2, pieces.Count(p => p.Type == FurnitureType.DessertCounter));
     }
 
     [Theory]
@@ -111,13 +113,13 @@ public class CafeteriaTests
 
     [Theory]
     [MemberData(nameof(LayoutsAndSeeds))]
-    public void Every_normal_store_has_two_or_three_cafeterias_each_on_one_food_market_department_and_no_old_canteen(PillarLayout layout, int seed)
+    public void Every_normal_store_has_three_cafeterias_each_on_one_food_market_department_and_no_old_canteen(PillarLayout layout, int seed)
     {
         using var sim = Simulation.Create(new WorldConfig(seed, RuntimeRngSeed: 1, PillarLayout: layout));
         var snapshot = sim.Snapshot;
 
         var cafeterias = snapshot.PointsOfInterest.Where(p => p.Type == PointOfInterestType.Cafeteria).ToList();
-        Assert.InRange(cafeterias.Count, 2, 3);
+        Assert.Equal(3, cafeterias.Count);
         Assert.All(cafeterias, cafeteria =>
         {
             var half = cafeteria.Size / 2f;
@@ -139,12 +141,12 @@ public class CafeteriaTests
 
         foreach (var cafeteria in snapshot.PointsOfInterest.Where(p => p.Type == PointOfInterestType.Cafeteria))
         {
-            // The 2 x 2 block of cells the Cafeteria's middle lies on the corner of.
-            var block = new Vector2(MathF.Round(cafeteria.Centre.X / cell) * cell, MathF.Round(cafeteria.Centre.Y / cell) * cell);
+            // The 3 x 3 block of cells around the cell the Cafeteria's middle lies in.
+            var block = new Vector2((MathF.Floor(cafeteria.Centre.X / cell) + 0.5f) * cell, (MathF.Floor(cafeteria.Centre.Y / cell) + 0.5f) * cell);
             foreach (var other in snapshot.PointsOfInterest.Where(p => p.Id != cafeteria.Id))
             {
                 var d = other.Centre - block;
-                var apart = MathF.Abs(d.X) >= cell + other.Size.X / 2f || MathF.Abs(d.Y) >= cell + other.Size.Y / 2f;
+                var apart = MathF.Abs(d.X) >= 1.5f * cell + other.Size.X / 2f || MathF.Abs(d.Y) >= 1.5f * cell + other.Size.Y / 2f;
                 Assert.True(apart, $"{other.Type} #{other.Id} overlaps the block of Cafeteria #{cafeteria.Id}.");
             }
         }

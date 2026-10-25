@@ -66,9 +66,9 @@ public sealed record StockConfig
     /// <summary>The units at which a shelf of Stock Furniture looks full (<see cref="WorldSnapshot.FillStep"/>).</summary>
     public int ShelfCapacity { get; init; } = 3;
     /// <summary>Portions on each Cafeteria serving counter.</summary>
-    public int MealPortionsMin { get; init; } = 20;
+    public int MealPortionsMin { get; init; } = 40;
     /// <inheritdoc cref="MealPortionsMin"/>
-    public int MealPortionsMax { get; init; } = 40;
+    public int MealPortionsMax { get; init; } = 80;
     /// <summary>Live fish in each Aquarium tank.</summary>
     public int FishMin { get; init; } = 4;
     /// <inheritdoc cref="FishMin"/>
@@ -79,7 +79,7 @@ public sealed record StockConfig
     public int CampStandAmountMax { get; init; } = 24;
     /// <summary>
     /// Units on each stocked flat-pack box of the Rack canyon, twice a shelf's; a box is stocked as often as a shelf is
-    /// (<see cref="StockedShelfShare"/>), with any kind of shop Goods of all classes but one, in the mix of <see cref="TargetPerHectare"/>.
+    /// (<see cref="StockedShelfShare"/>), with any kind of shop Goods but Food, in the mix of <see cref="TargetPerHectare"/>.
     /// </summary>
     public int CanyonBoxAmountMin { get; init; } = 2;
     /// <inheritdoc cref="CanyonBoxAmountMin"/>

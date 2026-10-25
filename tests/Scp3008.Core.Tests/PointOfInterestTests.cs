@@ -64,7 +64,7 @@ public class PointOfInterestTests
             Assert.InRange(Count(PointOfInterestType.SetDinnerTable), 2, 3);
             Assert.Equal(1, Count(PointOfInterestType.LostAndFound));
         }
-        Assert.InRange(pois.Count(p => p.Type == PointOfInterestType.Cafeteria), 2, 3);
+        Assert.Equal(3, pois.Count(p => p.Type == PointOfInterestType.Cafeteria));
         Assert.InRange(pois.Count(p => p.Type == PointOfInterestType.ShoppingCartGraveyard), 2, 4);
         // The rare ones, per Store.
         Assert.Equal(3, pois.Count(p => p.Type == PointOfInterestType.BallPit));

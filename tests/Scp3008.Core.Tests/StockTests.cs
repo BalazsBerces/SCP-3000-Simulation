@@ -263,7 +263,7 @@ public class StockTests(ITestOutputHelper output)
     [Theory]
     [InlineData(3008)]
     [InlineData(42)]
-    public void Some_rack_canyon_boxes_hold_goods_of_any_kind_twice_a_shelfs_amount(int seed)
+    public void Some_rack_canyon_boxes_hold_goods_of_any_kind_but_food_twice_a_shelfs_amount(int seed)
     {
         var landmarks = LandmarkShowcase(seed);
         var canyon = landmarks.Landmarks.Single(l => l.Type == LandmarkType.RackCanyon).Id;
@@ -277,6 +277,7 @@ public class StockTests(ITestOutputHelper output)
         Assert.InRange(stocked.Count / (double)boxes.Count, config.StockedShelfShare * 0.5, config.StockedShelfShare * 1.5);
         Assert.All(stocked, g => Assert.InRange(g.Amount, config.CanyonBoxAmountMin, config.CanyonBoxAmountMax));
         Assert.True(stocked.Select(g => GoodsCatalog.ClassOf(g.Kind)).Distinct().Count() > 1, "The canyon's boxes hold only one class of Goods.");
+        Assert.DoesNotContain(stocked, g => GoodsCatalog.ClassOf(g.Kind) == GoodsClass.Food);
     }
 
     [Fact]
