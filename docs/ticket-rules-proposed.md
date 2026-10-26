@@ -20,3 +20,6 @@ Agents append here, one line each (`- <ticket>: <cause and fix>`), when a proble
 
 - 14a: Godot `FindChildren` type filters match native Godot classes, not C# script class names. Find scripted nodes by node name and native type, then cast.
 - 14a: Restoring a source file with its old timestamp after a baseline comparison can leave MSBuild using the baseline binary. Force a rebuild or update the restored source timestamp before checking the implemented version.
+
+- 15: SeedPanel defers its initial sandbox camera move, which can overwrite a rendered check's camera position. Await an initial frame before positioning the camera for a sandbox capture.
+- 15: Rendering benchmarks must set the Store clock through Scenario.SetTimeOfDay rather than AdvanceTo. Advancing the full Store between lighting passes runs hours of Villager behaviour and can exhaust the Godot run timeout before rendering is measured.

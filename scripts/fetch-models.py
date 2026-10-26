@@ -37,6 +37,7 @@ TOILETS_PAGE = "https://opengameart.org/content/toilets"
 
 # (folder, source, asset or root node, title, used for).
 MODELS = [
+    ("gear_crowbar", "polyhaven", "crowbar_01", "Crowbar 01", "Gear: crowbar"),
     ("gear_hex_key", "sketchfab", "02ebda14785f480b965da3fc2115cd7f", "Allen Wrench", "Gear: hex key"),
     ("gear_knife", "sketchfab", "4c75aae7dfa74b919b61a321242de7f4", "Kitchen Knife", "Gear: kitchen knife"),
     ("gear_scissors", "sketchfab", "6e0defc85edc4920a794fe9e82b5f16b", "Scissors", "Gear: scissors"),

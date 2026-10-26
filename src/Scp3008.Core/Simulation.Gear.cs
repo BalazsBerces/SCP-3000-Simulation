@@ -34,6 +34,7 @@ public sealed partial class Simulation
             p.Type == FurnitureType.LabelledBox)
         {
             yield return p.Id % 2 == 0 ? GearKind.Screwdriver : GearKind.CanvasBag;
+            if (p.Id % 3 == 0) yield return GearKind.Crowbar;
             yield break;
         }
         var department = _departments.At(p.Position).Type;

@@ -32,7 +32,7 @@ internal sealed partial class Villagers
             var w = new Walker(v.Id, v.Position)
             {
                 Destination = v.Destination, Heading = v.Heading, Needs = v.Needs, Action = v.Action,
-                VillageId = v.VillageId, Role = v.Role, CarriedGoods = v.CarriedGoods,
+                FurnitureTaskId = v.FurnitureTaskId, VillageId = v.VillageId, Role = v.Role, CarriedGoods = v.CarriedGoods,
                 CarriedAmount = v.CarriedAmount, CarriedMaterials = v.CarriedMaterials,
                 Hand = v.Hand, Bag = v.Bag, Armour = v.Armour,
                 Waypoints = saved.Waypoints.ToList(), StarvingHours = saved.StarvingHours,

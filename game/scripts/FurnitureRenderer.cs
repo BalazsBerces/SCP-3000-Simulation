@@ -39,6 +39,8 @@ public partial class FurnitureRenderer : Node3D
 
     public override void _ExitTree()
     {
+        foreach (var node in _work.Values) node.QueueFree();
+        _work.Clear();
         Host.WorldCreated -= Rebuild;
         FurnitureDetail.Changed -= ShowDetail;
     }
@@ -47,10 +49,23 @@ public partial class FurnitureRenderer : Node3D
     public override void _Process(double delta)
     {
         FurnitureDetail.Update(Rig.Distance, Rig.Camera.GlobalPosition.Y);
-        // shortcut: rebuild all groups on layout changes; update affected Chunks when bulk hauling makes this costly.
-        if (!ReferenceEquals(_builtFurniture, Host.Snapshot.Furniture))
-            Rebuild(Host.Snapshot);
+        var world = Host.Snapshot;
+        if (!ReferenceEquals(_builtFurniture, world.Furniture))
+        {
+            var moving = world.FurnitureTasks.Where(t => t.Started && t.Work != FurnitureWork.Disassemble)
+                .Select(t => t.FurnitureId).ToHashSet();
+            var stationary = world.Furniture.Where(p => !moving.Contains(p.Id)).ToArray();
+            if (!_stationary.SequenceEqual(stationary))
+            {
+                Rebuild(world with { Furniture = Array.AsReadOnly(stationary) });
+                _stationary = stationary;
+            }
+            _builtFurniture = world.Furniture;
+        }
+        ShowFurnitureWork(world);
     }
+
+    private FurniturePiece[] _stationary = [];
 
     private void ShowDetail(bool coarse) => Rig.Camera.CullMask = FurnitureDetail.Mask(Rig.Camera.CullMask);
 

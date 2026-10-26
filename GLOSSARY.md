@@ -150,6 +150,12 @@ _Avoid_: Refrigerator, cooler
 An abstract unit of one of eight kinds (wood/panel, metal, fabric, leather, foam, glass, electrics, plastic) obtained by disassembling Furniture and counted in a Village's stores.
 _Avoid_: Parts, components, scrap
 
+**Tool level**:
+The tool a piece of Furniture needs for efficient disassembly: bare hands for cardboard and loose flat-pack parts, a hex key for assembled flat-pack Furniture, a knife or scissors for upholstery, a screwdriver for lamps and appliances, or a saw or crowbar for solid wood and metal frames. These are matching tools, not interchangeable upgrades. Forcing a piece without its tool takes longer, emits Noise and yields fewer Materials; Builder skill makes disassembly faster and richer.
+
+**Noise**:
+A sound-producing action at a Store position, with an audible radius: dragging Furniture and forcing disassembly emit it. The Staff's response belongs to the Staff rules.
+
 **Gear**:
 A portable thing a single Villager carries and uses (a tool, backpack, weapon, armour, lantern), made from Materials or found in the Store, and worn out by use. Gear is neither Furniture (it does not stand in the world) nor Goods (it is not store stock). Some Gear is used up in one use, like a bandage made from fabric. Found Gear is scarce and belongs to its Department (kitchen knives, warehouse tools, lighting-department torches); most Gear is made.
 _Avoid_: Item, equipment, inventory

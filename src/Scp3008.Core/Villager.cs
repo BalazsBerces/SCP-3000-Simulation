@@ -33,6 +33,7 @@ public sealed record Villager(int Id, Vector2 Position, Vector2? Destination, fl
     public GoodsKind? CarriedGoods { get; init; }
     public int CarriedAmount { get; init; }
     public int CarriedMaterials { get; init; }
+    public int? FurnitureTaskId { get; init; }
     public Gear? Hand { get; init; }
     public Gear? Bag { get; init; }
     public Gear? Armour { get; init; }
@@ -57,6 +58,7 @@ internal sealed partial class Villagers(StoreSpace space, Navigation navigation)
         public GoodsKind? CarriedGoods { get; set; }
         public int CarriedAmount { get; set; }
         public int CarriedMaterials { get; set; }
+        public int? FurnitureTaskId { get; set; }
         public Gear? Hand { get; set; }
         public Gear? Bag { get; set; }
         public Gear? Armour { get; set; }
@@ -139,6 +141,6 @@ internal sealed partial class Villagers(StoreSpace space, Navigation navigation)
     { Needs = walker.Needs, Action = walker.Action, KnownMap = MapOf(walker),
         VillageId = walker.VillageId, Role = walker.Role, CarriedGoods = walker.CarriedGoods,
         CarriedAmount = walker.CarriedAmount, CarriedMaterials = walker.CarriedMaterials,
-        Hand = walker.Hand, Bag = walker.Bag, Armour = walker.Armour,
+        FurnitureTaskId = walker.FurnitureTaskId, Hand = walker.Hand, Bag = walker.Bag, Armour = walker.Armour,
         Skills = new System.Collections.ObjectModel.ReadOnlyDictionary<Role, double>(new Dictionary<Role, double>(walker.Skills)) };
 }

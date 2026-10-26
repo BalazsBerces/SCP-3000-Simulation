@@ -52,6 +52,7 @@ internal sealed partial class Villagers
                 emit(new VillagerDied(world.Clock, body));
                 continue;
             }
+            if (walker.FurnitureTaskId is not null) continue;
             walker.NextDecision -= hours;
             if (walker.NextDecision > 0)
                 continue;

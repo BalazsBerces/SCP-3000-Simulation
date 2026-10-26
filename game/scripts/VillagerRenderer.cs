@@ -98,6 +98,10 @@ public partial class VillagerRenderer : Node3D
             // Heading runs from east towards south (+X towards +Z): face (cos, sin) in world X and Z.
             figure.Rotation = new Vector3(bodies.ContainsKey(villager.Id) ? MathF.PI / 2 : 0f,
                 Mathf.Atan2(MathF.Cos(villager.Heading), MathF.Sin(villager.Heading)), 0f);
+            if (villager.Action == VillagerAction.Disassembling)
+                figure.Rotation = new Vector3(-0.3f + 0.08f * MathF.Sin((float)Time.GetTicksMsec() / 140), figure.Rotation.Y, 0);
+            else if (villager.Action == VillagerAction.DraggingFurniture)
+                figure.Rotation = new Vector3(-0.2f, figure.Rotation.Y, 0);
             ShowGear(figure, villager);
         }
         foreach (var gone in _figures.Keys.Where(id => !seen.Contains(id)).ToList())
@@ -114,7 +118,8 @@ public partial class VillagerRenderer : Node3D
         var world = Host.Snapshot;
         var lines = world.Bands.Select(b => $"Band {b.Id}: {b.VillagerIds.Count} Wanderers")
             .Concat(world.Villages.Select(v => $"Village {v.Id}: {v.VillagerIds.Count} Villagers | " +
-                $"Stores: {string.Join(", ", v.Stores.Select(g => $"{g.Key} {g.Value}"))}"));
+                $"Stores: {string.Join(", ", v.Stores.Select(g => $"{g.Key} {g.Value}"))} | " +
+                $"Materials: {string.Join(", ", v.Materials.Select(m => $"{m.Key} {m.Value}"))}"));
         _communities.Text = string.Join("\n", lines.Concat(world.Chronicle.TakeLast(3)));
         _communities.GetParent<PanelContainer>().Visible = _selectedVillage is null && world.Bands.Count + world.Villages.Count > 0;
         var markers = world.Bands.Select(b => ($"Band {b.Id}", b.Position)).ToArray();

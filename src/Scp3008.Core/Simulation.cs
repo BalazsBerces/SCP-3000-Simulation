@@ -314,6 +314,7 @@ public sealed partial class Simulation : IDisposable
                     Bands = _bands.ToArray(), Villages = _villages.ToArray(), Gear = _gear.ToArray(),
                     FogBanks = _weather.Snapshot(), Staff = _staff.Snapshot().Select(s => new Staff(s.Id, s.Position, s.Destination, s.Heading)).ToArray() },
                 _config.Needs ?? new NeedsConfig(), TakeGoods, Emit, CollectGoods, DeliverGoods, TakeGear);
+        AdvanceFurnitureTasks(clock);
         AdvanceBands(clock);
         // Sandbox patrols use the same footprint navigation; daytime Staff remain dormant.
         if (clock.Phase == DayPhase.ClosingTime && _patrols.Count > 0)
@@ -387,6 +388,7 @@ public sealed partial class Simulation : IDisposable
                 _sectorStocks = StockGenerator.Summarize(_stock, _furniture.Pieces, _space, _config.PillarLayout, StockConfig);
                 _waterPoints = _waterPoints.Where(w => w.FurnitureId < 0 || ids.Contains(w.FurnitureId)).ToList().AsReadOnly();
                 _gear.RemoveAll(g => g.FurnitureId >= 0 && !ids.Contains(g.FurnitureId));
+                CancelFurnitureTasks(t => !keptIds.Contains(t.FurnitureId));
                 _snapshot = BuildSnapshot();
             }
             return removed;
@@ -431,25 +433,32 @@ public sealed partial class Simulation : IDisposable
     internal FurniturePiece MoveFurniture(int furnitureId, Vector2 position, float rotation) =>
         Publish(() =>
         {
-            var index = _furniture.Pieces.ToList().FindIndex(p => p.Id == furnitureId);
-            if (index < 0)
-                throw new ArgumentException($"No piece {furnitureId}.", nameof(furnitureId));
-            var before = _furniture.Pieces[index];
-            var moved = before with { Position = _space.Wrap(position), Rotation = rotation };
-            if (moved != before)
-            {
-                VacateFurniture(furnitureId);
-                _waterPoints = _waterPoints.Where(w => w.FurnitureId != furnitureId).ToList().AsReadOnly();
-            }
-            _furniture = _furniture with { Pieces = _furniture.Pieces.Select((p, i) => i == index ? moved : p).ToList().AsReadOnly() };
-            for (var i = 0; i < _gear.Count; i++)
-                if (_gear[i].FurnitureId == furnitureId) _gear[i] = _gear[i] with { Position = moved.Position };
-            _sectorStocks = StockGenerator.Summarize(_stock, _furniture.Pieces, _space, _config.PillarLayout, StockConfig);
-            _navigation.Update([before], [moved]);
-            _villagers.Replan();
-            _staff.Replan();
-            return moved;
+            CancelFurnitureTasks(t => t.FurnitureId == furnitureId);
+            return MoveFurnitureCore(furnitureId, position, rotation);
         });
+
+    private FurniturePiece MoveFurnitureCore(int furnitureId, Vector2 position, float rotation, float? elevation = null)
+    {
+        var index = _furniture.Pieces.ToList().FindIndex(p => p.Id == furnitureId);
+        if (index < 0)
+            throw new ArgumentException($"No piece {furnitureId}.", nameof(furnitureId));
+        var before = _furniture.Pieces[index];
+        var moved = before with { Position = _space.Wrap(position), Rotation = rotation, Elevation = elevation ?? before.Elevation };
+        if (moved != before)
+        {
+            VacateFurniture(furnitureId);
+            _waterPoints = _waterPoints.Where(w => w.FurnitureId != furnitureId).ToList().AsReadOnly();
+        }
+        _furniture = _furniture with { Pieces = _furniture.Pieces.Select((p, i) => i == index ? moved : p).ToList().AsReadOnly() };
+        for (var i = 0; i < _gear.Count; i++)
+            if (_gear[i].FurnitureId == furnitureId) _gear[i] = _gear[i] with { Position = moved.Position };
+        if (_stock.Any(g => g.FurnitureId == furnitureId))
+            _sectorStocks = StockGenerator.Summarize(_stock, _furniture.Pieces, _space, _config.PillarLayout, StockConfig);
+        _navigation.Update([before], [moved]);
+        _villagers.Replan();
+        _staff.Replan();
+        return moved;
+    }
 
     internal Band PlaceBand(IReadOnlyList<Vector2> positions, Needs? needs = null) => Publish(() =>
     {
@@ -485,6 +494,7 @@ public sealed partial class Simulation : IDisposable
 
     internal void SendVillager(int villagerId, Vector2 destination) => Publish(() =>
     {
+        CancelFurnitureTasks(t => t.VillagerIds.Contains(villagerId));
         _villagers.Send(villagerId, destination);
         return true;
     });
@@ -539,6 +549,7 @@ public sealed partial class Simulation : IDisposable
             Villages = _villages.ToList().AsReadOnly(),
             Chronicle = _chronicle.ToList().AsReadOnly(),
             Gear = _gear.ToList().AsReadOnly(),
+            FurnitureTasks = _furnitureTasks.ToList().AsReadOnly(),
             Staff = Array.AsReadOnly(_staff.Snapshot().Select(s => new Staff(s.Id, s.Position, s.Destination, s.Heading)).ToArray()),
         };
 

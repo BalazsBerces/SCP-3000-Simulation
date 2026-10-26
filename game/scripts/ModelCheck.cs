@@ -92,7 +92,7 @@ public static class ModelCheck
                     $"{name} still glows in the coarse mesh");
             }
         }
-        foreach (var model in FurnitureModels.FoundGear)
+        foreach (var model in FurnitureModels.FoundGear.Append(VillagerRenderer.CrowbarModel))
         {
             var mesh = (ArrayMesh)VillagerRenderer.GearMesh(model.Kind);
             var bounds = mesh.GetAabb();
@@ -109,7 +109,7 @@ public static class ModelCheck
             Check(FurnitureModels.AllowedLicences.Contains(model.Licence) && credits.Any(l => l.Contains(model.Source) && l.Contains(model.Author) && l.Contains(model.Licence)),
                 $"Gear {model.Kind} allowed licence and credit");
         }
-        lines.Add($"{FurnitureModels.All.Count} Furniture models and {FurnitureModels.FoundGear.Length} Gear models, {failed} checks failed.");
+        lines.Add($"{FurnitureModels.All.Count} Furniture models and {FurnitureModels.FoundGear.Length + 1} Gear models, {failed} checks failed.");
         return (failed == 0, lines);
     }
 }

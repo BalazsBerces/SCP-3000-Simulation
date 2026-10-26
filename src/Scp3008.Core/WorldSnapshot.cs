@@ -58,6 +58,8 @@ public sealed record WorldSnapshot(
     /// <summary>Running Dry spells; Department ids refer to Departments.All.</summary>
     public IReadOnlyList<DrySpell> DrySpells { get; init; } = [];
 
+    public IReadOnlyList<FurnitureTask> FurnitureTasks { get; init; } = [];
+
     public IReadOnlyList<Band> Bands { get; init; } = [];
     public IReadOnlyList<Village> Villages { get; init; } = [];
     public IReadOnlyList<string> Chronicle { get; init; } = [];

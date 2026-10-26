@@ -185,7 +185,7 @@ public partial class Benchmark : Node
         var results = new List<Result>();
         if (_overviewOnly)
         {
-            Host.AdvanceTo(TimeSpan.FromHours(23));
+            Host.Scenario.SetTimeOfDay(TimeSpan.FromHours(23));
             Host.HoldClearWeather();
             StockEveryShelf();
             StoreOverview.Set(true);
@@ -197,7 +197,7 @@ public partial class Benchmark : Node
         }
         if (_farOnly)
         {
-            Host.AdvanceTo(TimeSpan.FromHours(23));
+            Host.Scenario.SetTimeOfDay(TimeSpan.FromHours(23));
             Host.HoldClearWeather();
             StockEveryShelf();
             Host.PlaceFogBank(new System.Numerics.Vector2(Start.X + 50f, Start.Y + 20f), 160f);
@@ -207,7 +207,7 @@ public partial class Benchmark : Node
         }
         foreach (var lighting in new[] { new Lighting("Open", TimeSpan.FromHours(12)), new Lighting("Closing time", TimeSpan.FromHours(23)) })
         {
-            Host.AdvanceTo(lighting.TimeOfDay);
+            Host.Scenario.SetTimeOfDay(lighting.TimeOfDay);
             // Fix the weather after each time skip so both lightings measure the same bank.
             // The bank covers the near view and stays in view as the camera pulls out.
             Host.HoldClearWeather();

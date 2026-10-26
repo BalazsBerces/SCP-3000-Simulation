@@ -106,13 +106,15 @@ public partial class VillagerRenderer
             return;
         }
         var members = world.Villagers.Where(v => v.VillageId == selected).ToArray();
+        var materials = current.Materials.Count == 0 ? "Empty" :
+            string.Join("\n", current.Materials.OrderBy(m => m.Key).Select(m => $"{m.Key}: {m.Value}"));
         var stores = current.Stores.Count == 0 ? "Empty" :
             string.Join("\n", current.Stores.OrderBy(g => g.Key).Select(g => $"{g.Key}: {g.Value}"));
         // shortcut: history identifies Villages by their numbered names; use event references when names become editable.
         var history = world.Chronicle.Where(line => System.Text.RegularExpressions.Regex.IsMatch(line, $@"\bVillage {selected}\b"));
         _villageInfo.Text = $"Village {selected} | Sector {world.SectorAt(current.Position).Name}\n\n" +
             $"Population: {members.Length}\n" + string.Join("\n", members.Select(v => $"{v.Name} — {v.Role}")) +
-            $"\n\nStores\n{stores}\n\nWall condition: —\nBeliefs: —\nRelations: —\n\nHistory\n" +
+            $"\n\nStores\n{stores}\n\nMaterials\n{materials}\n\nWall condition: —\nBeliefs: —\nRelations: —\n\nHistory\n" +
             string.Join("\n\n", history);
         _villagePanel.Show();
     }

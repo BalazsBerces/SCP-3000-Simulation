@@ -8,6 +8,7 @@ Fetched by `scripts/fetch-models.py` into `game/assets/models`; each is fitted t
 
 Models are simplified for rendering and textures resized. The EXIT sign has added support posts; its transparent cover is omitted when drawing the opaque Furniture. Generic service lettering and lost-item notes overlay the downloaded sign and notice-board frames.
 
+- Gear: crowbar: [Crowbar 01](https://polyhaven.com/a/crowbar_01) by Alexander Otterbeck, Poly Haven, CC0 (`models/gear_crowbar`)
 - Gear: hex key: [Allen Wrench](https://sketchfab.com/3d-models/allen-wrench-02ebda14785f480b965da3fc2115cd7f) by IU Indianapolis University Library, Sketchfab, CC-BY ([CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)) (`models/gear_hex_key`)
 - Gear: kitchen knife: [Kitchen Knife](https://sketchfab.com/3d-models/kitchen-knife-4c75aae7dfa74b919b61a321242de7f4) by TheSpacePunk, Sketchfab, CC-BY ([CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)) (`models/gear_knife`)
 - Gear: scissors: [Scissors](https://sketchfab.com/3d-models/scissors-6e0defc85edc4920a794fe9e82b5f16b) by sweedboy69, Sketchfab, CC-BY ([CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)) (`models/gear_scissors`)

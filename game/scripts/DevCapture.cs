@@ -133,6 +133,12 @@ public partial class DevCapture : Node
     {
         foreach (var arg in OS.GetCmdlineUserArgs())
         {
+            if (arg.StartsWith("--furniture-work-check="))
+            {
+                SetProcess(false);
+                CheckFurnitureWork(arg["--furniture-work-check=".Length..]);
+                return;
+            }
             if (arg.StartsWith("--gear-check="))
             {
                 SetProcess(false);

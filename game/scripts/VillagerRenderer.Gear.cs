@@ -5,12 +5,15 @@ namespace Scp3008.Game;
 
 public partial class VillagerRenderer
 {
+    internal static readonly FurnitureModels.GearModel CrowbarModel = new(GearKind.Crowbar,
+        "gear_crowbar", 0.65f, 800, "Alexander Otterbeck", "CC0", "https://polyhaven.com/a/crowbar_01");
+
     internal static Mesh GearMesh(GearKind kind)
     {
         if (kind == GearKind.ShoppingCart) return FurnitureMeshes.For(FurnitureType.ShoppingCart);
         // shortcut: scenarios use an existing cloth for armour, replace with fitted Gear when Recipes add armour.
         if (kind == GearKind.QuiltedArmour) return FurnitureModels.Product("rug", 0, 0.65f, 500);
-        var model = FurnitureModels.FoundGear.Single(m => m.Kind == kind);
+        var model = kind == GearKind.Crowbar ? CrowbarModel : FurnitureModels.FoundGear.Single(m => m.Kind == kind);
         return FurnitureModels.Product(model.Folder, 0, model.Size, model.Budget);
     }
 

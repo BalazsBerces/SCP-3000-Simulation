@@ -6,7 +6,7 @@ namespace Scp3008.Core;
 
 public sealed partial class Simulation
 {
-    private const int SaveVersion = 2;
+    private const int SaveVersion = 3;
     private static readonly JsonSerializerOptions SaveJson = CreateSaveJson();
 
     private sealed record SaveFile(int Version, SaveState State);
@@ -70,6 +70,8 @@ public sealed partial class Simulation
             state.UnspentRealTime < TimeSpan.Zero || state.UnspentRealTime >= RealTimeStep ||
             !double.IsFinite(state.RestockHours) || state.RestockHours < 0 ||
             furnitureIds.Count != s.Furniture.Count ||
+            s.Villages.Where((v, i) => v.Id != i).Any() ||
+            s.Villages.Any(v => v.Materials.Any(m => !Enum.IsDefined(m.Key) || m.Value < 0)) ||
             s.Furniture.Any(p => p.Id < 0 || !float.IsFinite(p.Position.X) || !float.IsFinite(p.Position.Y) ||
                 !float.IsFinite(p.Elevation) || !float.IsFinite(p.Rotation)) ||
             s.Stock.Any(g => g.Amount < 0 || !furnitureIds.Contains(g.FurnitureId)))
@@ -98,6 +100,7 @@ public sealed partial class Simulation
         _villagers.Restore(state.Villagers);
         _staff = new Villagers(_space, _navigation);
         _staff.Restore(state.Staff);
+        RestoreFurnitureTasks(s.FurnitureTasks, s.Villages);
         _bands.AddRange(s.Bands);
         _villages.AddRange(s.Villages);
         _chronicle.AddRange(s.Chronicle);
