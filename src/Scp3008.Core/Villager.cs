@@ -17,6 +17,7 @@ public sealed record Villager(int Id, Vector2 Position, Vector2? Destination, fl
 
     public Needs Needs { get; init; } = new();
     public VillagerAction Action { get; init; }
+    public KnownMap KnownMap { get; init; } = new();
 }
 
 /// <summary>The Villagers in the world and their walking, each tick along the path <see cref="Navigation"/> finds.</summary>
@@ -104,5 +105,5 @@ internal sealed partial class Villagers(StoreSpace space, Navigation navigation)
     }
 
     private static Villager View(Walker walker) => new(walker.Id, walker.Position, walker.Destination, walker.Heading)
-    { Needs = walker.Needs, Action = walker.Action };
+    { Needs = walker.Needs, Action = walker.Action, KnownMap = MapOf(walker) };
 }

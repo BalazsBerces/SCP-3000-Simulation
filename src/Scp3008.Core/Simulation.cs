@@ -303,7 +303,8 @@ public sealed partial class Simulation : IDisposable
         _villagers.Advance(StoreClock.TickDuration.TotalHours);
         if (_villagers.HasVillagers)
             _villagers.AdvanceNeeds(StoreClock.TickDuration.TotalHours, _snapshot with
-                { Clock = clock, Stock = _stock, Staff = _staff.Snapshot().Select(s => new Staff(s.Id, s.Position, s.Destination, s.Heading)).ToArray() },
+                { Clock = clock, Stock = _stock, Furniture = _furniture.Pieces, WaterPoints = _waterPoints,
+                    FogBanks = _weather.Snapshot(), Staff = _staff.Snapshot().Select(s => new Staff(s.Id, s.Position, s.Destination, s.Heading)).ToArray() },
                 _config.Needs ?? new NeedsConfig(), TakeGoods, Emit);
         // Sandbox patrols use the same footprint navigation; daytime Staff remain dormant.
         if (clock.Phase == DayPhase.ClosingTime && _patrols.Count > 0)

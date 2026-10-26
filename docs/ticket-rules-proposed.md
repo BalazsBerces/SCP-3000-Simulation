@@ -10,3 +10,4 @@ Agents append here, one line each (`- <ticket>: <cause and fix>`), when a proble
 - 09a: PowerShell 5.1 native-process pipes can replace non-ASCII source text with question marks. Use apply_patch or explicitly set UTF-8 stdin when generating source containing non-ASCII characters.
 - 10: Named sandbox presets use `--villager-sandbox --sandbox-preset=<name>`; `--villager-sandbox=<name>` is ignored and launches the full Store. Check the parsed options in SimulationHost before an unattended capture.
 - 11: DevCapture can run before CameraRig._Ready resets the camera; wait for a drawn frame before positioning a scripted capture. Compare scene pixels outside the HUD so clock and counter changes cannot make a rendered check pass.
+- 11a: Windows PowerShell can lose a short-lived Start-Process process's exit code before WaitForExit reads it. Retain its Handle immediately after starting it, then wait with a timeout and refresh before checking ExitCode.

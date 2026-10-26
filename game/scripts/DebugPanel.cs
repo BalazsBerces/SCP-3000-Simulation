@@ -23,6 +23,7 @@ public partial class DebugPanel : Node
 
     private int? _lastVillager;
     private Label? _sandboxStatus;
+    private Label? _knownMap;
 
     public override void _Ready()
     {
@@ -33,6 +34,7 @@ public partial class DebugPanel : Node
         }
         if (Host.Snapshot.VillagerSandbox)
             AddSandboxPanel();
+        AddKnownMapPanel();
         foreach (var arg in OS.GetCmdlineUserArgs())
         {
             if (arg == "--clear-weather")
@@ -55,6 +57,24 @@ public partial class DebugPanel : Node
             else if (arg == "--follow-villager" && (_lastVillager ?? Host.Snapshot.Villagers.FirstOrDefault()?.Id) is { } id)
                 Rig.Follow(id);
         }
+    }
+
+    private void AddKnownMapPanel()
+    {
+        var layer = new CanvasLayer();
+        AddChild(layer);
+        var panel = new PanelContainer { Position = new Vector2(400, 148) };
+        layer.AddChild(panel);
+        var column = new VBoxContainer();
+        panel.AddChild(column);
+        var toggle = new CheckButton { Text = "Known map (V selects Villager)", ButtonPressed = true };
+        column.AddChild(toggle);
+        var scroll = new ScrollContainer { CustomMinimumSize = new Vector2(355, 200), Visible = true };
+        column.AddChild(scroll);
+        _knownMap = new Label { Name = "KnownMapDetails" };
+        _knownMap.AddThemeFontSizeOverride("font_size", 13);
+        scroll.AddChild(_knownMap);
+        toggle.Toggled += visible => scroll.Visible = visible;
     }
 
     private void AddSandboxPanel()
@@ -95,11 +115,28 @@ public partial class DebugPanel : Node
 
     public override void _Process(double delta)
     {
+        if (_knownMap is not null)
+        {
+            var selected = Host.Snapshot.Villagers.FirstOrDefault(v => v.Id == Rig.Following);
+            _knownMap.Text = selected is null ? "Follow a Villager with V to inspect their Known map." : DescribeKnownMap(selected);
+        }
         if (_sandboxStatus is null)
             return;
         var snapshot = Host.Snapshot;
         _sandboxStatus.Text = $"{snapshot.Bands.Count} Band | {snapshot.Villagers.Count} Villagers | {snapshot.Bodies.Count} bodies\n" +
             $"{snapshot.Stock.Sum(g => g.Amount)} Goods | {snapshot.Staff.Count} Staff";
+    }
+
+    private static string DescribeKnownMap(Villager villager)
+    {
+        var map = villager.KnownMap;
+        static string Position(System.Numerics.Vector2 p) => $"({p.X:0}, {p.Y:0})";
+        static string Seen(StoreClock clock, bool stale) => $"D{clock.Day} {clock.TimeOfDay:hh\\:mm}{(stale ? " STALE" : "")}";
+        return $"Villager {villager.Id} | {villager.Action}\nExplored ground: {map.ExploredGround.Count} patches\n" +
+            string.Join("\n", map.Goods.Select(g => $"{g.Goods.Kind}: {g.Goods.Amount} at {Position(g.Position)} {Seen(g.LastSeen, g.Stale)}")) + "\n" +
+            string.Join("\n", map.Water.Select(w => $"{w.Kind}: {(w.Running is null ? "untested" : w.Running.Value ? "running" : "dry")}\n  {Position(w.Position)} {Seen(w.LastSeen, w.Stale)}")) + "\nGround: " +
+            string.Join(" ", map.ExploredGround.Select(Position)) + "\n" +
+            string.Join("\n", map.Dangers.Select(d => $"Staff {d.StaffId} at {Position(d.Position)} {Seen(d.LastSeen, d.Stale)}"));
     }
 
     public override void _UnhandledKeyInput(InputEvent @event)

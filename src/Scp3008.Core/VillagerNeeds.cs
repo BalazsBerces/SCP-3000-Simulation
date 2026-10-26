@@ -15,7 +15,6 @@ internal sealed partial class Villagers
         public double ThirstyHours { get; set; }
         public double NextDecision { get; set; }
         public NeedTarget? Target { get; set; }
-        public HashSet<WaterPoint> DryTaps { get; } = [];
         public HashSet<Vector2> Unreachable { get; } = [];
     }
 
@@ -55,6 +54,7 @@ internal sealed partial class Villagers
             if (walker.NextDecision > 0)
                 continue;
             walker.NextDecision = 0.1;
+            Observe(walker, world);
             n = walker.Needs;
             if (threatened && n.Hunger < 0.9 && n.Thirst < 0.9)
             {
@@ -65,14 +65,14 @@ internal sealed partial class Villagers
             }
             if (walker.Target is { } target)
             {
-                var exists = (target.Goods is not { } goods || world.Stock.Any(g => g.FurnitureId == goods.FurnitureId && g.Kind == goods.Kind)) &&
-                    (target.Water is not { } water || world.WaterPoints.Contains(water));
-                if (exists && walker.Destination is not null)
+                if (walker.Destination is not null)
                     continue;
                 walker.Target = null;
-                if (exists && space.Distance(walker.Position, navigation.NearestWalkable(target.Position)) < 0.1f)
+                if (space.Distance(walker.Position, navigation.NearestWalkable(target.Position)) < 0.1f)
                 {
-                    if (target.Goods is { } meal && take(walker.Id, meal, world.Clock))
+                    if (target.Goods is { } meal &&
+                        world.Furniture.Any(p => p.Id == meal.FurnitureId && p.Position == target.Position) &&
+                        take(walker.Id, meal, world.Clock))
                     {
                         var kind = GoodsCatalog.ClassOf(meal.Kind);
                         walker.Needs = kind switch
@@ -88,6 +88,10 @@ internal sealed partial class Villagers
                     }
                     if (target.Water is { } point)
                     {
+                        point = world.WaterPoints.FirstOrDefault(w => w.FurnitureId == point.FurnitureId && w.Position == point.Position);
+                        var key = (target.Water.Value.FurnitureId, target.Position);
+                        if (walker.KnownWater.TryGetValue(key, out var known))
+                            walker.KnownWater[key] = known with { Running = point.Running, LastSeen = world.Clock, Stale = false };
                         if (point.Running)
                         {
                             walker.Needs = n with { Thirst = 0 };
@@ -96,7 +100,6 @@ internal sealed partial class Villagers
                             emit(new WaterDrunk(world.Clock, walker.Id, point));
                             continue;
                         }
-                        walker.DryTaps.Add(point);
                     }
                     if (target.Rest)
                         walker.Action = VillagerAction.Resting;
@@ -109,12 +112,13 @@ internal sealed partial class Villagers
             NeedTarget? chosen = null;
             foreach (var (kind, _) in priorities)
             {
-                // shortcut: use nearby resources until Known maps provide learned sources in the Band ticket.
-                var candidates = world.Stock.Where(g => GoodsCatalog.ClassOf(g.Kind) == kind)
-                    .Join(world.Furniture, g => g.FurnitureId, p => p.Id, (g, p) => new NeedTarget(p.Position, g)).ToList();
+                var candidates = walker.KnownGoods.Values
+                    .Where(g => GoodsCatalog.ClassOf(g.Goods.Kind) == kind && (g.Goods.Amount > 0 || g.Stale))
+                    .Select(g => new NeedTarget(g.Position, g.Goods)).ToList();
                 if (kind == GoodsClass.Drink)
-                    candidates.AddRange(world.WaterPoints.Where(w => !walker.DryTaps.Contains(w)).Select(w => new NeedTarget(w.Position, Water: w)));
-                chosen = candidates.Where(t => space.Distance(walker.Position, t.Position) <= 80 && !walker.Unreachable.Contains(t.Position))
+                    candidates.AddRange(walker.KnownWater.Values.Where(w => w.Running != false)
+                        .Select(w => new NeedTarget(w.Position, Water: new WaterPoint(w.Kind, w.Position, w.Running == true, w.FurnitureId))));
+                chosen = candidates.Where(t => !walker.Unreachable.Contains(t.Position))
                     .OrderBy(t => space.Distance(walker.Position, t.Position)).FirstOrDefault(t => TryPlan(walker, t));
                 if (chosen is not null)
                 {
@@ -135,7 +139,11 @@ internal sealed partial class Villagers
                 walker.Action = walker.Target is null ? VillagerAction.Resting : VillagerAction.Idle;
             }
             else if (walker.Destination is null)
+            {
                 walker.Action = VillagerAction.Idle;
+                if (n.Hunger >= 0.5 || n.Thirst >= 0.5)
+                    Scout(walker);
+            }
         }
     }
 

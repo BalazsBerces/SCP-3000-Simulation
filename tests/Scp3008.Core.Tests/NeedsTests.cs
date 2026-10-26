@@ -100,12 +100,12 @@ public class NeedsTests
         using var subscription = sim.Subscribe(events.Add);
         var period = TimeSpan.FromHours(cause == DeathCause.Starvation ? 2 : 3);
         sim.Advance(period - StoreClock.TickDuration);
-        Assert.Single(sim.Snapshot.Villagers);
+        var lastPosition = Assert.Single(sim.Snapshot.Villagers).Position;
         sim.Advance(StoreClock.TickDuration);
         Assert.Empty(sim.Snapshot.Villagers);
         var body = Assert.Single(sim.Snapshot.Bodies);
         Assert.Equal(villager.Id, body.VillagerId);
-        Assert.Equal(villager.Position, body.Position);
+        Assert.InRange(sim.Snapshot.Space.Distance(lastPosition, body.Position), 0, Villager.WalkingSpeed * (float)StoreClock.TickDuration.TotalHours + 0.001f);
         Assert.Equal(cause, body.Cause);
         Assert.Equal(body, Assert.Single(events.OfType<VillagerDied>()).Body);
         sim.Advance(TimeSpan.FromHours(1));

@@ -27,4 +27,4 @@ public enum DeathCause { Starvation, Thirst }
 /// <summary>A dead Villager, left where they died; their id stays unique among living Villagers and bodies.</summary>
 public sealed record Body(int VillagerId, System.Numerics.Vector2 Position, float Heading, StoreClock At, DeathCause Cause);
 
-public enum VillagerAction { Idle, SeekingFood, SeekingDrink, SeekingComfort, Eating, Drinking, Resting, UsingComfort, SeekingSafety }
+public enum VillagerAction { Idle, SeekingFood, SeekingDrink, SeekingComfort, Eating, Drinking, Resting, UsingComfort, SeekingSafety, Scouting }

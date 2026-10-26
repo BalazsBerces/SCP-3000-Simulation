@@ -239,7 +239,7 @@ A small forward barricade a Village sets up near distant resources once its surr
 _Avoid_: Colony, camp, satellite
 
 **Known map**:
-What a Band or Village knows of the Store: the ground it has explored, known food and water sources, dangerous places and other Villages. Scavenging goes to known places, scouting widens it; it can be traded or passed on, and goes stale as the Store restocks and the Staff move.
+What a Band or Village knows of the Store (held by each Villager before Bands share it): the ground it has explored, known food and water sources, dangerous places and other Villages. Source observations keep when they were last seen; stale observations retain their old amounts until seen again. A showroom tap stays untested until tried, then is remembered as running or dry. Scavenging goes to known places, scouting widens it; it can be traded or passed on, and goes stale as the Store restocks and the Staff move.
 _Avoid_: Fog of war, minimap, map (that is the Observer's strategic map)
 
 **Envoy**:
