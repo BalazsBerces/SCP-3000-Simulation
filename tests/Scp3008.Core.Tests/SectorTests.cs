@@ -8,8 +8,7 @@ public class SectorTests
     [Fact]
     public void The_store_is_divided_into_nine_equal_sectors_centred_on_and_named_after_their_pillars()
     {
-        using var sim = Simulation.Create(new WorldConfig(3008, RuntimeRngSeed: 1));
-        var snapshot = sim.Snapshot;
+        var snapshot = TestStores.Get(3008);
 
         Assert.Equal(9, snapshot.Sectors.Count);
         Assert.Equal(snapshot.Pillars.Select(p => p.Coordinate), snapshot.Sectors.Select(s => s.Name));

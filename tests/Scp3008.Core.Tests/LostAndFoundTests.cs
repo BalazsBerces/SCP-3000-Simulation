@@ -8,8 +8,7 @@ public class LostAndFoundTests
 {
     private static WorldSnapshot Showcase(int seed)
     {
-        using var sim = Simulation.Create(new WorldConfig(seed, RuntimeRngSeed: 1, PointOfInterestShowcase: true));
-        return sim.Snapshot;
+        return TestStores.Get(seed, pointOfInterestShowcase: true);
     }
 
     private static (PointOfInterest LostAndFound, List<FurniturePiece> Pieces) LostAndFoundOf(WorldSnapshot snapshot)
@@ -105,8 +104,7 @@ public class LostAndFoundTests
     [InlineData(42)]
     public void A_normal_store_has_one_lost_and_found_per_sector(int seed)
     {
-        using var sim = Simulation.Create(new WorldConfig(seed, RuntimeRngSeed: 1));
-        var snapshot = sim.Snapshot;
+        var snapshot = TestStores.Get(seed);
 
         Assert.All(snapshot.Sectors, sector =>
             Assert.Equal(1, snapshot.PointsOfInterest.Count(p => p.Type == PointOfInterestType.LostAndFound && p.SectorId == sector.Id)));

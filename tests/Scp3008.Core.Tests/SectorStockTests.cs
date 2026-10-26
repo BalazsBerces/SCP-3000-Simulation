@@ -11,21 +11,7 @@ public class SectorStockTests(ITestOutputHelper output)
     public static IEnumerable<object[]> LayoutsAndSeeds =>
         PillarLayouts.All.SelectMany(layout => Seeds.Select(seed => new object[] { layout, seed }));
 
-    // Normal Stores are slow to generate, so each one is built once for the whole class.
-    private static readonly Dictionary<(PillarLayout, int), WorldSnapshot> Stores = new();
-
-    private static WorldSnapshot Store(PillarLayout layout, int seed)
-    {
-        lock (Stores)
-        {
-            if (!Stores.TryGetValue((layout, seed), out var snapshot))
-            {
-                using var sim = Simulation.Create(new WorldConfig(seed, RuntimeRngSeed: 1, PillarLayout: layout));
-                Stores[(layout, seed)] = snapshot = sim.Snapshot;
-            }
-            return snapshot;
-        }
-    }
+    private static WorldSnapshot Store(PillarLayout layout, int seed) => TestStores.Get(seed, layout);
 
     private static float Hectares(WorldSnapshot snapshot) => snapshot.Space.Size * snapshot.Space.Size / 10_000f;
 

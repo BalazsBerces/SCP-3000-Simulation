@@ -11,6 +11,8 @@ public class WaterPointTests(ITestOutputHelper output)
     private static WorldSnapshot Store(int seed, PillarLayout layout = PillarLayout.ThreeByThree, WaterConfig? water = null,
         bool poiShowcase = false, bool landmarkShowcase = false)
     {
+        if (water is null)
+            return TestStores.Get(seed, layout, landmarkShowcase, poiShowcase);
         using var sim = Simulation.Create(new WorldConfig(seed, StartingBands: false, RuntimeRngSeed: 1, PillarLayout: layout, PointOfInterestShowcase: poiShowcase,
             LandmarkShowcase: landmarkShowcase, Water: water));
         return sim.Snapshot;

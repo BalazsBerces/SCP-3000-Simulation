@@ -9,8 +9,7 @@ public class LandmarkTests
 
     private static WorldSnapshot Generate(int seed, PillarLayout layout = PillarLayout.ThreeByThree)
     {
-        using var sim = Simulation.Create(new WorldConfig(seed, StartingBands: false, RuntimeRngSeed: 1, PillarLayout: layout));
-        return sim.Snapshot;
+        return TestStores.Get(seed, layout: layout);
     }
 
     private static IEnumerable<FurniturePiece> PiecesOf(WorldSnapshot snapshot, Landmark landmark) =>
@@ -173,14 +172,14 @@ public class LandmarkTests
     {
         foreach (var seed in Seeds.Concat(Enumerable.Range(10, 40)))
         {
-            var sim = Simulation.Create(new WorldConfig(seed, StartingBands: false, RuntimeRngSeed: 1));
-            var landmark = sim.Snapshot.Landmarks.FirstOrDefault(l => l.Type == type);
+            // Looked for in the shared Stores; only the world that has one is created.
+            var landmark = TestStores.Get(seed).Landmarks.FirstOrDefault(l => l.Type == type);
             if (landmark is not null)
             {
+                var sim = Simulation.Create(new WorldConfig(seed, StartingBands: false, RuntimeRngSeed: 1));
                 sim.Scenario.SetFogBankFormation(false);
                 return (sim, landmark);
             }
-            sim.Dispose();
         }
         throw new InvalidOperationException($"No seed gives a {type}.");
     }
@@ -341,8 +340,7 @@ public class LandmarkTests
     [Fact]
     public void The_landmark_showcase_has_every_landmark_once_in_a_row_with_no_displays()
     {
-        using var sim = Simulation.Create(new WorldConfig(3008, StartingBands: false, RuntimeRngSeed: 1, LandmarkShowcase: true));
-        var snapshot = sim.Snapshot;
+        var snapshot = TestStores.Get(3008, landmarkShowcase: true);
 
         Assert.True(snapshot.LandmarkShowcase);
         Assert.Equal(Enum.GetValues<LandmarkType>().Order(), snapshot.Landmarks.Select(l => l.Type).Order());

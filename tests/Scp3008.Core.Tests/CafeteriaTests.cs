@@ -6,11 +6,7 @@ namespace Scp3008.Core.Tests;
 /// <summary>Locked acceptance tests of ticket 08i: the Cafeteria, built in the Point of interest showcase only.</summary>
 public class CafeteriaTests
 {
-    private static WorldSnapshot Showcase(int seed)
-    {
-        using var sim = Simulation.Create(new WorldConfig(seed, RuntimeRngSeed: 1, PointOfInterestShowcase: true));
-        return sim.Snapshot;
-    }
+    private static WorldSnapshot Showcase(int seed) => TestStores.Get(seed, pointOfInterestShowcase: true);
 
     private static (PointOfInterest Cafeteria, List<FurniturePiece> Pieces) CafeteriaOf(WorldSnapshot snapshot)
     {
@@ -104,11 +100,14 @@ public class CafeteriaTests
         Assert.True(plans.Count >= 2, "Every seed laid out the Cafeteria the same way.");
     }
 
+    // Each case reads a whole normal Store, so three seeds per layout, as in the other Point of interest tests.
+    private static readonly int[] Seeds = [3008, 42, 7];
+
     public static TheoryData<PillarLayout, int> LayoutsAndSeeds()
     {
         var data = new TheoryData<PillarLayout, int>();
         foreach (var layout in PillarLayouts.All)
-            foreach (var seed in new[] { 3008, 42, 7, 1, 2, 3, 4, 5 })
+            foreach (var seed in Seeds)
                 data.Add(layout, seed);
         return data;
     }
@@ -117,8 +116,7 @@ public class CafeteriaTests
     [MemberData(nameof(LayoutsAndSeeds))]
     public void Every_normal_store_has_three_cafeterias_each_on_one_food_market_department_and_no_old_canteen(PillarLayout layout, int seed)
     {
-        using var sim = Simulation.Create(new WorldConfig(seed, RuntimeRngSeed: 1, PillarLayout: layout));
-        var snapshot = sim.Snapshot;
+        var snapshot = TestStores.Get(seed, layout);
 
         var cafeterias = snapshot.PointsOfInterest.Where(p => p.Type == PointOfInterestType.Cafeteria).ToList();
         Assert.Equal(3, cafeterias.Count);
@@ -137,8 +135,7 @@ public class CafeteriaTests
     [MemberData(nameof(LayoutsAndSeeds))]
     public void No_other_point_of_interest_stands_on_a_cafeterias_block_of_cells(PillarLayout layout, int seed)
     {
-        using var sim = Simulation.Create(new WorldConfig(seed, RuntimeRngSeed: 1, PillarLayout: layout));
-        var snapshot = sim.Snapshot;
+        var snapshot = TestStores.Get(seed, layout);
         var cell = snapshot.Departments.CellSize;
 
         foreach (var cafeteria in snapshot.PointsOfInterest.Where(p => p.Type == PointOfInterestType.Cafeteria))
@@ -158,18 +155,15 @@ public class CafeteriaTests
     [MemberData(nameof(LayoutsAndSeeds))]
     public void The_three_cafeterias_stand_about_equally_far_apart_across_the_seams_and_seeded(PillarLayout layout, int seed)
     {
-        Vector2[] Centres(int s)
-        {
-            using var sim = Simulation.Create(new WorldConfig(s, RuntimeRngSeed: 1, PillarLayout: layout));
-            return sim.Snapshot.PointsOfInterest.Where(p => p.Type == PointOfInterestType.Cafeteria).Select(p => p.Centre).ToArray();
-        }
-        using var world = Simulation.Create(new WorldConfig(seed, RuntimeRngSeed: 1, PillarLayout: layout));
-        var space = world.Snapshot.Space;
+        Vector2[] Centres(int s) =>
+            TestStores.Get(s, layout).PointsOfInterest.Where(p => p.Type == PointOfInterestType.Cafeteria).Select(p => p.Centre).ToArray();
+        var space = TestStores.Get(seed, layout).Space;
         var c = Centres(seed);
         var d = new[] { space.Distance(c[0], c[1]), space.Distance(c[1], c[2]), space.Distance(c[2], c[0]) };
         // Usually within a few percent; a Pillar or Landmark on one of the food market sites can push a trio a little further out.
         Assert.True((d.Max() - d.Min()) / d.Max() <= 0.2f, $"Cafeteria distances {string.Join(", ", d.Select(x => x.ToString("0")))} m are uneven.");
         Assert.True(d.Min() >= 0.3f * space.Size, $"Two Cafeterias are only {d.Min():0} m apart.");
-        Assert.NotEqual(c, Centres(seed + 1000));
+        // Another of the tested seeds, so no extra Store is generated.
+        Assert.NotEqual(c, Centres(Seeds.First(s => s != seed)));
     }
 }

@@ -8,21 +8,7 @@ public class StockTests(ITestOutputHelper output)
 {
     private static readonly int[] Seeds = [3008, 42, 7];
 
-    // Normal Stores are slow to generate, so each seed is built once for the whole class.
-    private static readonly Dictionary<int, WorldSnapshot> Stores = new();
-
-    private static WorldSnapshot Store(int seed)
-    {
-        lock (Stores)
-        {
-            if (!Stores.TryGetValue(seed, out var snapshot))
-            {
-                using var sim = Simulation.Create(new WorldConfig(seed, RuntimeRngSeed: 1));
-                Stores[seed] = snapshot = sim.Snapshot;
-            }
-            return snapshot;
-        }
-    }
+    private static WorldSnapshot Store(int seed) => TestStores.Get(seed);
 
     private static WorldSnapshot PointOfInterestShowcase(int seed, StockConfig? stock = null)
     {
@@ -32,8 +18,7 @@ public class StockTests(ITestOutputHelper output)
 
     private static WorldSnapshot LandmarkShowcase(int seed)
     {
-        using var sim = Simulation.Create(new WorldConfig(seed, RuntimeRngSeed: 1, LandmarkShowcase: true));
-        return sim.Snapshot;
+        return TestStores.Get(seed, landmarkShowcase: true);
     }
 
     private static Dictionary<int, FurniturePiece> PiecesById(WorldSnapshot snapshot) => snapshot.Furniture.ToDictionary(p => p.Id);

@@ -8,8 +8,7 @@ public class DepartmentSizeTests
 
     private static DepartmentMap MapFor(int seed)
     {
-        using var sim = Simulation.Create(new WorldConfig(Seed: seed, RuntimeRngSeed: 1));
-        return sim.Snapshot.Departments;
+        return TestStores.Get(seed).Departments;
     }
 
     private static double Across(Department d) => Math.Sqrt(d.Area);

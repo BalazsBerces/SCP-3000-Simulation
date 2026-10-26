@@ -7,8 +7,7 @@ public class StoreGenerationTests
 {
     private static WorldSnapshot Generate(int seed)
     {
-        using var sim = Simulation.Create(new WorldConfig(Seed: seed, RuntimeRngSeed: 1));
-        return sim.Snapshot;
+        return TestStores.Get(seed);
     }
 
     private static DepartmentType[] DepartmentTypesByCell(DepartmentMap map)

@@ -8,8 +8,7 @@ public class RestroomTests
 {
     private static WorldSnapshot Showcase(int seed)
     {
-        using var sim = Simulation.Create(new WorldConfig(seed, RuntimeRngSeed: 1, PointOfInterestShowcase: true));
-        return sim.Snapshot;
+        return TestStores.Get(seed, pointOfInterestShowcase: true);
     }
 
     private static (PointOfInterest Restroom, List<FurniturePiece> Pieces) RestroomOf(WorldSnapshot snapshot)
@@ -154,8 +153,7 @@ public class RestroomTests
     [InlineData(42)]
     public void A_normal_store_has_one_to_three_restrooms_per_sector(int seed)
     {
-        using var sim = Simulation.Create(new WorldConfig(seed, RuntimeRngSeed: 1));
-        var snapshot = sim.Snapshot;
+        var snapshot = TestStores.Get(seed);
 
         Assert.All(snapshot.Sectors, sector =>
             Assert.InRange(snapshot.PointsOfInterest.Count(p => p.Type == PointOfInterestType.StoreRestroom && p.SectorId == sector.Id), 1, 3));

@@ -107,8 +107,7 @@ public class FurnitureLayoutTests(BenchmarkStore store) : IClassFixture<Benchmar
     [InlineData(-1)]
     public void Themes_stay_strict_and_complete_on_other_seeds(int seed)
     {
-        using var sim = Simulation.Create(new WorldConfig(Seed: seed, RuntimeRngSeed: 1));
-        var snapshot = sim.Snapshot;
+        var snapshot = TestStores.Get(seed);
         var pieces = snapshot.Furniture.GroupBy(p => p.DisplayId).ToDictionary(g => g.Key, g => g.Select(p => p.Type).ToHashSet());
 
         Assert.All(snapshot.Furniture.Where(p => p.LandmarkId < 0 && p.PointOfInterestId < 0), p => Assert.Contains(p.Type, ThemeCatalog.Spec(snapshot.Displays[p.DisplayId].Theme).Types));

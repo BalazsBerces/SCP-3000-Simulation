@@ -7,13 +7,7 @@ public class WrappingStoreTests
 {
     private const float Tolerance = 1e-3f;
 
-    private static StoreSpace NewStore()
-    {
-        var sim = Simulation.Create(new WorldConfig(Seed: 3008, RuntimeRngSeed: 1));
-        var space = sim.Snapshot.Space;
-        sim.Dispose();
-        return space;
-    }
+    private static StoreSpace NewStore() => TestStores.Get(3008).Space;
 
     private static void AssertClose(Vector2 expected, Vector2 actual) =>
         Assert.True(Vector2.Distance(expected, actual) < Tolerance, $"Expected {expected}, got {actual}.");

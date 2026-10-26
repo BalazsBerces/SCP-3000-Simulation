@@ -53,8 +53,7 @@ public class PillarTests
     [Fact]
     public void Pillars_are_448_m_apart_in_both_directions_including_across_the_seams_and_clear_of_them()
     {
-        using var sim = Simulation.Create(new WorldConfig(3008, StartingBands: false, RuntimeRngSeed: 1));
-        var snapshot = sim.Snapshot;
+        var snapshot = TestStores.Get(3008);
         var space = snapshot.Space;
         var byCoordinate = snapshot.Pillars.ToDictionary(p => p.Coordinate);
         foreach (var pillar in snapshot.Pillars)
@@ -80,8 +79,7 @@ public class PillarTests
     [InlineData(42)]
     public void No_furniture_stands_in_a_pillar_footprint_or_its_walkway_ring(int seed)
     {
-        using var sim = Simulation.Create(new WorldConfig(seed, StartingBands: false, RuntimeRngSeed: 1));
-        var snapshot = sim.Snapshot;
+        var snapshot = TestStores.Get(seed);
         foreach (var pillar in snapshot.Pillars)
         {
             var clear = pillar.ClearHalfWidth;

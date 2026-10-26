@@ -16,11 +16,8 @@ public class PointOfInterestTests
         return data;
     }
 
-    private static WorldSnapshot Generate(int seed, PillarLayout layout = PillarLayout.ThreeByThree, bool showcase = false)
-    {
-        using var sim = Simulation.Create(new WorldConfig(seed, StartingBands: false, RuntimeRngSeed: 1, PillarLayout: layout, LandmarkShowcase: showcase));
-        return sim.Snapshot;
-    }
+    private static WorldSnapshot Generate(int seed, PillarLayout layout = PillarLayout.ThreeByThree, bool showcase = false) =>
+        TestStores.Get(seed, layout, landmarkShowcase: showcase);
 
     private static IEnumerable<FurniturePiece> PiecesOf(WorldSnapshot snapshot, PointOfInterest poi) =>
         snapshot.Furniture.Where(p => p.PointOfInterestId == poi.Id);
@@ -422,8 +419,7 @@ public class PointOfInterestTests
     [MemberData(nameof(LayoutsAndSeeds))]
     public void The_point_of_interest_showcase_has_every_kind_once_with_no_displays_or_landmarks(PillarLayout layout, int seed)
     {
-        using var sim = Simulation.Create(new WorldConfig(seed, StartingBands: false, RuntimeRngSeed: 1, PillarLayout: layout, PointOfInterestShowcase: true));
-        var snapshot = sim.Snapshot;
+        var snapshot = TestStores.Get(seed, layout, pointOfInterestShowcase: true);
 
         Assert.True(snapshot.PointOfInterestShowcase);
         Assert.False(snapshot.LandmarkShowcase);
@@ -438,8 +434,7 @@ public class PointOfInterestTests
     [MemberData(nameof(LayoutsAndSeeds))]
     public void Every_lost_and_found_piece_in_the_showcase_stays_inside_its_rectangle_and_on_the_floor_or_a_surface(PillarLayout layout, int seed)
     {
-        using var sim = Simulation.Create(new WorldConfig(seed, StartingBands: false, RuntimeRngSeed: 1, PillarLayout: layout, PointOfInterestShowcase: true));
-        var snapshot = sim.Snapshot;
+        var snapshot = TestStores.Get(seed, layout, pointOfInterestShowcase: true);
         var laf = Assert.Single(snapshot.PointsOfInterest, p => p.Type == PointOfInterestType.LostAndFound);
         var pieces = PiecesOf(snapshot, laf).ToList();
         Assert.NotEmpty(pieces);
@@ -460,8 +455,7 @@ public class PointOfInterestTests
     [MemberData(nameof(LayoutsAndSeeds))]
     public void Every_store_restroom_piece_in_the_showcase_stays_inside_its_rectangle_and_on_the_floor_or_a_wall(PillarLayout layout, int seed)
     {
-        using var sim = Simulation.Create(new WorldConfig(seed, StartingBands: false, RuntimeRngSeed: 1, PillarLayout: layout, PointOfInterestShowcase: true));
-        var snapshot = sim.Snapshot;
+        var snapshot = TestStores.Get(seed, layout, pointOfInterestShowcase: true);
         var restroom = Assert.Single(snapshot.PointsOfInterest, p => p.Type == PointOfInterestType.StoreRestroom);
         var pieces = PiecesOf(snapshot, restroom).ToList();
         Assert.NotEmpty(pieces);
@@ -482,8 +476,7 @@ public class PointOfInterestTests
     [MemberData(nameof(LayoutsAndSeeds))]
     public void Every_cafeteria_piece_in_the_showcase_stays_inside_its_rectangle_and_on_the_floor_or_a_table(PillarLayout layout, int seed)
     {
-        using var sim = Simulation.Create(new WorldConfig(seed, StartingBands: false, RuntimeRngSeed: 1, PillarLayout: layout, PointOfInterestShowcase: true));
-        var snapshot = sim.Snapshot;
+        var snapshot = TestStores.Get(seed, layout, pointOfInterestShowcase: true);
         var cafeteria = Assert.Single(snapshot.PointsOfInterest, p => p.Type == PointOfInterestType.Cafeteria);
         var pieces = PiecesOf(snapshot, cafeteria).ToList();
         Assert.NotEmpty(pieces);

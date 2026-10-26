@@ -9,6 +9,8 @@ public class PillarLayoutTests
     private static Simulation Create(PillarLayout layout, int seed = 3008) =>
         Simulation.Create(new WorldConfig(seed, StartingBands: false, RuntimeRngSeed: 1, PillarLayout: layout));
 
+    private static WorldSnapshot Store(PillarLayout layout, int seed = 3008) => TestStores.Get(seed, layout);
+
     [Fact]
     public void A_world_uses_the_3_x_3_layout_unless_told_otherwise()
     {
@@ -66,17 +68,16 @@ public class PillarLayoutTests
     [InlineData(PillarLayout.DiamondLarge, new[] { "B-1", "A-2", "C-2", "B-3" }, new[] { "A-1", "C-1", "B-2", "A-3", "C-3" })]
     public void The_four_pillar_large_layouts_leave_the_other_sectors_of_the_3_x_3_large_grid_empty(PillarLayout layout, string[] withPillar, string[] empty)
     {
-        using var sim = Create(layout);
-        using var full = Create(PillarLayout.ThreeByThreeLarge);
-        var snapshot = sim.Snapshot;
+        var snapshot = Store(layout);
+        var full = Store(PillarLayout.ThreeByThreeLarge);
 
         Assert.Equal(withPillar, snapshot.Pillars.Select(p => p.Coordinate));
         Assert.Equal(Enumerable.Range(0, 4), snapshot.Pillars.Select(p => p.Id));
         // The same nine Sectors as 3 × 3 large, and the Pillars stand where 3 × 3 large has them.
-        Assert.Equal(full.Snapshot.Sectors, snapshot.Sectors);
+        Assert.Equal(full.Sectors, snapshot.Sectors);
         foreach (var pillar in snapshot.Pillars)
         {
-            Assert.Equal(full.Snapshot.Pillars.Single(p => p.Coordinate == pillar.Coordinate).Position, pillar.Position);
+            Assert.Equal(full.Pillars.Single(p => p.Coordinate == pillar.Coordinate).Position, pillar.Position);
             Assert.Equal(pillar.Coordinate, snapshot.SectorAt(pillar.Position).Name);
         }
         // An empty Sector keeps its grid name, and Furniture stands at its centre.
@@ -88,7 +89,7 @@ public class PillarLayoutTests
             Assert.Equal(sector.Centre, snapshot.OutsidePillars(sector.Centre));
         }
         // The seed gives the same Departments as on 3 × 3 large.
-        Assert.Equal(full.Snapshot.Departments.All, snapshot.Departments.All);
+        Assert.Equal(full.Departments.All, snapshot.Departments.All);
     }
 
     [Theory]
@@ -98,8 +99,7 @@ public class PillarLayoutTests
     [InlineData(PillarLayout.DiamondLarge, new[] { 640f, 905f, 905f })]
     public void Every_pillar_of_a_four_pillar_large_layout_sees_the_others_at_the_same_distances(PillarLayout layout, float[] expected)
     {
-        using var sim = Create(layout);
-        var snapshot = sim.Snapshot;
+        var snapshot = Store(layout);
         foreach (var pillar in snapshot.Pillars)
         {
             var distances = snapshot.Pillars.Where(p => p != pillar).Select(p => MathF.Round(snapshot.Space.Distance(pillar.Position, p.Position))).Order();
@@ -115,8 +115,7 @@ public class PillarLayoutTests
     [InlineData(PillarLayout.DiamondLarge)]
     public void The_world_stands_in_the_store_of_its_layout(PillarLayout layout)
     {
-        using var sim = Create(layout);
-        var snapshot = sim.Snapshot;
+        var snapshot = Store(layout);
         Assert.Equal(layout.Space(), snapshot.Space);
         Assert.Equal(snapshot.Space.Size, snapshot.Departments.CellSize * snapshot.Departments.CellsPerSide);
         Assert.All(snapshot.Furniture, p => Assert.Equal(p.Position, snapshot.Space.Wrap(p.Position)));
@@ -135,8 +134,7 @@ public class PillarLayoutTests
     [InlineData(-1)]
     public void Nine_pillars_stand_640_m_apart_on_the_3_x_3_large_grid(int seed)
     {
-        using var sim = Create(PillarLayout.ThreeByThreeLarge, seed);
-        var snapshot = sim.Snapshot;
+        var snapshot = Store(PillarLayout.ThreeByThreeLarge, seed);
 
         Assert.Equal(["A-1", "B-1", "C-1", "A-2", "B-2", "C-2", "A-3", "B-3", "C-3"], snapshot.Pillars.Select(p => p.Coordinate));
         float[] gridLines = [320f, 960f, 1600f];
@@ -183,15 +181,15 @@ public class PillarLayoutTests
     [InlineData(42)]
     public void Departments_keep_their_size_in_the_larger_store(int seed)
     {
-        using var standard = Create(PillarLayout.ThreeByThree, seed);
-        using var large = Create(PillarLayout.ThreeByThreeLarge, seed);
+        var standard = Store(PillarLayout.ThreeByThree, seed);
+        var large = Store(PillarLayout.ThreeByThreeLarge, seed);
 
-        var standardMean = standard.Snapshot.Departments.All.Average(d => d.Area);
-        var largeMean = large.Snapshot.Departments.All.Average(d => d.Area);
+        var standardMean = standard.Departments.All.Average(d => d.Area);
+        var largeMean = large.Departments.All.Average(d => d.Area);
         Assert.InRange(largeMean / standardMean, 0.75, 1.33);
         // So the larger Store has about twice as many Departments, every type among them.
-        Assert.InRange((double)large.Snapshot.Departments.All.Count / standard.Snapshot.Departments.All.Count, 1.5, 2.7);
-        Assert.Equal(Enum.GetValues<DepartmentType>().Order(), large.Snapshot.Departments.All.Select(d => d.Type).Distinct().Order());
+        Assert.InRange((double)large.Departments.All.Count / standard.Departments.All.Count, 1.5, 2.7);
+        Assert.Equal(Enum.GetValues<DepartmentType>().Order(), large.Departments.All.Select(d => d.Type).Distinct().Order());
     }
 
     [Fact]
@@ -220,8 +218,7 @@ public class PillarLayoutTests
     [InlineData(-1)]
     public void Four_identical_pillars_stand_on_the_2_x_2_grid_marked_by_their_grid_coordinate(int seed)
     {
-        using var sim = Create(PillarLayout.TwoByTwo, seed);
-        var snapshot = sim.Snapshot;
+        var snapshot = Store(PillarLayout.TwoByTwo, seed);
 
         Assert.Equal(["A-1", "B-1", "A-2", "B-2"], snapshot.Pillars.Select(p => p.Coordinate));
         Assert.Equal(Enumerable.Range(0, 4), snapshot.Pillars.Select(p => p.Id));
@@ -256,8 +253,7 @@ public class PillarLayoutTests
     [Fact]
     public void The_2_x_2_sectors_are_four_equal_672_m_squares_centred_on_and_named_after_their_pillars()
     {
-        using var sim = Create(PillarLayout.TwoByTwo);
-        var snapshot = sim.Snapshot;
+        var snapshot = Store(PillarLayout.TwoByTwo);
 
         Assert.Equal(4, snapshot.Sectors.Count);
         Assert.Equal(snapshot.Pillars.Select(p => p.Coordinate), snapshot.Sectors.Select(s => s.Name));
@@ -321,8 +317,7 @@ public class PillarLayoutTests
     [InlineData(PillarLayout.DiamondLarge, 42)]
     public void No_furniture_stands_in_a_pillar_footprint_or_its_walkway_ring(PillarLayout layout, int seed)
     {
-        using var sim = Create(layout, seed);
-        var snapshot = sim.Snapshot;
+        var snapshot = Store(layout, seed);
         foreach (var pillar in snapshot.Pillars)
         {
             var clear = pillar.ClearHalfWidth;
@@ -346,8 +341,7 @@ public class PillarLayoutTests
     [Fact]
     public void In_2_x_2_the_east_and_west_neighbour_of_a_pillar_is_the_same_pillar_672_m_away_both_ways()
     {
-        using var sim = Create(PillarLayout.TwoByTwo);
-        var snapshot = sim.Snapshot;
+        var snapshot = Store(PillarLayout.TwoByTwo);
         var space = snapshot.Space;
         var byCoordinate = snapshot.Pillars.ToDictionary(p => p.Coordinate);
         var a1 = byCoordinate["A-1"];
@@ -373,8 +367,7 @@ public class PillarLayoutTests
     [InlineData(PillarLayout.DiamondLarge, 1011.9f)]
     public void No_place_in_the_store_is_farther_from_its_nearest_pillar_than_the_layout_allows(PillarLayout layout, float farthest)
     {
-        using var sim = Create(layout);
-        var snapshot = sim.Snapshot;
+        var snapshot = Store(layout);
         var worst = 0f;
         // A 4 m grid over the whole Store, plus unwrapped positions beyond the Seams.
         for (var y = -8f; y < snapshot.Space.Size + 8f; y += 4f)
@@ -403,8 +396,7 @@ public class PillarLayoutTests
     [InlineData(PillarLayout.DiamondLarge)]
     public void A_position_inside_a_pillar_is_moved_just_outside_it_and_any_other_position_stays(PillarLayout layout)
     {
-        using var sim = Create(layout);
-        var snapshot = sim.Snapshot;
+        var snapshot = Store(layout);
         foreach (var pillar in snapshot.Pillars)
         {
             var half = pillar.Width / 2f;

@@ -46,8 +46,7 @@ public class LampTests
     [Fact]
     public void The_lighting_departments_are_full_of_lamps()
     {
-        using var sim = Simulation.Create(new WorldConfig(Seed: 3008, StartingBands: false, RuntimeRngSeed: 1));
-        var snapshot = sim.Snapshot;
+        var snapshot = TestStores.Get(3008);
 
         var lampsByDepartment = snapshot.Furniture
             .Where(p => p.DisplayId >= 0 && FurnitureCatalog.Spec(p.Type).IsLamp)

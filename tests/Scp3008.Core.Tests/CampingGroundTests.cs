@@ -7,9 +7,16 @@ public class CampingGroundTests
 {
     private static readonly int[] Seeds = [3008, 42, -1, 1, 2, 3, 4, 5];
 
+    /// <summary>A Store's Camping ground, for the tests that only read it.</summary>
+    private static (WorldSnapshot Snapshot, Landmark Camp) CampStore(int seed)
+    {
+        var snapshot = TestStores.Get(seed);
+        return (snapshot, snapshot.Landmarks.Single(l => l.Type == LandmarkType.CampingGround));
+    }
+
     private static (Simulation Sim, Landmark Camp) Camp(int seed)
     {
-        var sim = Simulation.Create(new WorldConfig(seed, RuntimeRngSeed: 1));
+        var sim = Simulation.Create(new WorldConfig(seed, StartingBands: false, RuntimeRngSeed: 1));
         var camp = sim.Snapshot.Landmarks.Single(l => l.Type == LandmarkType.CampingGround);
         sim.Scenario.SetFogBankFormation(false);
         return (sim, camp);
@@ -31,15 +38,14 @@ public class CampingGroundTests
     {
         foreach (var seed in Seeds)
         {
-            var (sim, camp) = Camp(seed);
-            using var _ = sim;
+            var (snapshot, camp) = CampStore(seed);
             Assert.Equal(3, camp.Dinosaurs.Count);
             Assert.Equal(3, camp.Dinosaurs.Select(d => d.Kind).Distinct().Count());
             Assert.Equal(3, camp.Dinosaurs.Select(d => d.MainTint).Distinct().Count());
             Assert.All(camp.Dinosaurs, d => Assert.True(d.MainTint >= FurniturePalettes.FirstDinosaurTint));
             foreach (var dinosaur in camp.Dinosaurs)
             {
-                var pieces = PiecesOf(sim.Snapshot, dinosaur);
+                var pieces = PiecesOf(snapshot, dinosaur);
                 Assert.True(pieces.Count >= 25, $"{dinosaur.Kind} has only {pieces.Count} pieces.");
                 // Built only of existing Furniture types, mostly in its main colour.
                 Assert.All(pieces, p => Assert.DoesNotContain(p.Type, FurnitureCatalog.CampingTypes));
@@ -64,11 +70,10 @@ public class CampingGroundTests
     {
         foreach (var seed in Seeds)
         {
-            var (sim, camp) = Camp(seed);
-            using var _ = sim;
+            var (snapshot, camp) = CampStore(seed);
             foreach (var dinosaur in camp.Dinosaurs)
             {
-                var pieces = PiecesOf(sim.Snapshot, dinosaur);
+                var pieces = PiecesOf(snapshot, dinosaur);
                 var length = pieces.Max(a => pieces.Max(b => Vector2.Distance(a.Position, b.Position)));
                 var height = pieces.Max(Top);
                 switch (dinosaur.Kind)
@@ -93,9 +98,7 @@ public class CampingGroundTests
     {
         foreach (var seed in Seeds)
         {
-            var (sim, camp) = Camp(seed);
-            using var _ = sim;
-            var snapshot = sim.Snapshot;
+            var (snapshot, camp) = CampStore(seed);
             var sector = snapshot.Sectors[camp.SectorId];
             Assert.True(camp.Size.X * camp.Size.Y <= sector.Size * sector.Size / 4f);
             Assert.Equal(1, snapshot.Landmarks.Count(l => l.SectorId == camp.SectorId));
@@ -147,10 +150,10 @@ public class CampingGroundTests
     [Fact]
     public void The_landmark_showcase_includes_the_camping_ground()
     {
-        using var sim = Simulation.Create(new WorldConfig(3008, RuntimeRngSeed: 1, LandmarkShowcase: true));
-        var camp = Assert.Single(sim.Snapshot.Landmarks, l => l.Type == LandmarkType.CampingGround);
+        var snapshot = TestStores.Get(3008, landmarkShowcase: true);
+        var camp = Assert.Single(snapshot.Landmarks, l => l.Type == LandmarkType.CampingGround);
         Assert.Equal(3, camp.Dinosaurs.Count);
-        Assert.NotEmpty(PiecesOf(sim.Snapshot, camp));
+        Assert.NotEmpty(PiecesOf(snapshot, camp));
     }
 
     [Fact]
@@ -158,9 +161,8 @@ public class CampingGroundTests
     {
         foreach (var seed in Seeds)
         {
-            var (sim, camp) = Camp(seed);
-            using var _ = sim;
-            var pieces = PiecesOf(sim.Snapshot, camp);
+            var (snapshot, camp) = CampStore(seed);
+            var pieces = PiecesOf(snapshot, camp);
             // Sixteen tents, every kind at least twice, in four straight rows of four: two facing south, two facing north.
             var tents = pieces.Where(p => p.Type == FurnitureType.Tent).ToList();
             Assert.Equal(16, tents.Count);
@@ -209,9 +211,8 @@ public class CampingGroundTests
     {
         foreach (var seed in Seeds)
         {
-            var (sim, camp) = Camp(seed);
-            using var _ = sim;
-            var pieces = PiecesOf(sim.Snapshot, camp);
+            var (snapshot, camp) = CampStore(seed);
+            var pieces = PiecesOf(snapshot, camp);
             // Wooden and white loungers in pairs under beach umbrellas, and a row of deck chairs, all facing one way.
             var loungers = pieces.Where(p => p.Type == FurnitureType.SunLounger).ToList();
             foreach (var variant in new[] { 0, 1 })
@@ -240,9 +241,8 @@ public class CampingGroundTests
         foreach (var type in Enum.GetValues<FurnitureType>())
             for (var v = 0; v < FurnitureCatalog.VariantCount(type); v++)
                 Assert.Equal(type == FurnitureType.TreeHouse, FurnitureCatalog.Spec(type, v).IsFixed);
-        var (sim, camp) = Camp(42);
-        using var _ = sim;
-        var pieces = PiecesOf(sim.Snapshot, camp);
+        var (snapshot, camp) = CampStore(42);
+        var pieces = PiecesOf(snapshot, camp);
         var shell = Assert.Single(pieces, p => p.Type == FurnitureType.TreeHouse);
         // Its deck holds a bunk bed: ordinary Furniture a Village may take.
         Assert.Contains(pieces, p => p.Type == FurnitureType.BunkBed && Vector2.Distance(p.Position, shell.Position) < 4.5f &&
@@ -271,9 +271,8 @@ public class CampingGroundTests
     {
         foreach (var seed in Seeds)
         {
-            var (sim, camp) = Camp(seed);
-            using var _ = sim;
-            var pieces = PiecesOf(sim.Snapshot, camp);
+            var (snapshot, camp) = CampStore(seed);
+            var pieces = PiecesOf(snapshot, camp);
             bool StandsOn(Vector3 l, FurniturePiece p) =>
                 Top(p) >= l.Z - 0.3f && Top(p) <= l.Z + 0.1f && Vector2.Distance(p.Position, new Vector2(l.X, l.Y)) <= 1.8f;
             // The tree house's deck, inside the fixed shell, which has its own stair up to it.
@@ -290,9 +289,7 @@ public class CampingGroundTests
     {
         foreach (var seed in Seeds)
         {
-            var (sim, camp) = Camp(seed);
-            using var _ = sim;
-            var snapshot = sim.Snapshot;
+            var (snapshot, camp) = CampStore(seed);
             var stand = Assert.Single(snapshot.CampGoods, g => g.Kind == CampGoodsKind.Marshmallows);
             var piece = snapshot.Furniture.Single(p => p.Id == stand.StandId);
             Assert.Equal(camp.Id, piece.LandmarkId);
