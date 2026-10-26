@@ -60,6 +60,7 @@ public sealed partial class Simulation : IDisposable
     {
         config.Needs?.Validate();
         config.Restock?.Validate();
+        config.Arrivals?.Validate();
         _config = config;
         _space = config.PillarLayout.Space();
         var sandbox = config.PillarLayout == PillarLayout.VillagerSandbox;
@@ -104,6 +105,7 @@ public sealed partial class Simulation : IDisposable
         // Runtime randomness never comes from the Store seed (ADR 0003); it is unseeded unless a test fixes it.
         var runtimeSeed = config.RuntimeRngSeed ?? Random.Shared.Next();
         _restockRandom = SeededRandom.For(runtimeSeed, 2);
+        _arrivalRandom = SeededRandom.For(runtimeSeed, 4);
         _weather = new Weather(_space, SeededRandom.For(runtimeSeed, WeatherStream));
         if (sandbox)
             _weather.SetFormation(false);
@@ -119,6 +121,7 @@ public sealed partial class Simulation : IDisposable
         ScheduleDrySpell();
         if (config.StartingBands && !sandbox && !config.LandmarkShowcase && !config.PointOfInterestShowcase)
             CreateStartingBands(SeededRandom.For(runtimeSeed, 3));
+        ScheduleArrival();
     }
 
     /// <summary>Creates a new world from the seed in <paramref name="config"/>.</summary>
@@ -305,6 +308,7 @@ public sealed partial class Simulation : IDisposable
         var clock = new StoreClock(_tick);
         _weather.Advance(StoreClock.TickDuration.TotalHours, clock, Emit);
         AdvanceRestock();
+        AdvanceArrivals(clock);
         AdvanceVillages(clock);
         _villagers.AdvanceGear(StoreClock.TickDuration.TotalHours, clock, ReloadFlashlight);
         _villagers.Advance(StoreClock.TickDuration.TotalHours);
@@ -461,12 +465,16 @@ public sealed partial class Simulation : IDisposable
         return moved;
     }
 
-    internal Band PlaceBand(IReadOnlyList<Vector2> positions, Needs? needs = null) => Publish(() =>
+    internal Band PlaceBand(IReadOnlyList<Vector2> positions, Needs? needs = null,
+        KnownMap? knownMap = null, IReadOnlyList<GearKind>? recipes = null) => Publish(() =>
     {
         (needs ?? new Needs()).Validate();
         var band = new Band(_nextBandId++, Array.AsReadOnly(positions.Select(p => _villagers.Place(p, needs).Id).ToArray()))
-            { Position = _space.Wrap(positions[0]), FoundingPopulation = positions.Count };
+            { Position = _space.Wrap(positions[0]), FoundingPopulation = positions.Count,
+                KnownMap = MergeMaps([knownMap ?? new KnownMap()]),
+                Recipes = Array.AsReadOnly((recipes ?? Recipes.Basic.Select(r => r.Gear).ToArray()).Distinct().ToArray()) };
         _bands.Add(band);
+        _villagers.ShareKnowledge(band.VillagerIds, band.KnownMap);
         return band;
     });
 
@@ -507,7 +515,10 @@ public sealed partial class Simulation : IDisposable
     {
         var target = StoreClock.TicksFor(timeOfDay) % StoreClock.TicksPerStoreDay;
         var now = StoreClock.TicksFor(new StoreClock(_tick).TimeOfDay);
-        _tick += (target - now + StoreClock.TicksPerStoreDay) % StoreClock.TicksPerStoreDay;
+        var skipped = (target - now + StoreClock.TicksPerStoreDay) % StoreClock.TicksPerStoreDay;
+        _tick += skipped;
+        if (_nextArrivalTick != long.MaxValue)
+            _nextArrivalTick += skipped;
         return true;
     });
 

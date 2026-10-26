@@ -46,6 +46,17 @@ public partial class DevCapture
             Check(label.Text.Contains("Village 0: 2 Villagers") && label.Text.Contains("TinnedFood") && label.Text.Contains("founded Village"),
                 "Village membership, stores and founding chronicle displayed");
             await Capture("village");
+            var band = Host.Scenario.PlaceBand([new(34, 104)], knownMap: new KnownMap
+            {
+                ExploredGround = Array.AsReadOnly(new[] { new System.Numerics.Vector2(100, 100) }),
+            });
+            Host.SkipTime(TimeSpan.FromHours(1));
+            await Wait(1);
+            Check(Host.Snapshot.Villages[0].VillagerIds.Contains(band.VillagerIds[0]), "Wanderer walked to and joined the Village");
+            Check(Host.Snapshot.Villages[0].KnownMap.ExploredGround.Contains(new(100, 100)), "Joining Wanderer shared their Known map");
+            Check(label.Text.Contains("Village 0: 3 Villagers") && label.Text.Contains("joined Village 0"),
+                "Population and joining Chronicle update in the presentation");
+            await Capture("joined");
             lines.Add("Band rendered check passed.");
             System.IO.File.WriteAllLines(System.IO.Path.Combine(directory, "report.txt"), lines);
             GD.Print(lines[^1]);

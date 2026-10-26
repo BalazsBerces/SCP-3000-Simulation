@@ -48,7 +48,8 @@ public sealed partial class ScenarioBuilder
         if (file.Furniture is null || file.Bands is null || file.Gear is null || file.Staff is null)
             throw new JsonException("Scenario collections must be arrays, not null.");
         file.Needs?.Validate();
-        var sim = Simulation.Create(new WorldConfig(3008, PillarLayout: PillarLayout.VillagerSandbox, Needs: file.NeedsConfig));
+        var sim = Simulation.Create(new WorldConfig(3008, PillarLayout: PillarLayout.VillagerSandbox,
+            RuntimeRngSeed: file.RuntimeRngSeed, Needs: file.NeedsConfig, Arrivals: file.Arrivals));
         try
         {
             var scenario = sim.Scenario;
@@ -98,6 +99,8 @@ public sealed partial class ScenarioBuilder
         public string Time { get; init; } = "12:00";
         public Needs? Needs { get; init; }
         public NeedsConfig? NeedsConfig { get; init; }
+        public ArrivalConfig? Arrivals { get; init; }
+        public int? RuntimeRngSeed { get; init; }
         public SandboxFurniture[] Furniture { get; init; } = [];
         public float[][][] Bands { get; init; } = [];
         public SandboxGear[] Gear { get; init; } = [];

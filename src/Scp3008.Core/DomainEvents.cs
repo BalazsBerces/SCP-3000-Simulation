@@ -8,6 +8,8 @@ public abstract record DomainEvent(StoreClock At);
 
 public sealed record VillageFounded(StoreClock At, int BandId, Village Village, bool Forced) : DomainEvent(At);
 
+public sealed record WanderersJoined(StoreClock At, int BandId, int VillageId, IReadOnlyList<int> VillagerIds) : DomainEvent(At);
+
 public sealed record RoleChanged(StoreClock At, int VillagerId, Role Role) : DomainEvent(At);
 
 public sealed record GoodsDelivered(StoreClock At, int VillagerId, int VillageId, GoodsKind Kind) : DomainEvent(At);

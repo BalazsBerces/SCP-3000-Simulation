@@ -6,7 +6,7 @@ namespace Scp3008.Core;
 
 public sealed partial class Simulation
 {
-    private const int SaveVersion = 4;
+    private const int SaveVersion = 5;
     private static readonly JsonSerializerOptions SaveJson = CreateSaveJson();
 
     private sealed record SaveFile(int Version, SaveState State);
@@ -18,7 +18,8 @@ public sealed partial class Simulation
         TimeSpan UnspentRealTime, int NextBandId, FurniturePiece[] RestockOrigins,
         MissingFurniture[] MissingFurniture, int NextFurnitureId, double RestockHours,
         double NextFurnitureCheck, StockTarget[] StockTargets, Dictionary<int, double> GoodsRestockCredit,
-        ulong RestockRandom, DrySpell? DrySpell, double NextDrySpellHour, Gear[] GearSources, int NextGearId);
+        ulong RestockRandom, DrySpell? DrySpell, double NextDrySpellHour, Gear[] GearSources, int NextGearId,
+        ulong ArrivalRandom, long NextArrivalTick);
 
     /// <summary>Saves the entire world at a tick boundary; leaves the caller's stream open.</summary>
     public void Save(Stream destination)
@@ -32,7 +33,8 @@ public sealed partial class Simulation
                 _nextBandId, _restockOrigins.Values.ToArray(), _missingFurniture.ToArray(), _nextFurnitureId,
                 _restockHours, _nextFurnitureCheck,
                 _stockTargets.Select(t => new StockTarget(t.Key.FurnitureId, t.Key.Kind, t.Value)).ToArray(),
-                new(_goodsRestockCredit), _restockRandom.State, _drySpell, _nextDrySpellHour, _gearSources.ToArray(), _nextGearId);
+                new(_goodsRestockCredit), _restockRandom.State, _drySpell, _nextDrySpellHour, _gearSources.ToArray(), _nextGearId,
+                _arrivalRandom.State, _nextArrivalTick);
             JsonSerializer.Serialize(destination, new SaveFile(SaveVersion, state), SaveJson);
         }
     }
@@ -64,6 +66,11 @@ public sealed partial class Simulation
         _config = state.Config;
         _config.Needs?.Validate();
         _config.Restock?.Validate();
+        _config.Arrivals?.Validate();
+        if (state.NextArrivalTick <= s.Clock.Tick)
+            throw new InvalidDataException("Invalid world save: arrival schedule is in the past.");
+        _arrivalRandom = new SeededRandom(state.ArrivalRandom);
+        _nextArrivalTick = state.NextArrivalTick;
         var furnitureIds = s.Furniture.Select(p => p.Id).ToHashSet();
         if (!Enum.IsDefined(_config.PillarLayout) || !Enum.IsDefined(s.Speed) || s.Clock.Tick < 0 ||
             s.Seed != _config.Seed || s.PillarLayout != _config.PillarLayout || s.Space != _config.PillarLayout.Space() ||
@@ -100,6 +107,20 @@ public sealed partial class Simulation
         _villagers.Restore(state.Villagers);
         _staff = new Villagers(_space, _navigation);
         _staff.Restore(state.Staff);
+        var people = _villagers.Snapshot();
+        if (people.Any(v => v.VillageId is { } id &&
+                !s.Villages.Any(home => home.Id == id && home.VillagerIds.Contains(v.Id))) ||
+            s.Villages.Any(home => home.VillagerIds.Distinct().Count() != home.VillagerIds.Count ||
+                people.Any(v => home.VillagerIds.Contains(v.Id) && v.VillageId != home.Id)) ||
+            state.NextBandId < 0 || s.Bands.Any(b => b.Id < 0 || b.Id >= state.NextBandId) ||
+            s.Bands.Select(b => b.Id).Distinct().Count() != s.Bands.Count ||
+            s.Bands.SelectMany(b => b.VillagerIds).Distinct().Count() != s.Bands.Sum(b => b.VillagerIds.Count) ||
+            s.Bands.Any(b => people.Any(v => b.VillagerIds.Contains(v.Id) && v.VillageId is not null)))
+            throw new InvalidDataException("Invalid world save: inconsistent community membership.");
+        var staffIds = _staff.Snapshot().Select(v => v.Id).ToHashSet();
+        if (state.Patrols.Any(p => !staffIds.Contains(p.Id) || p.Route.Length == 0 || p.Next < 0 ||
+                p.Next >= p.Route.Length || p.Route.Any(v => !float.IsFinite(v.X) || !float.IsFinite(v.Y))))
+            throw new InvalidDataException("Invalid world save: inconsistent Staff patrol.");
         RestoreFurnitureTasks(s.FurnitureTasks, s.Villages);
         _bands.AddRange(s.Bands);
         _villages.AddRange(s.Villages);

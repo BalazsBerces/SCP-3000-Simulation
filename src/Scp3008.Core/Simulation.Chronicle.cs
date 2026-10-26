@@ -9,6 +9,26 @@ public sealed partial class Simulation
         string story;
         switch (domainEvent)
         {
+            case WanderersJoined joined:
+                var newcomer = Villager.NameOf(joined.VillagerIds[0]);
+                story = (_chronicle.Count % 3) switch
+                {
+                    0 => $"{newcomer} and Band {joined.BandId} joined Village {joined.VillageId}, bringing news of the Store.",
+                    1 => $"Band {joined.BandId} joined Village {joined.VillageId}; {newcomer} shared what the Wanderers knew.",
+                    _ => $"Following {newcomer}, Band {joined.BandId} joined Village {joined.VillageId} and found a home among its people.",
+                };
+                break;
+            case WanderersArrived arrived:
+                var leader = Villager.NameOf(arrived.Band.VillagerIds[0]);
+                var count = arrived.Band.VillagerIds.Count;
+                var arrivalPlace = ChroniclePlace(arrived.Band.Position);
+                story = (_chronicle.Count % 3) switch
+                {
+                    0 => $"{leader} arrived in {arrivalPlace} with Band {arrived.Band.Id}: {count} Wanderers lost in the Store.",
+                    1 => $"In {arrivalPlace}, {count} Wanderers arrived as Band {arrived.Band.Id}, led by {leader}.",
+                    _ => $"Band {arrived.Band.Id} arrived among the aisles of {arrivalPlace}; {leader} searched for a way forward with {count} Wanderers.",
+                };
+                break;
             case VillageFounded founded:
                 var name = Villager.NameOf(founded.Village.VillagerIds[0]);
                 var home = $"Village {founded.Village.Id}";
@@ -22,7 +42,15 @@ public sealed partial class Simulation
                 };
                 break;
             case GearMade { First: true } made:
-                story = $"{Villager.NameOf(made.VillagerId)} made the first Gear for Village {made.VillageId}: {Recipes.Basic.Single(r => r.Gear == made.Gear.Kind).Name}. The community learned by doing.";
+                var maker = Villager.NameOf(made.VillagerId);
+                var recipe = Recipes.Basic.Single(r => r.Gear == made.Gear.Kind).Name;
+                var workshopPlace = ChroniclePlace(made.Gear.Position);
+                story = (_chronicle.Count % 3) switch
+                {
+                    0 => $"{maker} made the first Gear for Village {made.VillageId} in {workshopPlace}: {recipe}. The community learned by doing.",
+                    1 => $"In {workshopPlace}, {maker} finished {recipe}, the first Gear for Village {made.VillageId}.",
+                    _ => $"Village {made.VillageId} celebrated its first Gear in {workshopPlace}: {maker}'s {recipe}.",
+                };
                 break;
             case VillagerDied died:
                 var person = Villager.NameOf(died.Body.VillagerId);

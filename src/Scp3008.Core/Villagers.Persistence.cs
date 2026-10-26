@@ -16,6 +16,9 @@ internal sealed partial class Villagers
 
     internal void Restore(State state)
     {
+        var ids = state.Walkers.Select(w => w.Villager.Id).Concat(state.Bodies.Select(b => b.VillagerId)).ToArray();
+        if (state.NextId < 0 || ids.Any(id => id < 0 || id >= state.NextId) || ids.Distinct().Count() != ids.Length)
+            throw new ArgumentException("Invalid Villager ids.");
         _nextId = state.NextId;
         _walkers.Clear();
         Bodies.Clear();
@@ -23,6 +26,11 @@ internal sealed partial class Villagers
         foreach (var saved in state.Walkers)
         {
             var v = saved.Villager;
+            static bool Finite(Vector2 p) => float.IsFinite(p.X) && float.IsFinite(p.Y);
+            if (!Finite(v.Position) || v.Destination is { } destination && !Finite(destination) ||
+                !float.IsFinite(v.Heading) || saved.Waypoints.Any(p => !Finite(p)) ||
+                !Enum.IsDefined(v.Role) || !Enum.IsDefined(v.Action))
+                throw new ArgumentException("Invalid Villager movement or Role.");
             v.Needs.Validate();
             foreach (var gear in new[] { v.Hand, v.Bag, v.Armour }.OfType<Gear>()) gear.Validate();
             if (v.Hand is { Slot: not GearSlot.Hand } || v.Bag is { Slot: not GearSlot.Bag } ||
@@ -49,6 +57,7 @@ internal sealed partial class Villagers
             foreach (var g in v.KnownMap.Goods) w.KnownGoods.Add((g.Goods.FurnitureId, g.Goods.Kind, g.Goods.LeftBehind), g);
             foreach (var water in v.KnownMap.Water) w.KnownWater.Add((water.FurnitureId, water.Position), water);
             foreach (var danger in v.KnownMap.Dangers) w.KnownDangers.Add(danger.StaffId, danger);
+            foreach (var village in v.KnownMap.Villages) w.KnownVillages.Add(village.VillageId, village);
             w.Unreachable.UnionWith(saved.Unreachable);
             _walkers.Add(w);
         }

@@ -66,6 +66,8 @@ internal sealed partial class Villagers
                 walker.KnownWater[(water.FurnitureId, water.Position)] = water;
             foreach (var danger in map.Dangers)
                 walker.KnownDangers[danger.StaffId] = danger;
+            foreach (var village in map.Villages)
+                walker.KnownVillages[village.VillageId] = village;
         }
     }
 
@@ -74,6 +76,8 @@ internal sealed partial class Villagers
         var index = 0;
         foreach (var walker in _walkers.Where(w => village.VillagerIds.Contains(w.Id)))
         {
+            if (walker.VillageId == village.Id)
+                continue;
             walker.VillageId = village.Id;
             walker.Role = (Role)(index++ % 7);
             walker.Skills.TryAdd(walker.Role, 0);

@@ -46,7 +46,7 @@ internal sealed partial class Villagers
 
     public void FinishCrafting(int id, bool usedTool)
     {
-        FinishDisassembly(id, usedTool);
+        PracticeBuilding(id, usedTool);
         CraftingPose(id, false);
     }
 

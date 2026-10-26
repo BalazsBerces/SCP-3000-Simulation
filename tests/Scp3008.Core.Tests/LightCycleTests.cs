@@ -5,7 +5,8 @@ namespace Scp3008.Core.Tests;
 public class LightCycleTests
 {
     private static Simulation NewWorld() =>
-        Simulation.Create(new WorldConfig(Seed: 3008, StartingBands: false, RuntimeRngSeed: 1));
+        Simulation.Create(new WorldConfig(Seed: 3008, StartingBands: false, RuntimeRngSeed: 1,
+            Arrivals: new ArrivalConfig { IntervalHours = 0 }));
 
     [Fact]
     public void A_new_world_starts_with_the_store_open_and_fully_lit()

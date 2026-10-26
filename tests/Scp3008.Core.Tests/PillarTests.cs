@@ -105,7 +105,8 @@ public class PillarTests
     [Fact]
     public void Pillars_remain_inert_landmarks_through_closing_time_and_reopening()
     {
-        using var sim = Simulation.Create(new WorldConfig(3008, StartingBands: false, RuntimeRngSeed: 1));
+        using var sim = Simulation.Create(new WorldConfig(3008, StartingBands: false, RuntimeRngSeed: 1,
+            Arrivals: new ArrivalConfig { IntervalHours = 0 }));
         sim.Scenario.ClearFogBanks();
         sim.Scenario.SetFogBankFormation(false);
         var pillars = sim.Snapshot.Pillars.ToArray();

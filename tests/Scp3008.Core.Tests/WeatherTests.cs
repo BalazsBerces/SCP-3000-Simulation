@@ -6,7 +6,8 @@ namespace Scp3008.Core.Tests;
 public class WeatherTests
 {
     private static Simulation NewWorld(int runtimeSeed = 1) =>
-        Simulation.Create(new WorldConfig(Seed: 3008, StartingBands: false, RuntimeRngSeed: runtimeSeed));
+        Simulation.Create(new WorldConfig(Seed: 3008, StartingBands: false, RuntimeRngSeed: runtimeSeed,
+            Arrivals: new ArrivalConfig { IntervalHours = 0 }));
 
     /// <summary>A world with no Fog banks, where none form on their own.</summary>
     private static Simulation FogFreeWorld()

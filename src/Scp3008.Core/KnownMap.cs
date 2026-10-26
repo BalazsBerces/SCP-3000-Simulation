@@ -9,6 +9,7 @@ public sealed record KnownMap
     public IReadOnlyList<KnownGoods> Goods { get; init; } = [];
     public IReadOnlyList<KnownWater> Water { get; init; } = [];
     public IReadOnlyList<KnownDanger> Dangers { get; init; } = [];
+    public IReadOnlyList<KnownVillage> Villages { get; init; } = [];
 }
 
 public sealed record KnownGoods(Vector2 Position, StockedGoods Goods, StoreClock LastSeen, bool Stale = false);
@@ -17,6 +18,8 @@ public sealed record KnownGoods(Vector2 Position, StockedGoods Goods, StoreClock
 public sealed record KnownWater(WaterPointKind Kind, Vector2 Position, int FurnitureId, bool? Running, StoreClock LastSeen, bool Stale = false);
 
 public sealed record KnownDanger(int StaffId, Vector2 Position, StoreClock LastSeen, bool Stale = false);
+
+public sealed record KnownVillage(int VillageId, Vector2 Position, StoreClock LastSeen, bool Stale = false);
 
 internal sealed partial class Villagers
 {
@@ -45,6 +48,7 @@ internal sealed partial class Villagers
         public Dictionary<(int, GoodsKind, bool), KnownGoods> KnownGoods { get; } = [];
         public Dictionary<(int, Vector2), KnownWater> KnownWater { get; } = [];
         public Dictionary<int, KnownDanger> KnownDangers { get; } = [];
+        public Dictionary<int, KnownVillage> KnownVillages { get; } = [];
     }
 
     private Vector2 GroundAt(Vector2 position) => new(
@@ -102,6 +106,12 @@ internal sealed partial class Villagers
         foreach (var (id, danger) in walker.KnownDangers.ToArray())
             if (world.Clock.TotalStoreTime - danger.LastSeen.TotalStoreTime >= TimeSpan.FromHours(1))
                 walker.KnownDangers[id] = danger with { Stale = true };
+        foreach (var village in world.Villages)
+            if (village.VillagerIds.Count > 0 && Visible(new FurniturePiece(-1, FurnitureType.CoffeeTable, village.Position, 0, 0, 0)))
+                walker.KnownVillages[village.Id] = new(village.Id, village.Position, world.Clock);
+        foreach (var (id, village) in walker.KnownVillages.ToArray())
+            if (world.Clock.TotalStoreTime - village.LastSeen.TotalStoreTime >= TimeSpan.FromHours(1))
+                walker.KnownVillages[id] = village with { Stale = true };
     }
 
     private static KnownMap MapOf(Walker walker) => new()
@@ -110,6 +120,7 @@ internal sealed partial class Villagers
         Goods = walker.KnownGoods.Values.ToList().AsReadOnly(),
         Water = walker.KnownWater.Values.ToList().AsReadOnly(),
         Dangers = walker.KnownDangers.Values.ToList().AsReadOnly(),
+        Villages = walker.KnownVillages.Values.ToList().AsReadOnly(),
     };
 
     private void Scout(Walker walker)

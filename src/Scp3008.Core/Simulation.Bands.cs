@@ -69,6 +69,29 @@ public sealed partial class Simulation
             _villagers.ShareKnowledge(updated.VillagerIds, known);
             if (clock.Phase == DayPhase.ClosingTime)
                 continue;
+            var destination = known.Villages.OrderBy(v => _space.Distance(updated.Position, v.Position))
+                .Select(v => _villages.FirstOrDefault(home => home.Id == v.VillageId && home.VillagerIds.Count > 0))
+                .FirstOrDefault(v => v is not null && members.All(m => _navigation.FindPath(m.Position, v.Position) is not null));
+            if (destination is not null)
+            {
+                if (members.Any(m => _space.Distance(m.Position, destination.Position) > 2))
+                {
+                    _bands[_bands.IndexOf(updated)] = updated with { Site = destination.Position };
+                    continue;
+                }
+                var joined = destination with
+                {
+                    VillagerIds = Array.AsReadOnly(destination.VillagerIds.Concat(updated.VillagerIds).ToArray()),
+                    KnownMap = MergeMaps([destination.KnownMap, known]),
+                    Recipes = Array.AsReadOnly(destination.Recipes.Union(updated.Recipes).ToArray()),
+                };
+                _villages[joined.Id] = joined;
+                _bands.Remove(updated);
+                _villagers.JoinVillage(joined);
+                _villagers.ShareKnowledge(joined.VillagerIds, joined.KnownMap);
+                Emit(new WanderersJoined(clock, updated.Id, joined.Id, updated.VillagerIds));
+                continue;
+            }
             var forced = members.Any(v => v.Needs.Rest < 0.2 || v.Needs.Hunger >= 0.85) ||
                 members.Length < band.FoundingPopulation;
             var candidates = known.ExploredGround.Append(updated.Position)
@@ -83,11 +106,10 @@ public sealed partial class Simulation
             if (_space.Distance(updated.Position, site.Position) > 2)
             {
                 _bands[_bands.IndexOf(updated)] = updated with { Site = site.Position };
-                foreach (var member in members)
-                    _villagers.Send(member.Id, site.Position);
                 continue;
             }
-            var village = new Village(_villages.Count, site.Position, updated.VillagerIds) { KnownMap = known };
+            var village = new Village(_villages.Count, site.Position, updated.VillagerIds)
+                { KnownMap = known, Recipes = updated.Recipes };
             _villages.Add(village);
             _bands.Remove(updated);
             _villagers.JoinVillage(village);
@@ -117,18 +139,24 @@ public sealed partial class Simulation
                 .Select(g => g.OrderByDescending(w => w.Running.HasValue).ThenByDescending(w => w.LastSeen.Tick).First()).ToArray()),
             Dangers = Array.AsReadOnly(all.SelectMany(m => m.Dangers).GroupBy(d => d.StaffId)
                 .Select(g => g.MaxBy(x => x.LastSeen.Tick)!).ToArray()),
+            Villages = Array.AsReadOnly(all.SelectMany(m => m.Villages).GroupBy(v => v.VillageId)
+                .Select(g => g.MaxBy(x => x.LastSeen.Tick)!).ToArray()),
         };
     }
 }
 
 public sealed partial class ScenarioBuilder
 {
-    public Band PlaceBand(IReadOnlyList<Vector2> positions, Needs? needs = null)
+    /// <summary>Places Wanderers, optionally carrying observations and a fallen Village's Recipes.</summary>
+    public Band PlaceBand(IReadOnlyList<Vector2> positions, Needs? needs = null,
+        KnownMap? knownMap = null, IReadOnlyList<GearKind>? recipes = null)
     {
         ArgumentNullException.ThrowIfNull(positions);
         if (positions.Count == 0 || positions.Any(p => !float.IsFinite(p.X) || !float.IsFinite(p.Y)))
             throw new ArgumentException("A Band needs members at finite positions.", nameof(positions));
-        return _simulation.PlaceBand(positions, needs);
+        if (recipes is not null && recipes.Any(k => !Recipes.Basic.Any(r => r.Gear == k)))
+            throw new ArgumentException("Unknown Recipe.", nameof(recipes));
+        return _simulation.PlaceBand(positions, needs, knownMap, recipes);
     }
 
     /// <summary>Places a known kind of running water source for a scenario.</summary>

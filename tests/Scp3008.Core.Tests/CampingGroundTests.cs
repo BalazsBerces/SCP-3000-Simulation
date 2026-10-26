@@ -16,7 +16,8 @@ public class CampingGroundTests
 
     private static (Simulation Sim, Landmark Camp) Camp(int seed)
     {
-        var sim = Simulation.Create(new WorldConfig(seed, StartingBands: false, RuntimeRngSeed: 1));
+        var sim = Simulation.Create(new WorldConfig(seed, StartingBands: false, RuntimeRngSeed: 1,
+            Arrivals: new ArrivalConfig { IntervalHours = 0 }));
         var camp = sim.Snapshot.Landmarks.Single(l => l.Type == LandmarkType.CampingGround);
         sim.Scenario.SetFogBankFormation(false);
         return (sim, camp);

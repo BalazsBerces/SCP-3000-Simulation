@@ -4,6 +4,26 @@ namespace Scp3008.Core.Tests;
 
 public class ChronicleTests
 {
+    [Fact]
+    public void First_Gear_stories_have_several_templates_names_and_places()
+    {
+        using var sim = ScenarioBuilder.LoadVillagerSandbox("empty");
+        for (var i = 0; i < 3; i++)
+        {
+            var person = sim.Scenario.PlaceVillager(new(20 + i, 108));
+            sim.Scenario.PlaceVillage(person.Position, [person.Id]);
+            sim.Scenario.SetMaterials(i, MaterialKind.WoodPanel, 2);
+            sim.Scenario.MakeGear(person.Id, GearKind.TableLegClub);
+        }
+        sim.Advance(TimeSpan.FromMinutes(31));
+        var stories = sim.Snapshot.Chronicle;
+        Assert.Equal(3, stories.Count);
+        Assert.Contains("made the first Gear", stories[0]);
+        Assert.Contains("finished Table-leg club", stories[1]);
+        Assert.Contains("celebrated its first Gear", stories[2]);
+        Assert.All(stories, story => Assert.Contains("Sector A-1", story));
+    }
+
     [Theory]
     [InlineData(DeathCause.Thirst)]
     [InlineData(DeathCause.Starvation)]

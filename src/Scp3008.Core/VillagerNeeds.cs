@@ -129,7 +129,8 @@ internal sealed partial class Villagers
                         walker.Action = VillagerAction.Resting;
                 }
             }
-            if (walker.Action == VillagerAction.Resting && n.Rest < 0.95 && n.Hunger < 0.75 && n.Thirst < 0.75)
+            if (walker.Action == VillagerAction.Resting && n.Rest < 0.95 && n.Hunger < 0.75 && n.Thirst < 0.75 &&
+                !world.GroundAt(walker.Position).HasFlag(GroundProperty.Darkness))
                 continue;
             var priorities = new[] { (GoodsClass.Drink, n.Thirst), (GoodsClass.Food, n.Hunger), (GoodsClass.Comfort, 1 - n.Morale) }
                 .Where(p => p.Item2 >= 0.5).OrderByDescending(p => p.Item2);
@@ -160,6 +161,19 @@ internal sealed partial class Villagers
                 continue;
             else if (n.Rest >= 0.4 && CommunityWork(walker, world, deliver))
                 continue;
+            else if ((n.Rest >= 0.4 || world.GroundAt(walker.Position).HasFlag(GroundProperty.Darkness)) &&
+                world.Bands.FirstOrDefault(b => b.VillagerIds.Contains(walker.Id))?.Site is { } site)
+            {
+                // Needs finish first; members wait together at the site rather than scouting away.
+                if (space.Distance(walker.Position, site) > 2)
+                    Plan(walker, site);
+                else
+                {
+                    walker.Waypoints.Clear();
+                    walker.Destination = null;
+                }
+                walker.Action = VillagerAction.Idle;
+            }
             else if (n.Rest < 0.4)
             {
                 var places = world.PointsOfInterest.Where(p => p.Type == PointOfInterestType.ArmchairHenge)

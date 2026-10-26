@@ -26,7 +26,7 @@ public sealed partial class ScenarioBuilder
 
 internal sealed partial class Villagers
 {
-    public void FinishDisassembly(int id, bool usedTool)
+    public void PracticeBuilding(int id, bool usedTool)
     {
         var w = _walkers.Single(w => w.Id == id);
         w.Skills[Role.Builder] = w.Skills.GetValueOrDefault(Role.Builder) + 0.1;
@@ -225,7 +225,7 @@ public sealed partial class Simulation
         foreach (var (kind, amount) in FurnitureResources.Yield(piece))
             materials[kind] = materials.GetValueOrDefault(kind) + Math.Max(1, (int)Math.Floor(amount * (equipped ? 1 : 0.5) * (1 + skill * 0.25)));
         _villages[villageId] = village with { Materials = new System.Collections.ObjectModel.ReadOnlyDictionary<MaterialKind, int>(materials) };
-        _villagers.FinishDisassembly(worker.Id, equipped);
+        _villagers.PracticeBuilding(worker.Id, equipped);
         RemoveFurniture(p => p.Id == piece.Id);
         Emit(new FurnitureDisassembled(clock, piece.Id, worker.Id, villageId));
         FinishFurnitureTask(task, [worker]);

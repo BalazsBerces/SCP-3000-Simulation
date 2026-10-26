@@ -5,6 +5,22 @@ namespace Scp3008.Core.Tests;
 
 public class PersistenceTests
 {
+    [Theory]
+    [InlineData("VillageId", 999)]
+    [InlineData("Id", -1)]
+    public void Damaged_Villager_references_are_rejected_before_the_clock_can_crash(string field, int value)
+    {
+        using var original = ScenarioBuilder.LoadVillagerSandbox("empty");
+        var person = original.Scenario.PlaceVillager(new(20, 108));
+        original.Scenario.PlaceVillage(person.Position, [person.Id]);
+        using var save = new MemoryStream();
+        original.Save(save);
+        var document = System.Text.Json.Nodes.JsonNode.Parse(save.ToArray())!;
+        document["State"]!["Villagers"]!["Walkers"]![0]!["Villager"]![field] = value;
+        using var damaged = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(document.ToJsonString()));
+        Assert.Throws<InvalidDataException>(() => Simulation.Load(damaged));
+    }
+
     [Fact]
     public void Save_load_restores_the_snapshot_and_continues_the_same_world()
     {
@@ -81,8 +97,8 @@ public class PersistenceTests
     [Theory]
     [InlineData("{\"Version\":999}", "Incompatible world save version 999")]
     [InlineData("{}", "missing format version")]
-    [InlineData("{\"Version\":4,\"State\":{}}", "Invalid or damaged")]
-    [InlineData("{\"Version\":4,\"State\":null}", "Invalid or damaged")]
+    [InlineData("{\"Version\":5,\"State\":{}}", "Invalid or damaged")]
+    [InlineData("{\"Version\":5,\"State\":null}", "Invalid or damaged")]
     [InlineData("{", "Invalid or damaged")]
     public void Incompatible_and_damaged_saves_have_clear_errors(string json, string message)
     {
