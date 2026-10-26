@@ -35,6 +35,7 @@ public partial class LampLights : Node3D
     private static readonly Color Warm = new(1f, 0.78f, 0.52f);
 
     private readonly Dictionary<ChunkCoord, Lamp[]> _lampsByChunk = new();
+    private IReadOnlyList<FurniturePiece>? _builtFurniture;
     // The nearest candidates, farthest first out; holds one more than there are lights, for the fade cutoff.
     private readonly PriorityQueue<Candidate, float> _nearest = new();
     private readonly List<Candidate> _lit = [];
@@ -136,6 +137,8 @@ public partial class LampLights : Node3D
 
     public override void _Process(double delta)
     {
+        if (!ReferenceEquals(_builtFurniture, Host.Snapshot.Furniture))
+            Rebuild(Host.Snapshot);
         // The camera that renders: the Observer camera, or a dev camera such as the eye-level one.
         var camera = GetViewport().GetCamera3D() ?? Rig.Camera;
         _halos.ApplyFog(material =>
@@ -381,6 +384,7 @@ public partial class LampLights : Node3D
 
     private void Rebuild(WorldSnapshot snapshot)
     {
+        _builtFurniture = snapshot.Furniture;
         _space = snapshot.Space;
         _lastView = null;
         _levelStamp = -1;

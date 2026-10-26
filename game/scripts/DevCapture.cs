@@ -65,6 +65,7 @@ namespace Scp3008.Game;
 ///                          view and then in the <see cref="StoreOverview"/>, and report every frame
 ///                          that took over twice the median, with the zoom and level of detail then.
 /// Does nothing in normal runs.
+/// Restock check: --villager-sandbox --sandbox-preset=empty --pause --restock-check=directory captures and checks refill and return.
 /// </summary>
 public partial class DevCapture : Node
 {
@@ -131,6 +132,12 @@ public partial class DevCapture : Node
     {
         foreach (var arg in OS.GetCmdlineUserArgs())
         {
+            if (arg.StartsWith("--restock-check="))
+            {
+                SetProcess(false);
+                CheckRestock(arg["--restock-check=".Length..]);
+                return;
+            }
             if (arg.StartsWith("--sandbox-check="))
             {
                 SetProcess(false);

@@ -27,6 +27,7 @@ public partial class FurnitureMap : Node
     private bool _baking;
     // Counts worlds, so a bake that outlives its world is dropped.
     private int _generation;
+    private object? _builtFurniture;
 
     public override void _Ready()
     {
@@ -42,6 +43,7 @@ public partial class FurnitureMap : Node
 
     private void OnWorldCreated(Scp3008.Core.WorldSnapshot snapshot)
     {
+        _builtFurniture = snapshot.Furniture;
         _generation++;
         FurnitureDetail.MapReady = false;
     }
@@ -51,6 +53,8 @@ public partial class FurnitureMap : Node
 
     public override void _Process(double delta)
     {
+        if (!ReferenceEquals(_builtFurniture, Host.Snapshot.Furniture))
+            OnWorldCreated(Host.Snapshot);
         if (!_baking && !FurnitureDetail.MapReady && StoreOverview.Enabled)
             Bake();
     }

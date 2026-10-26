@@ -35,9 +35,9 @@ public sealed partial class Simulation : IDisposable
     private readonly IReadOnlyList<Landmark> _landmarks;
     private readonly IReadOnlyList<PointOfInterest> _pointsOfInterest;
     private readonly BallPitNetwork _ballPitNetwork;
-    private readonly IReadOnlyList<TankFish> _tankFish;
-    private readonly IReadOnlyList<CounterMeal> _counterMeals;
-    private readonly IReadOnlyList<CampGoods> _campGoods;
+    private IReadOnlyList<TankFish> _tankFish;
+    private IReadOnlyList<CounterMeal> _counterMeals;
+    private IReadOnlyList<CampGoods> _campGoods;
     private IReadOnlyList<StockedGoods> _stock;
     private IReadOnlyList<WaterPoint> _waterPoints;
     private IReadOnlyList<SectorStock> _sectorStocks;
@@ -59,6 +59,7 @@ public sealed partial class Simulation : IDisposable
     private Simulation(WorldConfig config)
     {
         config.Needs?.Validate();
+        config.Restock?.Validate();
         _config = config;
         _space = config.PillarLayout.Space();
         var sandbox = config.PillarLayout == PillarLayout.VillagerSandbox;
@@ -112,6 +113,7 @@ public sealed partial class Simulation : IDisposable
         _staff = new Villagers(_space, _navigation);
         Scenario = new ScenarioBuilder(this);
         _snapshot = BuildSnapshot();
+        InitializeRestock();
     }
 
     /// <summary>Creates a new world from the seed in <paramref name="config"/>.</summary>
@@ -297,6 +299,7 @@ public sealed partial class Simulation : IDisposable
         _tick++;
         var clock = new StoreClock(_tick);
         _weather.Advance(StoreClock.TickDuration.TotalHours, clock, Emit);
+        AdvanceRestock();
         _villagers.Advance(StoreClock.TickDuration.TotalHours);
         if (_villagers.HasVillagers)
             _villagers.AdvanceNeeds(StoreClock.TickDuration.TotalHours, _snapshot with
@@ -361,6 +364,8 @@ public sealed partial class Simulation : IDisposable
             if (removed > 0)
             {
                 var keptIds = kept.Select(p => p.Id).ToHashSet();
+                foreach (var piece in _furniture.Pieces.Where(p => !keptIds.Contains(p.Id)))
+                    VacateFurniture(piece.Id);
                 _navigation.Update(_furniture.Pieces.Where(p => !keptIds.Contains(p.Id)), []);
                 _furniture = _furniture with { Pieces = kept.AsReadOnly() };
                 _villagers.Replan();
@@ -389,6 +394,8 @@ public sealed partial class Simulation : IDisposable
                 throw new ArgumentException($"Piece {id} is not Stock Furniture; Display Furniture holds no stock.", nameof(goods));
             var rest = _stock.Where(g => g.LeftBehind || !set.Contains((g.FurnitureId, g.Kind)));
             _stock = (amount > 0 ? rest.Concat(set.Select(g => new StockedGoods(g.FurnitureId, g.Kind, amount))) : rest).ToList().AsReadOnly();
+            foreach (var key in set)
+                _stockTargets[key] = Math.Max(_stockTargets.GetValueOrDefault(key), amount);
             _sectorStocks = StockGenerator.Summarize(_stock, _furniture.Pieces, _space, _config.PillarLayout, StockConfig);
             _snapshot = BuildSnapshot();
         }
@@ -398,8 +405,9 @@ public sealed partial class Simulation : IDisposable
     internal FurniturePiece PlaceFurniture(FurnitureType type, Vector2 position, float rotation, int variant) =>
         Publish(() =>
         {
-            var piece = new FurniturePiece(_furniture.Pieces.Count == 0 ? 0 : _furniture.Pieces.Max(p => p.Id) + 1, type, _space.Wrap(position), 0f,
+            var piece = new FurniturePiece(_nextFurnitureId++, type, _space.Wrap(position), 0f,
                 rotation, variant);
+            _restockOrigins[piece.Id] = piece;
             _furniture = _furniture with { Pieces = _furniture.Pieces.Append(piece).ToList().AsReadOnly() };
             _navigation.Update([], [piece]);
             _villagers.Replan();
@@ -416,7 +424,13 @@ public sealed partial class Simulation : IDisposable
                 throw new ArgumentException($"No piece {furnitureId}.", nameof(furnitureId));
             var before = _furniture.Pieces[index];
             var moved = before with { Position = _space.Wrap(position), Rotation = rotation };
+            if (moved != before)
+            {
+                VacateFurniture(furnitureId);
+                _waterPoints = _waterPoints.Where(w => w.FurnitureId != furnitureId).ToList().AsReadOnly();
+            }
             _furniture = _furniture with { Pieces = _furniture.Pieces.Select((p, i) => i == index ? moved : p).ToList().AsReadOnly() };
+            _sectorStocks = StockGenerator.Summarize(_stock, _furniture.Pieces, _space, _config.PillarLayout, StockConfig);
             _navigation.Update([before], [moved]);
             _villagers.Replan();
             _staff.Replan();

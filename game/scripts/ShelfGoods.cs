@@ -12,7 +12,7 @@ namespace Scp3008.Game;
 /// a fridge's and a counter's stock stays behind their closed bodies. One instance group per Furniture type, Goods kind and
 /// fill step, every piece of a group drawing the same load mesh. Goods show close only (out to <see cref="Distance"/>), cast
 /// no shadow and have no coarse mesh, like the fish in the tanks. Rebuilt whenever the snapshot's stock changes (only
-/// dev and test tools change it so far). View only: it never touches the simulation.
+/// consumption, Restock and dev tools change it). View only: it never touches the simulation.
 /// </summary>
 public partial class ShelfGoods : Node3D
 {
@@ -58,10 +58,11 @@ public partial class ShelfGoods : Node3D
     private static readonly Dictionary<(FurnitureType, int, GoodsKind, int), Mesh> Loads = new();
 
     private IReadOnlyList<StockedGoods>? _built;
+    private IReadOnlyList<FurniturePiece>? _builtFurniture;
 
     public override void _Process(double delta)
     {
-        if (!ReferenceEquals(Host.Snapshot.Stock, _built))
+        if (!ReferenceEquals(Host.Snapshot.Stock, _built) || !ReferenceEquals(Host.Snapshot.Furniture, _builtFurniture))
             Build(Host.Snapshot);
     }
 
@@ -70,6 +71,8 @@ public partial class ShelfGoods : Node3D
         foreach (var child in GetChildren())
             child.QueueFree();
         _built = snapshot.Stock;
+        _builtFurniture = snapshot.Furniture;
+        FurnitureRenderer.AddFish(this, snapshot, Rig, Visibility);
         if (System.Environment.GetEnvironmentVariable("NOGOODS") != null) return;
         var pieces = snapshot.Furniture.ToDictionary(p => p.Id);
         var shown = snapshot.Stock

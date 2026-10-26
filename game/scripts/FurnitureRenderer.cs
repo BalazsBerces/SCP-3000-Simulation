@@ -21,6 +21,7 @@ public partial class FurnitureRenderer : Node3D
     [Export] public SimulationHost Host { get; set; } = null!;
     [Export] public CameraRig Rig { get; set; } = null!;
     [Export] public StoreVisibility Visibility { get; set; } = null!;
+    private IReadOnlyList<FurniturePiece>? _builtFurniture;
 
     public override void _Ready()
     {
@@ -43,12 +44,19 @@ public partial class FurnitureRenderer : Node3D
     }
 
     // Runs after the camera rig (CameraRig.ProcessPriority), so the level matches this frame's zoom.
-    public override void _Process(double delta) => FurnitureDetail.Update(Rig.Distance, Rig.Camera.GlobalPosition.Y);
+    public override void _Process(double delta)
+    {
+        FurnitureDetail.Update(Rig.Distance, Rig.Camera.GlobalPosition.Y);
+        // shortcut: rebuild all groups on layout changes; update affected Chunks when bulk hauling makes this costly.
+        if (!ReferenceEquals(_builtFurniture, Host.Snapshot.Furniture))
+            Rebuild(Host.Snapshot);
+    }
 
     private void ShowDetail(bool coarse) => Rig.Camera.CullMask = FurnitureDetail.Mask(Rig.Camera.CullMask);
 
     private void Rebuild(WorldSnapshot snapshot)
     {
+        _builtFurniture = snapshot.Furniture;
         var started = Time.GetTicksMsec();
         foreach (var child in GetChildren())
             child.QueueFree();
@@ -72,7 +80,6 @@ public partial class FurnitureRenderer : Node3D
             AddChild(instances);
             instances.SetInstances(snapshot.Space, group.Select(p => (Placement(p), Colour(snapshot, p))));
         }
-        AddFish(snapshot);
         AddRackDecks(snapshot);
         var goods = new ShelfGoods { Name = "ShelfGoods", Host = Host, Rig = Rig, Visibility = Visibility };
         AddChild(goods);
@@ -103,22 +110,24 @@ public partial class FurnitureRenderer : Node3D
     /// each tank drawing its own kind's school (<see cref="FurnitureMeshes.FishSchool"/>). Fish only show up close (out to
     /// <see cref="FishDistance"/>), cast no shadow, and have no coarse mesh, so a coarse or overview view draws none.
     /// </summary>
-    private void AddFish(WorldSnapshot snapshot)
+    internal static void AddFish(Node3D parent, WorldSnapshot snapshot, CameraRig rig, StoreVisibility visibility)
     {
         var tanks = snapshot.Furniture.Where(p => p.Type == FurnitureType.FishTank).ToDictionary(p => p.Id);
-        foreach (var group in snapshot.TankFish.GroupBy(f => (tanks[f.TankId].Variant, f.Kind)))
+        var stockedTanks = snapshot.Stock.Where(g => g.Kind == GoodsKind.LiveFish && g.Amount > 0).Select(g => g.FurnitureId).ToHashSet();
+        foreach (var group in snapshot.TankFish.Where(f => tanks.ContainsKey(f.TankId) && stockedTanks.Contains(f.TankId))
+                     .GroupBy(f => (tanks[f.TankId].Variant, f.Kind)))
         {
             var instances = new WrappedInstances
             {
                 Name = $"Fish-{group.Key.Kind}-{group.Key.Variant}",
-                Rig = Rig,
+                Rig = rig,
                 FarDistance = FishDistance,
-                ViewReach = Visibility.PlacementReach(Rig, snapshot.Space.ChunkSize),
+                ViewReach = visibility.PlacementReach(rig, snapshot.Space.ChunkSize),
                 Mesh = FurnitureMeshes.FishSchool(group.Key.Variant, group.Key.Kind),
                 CoarseMesh = new ArrayMesh(),
                 CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
             };
-            AddChild(instances);
+            parent.AddChild(instances);
             var colour = FurnitureMeshes.FishColour(group.Key.Kind);
             instances.SetInstances(snapshot.Space, group.Select(f => (Placement(tanks[f.TankId]), colour)));
         }

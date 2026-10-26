@@ -50,6 +50,9 @@ public partial class SimulationHost : Node
     /// <summary>The latest snapshot from the core.</summary>
     public WorldSnapshot Snapshot => _simulation.Snapshot;
 
+    /// <summary>Dev checks use the same scenario seam as facade tests.</summary>
+    internal ScenarioBuilder Scenario => _simulation.Scenario;
+
     /// <summary>True while a new world is being generated.</summary>
     public bool IsGenerating => _nextWorld is not null;
 

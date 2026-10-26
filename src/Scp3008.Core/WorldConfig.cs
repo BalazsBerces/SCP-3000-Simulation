@@ -25,6 +25,7 @@ namespace Scp3008.Core;
 /// <param name="Stock">How much Goods the Store generator puts on the Stock Furniture, and the left-behind share; the defaults if null.</param>
 /// <param name="Water">How many showroom taps run; the defaults if null.</param>
 /// <param name="Needs">Store hours of starvation and thirst before death; the defaults if null.</param>
+/// <param name="Restock">Goods refill rate and Furniture return delays; the defaults if null.</param>
 public sealed record WorldConfig(int Seed, int? RuntimeRngSeed = null, PillarLayout PillarLayout = PillarLayout.ThreeByThree,
     bool LandmarkShowcase = false, bool PointOfInterestShowcase = false, StockConfig? Stock = null,
-    WaterConfig? Water = null, NeedsConfig? Needs = null);
+    WaterConfig? Water = null, NeedsConfig? Needs = null, RestockConfig? Restock = null);
