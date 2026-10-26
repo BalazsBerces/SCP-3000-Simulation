@@ -203,14 +203,22 @@ function Resolve-Tool([string]$Name) {
   $c.Source
 }
 
-# Uncommitted paths outside .claude/, each with a fingerprint of its content ('deleted' when it is gone).
+# Uncommitted paths outside .claude/, each with a fingerprint ('deleted' when it is gone). A tracked file's
+# fingerprint is its uncommitted change (the added and removed lines against HEAD), not its content, so a
+# file that already had someone else's edits stays unchanged when the ticket commits only its own hunks.
 function Get-DirtyState {
   $state = @{}
   git -c core.quotepath=false status --porcelain -uall -- . ':!.claude' | Where-Object { $_ } | ForEach-Object {
     $p = $_.Substring(3)
     if ($p -match ' -> (.+)$') { $p = $Matches[1] }
     $p = $p.Trim('"')
-    $state[$p] = if (Test-Path -LiteralPath $p -PathType Leaf) { (Get-FileHash -LiteralPath $p -Algorithm SHA1).Hash } else { 'deleted' }
+    $state[$p] = if (-not (Test-Path -LiteralPath $p -PathType Leaf)) { 'deleted' }
+      elseif ($_.StartsWith('??')) { (Get-FileHash -LiteralPath $p -Algorithm SHA1).Hash }
+      else {
+        $change = (git diff -U0 --no-color HEAD -- $p | Where-Object { $_ -match '^[-+]' -and $_ -notmatch '^(---|\+\+\+) ' }) -join "`n"
+        $sha = [System.Security.Cryptography.SHA1]::Create()
+        [BitConverter]::ToString($sha.ComputeHash([System.Text.Encoding]::UTF8.GetBytes($change)))
+      }
   }
   $state
 }

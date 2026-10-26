@@ -1,51 +1,53 @@
-# How to run the simulation
+# How to run
 
-Double-click `scripts\run-game.cmd`, or from the repo root:
+From the repo root. Ctrl+C stops anything. Ticket logs go to `.ticket-logs\`.
+
+## Game
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\run-game.ps1           # build, then start the game
+powershell -ExecutionPolicy Bypass -File .\scripts\run-game.ps1           # build, then start (or double-click run-game.cmd)
 powershell -ExecutionPolicy Bypass -File .\scripts\run-game.ps1 -Editor   # build, then open the Godot editor
 powershell -ExecutionPolicy Bypass -File .\scripts\run-game.ps1 -NoBuild  # start without rebuilding
 ```
 
-F4 toggles the Store overview.
+F4: Store overview.
 
-# How to run the ticket runners
+## Ticket runners
 
-Run them from the repo root. Ctrl+C stops a runner. Uncommitted work may be in the tree: a ticket leaves it alone and keeps it out of its commit. A ticket that stops unfinished leaves its own work uncommitted, and the next attempt at that ticket takes it over (no reset or commit needed). `-Max N` runs N tickets, and without it the runner works through all of them. Each script's header has the details. Logs go to `.ticket-logs\`.
-
-## v4 (current): Gemini on easy tickets, Codex on hard and stage-end tickets
+Every runner takes `-Max N` (run N tickets) and `-NoStagePause` (don't pause at stage ends); v4, v5 and Codex also take `-DryRun` (show the next ticket only).
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\run-tickets-v4.ps1 -DryRun            # show the next ticket and its agent
+# v4: Gemini on easy tickets, Codex on hard and stage-end ones
+powershell -ExecutionPolicy Bypass -File .\scripts\run-tickets-v4.ps1 -DryRun
 powershell -ExecutionPolicy Bypass -File .\scripts\run-tickets-v4.ps1 -Max 1
-powershell -ExecutionPolicy Bypass -File .\scripts\run-tickets-v4.ps1 -NoStagePause      # don't pause at stage ends
-powershell -ExecutionPolicy Bypass -File .\scripts\run-tickets-v4.ps1 -HardAgent claude  # hard tickets on Sonnet (as in v3)
+powershell -ExecutionPolicy Bypass -File .\scripts\run-tickets-v4.ps1 -HardAgent claude  # hard tickets on Sonnet
 powershell -ExecutionPolicy Bypass -File .\scripts\run-tickets-v4.ps1 -EasyAgent claude  # easy tickets on Sonnet
+
+# Codex only: every ticket on gpt-6.1-sol, effort medium, with Ponytail
+# (one-time: codex -c 'plugins."ponytail@ponytail".enabled=true', then /hooks and trust Ponytail's hooks)
+powershell -ExecutionPolicy Bypass -File .\scripts\run-tickets-codex.ps1 -DryRun
+powershell -ExecutionPolicy Bypass -File .\scripts\run-tickets-codex.ps1 -Max 1
+
+# v5: Sonnet only
+powershell -ExecutionPolicy Bypass -File .\scripts\run-tickets-v5.ps1 -DryRun
+powershell -ExecutionPolicy Bypass -File .\scripts\run-tickets-v5.ps1 -Max 1
+powershell -ExecutionPolicy Bypass -File .\scripts\run-tickets-v5.ps1 -Effort high -StageEffort high
+
+# v3: like v4, hard tickets on Sonnet
+powershell -ExecutionPolicy Bypass -File .\scripts\run-tickets-v3.ps1 -Max 1
+
+# Older
+powershell -ExecutionPolicy Bypass -File .\scripts\run-tickets-v2.ps1         # stop: stop-tickets-v2.ps1 [-Clean]
+powershell -ExecutionPolicy Bypass -File .\scripts\run-tickets.ps1            # v1, Claude Code only
+powershell -ExecutionPolicy Bypass -File .\scripts\run-tickets-0255.ps1       # v1, starts at 02:55 Budapest time
 ```
 
-- **Codex:** implements, commits, pushes and closes the issue itself. It uses its own skills in `~/.codex/skills`, and the runner warns if one is missing or older than the Claude version.
-- **Gemini:** never commits. The runner checks its work first (build, the core tests in Release, the headless Godot build), then commits it.
-- **Out of quota:** the run stops; the ticket's work stays uncommitted and its next attempt takes it over.
-- **Logs:** one CSV row per ticket in `.ticket-logs\v4-runs.csv`.
-- **Tests:** `scripts\tests\run-tickets-v4\run-stub-tests.ps1`.
-
-## v3: same as v4, but hard tickets go to Sonnet
+## Runner tests
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\run-tickets-v3.ps1 -Max 1
+powershell -ExecutionPolicy Bypass -File .\scripts\tests\run-tickets-v4\run-stub-tests.ps1
+powershell -ExecutionPolicy Bypass -File .\scripts\tests\run-tickets-v3\run-stub-tests.ps1
 ```
-
-Same switches as v4, apart from `-HardAgent`. One CSV row per ticket goes to `.ticket-logs\v3-runs.csv`. Tests: `scripts\tests\run-tickets-v3\run-stub-tests.ps1`.
-
-## Older runners
-
-| Script | What it does |
-|---|---|
-| `run-tickets-v2.ps1` | Opus plans and reviews, and Nemotron, Gemini or Codex implement. Stop it with `stop-tickets-v2.ps1`; add `-Clean` to also undo the unfinished ticket. |
-| `run-tickets.ps1` | v1: Claude Code only. |
-| `run-tickets-0255.ps1` | v1, starting at the next 02:55 Budapest time. Keep the computer awake; Ctrl+C cancels. |
-| `run-tickets-codex.ps1` | v1: Codex only. |
 
 ## Villager sandbox (09a)
 
