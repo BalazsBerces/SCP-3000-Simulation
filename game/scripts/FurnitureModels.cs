@@ -18,6 +18,19 @@ namespace Scp3008.Game;
 /// </summary>
 public static class FurnitureModels
 {
+    public sealed record GearModel(GearKind Kind, string Folder, float Size, int Budget, string Author, string Licence, string Source);
+
+    // Few Villagers are close enough to read these small tools; bags keep more of their silhouette.
+    public static readonly GearModel[] FoundGear =
+    [
+        new(GearKind.HexKey, "gear_hex_key", 0.17f, 300, "IU Indianapolis University Library", "CC-BY", "https://sketchfab.com/3d-models/allen-wrench-02ebda14785f480b965da3fc2115cd7f"),
+        new(GearKind.Screwdriver, "gear_screwdriver", 0.25f, 500, "Dylan Detwiller", "CC0", "https://polyhaven.com/a/flathead_screwdriver"),
+        new(GearKind.KitchenKnife, "gear_knife", 0.3f, 500, "TheSpacePunk", "CC-BY", "https://sketchfab.com/3d-models/kitchen-knife-4c75aae7dfa74b919b61a321242de7f4"),
+        new(GearKind.Scissors, "gear_scissors", 0.24f, 500, "sweedboy69", "CC-BY", "https://sketchfab.com/3d-models/scissors-6e0defc85edc4920a794fe9e82b5f16b"),
+        new(GearKind.CanvasBag, "gear_canvas_bag", 0.5f, 1500, "RatATatKat", "CC-BY", "https://sketchfab.com/3d-models/canvas-bag-3316c1f3fc4e4f95adf05b1ee5478813"),
+        new(GearKind.Flashlight, "gear_flashlight", 0.3f, 1000, "Omar M. El-Safy", "CC0", "https://polyhaven.com/a/vintage_flashlight"),
+    ];
+
     /// <summary>
     /// One external model: which Furniture type and variant it draws, its folder under
     /// assets/models, the turn (degrees about Y) that brings its front to +Z, its triangle budget,
@@ -353,6 +366,8 @@ public static class FurnitureModels
         scene.Free();
         Fit(parts, size => Vector3.One * (longest / size[(int)size.MaxAxisIndex()]));
         var indices = Simplified(parts, budget);
+        // Simplification can drop outer vertices; fit the vertices that will actually be drawn.
+        Fit(parts, size => Vector3.One * (longest / size[(int)size.MaxAxisIndex()]), indices);
         var mesh = new ArrayMesh();
         for (var s = 0; s < parts.Count; s++)
         {
@@ -546,9 +561,9 @@ public static class FurnitureModels
         Fit(parts, size => new Vector3(spec.Width / size.X, spec.Height / size.Y, spec.Depth / size.Z));
 
     /// <summary>Scales the parts by <paramref name="scaleFor"/> their bounds' size, the footprint centred on the origin and the base at Y = 0.</summary>
-    private static void Fit(List<Part> parts, Func<Vector3, Vector3> scaleFor)
+    private static void Fit(List<Part> parts, Func<Vector3, Vector3> scaleFor, IReadOnlyList<int[]>? indices = null)
     {
-        var all = parts.SelectMany(p => p.Positions).ToList();
+        var all = parts.SelectMany((p, s) => indices is null ? p.Positions : indices[s].Select(i => p.Positions[i])).ToList();
         var (min, max) = (all.Aggregate(Vector3.Inf, (a, b) => a.Min(b)), all.Aggregate(-Vector3.Inf, (a, b) => a.Max(b)));
         var size = max - min;
         var scale = scaleFor(size);

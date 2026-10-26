@@ -31,6 +31,15 @@ public sealed record Villager(int Id, Vector2 Position, Vector2? Destination, fl
     public Role Role { get; init; } = Role.Scavenger;
     public IReadOnlyDictionary<Role, double> Skills { get; init; } = new Dictionary<Role, double>();
     public GoodsKind? CarriedGoods { get; init; }
+    public int CarriedAmount { get; init; }
+    public int CarriedMaterials { get; init; }
+    public Gear? Hand { get; init; }
+    public Gear? Bag { get; init; }
+    public Gear? Armour { get; init; }
+    public int CarryingCapacity => Hand?.Kind == GearKind.ShoppingCart ? 32 : Bag is not null ? 8 : 2;
+    public float Load => Math.Clamp((float)(CarriedAmount + CarriedMaterials) / CarryingCapacity, 0, 1);
+    public float Speed => WalkingSpeed * (Hand?.Kind == GearKind.ShoppingCart ? 1.5f : 1) * (1 - Load * 0.5f);
+
 }
 
 /// <summary>The Villagers in the world and their walking, each tick along the path <see cref="Navigation"/> finds.</summary>
@@ -46,6 +55,11 @@ internal sealed partial class Villagers(StoreSpace space, Navigation navigation)
         public Role Role { get; set; } = Role.Scavenger;
         public Dictionary<Role, double> Skills { get; } = [];
         public GoodsKind? CarriedGoods { get; set; }
+        public int CarriedAmount { get; set; }
+        public int CarriedMaterials { get; set; }
+        public Gear? Hand { get; set; }
+        public Gear? Bag { get; set; }
+        public Gear? Armour { get; set; }
         public VillagerAction Action { get; set; }
         public int Id { get; } = id;
         public Vector2 Position { get; set; } = position;
@@ -88,7 +102,7 @@ internal sealed partial class Villagers(StoreSpace space, Navigation navigation)
         var stride = (float)(Villager.WalkingSpeed * storeHours);
         foreach (var walker in _walkers)
         {
-            var left = stride;
+            var left = stride * (walker.Hand?.Kind == GearKind.ShoppingCart ? 1.5f : 1) * (1 - Math.Clamp((float)(walker.CarriedAmount + walker.CarriedMaterials) / Capacity(walker), 0, 1) * 0.5f);
             while (left > 0f && walker.Waypoints.Count > 0)
             {
                 var delta = space.Delta(walker.Position, walker.Waypoints[0]);
@@ -124,5 +138,7 @@ internal sealed partial class Villagers(StoreSpace space, Navigation navigation)
     private static Villager View(Walker walker) => new(walker.Id, walker.Position, walker.Destination, walker.Heading)
     { Needs = walker.Needs, Action = walker.Action, KnownMap = MapOf(walker),
         VillageId = walker.VillageId, Role = walker.Role, CarriedGoods = walker.CarriedGoods,
+        CarriedAmount = walker.CarriedAmount, CarriedMaterials = walker.CarriedMaterials,
+        Hand = walker.Hand, Bag = walker.Bag, Armour = walker.Armour,
         Skills = new System.Collections.ObjectModel.ReadOnlyDictionary<Role, double>(new Dictionary<Role, double>(walker.Skills)) };
 }

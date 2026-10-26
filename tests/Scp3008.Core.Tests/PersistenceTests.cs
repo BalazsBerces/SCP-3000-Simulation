@@ -81,8 +81,8 @@ public class PersistenceTests
     [Theory]
     [InlineData("{\"Version\":999}", "Incompatible world save version 999")]
     [InlineData("{}", "missing format version")]
-    [InlineData("{\"Version\":1,\"State\":{}}", "Invalid or damaged")]
-    [InlineData("{\"Version\":1,\"State\":null}", "Invalid or damaged")]
+    [InlineData("{\"Version\":2,\"State\":{}}", "Invalid or damaged")]
+    [InlineData("{\"Version\":2,\"State\":null}", "Invalid or damaged")]
     [InlineData("{", "Invalid or damaged")]
     public void Incompatible_and_damaged_saves_have_clear_errors(string json, string message)
     {

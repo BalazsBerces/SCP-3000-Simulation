@@ -106,6 +106,7 @@ public sealed partial class Simulation
         if (refill.Count == 0)
             return;
         var present = _furniture.Pieces.Select(p => p.Id).ToHashSet();
+        RestockGear(refill, present);
         var stock = _stock.ToDictionary(g => (g.FurnitureId, g.Kind, g.LeftBehind));
         var changed = false;
         foreach (var (key, capacity) in _stockTargets)
@@ -174,6 +175,9 @@ public sealed partial class Simulation
                 _counterMeals = _counterMeals.Concat(_counterMeals.Where(m => m.CounterId == piece.Id).Select(m => m with { CounterId = restored.Id })).ToList().AsReadOnly();
                 _campGoods = _campGoods.Concat(_campGoods.Where(g => g.StandId == piece.Id).Select(g => g with { StandId = restored.Id })).ToList().AsReadOnly();
             }
+            for (var i = 0; i < _gearSources.Count; i++)
+                if (_gearSources[i].FurnitureId == piece.Id)
+                    _gearSources[i] = _gearSources[i] with { FurnitureId = restored.Id };
             _restockOrigins[restored.Id] = restored;
             _furniture = _furniture with { Pieces = _furniture.Pieces.Append(restored).ToList().AsReadOnly() };
             _waterPoints = _waterPoints.Concat(missing.Water.Select(w => w with { FurnitureId = restored.Id })).ToList().AsReadOnly();

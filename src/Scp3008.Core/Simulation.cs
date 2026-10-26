@@ -113,6 +113,7 @@ public sealed partial class Simulation : IDisposable
         _villagers = new Villagers(_space, _navigation);
         _staff = new Villagers(_space, _navigation);
         Scenario = new ScenarioBuilder(this);
+        if (!sandbox) GenerateGear();
         _snapshot = BuildSnapshot();
         InitializeRestock();
         ScheduleDrySpell();
@@ -305,13 +306,14 @@ public sealed partial class Simulation : IDisposable
         _weather.Advance(StoreClock.TickDuration.TotalHours, clock, Emit);
         AdvanceRestock();
         AdvanceVillages(clock);
+        _villagers.AdvanceGear(StoreClock.TickDuration.TotalHours, clock, ReloadFlashlight);
         _villagers.Advance(StoreClock.TickDuration.TotalHours);
         if (_villagers.HasVillagers)
             _villagers.AdvanceNeeds(StoreClock.TickDuration.TotalHours, _snapshot with
                 { Clock = clock, Stock = _stock, Furniture = _furniture.Pieces, WaterPoints = _waterPoints,
-                    Bands = _bands.ToArray(), Villages = _villages.ToArray(),
+                    Bands = _bands.ToArray(), Villages = _villages.ToArray(), Gear = _gear.ToArray(),
                     FogBanks = _weather.Snapshot(), Staff = _staff.Snapshot().Select(s => new Staff(s.Id, s.Position, s.Destination, s.Heading)).ToArray() },
-                _config.Needs ?? new NeedsConfig(), TakeGoods, Emit, CollectGoods, DeliverGoods);
+                _config.Needs ?? new NeedsConfig(), TakeGoods, Emit, CollectGoods, DeliverGoods, TakeGear);
         AdvanceBands(clock);
         // Sandbox patrols use the same footprint navigation; daytime Staff remain dormant.
         if (clock.Phase == DayPhase.ClosingTime && _patrols.Count > 0)
@@ -384,6 +386,7 @@ public sealed partial class Simulation : IDisposable
                 _stock = _stock.Where(g => ids.Contains(g.FurnitureId)).ToList().AsReadOnly();
                 _sectorStocks = StockGenerator.Summarize(_stock, _furniture.Pieces, _space, _config.PillarLayout, StockConfig);
                 _waterPoints = _waterPoints.Where(w => w.FurnitureId < 0 || ids.Contains(w.FurnitureId)).ToList().AsReadOnly();
+                _gear.RemoveAll(g => g.FurnitureId >= 0 && !ids.Contains(g.FurnitureId));
                 _snapshot = BuildSnapshot();
             }
             return removed;
@@ -439,6 +442,8 @@ public sealed partial class Simulation : IDisposable
                 _waterPoints = _waterPoints.Where(w => w.FurnitureId != furnitureId).ToList().AsReadOnly();
             }
             _furniture = _furniture with { Pieces = _furniture.Pieces.Select((p, i) => i == index ? moved : p).ToList().AsReadOnly() };
+            for (var i = 0; i < _gear.Count; i++)
+                if (_gear[i].FurnitureId == furnitureId) _gear[i] = _gear[i] with { Position = moved.Position };
             _sectorStocks = StockGenerator.Summarize(_stock, _furniture.Pieces, _space, _config.PillarLayout, StockConfig);
             _navigation.Update([before], [moved]);
             _villagers.Replan();
@@ -464,7 +469,7 @@ public sealed partial class Simulation : IDisposable
 
     internal Gear PlaceGear(GearKind kind, Vector2 position) => Publish(() =>
     {
-        var gear = new Gear(_gear.Count, kind, _space.Wrap(position));
+        var gear = new Gear(NextGearId(), kind, _space.Wrap(position));
         _gear.Add(gear);
         return gear;
     });

@@ -67,7 +67,8 @@ public partial class VillagerRenderer : Node3D
             _needs.Text = $"Villager {followed.Id} | {followed.Role} | {followed.Action}\n" +
                 $"Hunger: {n.Hunger:P0}   Thirst: {n.Thirst:P0}\n" +
                 $"Rest: {n.Rest:P0}   Safety: {n.Safety:P0}\nMorale: {n.Morale:P0}\n" +
-                "Hunger / thirst rise as supplies run out.";
+                $"Load: {followed.CarriedAmount + followed.CarriedMaterials}/{followed.CarryingCapacity}\n" +
+                $"Hand: {GearText(followed.Hand)} | Bag: {GearText(followed.Bag)}\nArmour: {GearText(followed.Armour)}";
         }
         var space = Host.Snapshot.Space;
         var focus = Rig.Focus;
@@ -97,6 +98,7 @@ public partial class VillagerRenderer : Node3D
             // Heading runs from east towards south (+X towards +Z): face (cos, sin) in world X and Z.
             figure.Rotation = new Vector3(bodies.ContainsKey(villager.Id) ? MathF.PI / 2 : 0f,
                 Mathf.Atan2(MathF.Cos(villager.Heading), MathF.Sin(villager.Heading)), 0f);
+            ShowGear(figure, villager);
         }
         foreach (var gone in _figures.Keys.Where(id => !seen.Contains(id)).ToList())
         {
@@ -104,6 +106,8 @@ public partial class VillagerRenderer : Node3D
             _figures.Remove(gone);
         }
     }
+
+    private static string GearText(Gear? gear) => gear is null ? "none" : $"{gear.Kind} ({gear.Durability:F0}%)";
 
     private void ShowCommunities(StoreSpace space, Vector3 focus)
     {

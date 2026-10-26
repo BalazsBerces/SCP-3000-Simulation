@@ -19,7 +19,11 @@ internal sealed partial class Villagers
             walker.Action = VillagerAction.CarryingGoods;
             if (space.Distance(walker.Position, village.Position) < 0.5f)
             {
-                deliver(walker.Id, village.Id, cargo);
+                for (var i = 0; i < walker.CarriedAmount; i++)
+                    deliver(walker.Id, village.Id, cargo);
+                walker.CarriedAmount = 0;
+                if (walker.Bag is { } bag) walker.Bag = Wear(bag, 1);
+                if (walker.Hand is { Kind: GearKind.ShoppingCart } cart) walker.Hand = Wear(cart, 1);
                 walker.CarriedGoods = null;
                 walker.Skills[Role.Scavenger] = walker.Skills.GetValueOrDefault(Role.Scavenger) + 1;
             }

@@ -7,7 +7,7 @@ internal sealed partial class Villagers
     public bool HasVillagers => _walkers.Count > 0;
     public List<Body> Bodies { get; } = [];
 
-    private sealed record NeedTarget(Vector2 Position, StockedGoods? Goods = null, WaterPoint? Water = null, bool Rest = false, bool Haul = false);
+    private sealed record NeedTarget(Vector2 Position, StockedGoods? Goods = null, WaterPoint? Water = null, bool Rest = false, bool Haul = false, Gear? Gear = null);
 
     private sealed partial class Walker
     {
@@ -20,7 +20,7 @@ internal sealed partial class Villagers
 
     public void AdvanceNeeds(double hours, WorldSnapshot world, NeedsConfig config,
         Func<int, StockedGoods, StoreClock, bool> take, Action<DomainEvent> emit,
-        Func<StockedGoods, bool> collect, Action<int, int, GoodsKind> deliver)
+        Func<StockedGoods, bool> collect, Action<int, int, GoodsKind> deliver, Func<int, Gear, bool> equip)
     {
         IndexFurniture(world.Furniture);
         foreach (var walker in _walkers.ToArray())
@@ -80,10 +80,18 @@ internal sealed partial class Villagers
                 walker.Target = null;
                 if (space.Distance(walker.Position, navigation.NearestWalkable(target.Position)) < 0.1f)
                 {
+                    if (target.Gear is { } gear)
+                        equip(walker.Id, gear);
                     if (target.Haul && target.Goods is { } cargo)
                     {
-                        if (world.Furniture.Any(p => p.Id == cargo.FurnitureId && p.Position == target.Position) && collect(cargo))
-                            walker.CarriedGoods = cargo.Kind;
+                        if (world.Furniture.Any(p => p.Id == cargo.FurnitureId && p.Position == target.Position))
+                        {
+                            while (walker.CarriedAmount + walker.CarriedMaterials < Capacity(walker) && collect(cargo))
+                            {
+                                walker.CarriedGoods = cargo.Kind;
+                                walker.CarriedAmount++;
+                            }
+                        }
                     }
                     else if (target.Goods is { } meal &&
                         (meal.FurnitureId == -1 || world.Furniture.Any(p => p.Id == meal.FurnitureId && p.Position == target.Position)) &&
@@ -147,6 +155,8 @@ internal sealed partial class Villagers
             }
             if (chosen is not null)
                 walker.Target = chosen;
+            else if (n.Rest >= 0.4 && SeekGear(walker, world))
+                continue;
             else if (n.Rest >= 0.4 && CommunityWork(walker, world, deliver))
                 continue;
             else if (n.Rest < 0.4)

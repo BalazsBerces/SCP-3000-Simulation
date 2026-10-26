@@ -6,7 +6,7 @@ namespace Scp3008.Core;
 
 public sealed partial class Simulation
 {
-    private const int SaveVersion = 1;
+    private const int SaveVersion = 2;
     private static readonly JsonSerializerOptions SaveJson = CreateSaveJson();
 
     private sealed record SaveFile(int Version, SaveState State);
@@ -18,7 +18,7 @@ public sealed partial class Simulation
         TimeSpan UnspentRealTime, int NextBandId, FurniturePiece[] RestockOrigins,
         MissingFurniture[] MissingFurniture, int NextFurnitureId, double RestockHours,
         double NextFurnitureCheck, StockTarget[] StockTargets, Dictionary<int, double> GoodsRestockCredit,
-        ulong RestockRandom, DrySpell? DrySpell, double NextDrySpellHour);
+        ulong RestockRandom, DrySpell? DrySpell, double NextDrySpellHour, Gear[] GearSources, int NextGearId);
 
     /// <summary>Saves the entire world at a tick boundary; leaves the caller's stream open.</summary>
     public void Save(Stream destination)
@@ -32,7 +32,7 @@ public sealed partial class Simulation
                 _nextBandId, _restockOrigins.Values.ToArray(), _missingFurniture.ToArray(), _nextFurnitureId,
                 _restockHours, _nextFurnitureCheck,
                 _stockTargets.Select(t => new StockTarget(t.Key.FurnitureId, t.Key.Kind, t.Value)).ToArray(),
-                new(_goodsRestockCredit), _restockRandom.State, _drySpell, _nextDrySpellHour);
+                new(_goodsRestockCredit), _restockRandom.State, _drySpell, _nextDrySpellHour, _gearSources.ToArray(), _nextGearId);
             JsonSerializer.Serialize(destination, new SaveFile(SaveVersion, state), SaveJson);
         }
     }
@@ -101,7 +101,14 @@ public sealed partial class Simulation
         _bands.AddRange(s.Bands);
         _villages.AddRange(s.Villages);
         _chronicle.AddRange(s.Chronicle);
+        foreach (var gear in s.Gear.Concat(state.GearSources)) gear.Validate();
+        var liveGear = s.Gear.Concat(s.Villagers.SelectMany(v => new[] { v.Hand, v.Bag, v.Armour }).OfType<Gear>()).ToArray();
+        if (liveGear.Select(g => g.Id).Distinct().Count() != liveGear.Length || state.NextGearId < 0 ||
+            liveGear.Concat(state.GearSources).Any(g => g.Id >= state.NextGearId))
+            throw new InvalidDataException("Invalid world save: inconsistent Gear ids.");
         _gear.AddRange(s.Gear);
+        _gearSources.AddRange(state.GearSources);
+        _nextGearId = state.NextGearId;
         _patrols.AddRange(state.Patrols.Select(p => (p.Id, p.Route, p.Next)));
         _nextBandId = state.NextBandId;
         foreach (var piece in state.RestockOrigins) _restockOrigins.Add(piece.Id, piece);

@@ -1,0 +1,7 @@
+PASS Empty sandbox
+PASS All six hand Gear models attached
+PASS Canvas bags attached
+PASS Capture gear-open-centred
+PASS Battery-powered flashlight is lit at Closing time
+PASS Capture gear-closing-centred
+Gear rendered check passed.

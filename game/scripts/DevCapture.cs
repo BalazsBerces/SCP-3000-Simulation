@@ -133,6 +133,12 @@ public partial class DevCapture : Node
     {
         foreach (var arg in OS.GetCmdlineUserArgs())
         {
+            if (arg.StartsWith("--gear-check="))
+            {
+                SetProcess(false);
+                CheckGear(arg["--gear-check=".Length..]);
+                return;
+            }
             if (arg.StartsWith("--village-panel-check="))
             {
                 SetProcess(false);

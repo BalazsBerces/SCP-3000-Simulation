@@ -37,6 +37,12 @@ TOILETS_PAGE = "https://opengameart.org/content/toilets"
 
 # (folder, source, asset or root node, title, used for).
 MODELS = [
+    ("gear_hex_key", "sketchfab", "02ebda14785f480b965da3fc2115cd7f", "Allen Wrench", "Gear: hex key"),
+    ("gear_knife", "sketchfab", "4c75aae7dfa74b919b61a321242de7f4", "Kitchen Knife", "Gear: kitchen knife"),
+    ("gear_scissors", "sketchfab", "6e0defc85edc4920a794fe9e82b5f16b", "Scissors", "Gear: scissors"),
+    ("gear_canvas_bag", "sketchfab", "3316c1f3fc4e4f95adf05b1ee5478813", "Canvas Bag", "Gear: canvas bag"),
+    ("gear_screwdriver", "polyhaven", "flathead_screwdriver", "Flathead Screwdriver", "Gear: screwdriver"),
+    ("gear_flashlight", "polyhaven", "vintage_flashlight", "Vintage Flashlight", "Gear: flashlight"),
     ("ArmChair_01", "polyhaven", "ArmChair_01", "Arm Chair 01", "Armchair"),
     ("cube_armchair", "sketchfab", "c27b118e5001429fb4411ba6f33fb3f3", "Muwanga Lego Sofa - Office Master.ae", "Armchair, modern cube fabric variant"),
     ("fabric_sofa", "sketchfab", "be39bf64cf4c4a02b55a0ef1d40e1fbb", "Modern Minimalist Fabric Sofa", "Sofa and its large three-seat variant"),

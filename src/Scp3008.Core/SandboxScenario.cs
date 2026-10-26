@@ -13,12 +13,6 @@ public sealed record Band(int Id, IReadOnlyList<int> VillagerIds)
     public int FoundingPopulation { get; init; }
 }
 
-/// <summary>The found tools available to sandbox scenarios.</summary>
-public enum GearKind { HexKey, Screwdriver }
-
-/// <summary>A portable tool lying on the floor, available to a Villager.</summary>
-public sealed record Gear(int Id, GearKind Kind, Vector2 Position);
-
 /// <summary>A Staff and its current patrol movement; dormant while the Store is open.</summary>
 public sealed record Staff(int Id, Vector2 Position, Vector2? Destination, float Heading);
 
@@ -75,7 +69,7 @@ public sealed partial class ScenarioBuilder
                 scenario.PlaceBand(band.Select(Position).ToArray(), file.Needs);
             }
             foreach (var gear in file.Gear)
-                sim.PlaceGear(gear.Kind, Position(gear.Position));
+                scenario.PlaceGear(gear.Kind, Position(gear.Position));
             foreach (var staff in file.Staff)
             {
                 if (staff.Patrol is null || staff.Patrol.Length == 0)

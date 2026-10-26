@@ -92,7 +92,24 @@ public static class ModelCheck
                     $"{name} still glows in the coarse mesh");
             }
         }
-        lines.Add($"{FurnitureModels.All.Count} models, {failed} checks failed.");
+        foreach (var model in FurnitureModels.FoundGear)
+        {
+            var mesh = (ArrayMesh)VillagerRenderer.GearMesh(model.Kind);
+            var bounds = mesh.GetAabb();
+            Check(Mathf.Abs(bounds.Size[(int)bounds.Size.MaxAxisIndex()] - model.Size) < 0.001f && Mathf.Abs(bounds.Position.Y) < 0.001f,
+                $"Gear {model.Kind} fits {model.Size} m and stands on its base");
+            Check(FurnitureModels.Triangles(mesh) is > 0 and var count && count <= model.Budget,
+                $"Gear {model.Kind} triangle budget {model.Budget}");
+            for (var s = 0; s < mesh.GetSurfaceCount(); s++)
+            {
+                var material = (ShaderMaterial)mesh.SurfaceGetMaterial(s);
+                Check(new[] { "albedo_texture", "normal_texture", "roughness_texture" }.All(t => material.GetShaderParameter(t).Obj is Texture2D),
+                    $"Gear {model.Kind} surface {s} has PBR textures");
+            }
+            Check(FurnitureModels.AllowedLicences.Contains(model.Licence) && credits.Any(l => l.Contains(model.Source) && l.Contains(model.Author) && l.Contains(model.Licence)),
+                $"Gear {model.Kind} allowed licence and credit");
+        }
+        lines.Add($"{FurnitureModels.All.Count} Furniture models and {FurnitureModels.FoundGear.Length} Gear models, {failed} checks failed.");
         return (failed == 0, lines);
     }
 }

@@ -154,6 +154,10 @@ _Avoid_: Parts, components, scrap
 A portable thing a single Villager carries and uses (a tool, backpack, weapon, armour, lantern), made from Materials or found in the Store, and worn out by use. Gear is neither Furniture (it does not stand in the world) nor Goods (it is not store stock). Some Gear is used up in one use, like a bandage made from fabric. Found Gear is scarce and belongs to its Department (kitchen knives, warehouse tools, lighting-department torches); most Gear is made.
 _Avoid_: Item, equipment, inventory
 
+**Carrying capacity**:
+The shared limit for the units of Goods and Materials a Villager carries, separate from their three Gear slots (one in hand, one bag, one armour). A canvas bag raises it; a shopping cart occupies the hand slot, reserves both hands and raises it further. A full load slows walking; the cart makes hauling faster. Gear wears through use and disappears when worn out.
+_Avoid_: Inventory slots, weight grid
+
 **Crop**:
 A real potted plant of the Plant section (herbs, vegetables) that a Village tends and that slowly yields food Goods: the only food a Village grows rather than finds.
 _Avoid_: Farm, field, plant (the decorative ones are Furniture)
