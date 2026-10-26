@@ -63,8 +63,12 @@ public sealed partial class ScenarioBuilder
     /// <exception cref="ArgumentException">A piece is not Stock Furniture; nothing is set.</exception>
     public void SetStock(IEnumerable<(int FurnitureId, GoodsKind Kind)> goods, int amount) => _simulation.SetStock(goods, amount);
 
-    /// <summary>Places a standing Villager at a Store position, or on the nearest free floor if Furniture or a Pillar stands there.</summary>
-    public Villager PlaceVillager(Vector2 position) => _simulation.PlaceVillager(position);
+    /// <summary>Places a Villager with optional initial Needs, each from 0 to 1, on the nearest free floor.</summary>
+    public Villager PlaceVillager(Vector2 position, Needs? needs = null)
+    {
+        (needs ?? new Needs()).Validate();
+        return _simulation.PlaceVillager(position, needs);
+    }
 
     /// <summary>
     /// Sends a Villager walking the shortest way, around Furniture and Pillars and across the seams, to a Store position

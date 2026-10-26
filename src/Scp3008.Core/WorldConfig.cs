@@ -9,7 +9,7 @@ namespace Scp3008.Core;
 /// tests set it to get reproducible outcomes.
 /// </param>
 /// <param name="PillarLayout">
-/// The Pillar grid and its Sectors, 3 × 3 unless chosen otherwise. Part of the world state
+/// The Pillar grid and its Sectors, 3 Ă— 3 unless chosen otherwise. Part of the world state
 /// (<see cref="WorldSnapshot.PillarLayout"/>), so a world is saved and restored with it.
 /// </param>
 /// <param name="LandmarkShowcase">
@@ -24,6 +24,7 @@ namespace Scp3008.Core;
 /// </param>
 /// <param name="Stock">How much Goods the Store generator puts on the Stock Furniture, and the left-behind share; the defaults if null.</param>
 /// <param name="Water">How many showroom taps run; the defaults if null.</param>
+/// <param name="Needs">Store hours of starvation and thirst before death; the defaults if null.</param>
 public sealed record WorldConfig(int Seed, int? RuntimeRngSeed = null, PillarLayout PillarLayout = PillarLayout.ThreeByThree,
     bool LandmarkShowcase = false, bool PointOfInterestShowcase = false, StockConfig? Stock = null,
-    WaterConfig? Water = null);
+    WaterConfig? Water = null, NeedsConfig? Needs = null);

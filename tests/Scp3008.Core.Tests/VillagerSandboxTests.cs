@@ -86,12 +86,12 @@ public class VillagerSandboxTests
         sim.Speed = SimulationSpeed.Fast60;
         sim.AdvanceRealTime(TimeSpan.FromSeconds(10));
         Assert.Equal(before.Clock.TotalStoreTime + TimeSpan.FromDays(1), sim.Snapshot.Clock.TotalStoreTime);
-        Assert.Equal(before.Villagers.Count, sim.Snapshot.Villagers.Count);
+        Assert.Equal(before.Villagers.Count, sim.Snapshot.Villagers.Count + sim.Snapshot.Bodies.Count);
         Assert.All(sim.Snapshot.Villagers, v =>
         {
             Assert.InRange(v.Position.X, 0, 128);
             Assert.InRange(v.Position.Y, 0, 128);
         });
-        Assert.Equal(before.Stock.ToArray(), sim.Snapshot.Stock.ToArray());
+        Assert.True(sim.Snapshot.Stock.Sum(g => g.Amount) <= before.Stock.Sum(g => g.Amount));
     }
 }

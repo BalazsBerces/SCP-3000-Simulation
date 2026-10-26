@@ -7,7 +7,7 @@ namespace Scp3008.Core;
 /// The simulation core facade: the single public entry point to the core.
 /// The presentation layer only reads snapshots and events from it.
 /// </summary>
-public sealed class Simulation : IDisposable
+public sealed partial class Simulation : IDisposable
 {
     /// <summary>
     /// Real time between simulation steps. Each step runs as many fixed ticks as the speed value,
@@ -58,6 +58,7 @@ public sealed class Simulation : IDisposable
 
     private Simulation(WorldConfig config)
     {
+        config.Needs?.Validate();
         _config = config;
         _space = config.PillarLayout.Space();
         var sandbox = config.PillarLayout == PillarLayout.VillagerSandbox;
@@ -283,6 +284,11 @@ public sealed class Simulation : IDisposable
             return;
         for (long i = 0; i < ticks; i++)
             Step();
+        if (_stockChanged)
+        {
+            _sectorStocks = StockGenerator.Summarize(_stock, _furniture.Pieces, _space, _config.PillarLayout, StockConfig);
+            _stockChanged = false;
+        }
         _snapshot = BuildSnapshot();
     }
 
@@ -292,6 +298,10 @@ public sealed class Simulation : IDisposable
         var clock = new StoreClock(_tick);
         _weather.Advance(StoreClock.TickDuration.TotalHours, clock, Emit);
         _villagers.Advance(StoreClock.TickDuration.TotalHours);
+        if (_villagers.HasVillagers)
+            _villagers.AdvanceNeeds(StoreClock.TickDuration.TotalHours, _snapshot with
+                { Clock = clock, Stock = _stock, Staff = _staff.Snapshot().Select(s => new Staff(s.Id, s.Position, s.Destination, s.Heading)).ToArray() },
+                _config.Needs ?? new NeedsConfig(), TakeGoods, Emit);
         // Sandbox patrols use the same footprint navigation; daytime Staff remain dormant.
         if (clock.Phase == DayPhase.ClosingTime && _patrols.Count > 0)
         {
@@ -413,9 +423,10 @@ public sealed class Simulation : IDisposable
             return moved;
         });
 
-    internal Band PlaceBand(IReadOnlyList<Vector2> positions) => Publish(() =>
+    internal Band PlaceBand(IReadOnlyList<Vector2> positions, Needs? needs = null) => Publish(() =>
     {
-        var band = new Band(_bands.Count, Array.AsReadOnly(positions.Select(p => _villagers.Place(p).Id).ToArray()));
+        (needs ?? new Needs()).Validate();
+        var band = new Band(_bands.Count, Array.AsReadOnly(positions.Select(p => _villagers.Place(p, needs).Id).ToArray()));
         _bands.Add(band);
         return band;
     });
@@ -434,7 +445,7 @@ public sealed class Simulation : IDisposable
         return new Staff(staff.Id, staff.Position, staff.Destination, staff.Heading);
     });
 
-    internal Villager PlaceVillager(Vector2 position) => Publish(() => _villagers.Place(position));
+    internal Villager PlaceVillager(Vector2 position, Needs? needs = null) => Publish(() => _villagers.Place(position, needs));
 
     internal void SendVillager(int villagerId, Vector2 destination) => Publish(() =>
     {
@@ -486,6 +497,7 @@ public sealed class Simulation : IDisposable
             ShelfCapacity = StockConfig.ShelfCapacity,
             PointOfInterestShowcase = _config.PointOfInterestShowcase,
             Villagers = Array.AsReadOnly(_villagers.Snapshot()),
+            Bodies = _villagers.Bodies.ToList().AsReadOnly(),
             Bands = _bands.ToList().AsReadOnly(),
             Gear = _gear.ToList().AsReadOnly(),
             Staff = Array.AsReadOnly(_staff.Snapshot().Select(s => new Staff(s.Id, s.Position, s.Destination, s.Heading)).ToArray()),

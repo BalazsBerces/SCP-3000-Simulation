@@ -212,6 +212,12 @@ _Avoid_: Survivor, agent, NPC
 A person in the Store who belongs to no Village: a newly lost shopper, or a Refugee. Wanderers join Villages or found new ones.
 _Avoid_: Newcomer, nomad, stray
 
+**Needs**:
+A Villager's hunger, thirst, rest, safety and morale. Hunger and thirst rise as food and water run out; rest, safety and morale are better when higher. Needs drive eating, drinking, resting, seeking safety and using comfort goods; comfort goods raise only morale.
+
+**Body**:
+What a Villager leaves at their position when they die of starvation or thirst. Distinct from Staff remains and from being Taken, which leaves no trace.
+
 **Band**:
 A small group of Wanderers travelling together, scavenging and looking for a site, before they found a Village. A run starts with Bands, not Villages.
 _Avoid_: Party, group, tribe

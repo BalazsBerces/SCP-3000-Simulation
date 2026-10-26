@@ -87,5 +87,15 @@
         102
       ]
     }
-  ]
+  ],
+  "needs": {
+    "Hunger": 1,
+    "Thirst": 0.9,
+    "Rest": 0.3,
+    "Morale": 0.2
+  },
+  "needsConfig": {
+    "starvationHours": 2,
+    "dehydrationHours": 6
+  }
 }

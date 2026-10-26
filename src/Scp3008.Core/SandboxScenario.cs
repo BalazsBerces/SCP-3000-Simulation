@@ -46,7 +46,8 @@ public sealed partial class ScenarioBuilder
         var file = JsonSerializer.Deserialize<SandboxFile>(json, options) ?? throw new JsonException("Expected a sandbox scenario.");
         if (file.Furniture is null || file.Bands is null || file.Gear is null || file.Staff is null)
             throw new JsonException("Scenario collections must be arrays, not null.");
-        var sim = Simulation.Create(new WorldConfig(3008, PillarLayout: PillarLayout.VillagerSandbox));
+        file.Needs?.Validate();
+        var sim = Simulation.Create(new WorldConfig(3008, PillarLayout: PillarLayout.VillagerSandbox, Needs: file.NeedsConfig));
         try
         {
             var scenario = sim.Scenario;
@@ -65,7 +66,7 @@ public sealed partial class ScenarioBuilder
             {
                 if (band is null || band.Length == 0)
                     throw new ArgumentException("A Band must have members.");
-                sim.PlaceBand(band.Select(Position).ToArray());
+                sim.PlaceBand(band.Select(Position).ToArray(), file.Needs);
             }
             foreach (var gear in file.Gear)
                 sim.PlaceGear(gear.Kind, Position(gear.Position));
@@ -94,6 +95,8 @@ public sealed partial class ScenarioBuilder
     private sealed record SandboxFile
     {
         public string Time { get; init; } = "12:00";
+        public Needs? Needs { get; init; }
+        public NeedsConfig? NeedsConfig { get; init; }
         public SandboxFurniture[] Furniture { get; init; } = [];
         public float[][][] Bands { get; init; } = [];
         public SandboxGear[] Gear { get; init; } = [];

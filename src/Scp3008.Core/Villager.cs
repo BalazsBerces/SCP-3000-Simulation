@@ -14,15 +14,21 @@ public sealed record Villager(int Id, Vector2 Position, Vector2? Destination, fl
     /// looks like a brisk walk at 1x (2.4 m per real second) rather than a blink, the Store day lasting only 10 real minutes.
     /// </summary>
     public const float WalkingSpeed = 60f;
+
+    public Needs Needs { get; init; } = new();
+    public VillagerAction Action { get; init; }
 }
 
 /// <summary>The Villagers in the world and their walking, each tick along the path <see cref="Navigation"/> finds.</summary>
-internal sealed class Villagers(StoreSpace space, Navigation navigation)
+internal sealed partial class Villagers(StoreSpace space, Navigation navigation)
 {
     private readonly List<Walker> _walkers = [];
+    private int _nextId;
 
-    private sealed class Walker(int id, Vector2 position)
+    private sealed partial class Walker(int id, Vector2 position)
     {
+        public Needs Needs { get; set; } = new();
+        public VillagerAction Action { get; set; }
         public int Id { get; } = id;
         public Vector2 Position { get; set; } = position;
         public Vector2? Destination { get; set; }
@@ -31,24 +37,32 @@ internal sealed class Villagers(StoreSpace space, Navigation navigation)
     }
 
     /// <summary>Places a standing Villager at the position, or on the nearest free floor if Furniture stands there.</summary>
-    public Villager Place(Vector2 position)
+    public Villager Place(Vector2 position, Needs? needs = null)
     {
-        var walker = new Walker(_walkers.Count == 0 ? 0 : _walkers.Max(w => w.Id) + 1, navigation.NearestWalkable(position));
+        var walker = new Walker(_nextId++, navigation.NearestWalkable(position));
+        walker.Needs = needs ?? new Needs();
         _walkers.Add(walker);
         return View(walker);
     }
 
     /// <summary>Sends a Villager walking the shortest way to the destination (beside it, if Furniture stands there); a Villager with no way there stays.</summary>
-    public void Send(int villagerId, Vector2 destination) =>
-        Plan(_walkers.Find(w => w.Id == villagerId) ?? throw new ArgumentException($"No Villager {villagerId}.", nameof(villagerId)),
-            navigation.NearestWalkable(destination));
+    public void Send(int villagerId, Vector2 destination)
+    {
+        var walker = _walkers.Find(w => w.Id == villagerId) ?? throw new ArgumentException($"No Villager {villagerId}.", nameof(villagerId));
+        walker.Target = null;
+        walker.Action = VillagerAction.Idle;
+        Plan(walker, navigation.NearestWalkable(destination));
+    }
 
     /// <summary>Finds every walking Villager's way again, after the Furniture changed.</summary>
     public void Replan()
     {
         foreach (var walker in _walkers)
+        {
+            walker.Unreachable.Clear();
             if (walker.Destination is { } destination)
                 Plan(walker, navigation.NearestWalkable(destination));
+        }
     }
 
     public void Advance(double storeHours)
@@ -89,5 +103,6 @@ internal sealed class Villagers(StoreSpace space, Navigation navigation)
         walker.Destination = path is null ? null : destination;
     }
 
-    private static Villager View(Walker walker) => new(walker.Id, walker.Position, walker.Destination, walker.Heading);
+    private static Villager View(Walker walker) => new(walker.Id, walker.Position, walker.Destination, walker.Heading)
+    { Needs = walker.Needs, Action = walker.Action };
 }

@@ -375,6 +375,10 @@ public partial class DevCapture : Node
         GD.Print($"Weather: {Host.Snapshot.FogBanks.Count} Fog banks, wind {wind.Length():0} m per Store hour, " +
                  $"fog density at the focus {Host.Snapshot.FogDensityAt(Rig.Focus.ToStore()):0.00}");
         GD.Print($"DevCapture focus: {Rig.Focus}, distance: {Rig.Distance}");
+        foreach (var villager in Host.Snapshot.Villagers)
+            GD.Print($"Villager {villager.Id}: {villager.Action}, {villager.Needs}");
+        foreach (var body in Host.Snapshot.Bodies)
+            GD.Print($"Body: Villager {body.VillagerId}, {body.Cause} at {body.Position}");
         if (_capturePath is not null)
         {
             var image = GetViewport().GetTexture().GetImage();

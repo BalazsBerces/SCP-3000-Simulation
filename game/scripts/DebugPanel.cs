@@ -22,6 +22,7 @@ public partial class DebugPanel : Node
     [Export] public float FogBankRadius { get; set; } = 160f;
 
     private int? _lastVillager;
+    private Label? _sandboxStatus;
 
     public override void _Ready()
     {
@@ -80,6 +81,7 @@ public partial class DebugPanel : Node
         column.AddChild(follow);
         column.AddChild(new Label { Text = "F7: place | F8: walk to focus\nF9: +1 Store hour | .: step | 6: 60x" });
         var status = new Label();
+        _sandboxStatus = status;
         column.AddChild(status);
         void Refresh(WorldSnapshot snapshot)
         {
@@ -89,6 +91,15 @@ public partial class DebugPanel : Node
         }
         Refresh(Host.Snapshot);
         Host.WorldCreated += Refresh;
+    }
+
+    public override void _Process(double delta)
+    {
+        if (_sandboxStatus is null)
+            return;
+        var snapshot = Host.Snapshot;
+        _sandboxStatus.Text = $"{snapshot.Bands.Count} Band | {snapshot.Villagers.Count} Villagers | {snapshot.Bodies.Count} bodies\n" +
+            $"{snapshot.Stock.Sum(g => g.Amount)} Goods | {snapshot.Staff.Count} Staff";
     }
 
     public override void _UnhandledKeyInput(InputEvent @event)

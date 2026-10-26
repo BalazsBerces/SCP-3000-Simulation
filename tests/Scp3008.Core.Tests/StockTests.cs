@@ -49,6 +49,7 @@ public class StockTests(ITestOutputHelper output)
         FurnitureType.ShelfUnit, FurnitureType.ToyShelf, FurnitureType.CushionBin,
         FurnitureType.HotFoodCounter, FurnitureType.DessertCounter, FurnitureType.FishTank,
         FurnitureType.LabelledBox, FurnitureType.UnsortedCart, FurnitureType.FlatPackBox,
+        FurnitureType.DiningTable,
     ];
 
     [Theory]
@@ -300,8 +301,8 @@ public class StockTests(ITestOutputHelper output)
         {
             var snapshot = Store(seed);
             var pieces = PiecesById(snapshot);
-            tables += snapshot.Furniture.Count(p => GoodsCatalog.FoodTables.Contains(p.Type));
-            var onTables = snapshot.Stock.Where(g => GoodsCatalog.FoodTables.Contains(pieces[g.FurnitureId].Type)).ToList();
+            tables += snapshot.Furniture.Count(p => GoodsCatalog.FoodTables.Contains(p.Type) && !snapshot.IsStockFurniture(p));
+            var onTables = snapshot.Stock.Where(g => GoodsCatalog.FoodTables.Contains(pieces[g.FurnitureId].Type) && !snapshot.IsStockFurniture(pieces[g.FurnitureId])).ToList();
             Assert.All(onTables, g =>
             {
                 Assert.True(g.LeftBehind);
@@ -316,7 +317,7 @@ public class StockTests(ITestOutputHelper output)
 
         using var sim = Simulation.Create(new WorldConfig(3008, RuntimeRngSeed: 1, Stock: new StockConfig { TableFoodChance = 0f }));
         var bare = PiecesById(sim.Snapshot);
-        Assert.DoesNotContain(sim.Snapshot.Stock, g => GoodsCatalog.FoodTables.Contains(bare[g.FurnitureId].Type));
+        Assert.DoesNotContain(sim.Snapshot.Stock, g => GoodsCatalog.FoodTables.Contains(bare[g.FurnitureId].Type) && !sim.Snapshot.IsStockFurniture(bare[g.FurnitureId]));
     }
 
     [Theory]

@@ -31,6 +31,7 @@ internal static class StockGenerator
             {
                 PointOfInterestType.AquariumAisle => piece.Type == FurnitureType.FishTank,
                 PointOfInterestType.Cafeteria => piece.Type is FurnitureType.HotFoodCounter or FurnitureType.DessertCounter,
+                PointOfInterestType.SetDinnerTable => piece.Type == FurnitureType.DiningTable,
                 PointOfInterestType.LostAndFound => piece.Type is FurnitureType.LabelledBox or FurnitureType.UnsortedCart,
                 _ => false,
             };
@@ -100,6 +101,10 @@ internal static class StockGenerator
             }
         }
 
+        // A Set dinner table is laid for four; ordinary Display tables keep only their rare left-behind find.
+        foreach (var piece in pieces.Where(p => p.Type == FurnitureType.DiningTable && p.PointOfInterestId >= 0 &&
+                     pointsOfInterest[p.PointOfInterestId].Type == PointOfInterestType.SetDinnerTable))
+            stock.Add(new StockedGoods(piece.Id, GoodsKind.FreshFood, 4));
         foreach (var fish in tankFish)
             stock.Add(new StockedGoods(fish.TankId, GoodsKind.LiveFish, Amount(config.FishMin, config.FishMax)));
         foreach (var meal in counterMeals)

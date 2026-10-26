@@ -62,6 +62,8 @@ public sealed record WorldSnapshot(
     /// <summary>The Villagers in the Store.</summary>
     public IReadOnlyList<Villager> Villagers { get; init; } = [];
 
+    public IReadOnlyList<Body> Bodies { get; init; } = [];
+
     /// <summary>The live fish in every tank of the Aquarium aisles, one entry per <see cref="FurnitureType.FishTank"/>, in tank order.</summary>
     public IReadOnlyList<TankFish> TankFish { get; init; } = Array.Empty<TankFish>();
 
@@ -197,7 +199,7 @@ public sealed record WorldSnapshot(
 
     /// <summary>
     /// The Pillar nearest to a Store position by the shortest wrapped distance. Positions may be
-    /// unwrapped. In 2 × 2 the Pillar to the east and the one to the west are the same Pillar.
+    /// unwrapped. In 2 Ă— 2 the Pillar to the east and the one to the west are the same Pillar.
     /// </summary>
     public Pillar NearestPillar(Vector2 position)
     {
