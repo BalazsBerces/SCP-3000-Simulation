@@ -16,3 +16,4 @@ Agents append here, one line each (`- <ticket>: <cause and fix>`), when a proble
 
 - 12: When introducing autonomous populations, run a full-Store time-advance smoke check before rendering benchmarks. Sight and site scoring must query nearby Chunks rather than scan every Furniture piece for every person.
 - 13: Godot changes the working directory to its project when using `--path`, so relative capture/check output paths land inside `game`. Pass absolute paths for evidence under the workspace's `.ticket-logs` directory.
+- 14: Removing Stock Furniture does not create a lasting shortage because Restock can return it with Goods. In death/shortage scenarios, disable Restock in WorldConfig or occupy the vacated footprint before advancing time.

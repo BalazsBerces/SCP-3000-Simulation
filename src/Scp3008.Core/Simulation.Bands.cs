@@ -91,8 +91,6 @@ public sealed partial class Simulation
             _villages.Add(village);
             _bands.Remove(updated);
             _villagers.JoinVillage(village);
-            _chronicle.Add($"Store day {clock.Day}: Band {band.Id} founded Village {village.Id}" +
-                (forced ? ", settling before its strength ran out." : " beside known food and water."));
             Emit(new VillageFounded(clock, band.Id, village, forced));
         }
     }

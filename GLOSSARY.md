@@ -346,6 +346,9 @@ _Avoid_: Killed, dead, died
 
 ### Observer
 
+**Chronicle**:
+The saved, chronological account of major domain events, told in short stories from several templates per event type, with people's names and places filled in. A Village's panel shows its part of that history.
+
 **Observer**:
 The person watching the simulation; they cannot intervene in the world.
 _Avoid_: Player, god, ruler

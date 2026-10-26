@@ -9,6 +9,15 @@ namespace Scp3008.Core;
 /// <param name="Heading">The way the Villager faces, in radians from east (+X) towards south (+Y).</param>
 public sealed record Villager(int Id, Vector2 Position, Vector2? Destination, float Heading)
 {
+    [System.Text.Json.Serialization.JsonIgnore]
+    public string Name => NameOf(Id);
+
+    internal static string NameOf(int id) => (id % 8) switch
+    {
+        0 => "Mara", 1 => "Elias", 2 => "Nora", 3 => "Jonas",
+        4 => "Iris", 5 => "Tomas", 6 => "Ada", _ => "Simon",
+    };
+
     /// <summary>
     /// How fast a Villager walks, in metres per Store hour: far below a real walking pace, so a walk across a Display
     /// looks like a brisk walk at 1x (2.4 m per real second) rather than a blink, the Store day lasting only 10 real minutes.

@@ -339,6 +339,7 @@ public sealed partial class Simulation : IDisposable
 
     private void Emit(DomainEvent domainEvent)
     {
+        RecordChronicle(domainEvent);
         foreach (var handler in _subscribers)
             handler(domainEvent);
     }

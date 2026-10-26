@@ -33,6 +33,7 @@ public partial class VillagerRenderer : Node3D
         _mesh = FurnitureModels.Product("villager", ModelYaw, Height, TriangleBudget);
         var layer = new CanvasLayer();
         AddChild(layer);
+        CreateVillagePanel(layer);
         _needsPanel = new PanelContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
         layer.AddChild(_needsPanel);
         _needsPanel.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.BottomLeft);
@@ -71,6 +72,7 @@ public partial class VillagerRenderer : Node3D
         var space = Host.Snapshot.Space;
         var focus = Rig.Focus;
         ShowCommunities(space, focus);
+        ShowVillagePanel(Host.Snapshot, delta);
         var seen = new HashSet<int>();
         var bodies = Host.Snapshot.Bodies.ToDictionary(b => b.VillagerId);
         var figures = Host.InterpolatedVillagers.Concat(bodies.Values.Select(b =>
@@ -110,9 +112,8 @@ public partial class VillagerRenderer : Node3D
             .Concat(world.Villages.Select(v => $"Village {v.Id}: {v.VillagerIds.Count} Villagers | " +
                 $"Stores: {string.Join(", ", v.Stores.Select(g => $"{g.Key} {g.Value}"))}"));
         _communities.Text = string.Join("\n", lines.Concat(world.Chronicle.TakeLast(3)));
-        _communities.GetParent<PanelContainer>().Visible = world.Bands.Count + world.Villages.Count > 0;
-        var markers = world.Bands.Select(b => ($"Band {b.Id}", b.Position))
-            .Concat(world.Villages.Select(v => ($"Village {v.Id}", v.Position))).ToArray();
+        _communities.GetParent<PanelContainer>().Visible = _selectedVillage is null && world.Bands.Count + world.Villages.Count > 0;
+        var markers = world.Bands.Select(b => ($"Band {b.Id}", b.Position)).ToArray();
         foreach (var (name, position) in markers)
         {
             if (!_markers.TryGetValue(name, out var marker))
@@ -134,6 +135,10 @@ public partial class VillagerRenderer : Node3D
 
     private void OnWorldCreated(WorldSnapshot snapshot)
     {
+        CloseVillagePanel();
+        foreach (var button in _villageButtons.Values)
+            button.QueueFree();
+        _villageButtons.Clear();
         foreach (var figure in _figures.Values)
             figure.QueueFree();
         _figures.Clear();
