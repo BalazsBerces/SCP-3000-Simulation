@@ -55,6 +55,9 @@ public sealed record WorldSnapshot(
     /// <summary>Whether this is the tiny hand-placed Villager sandbox.</summary>
     public bool VillagerSandbox => PillarLayout == PillarLayout.VillagerSandbox;
 
+    /// <summary>Running Dry spells; Department ids refer to Departments.All.</summary>
+    public IReadOnlyList<DrySpell> DrySpells { get; init; } = [];
+
     public IReadOnlyList<Band> Bands { get; init; } = [];
     public IReadOnlyList<Gear> Gear { get; init; } = [];
     public IReadOnlyList<Staff> Staff { get; init; } = [];

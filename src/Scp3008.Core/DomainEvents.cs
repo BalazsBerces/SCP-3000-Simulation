@@ -26,3 +26,7 @@ public sealed record FogBankFormed(StoreClock At, FogBank Bank) : DomainEvent(At
 
 /// <summary>The Fog bank <paramref name="FogBankId"/> thinned out and dissipated at <paramref name="Position"/>.</summary>
 public sealed record FogBankDissipated(StoreClock At, int FogBankId, System.Numerics.Vector2 Position) : DomainEvent(At);
+
+public sealed record DrySpellStarted(StoreClock At, DrySpell Spell) : DomainEvent(At);
+
+public sealed record DrySpellEnded(StoreClock At, DrySpell Spell) : DomainEvent(At);

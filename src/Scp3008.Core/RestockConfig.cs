@@ -10,11 +10,22 @@ public sealed record RestockConfig
     /// <summary>Store hours after a spot is vacated before Landmark Furniture can return; zero disables return.</summary>
     public double LandmarkFurnitureHours { get; init; } = 72;
 
+    /// <summary>Mean wait between Dry spells in Store hours, varied from half to one-and-a-half times this value; zero disables them.</summary>
+    public double DrySpellIntervalHours { get; init; } = 72;
+    /// <summary>Length of a Dry spell in Store hours (at least one simulation tick).</summary>
+    public double DrySpellDurationHours { get; init; } = 72;
+    /// <summary>Fraction of Restock removed in one Department and added in another, from 0 to 1 (a complete stop).</summary>
+    public double DrySpellStrength { get; init; } = 0.875;
+
     internal void Validate()
     {
         if (!double.IsFinite(GoodsPerStoreHour) || GoodsPerStoreHour < 0 ||
             !double.IsFinite(FurnitureHours) || FurnitureHours < 0 ||
-            !double.IsFinite(LandmarkFurnitureHours) || LandmarkFurnitureHours < 0)
-            throw new ArgumentOutOfRangeException(nameof(RestockConfig), "Restock rates and delays must be finite and nonnegative.");
+            !double.IsFinite(LandmarkFurnitureHours) || LandmarkFurnitureHours < 0 ||
+            !double.IsFinite(DrySpellIntervalHours) || DrySpellIntervalHours < 0 ||
+            !double.IsFinite(DrySpellDurationHours) || DrySpellDurationHours < StoreClock.TickDuration.TotalHours ||
+            DrySpellDurationHours > TimeSpan.MaxValue.TotalHours / 2 ||
+            !double.IsFinite(DrySpellStrength) || DrySpellStrength < 0 || DrySpellStrength > 1)
+            throw new ArgumentOutOfRangeException(nameof(RestockConfig), "Restock rates and delays must be finite and nonnegative; Dry spell duration must span a tick and strength must be from 0 to 1.");
     }
 }

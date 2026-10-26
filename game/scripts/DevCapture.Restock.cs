@@ -1,4 +1,4 @@
-using Godot;
+﻿using Godot;
 using Scp3008.Core;
 
 namespace Scp3008.Game;
@@ -63,6 +63,53 @@ public partial class DevCapture
             System.IO.Directory.CreateDirectory(directory);
             System.IO.File.WriteAllLines(System.IO.Path.Combine(directory, "report.txt"), lines);
             GD.PushError(error.ToString());
+            GetTree().Quit(2);
+        }
+    }
+    // Uses real runtime scheduling and the same overview click as an Observer.
+    private async void CheckDrySpell(string directory)
+    {
+        try
+        {
+            System.IO.Directory.CreateDirectory(directory);
+            Host.Speed = SimulationSpeed.Paused;
+            Host.HoldClearWeather();
+            DisplayServer.WindowSetSize(new Vector2I(1280, 720));
+            for (var hour = 0; hour < 110 && Host.Snapshot.DrySpells.Count == 0; hour++)
+                Host.SkipTime(TimeSpan.FromHours(1));
+            var spell = Host.Snapshot.DrySpells.Single();
+            var department = Host.Snapshot.Departments.All[spell.DepartmentId];
+            var sector = Host.Snapshot.SectorAt(department.Anchor);
+            StoreOverview.Set(true);
+            await Wait(6);
+            var inspector = GetTree().Root.FindChildren("*", "", true, false).OfType<SectorInspector>().Single();
+            var button = inspector.GetNode<Button>("InspectSectors");
+            button.ButtonPressed = true;
+            inspector.Click(Rig.Camera.UnprojectPosition(department.Anchor.ToWorld()));
+            await Wait(1);
+            var label = inspector.GetNode<Label>("SectorPanel/SectorInfo");
+            if (!label.Text.Contains($"#{department.Id}:") || !label.Text.Contains("Restock 12.5%"))
+                throw new InvalidOperationException("Running Dry spell missing from selected Sector panel: " + label.Text);
+            await ToSignal(RenderingServer.Singleton, RenderingServer.SignalName.FramePostDraw);
+            using var image = GetViewport().GetTexture().GetImage();
+            if (image.GetWidth() > 1280)
+                image.Resize(1280, image.GetHeight() * 1280 / image.GetWidth());
+            if (image.SavePng(System.IO.Path.Combine(directory, "dry-spell.png")) != Error.Ok)
+                throw new System.IO.IOException("Dry spell screenshot failed.");
+            var activeText = label.Text;
+            Host.SkipTime(StoreClock.TickDuration * (spell.EndsAt.Tick - Host.Snapshot.Clock.Tick));
+            await Wait(1);
+            if (!label.Text.Contains("Dry spells: none"))
+                throw new InvalidOperationException("Sector panel did not refresh when the Dry spell ended: " + label.Text);
+            System.IO.File.WriteAllText(System.IO.Path.Combine(directory, "report.txt"),
+                "PASS Running Dry spell displayed in Sector " + sector.Name + "\n" + activeText +
+                "\nPASS Selected panel refreshed to Dry spells: none after expiry.\n");
+            GD.Print("Dry spell rendered check passed.");
+            GetTree().Quit();
+        }
+        catch (Exception error)
+        {
+            GD.PushError("Dry spell check failed: " + error);
             GetTree().Quit(2);
         }
     }

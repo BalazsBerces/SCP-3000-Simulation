@@ -24,6 +24,8 @@ public partial class SectorInspector : CanvasLayer
     private Sector? _selected;
     private System.Numerics.Vector2? _devClick;
 
+    private double _refreshElapsed;
+
     public bool Inspecting => _toggle.ButtonPressed;
 
     public override void _Ready()
@@ -70,6 +72,12 @@ public partial class SectorInspector : CanvasLayer
 
     public override void _Process(double delta)
     {
+        _refreshElapsed += delta;
+        if (_refreshElapsed >= 0.5 && _selected is { } selected)
+        {
+            _info.Text = Describe(Host.Snapshot, selected);
+            _refreshElapsed = 0;
+        }
         // A dev click waits for the overview and for the camera to settle over the Store.
         if (_devClick is not { } store || !StoreOverview.Enabled || Rig.Camera.GlobalPosition.Y < 100f)
             return;
@@ -149,6 +157,10 @@ public partial class SectorInspector : CanvasLayer
                     departments.Add(cells.AtCell(x, y));
             }
         lines.Add("Departments: " + Counted(departments.Select(d => DepartmentNames.Of(d.Type))));
+        var spells = snapshot.DrySpells.Where(s => departments.Any(d => d.Id == s.DepartmentId)).ToArray();
+        lines.Add("Dry spells: " + (spells.Length == 0 ? "none" : string.Join("; ", spells.Select(s =>
+            $"{DepartmentNames.Of(snapshot.Departments.All[s.DepartmentId].Type)} #{s.DepartmentId}: " +
+            FormattableString.Invariant($"Restock {(1 - s.Strength) * 100:0.#}% until day {s.EndsAt.Day} {s.EndsAt.TimeOfDay:hh\\:mm}")))));
 
         var pillar = snapshot.Pillars.FirstOrDefault(p => p.Coordinate == sector.Name);
         lines.Add(pillar is null ? "Pillar: none" : $"Pillar {pillar.Coordinate}, {pillar.Width:0} m wide");
@@ -159,10 +171,10 @@ public partial class SectorInspector : CanvasLayer
         return string.Join("\n", lines);
     }
 
-    // "Showrooms ×10, Outdoor ×2, Workspaces", most first; "none" if empty.
+    // "Showrooms Ă—10, Outdoor Ă—2, Workspaces", most first; "none" if empty.
     private static string Counted(IEnumerable<string> names)
     {
-        var groups = names.GroupBy(n => n).OrderByDescending(g => g.Count()).Select(g => g.Count() > 1 ? $"{g.Key} ×{g.Count()}" : g.Key).ToList();
+        var groups = names.GroupBy(n => n).OrderByDescending(g => g.Count()).Select(g => g.Count() > 1 ? $"{g.Key} Ă—{g.Count()}" : g.Key).ToList();
         return groups.Count == 0 ? "none" : string.Join(", ", groups);
     }
 

@@ -103,6 +103,7 @@ public sealed partial class Simulation : IDisposable
             _pointsOfInterest, _landmarks);
         // Runtime randomness never comes from the Store seed (ADR 0003); it is unseeded unless a test fixes it.
         var runtimeSeed = config.RuntimeRngSeed ?? Random.Shared.Next();
+        _restockRandom = SeededRandom.For(runtimeSeed, 2);
         _weather = new Weather(_space, SeededRandom.For(runtimeSeed, WeatherStream));
         if (sandbox)
             _weather.SetFormation(false);
@@ -114,6 +115,7 @@ public sealed partial class Simulation : IDisposable
         Scenario = new ScenarioBuilder(this);
         _snapshot = BuildSnapshot();
         InitializeRestock();
+        ScheduleDrySpell();
     }
 
     /// <summary>Creates a new world from the seed in <paramref name="config"/>.</summary>
@@ -506,6 +508,7 @@ public sealed partial class Simulation : IDisposable
             TankFish = _tankFish,
             CounterMeals = _counterMeals,
             CampGoods = _campGoods,
+            DrySpells = _drySpell is { } spell ? Array.AsReadOnly(new[] { spell }) : Array.Empty<DrySpell>(),
             Stock = _stock,
             SectorStocks = _sectorStocks,
             WaterPoints = _waterPoints,

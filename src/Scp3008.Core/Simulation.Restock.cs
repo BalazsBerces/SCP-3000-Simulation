@@ -11,7 +11,51 @@ public sealed partial class Simulation
     private double _restockHours;
     private double _nextFurnitureCheck = double.PositiveInfinity;
     private readonly Dictionary<(int FurnitureId, GoodsKind Kind), int> _stockTargets = [];
-    private double _goodsRestockCredit;
+    private readonly Dictionary<int, double> _goodsRestockCredit = [];
+    private readonly SeededRandom _restockRandom;
+    private DrySpell? _drySpell;
+    private double _nextDrySpellHour;
+
+    private void ScheduleDrySpell()
+    {
+        var interval = (_config.Restock ?? new RestockConfig()).DrySpellIntervalHours;
+        _nextDrySpellHour = interval == 0 ? double.PositiveInfinity :
+            _restockHours + interval * (0.5 + _restockRandom.NextFloat());
+    }
+
+    private double RestockMultiplier(int departmentId) => _drySpell is not { } spell ? 1 :
+        departmentId == spell.DepartmentId ? 1 - spell.Strength :
+        departmentId == spell.BoostedDepartmentId ? 1 + spell.Strength : 1;
+
+    private void AdvanceDrySpell()
+    {
+        var now = new StoreClock(_tick);
+        if (_drySpell is { } ended && now.Tick >= ended.EndsAt.Tick)
+        {
+            _drySpell = null;
+            Emit(new DrySpellEnded(now, ended));
+            ScheduleDrySpell();
+        }
+        if (_drySpell is not null || _restockHours + 1e-9 < _nextDrySpellHour)
+            return;
+        // Choose actual Restock sources, and never slow the only Department that can supply food.
+        var sources = _stockTargets.Keys.Where(k => _restockOrigins.ContainsKey(k.FurnitureId)).ToArray();
+        var departments = sources.Select(k => _departments.At(_restockOrigins[k.FurnitureId].Position).Id).Distinct().ToArray();
+        var food = sources.Where(k => GoodsCatalog.ClassOf(k.Kind) == GoodsClass.Food)
+            .Select(k => _departments.At(_restockOrigins[k.FurnitureId].Position).Id).Distinct().ToArray();
+        var candidates = departments.Where(id => food.Length != 1 || id != food[0]).ToArray();
+        if (departments.Length < 2 || candidates.Length == 0)
+        {
+            ScheduleDrySpell();
+            return;
+        }
+        var affected = _restockRandom.Pick(candidates);
+        var boosted = _restockRandom.Pick(departments.Where(id => id != affected).ToArray());
+        var config = _config.Restock ?? new RestockConfig();
+        _drySpell = new DrySpell(affected, boosted, now,
+            new StoreClock(_tick + StoreClock.TicksFor(TimeSpan.FromHours(config.DrySpellDurationHours))), config.DrySpellStrength);
+        Emit(new DrySpellStarted(now, _drySpell));
+    }
 
     private void InitializeRestock()
     {
@@ -33,18 +77,43 @@ public sealed partial class Simulation
     private void AdvanceRestock()
     {
         _restockHours += StoreClock.TickDuration.TotalHours;
+        AdvanceDrySpell();
+        if (_drySpell is not null && _missingFurniture.Count > 0)
+        {
+            for (var i = 0; i < _missingFurniture.Count; i++)
+            {
+                var missing = _missingFurniture[i];
+                var multiplier = RestockMultiplier(_departments.At(missing.Piece.Position).Id);
+                _missingFurniture[i] = missing with { ReadyHour = missing.ReadyHour +
+                    StoreClock.TickDuration.TotalHours * (1 - multiplier) };
+            }
+            _nextFurnitureCheck = _missingFurniture.Min(m => m.ReadyHour);
+        }
         RestoreFurniture();
-        _goodsRestockCredit += StoreClock.TickDuration.TotalHours * (_config.Restock ?? new RestockConfig()).GoodsPerStoreHour;
-        if (_goodsRestockCredit + 1e-9 < 1)
+        var rate = (_config.Restock ?? new RestockConfig()).GoodsPerStoreHour;
+        if (rate == 0)
             return;
-        var units = Math.Floor(_goodsRestockCredit + 1e-9);
-        _goodsRestockCredit = Math.Max(0, _goodsRestockCredit - units);
+        var refill = new Dictionary<int, double>();
+        foreach (var department in _departments.All)
+        {
+            var credit = _goodsRestockCredit.GetValueOrDefault(department.Id) + StoreClock.TickDuration.TotalHours *
+                rate * RestockMultiplier(department.Id);
+            var units = Math.Floor(credit + 1e-9);
+            _goodsRestockCredit[department.Id] = Math.Max(0, credit - units);
+            if (units > 0)
+                refill[department.Id] = units;
+        }
+        if (refill.Count == 0)
+            return;
         var present = _furniture.Pieces.Select(p => p.Id).ToHashSet();
         var stock = _stock.ToDictionary(g => (g.FurnitureId, g.Kind, g.LeftBehind));
         var changed = false;
         foreach (var (key, capacity) in _stockTargets)
         {
             if (!present.Contains(key.FurnitureId) || !_restockOrigins.ContainsKey(key.FurnitureId))
+                continue;
+            var units = refill.GetValueOrDefault(_departments.At(_restockOrigins[key.FurnitureId].Position).Id);
+            if (units == 0)
                 continue;
             var lookup = (key.FurnitureId, key.Kind, false);
             var amount = stock.GetValueOrDefault(lookup).Amount;
