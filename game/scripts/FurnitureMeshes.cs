@@ -1318,15 +1318,14 @@ public static class FurnitureMeshes
     private static void BuildCamping(Builder b, FurnitureType type, int variant, float w, float d, float h)
     {
         var (hw, hd) = (w / 2f, d / 2f);
-        // The cloth flame glows with its own Lamp; coarse meshes have the lamp shade part for that.
-        var glow = b.Coarse ? Part.LampShade : Part.Flame;
         switch (type)
         {
             case FurnitureType.CampfireFlame:
-                // Three tongues of cloth flame over the logs of the campfire ring.
-                b.Cylinder(glow, new Vector3(0f, 0.1f, 0f), 0.45f, 0.04f, 1.5f, 8);
-                b.Cylinder(glow, new Vector3(0.22f, 0.1f, 0.1f), 0.28f, 0.03f, 1.7f, 8);
-                b.Cylinder(glow, new Vector3(-0.22f, 0.1f, -0.1f), 0.28f, 0.03f, 1.2f, 8);
+                // Three tongues of cloth flame over the logs of the campfire ring; it glows with its own Lamp
+                // (in coarse meshes too, see lamp_glow_part).
+                b.Cylinder(Part.Flame, new Vector3(0f, 0.1f, 0f), 0.45f, 0.04f, 1.5f, 8);
+                b.Cylinder(Part.Flame, new Vector3(0.22f, 0.1f, 0.1f), 0.28f, 0.03f, 1.7f, 8);
+                b.Cylinder(Part.Flame, new Vector3(-0.22f, 0.1f, -0.1f), 0.28f, 0.03f, 1.2f, 8);
                 break;
             case FurnitureType.LanternTent:
                 // The tent's door cloth, lit from inside, with a person's silhouette against it.
@@ -2124,6 +2123,8 @@ public static class FurnitureMeshes
                 if (isOrm)
                     metallic *= roughAvg.B;
             }
+            var gain = FurnitureModels.CoarseGain(FurnitureModels.ProceduralGains, part.ToString());
+            linear = new Color(linear.R * gain.X, linear.G * gain.Y, linear.B * gain.Z);
             albedo[(int)part] = new Vector4(linear.R, linear.G, linear.B, (bool)material.GetShaderParameter("tinted") ? 1f : 0f);
             surface[(int)part] = new Vector2(roughness, metallic);
         }
@@ -2134,6 +2135,7 @@ public static class FurnitureMeshes
         _coarseMaterial.SetShaderParameter("part_surface", surface);
         _coarseMaterial.SetShaderParameter("part_glow", glow);
         _coarseMaterial.SetShaderParameter("emissive_part", (int)Part.LampShade);
+        _coarseMaterial.SetShaderParameter("lamp_glow_part", (int)Part.Flame);
         _coarseMaterial.SetShaderParameter("emission_color", shade.GetShaderParameter("emission_color"));
         _coarseMaterial.SetShaderParameter("emission_energy", shade.GetShaderParameter("emission_energy"));
         return _coarseMaterial;

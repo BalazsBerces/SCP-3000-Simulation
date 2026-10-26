@@ -26,6 +26,11 @@ public partial class CoarseColourCheck : Node
     private const float MaxChromaDistance = 0.04f;
     // Two averages this close in linear luminance have the same brightness, whatever their ratio.
     private const float MinLuminanceDifference = 0.01f;
+    private const float Exposure = 0.5f;
+    // Gain fitting: a part's average channel above this (linear) may hold clipped pixels; the rest (the
+    // untinted share) must be at least this share of the part's colour to be scaled, or noise would set it.
+    private const float MaxFitted = 0.8f;
+    private const float MinRestShare = 0.15f;
     // Tints checked for tinted types (cream, navy, terracotta); the sheet shows the last.
     private static readonly int[] Tints = [0, 4, 9];
 
@@ -110,30 +115,88 @@ public partial class CoarseColourCheck : Node
     /// The coarse gains (FurnitureModels.CoarseGain) that would make every failing part match: the current gain
     /// times the full-over-coarse colour ratio, per channel, written to coarse_gains.json. Copy it to
     /// assets/models/coarse_gains.json and run the check again; each round closes most of the remaining gap.
-    /// Tinted pieces count in their first tint; a part near black in either render or missing from one keeps its gain.
+    /// A model's tinted part has a second gain for its light fabric: per channel, both renders' colour is a
+    /// straight line over the tints' colour (the fabric's share times the tint, plus the rest), and the
+    /// fabric gain scales the slope and the part's gain the rest. Procedural parts' gains are shared by
+    /// every type (FurnitureModels.ProceduralGains). A part near black in either render or missing from one keeps its gain.
     /// </summary>
     private static void SaveGains(string directory, List<Result> results)
     {
         var gains = new SortedDictionary<string, SortedDictionary<string, float[]>>();
-        foreach (var result in results.Where(r => r.Tint is null or 0).Where(r => FurnitureModels.Find(r.Type, r.Variant) is not null))
-            foreach (var part in result.Parts)
+        void Set(string key, string part, float[] values)
+        {
+            if (values.All(v => v == 1f))
+                return;
+            if (!gains.TryGetValue(key, out var parts))
+                gains[key] = parts = [];
+            parts[part] = values;
+        }
+        static float Ratio(float full, float coarse) => Mathf.Clamp(full / Mathf.Max(coarse, 1e-3f), 0.1f, 10f);
+        static Vector3 Scaled(Vector3 old, Color full, Color coarse) =>
+            new(old.X * Ratio(full.R, coarse.R), old.Y * Ratio(full.G, coarse.G), old.Z * Ratio(full.B, coarse.B));
+        static bool Usable(PartResult part) => part.Compared && !part.Dark;
+
+        var calibrated = new HashSet<string>();
+        foreach (var group in results.GroupBy(r => (r.Type, r.Variant)))
+        {
+            var (type, variant) = group.Key;
+            var key = $"{type}-{variant}";
+            var model = FurnitureModels.Find(type, variant) is not null;
+            var pieces = group.ToList();
+            for (var p = 0; p < pieces[0].Parts.Count; p++)
             {
-                var old = FurnitureModels.CoarseGain(result.Type, result.Variant, part.Part);
-                var gain = old;
-                if (part.Compared && !part.Dark && !part.Passed)
-                    gain = new Vector3(
-                        old.X * Mathf.Clamp(part.Full.R / Mathf.Max(part.Coarse.R, 1e-3f), 0.1f, 10f),
-                        old.Y * Mathf.Clamp(part.Full.G / Mathf.Max(part.Coarse.G, 1e-3f), 0.1f, 10f),
-                        old.Z * Mathf.Clamp(part.Full.B / Mathf.Max(part.Coarse.B, 1e-3f), 0.1f, 10f));
-                if (gain == Vector3.One)
+                var name = pieces[0].Parts[p].Part;
+                var tints = pieces.Select(r => (Tint: r.Tint is { } t ? FurnitureMeshes.TintFor(type, t) : Colors.White, Part: r.Parts[p])).ToList();
+                var failing = tints.Any(t => !t.Part.Passed) && tints.All(t => Usable(t.Part));
+                if (!model)
+                {
+                    // Shared by every type: the first failing piece decides.
+                    var g = FurnitureModels.CoarseGain(FurnitureModels.ProceduralGains, name);
+                    if (failing && calibrated.Add(name))
+                        g = Scaled(g, tints[0].Part.Full, tints[0].Part.Coarse);
+                    else if (calibrated.Contains(name))
+                        continue;
+                    Set(FurnitureModels.ProceduralGains, name, [g.X, g.Y, g.Z]);
                     continue;
-                var key = $"{result.Type}-{result.Variant}";
-                if (!gains.TryGetValue(key, out var parts))
-                    gains[key] = parts = [];
-                parts[part.Part] = [gain.X, gain.Y, gain.Z];
+                }
+                var old = FurnitureModels.CoarseGain(type, variant, name);
+                var oldFabric = FurnitureModels.CoarseFabricGain(type, variant, name);
+                var (gain, fabric) = (old, oldFabric);
+                if (failing && tints.Count == 1)
+                    gain = fabric = Scaled(old, tints[0].Part.Full, tints[0].Part.Coarse);
+                else if (failing)
+                    for (var c = 0; c < 3; c++)
+                    {
+                        // A light tint can clip to white, which is not on the line.
+                        var lit = tints.Where(t => Mathf.Max(t.Part.Full[c], t.Part.Coarse[c]) < MaxFitted).ToList();
+                        // One unclipped tint draws no line: scale the fabric, the larger share, by its ratio.
+                        if (lit.Count == 1)
+                            fabric[c] = oldFabric[c] * Ratio(lit[0].Part.Full[c], lit[0].Part.Coarse[c]);
+                        if (lit.Count < 2)
+                            continue;
+                        var (fullSlope, fullRest) = Line(lit.Select(t => (t.Tint[c], t.Part.Full[c])).ToList());
+                        var (coarseSlope, coarseRest) = Line(lit.Select(t => (t.Tint[c], t.Part.Coarse[c])).ToList());
+                        // No fabric in one render (or little rest): nothing to scale, keep that gain.
+                        if (fullSlope > 1e-3f && coarseSlope > 1e-3f)
+                            fabric[c] = oldFabric[c] * Mathf.Clamp(fullSlope / coarseSlope, 0.1f, 10f);
+                        var level = lit.Average(t => t.Part.Coarse[c]);
+                        if (fullRest > MinRestShare * level && coarseRest > MinRestShare * level)
+                            gain[c] = old[c] * Mathf.Clamp(fullRest / coarseRest, 0.1f, 10f);
+                    }
+                Set(key, name, gain == fabric ? [gain.X, gain.Y, gain.Z] : [gain.X, gain.Y, gain.Z, fabric.X, fabric.Y, fabric.Z]);
             }
+        }
         System.IO.File.WriteAllText(System.IO.Path.Combine(directory, "coarse_gains.json"),
             System.Text.Json.JsonSerializer.Serialize(gains, new System.Text.Json.JsonSerializerOptions { WriteIndented = true }));
+    }
+
+    /// <summary>The least-squares line through the points: its slope and its value at 0.</summary>
+    private static (float Slope, float Intercept) Line(List<(float X, float Y)> points)
+    {
+        var (meanX, meanY) = (points.Average(p => p.X), points.Average(p => p.Y));
+        var spread = points.Sum(p => (p.X - meanX) * (p.X - meanX));
+        var slope = spread < 1e-6f ? 0f : points.Sum(p => (p.X - meanX) * (p.Y - meanY)) / spread;
+        return (slope, meanY - slope * meanX);
     }
 
     /// <summary>A world of its own: grey backdrop, soft ambient light, one sun from the front left, an orthographic camera.</summary>
@@ -157,6 +220,9 @@ public partial class CoarseColourCheck : Node
                 AmbientLightColor = Colors.White,
                 AmbientLightEnergy = 0.45f,
                 TonemapMode = Godot.Environment.ToneMapper.Linear,
+                // Sun and ambient light a white part to about 1.5: at full exposure light tints clip to
+                // white, which hides how far the coarse colour is off.
+                TonemapExposure = Exposure,
             },
         });
         var sun = new DirectionalLight3D { LightEnergy = 1f };

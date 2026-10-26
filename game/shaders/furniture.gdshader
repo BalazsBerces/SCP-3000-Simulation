@@ -41,8 +41,12 @@ uniform bool coarse_parts = false;
 uniform vec4 part_albedo[64];
 uniform vec2 part_surface[64];
 uniform int emissive_part = -1;
+// A coarse part that keeps its own glow (part_glow) but, like the shade, glows as far as its Lamp has come on.
+uniform int lamp_glow_part = -1;
 // The steady glow of each coarse part (linear colour times energy); black for parts that do not glow.
 uniform vec3 part_glow[64];
+// The coarse gain of each model part's light fabric, which takes the instance colour (see coarse_tint).
+uniform vec3 part_fabric[64];
 // Dev aid (DevCapture --lod-debug): draws coarse meshes magenta, to show which level is drawn.
 uniform bool lod_debug = false;
 // A clock hand of the clock wall: 1 the hour hand, 2 the minute hand, 0 not a hand. A hand turns about the
@@ -51,7 +55,7 @@ uniform bool lod_debug = false;
 uniform int clock_hand = 0;
 
 varying flat int part;
-// A coarse model mesh marks the vertices on its light, tinted fabric with UV2.y 1 (see tint_light).
+// A coarse model mesh carries each face's share of light, tinted fabric in UV2.y (see tint_light).
 varying flat float coarse_tint;
 // How far this piece's own Lamp has come on; read once per vertex, only for glowing shades.
 varying flat float shade_level;
@@ -69,7 +73,7 @@ void vertex() {
 		VERTEX.xy = turn * (VERTEX.xy - pivot) + pivot;
 		NORMAL.xy = turn * NORMAL.xy;
 	}
-	if (coarse_parts ? part == emissive_part : emission_energy > 0.0 && lamp_glow) {
+	if (coarse_parts ? part == emissive_part || part == lamp_glow_part : emission_energy > 0.0 && lamp_glow) {
 		shade_level = lamp_level_near(MODEL_MATRIX[3].xyz);
 	}
 }
@@ -89,14 +93,13 @@ void fragment() {
 	if (coarse_parts) {
 		albedo = part_albedo[part].rgb;
 		tint = part_albedo[part].a > 0.5;
-		if (coarse_tint > 0.5) {
-			albedo = vec3(1.0);
-			tint = true;
+		if (coarse_tint > 0.0) {
+			albedo = mix(albedo, part_fabric[part] * COLOR.rgb, coarse_tint);
 		}
 		surface_roughness = part_surface[part].x;
 		surface_metallic = part_surface[part].y;
 		if (part != emissive_part) {
-			emission = part_glow[part];
+			emission = part_glow[part] * shade_level;
 		}
 		if (lod_debug) {
 			albedo = vec3(0.8, 0.05, 0.8);

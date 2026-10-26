@@ -80,6 +80,8 @@ public static class FurnitureModels
     // piece's tint; darker texels (wooden legs, frames, shadows) keep their colour. Matches
     // tint_threshold in furniture.gdshader.
     private const float TintThreshold = 0.12f;
+    // The steps of a coarse voxel's share of light fabric (UV2.y); more steps merge fewer faces.
+    private const int FabricSteps = 4;
 
     // Roughness the coarse mesh adds in place of the normal map it does not have.
     private const float NormalSpread = 0.4f;
@@ -171,18 +173,28 @@ public static class FurnitureModels
 
     // Per model part, the linear colour gain that makes the coarse mesh match the full mesh's rendered look
     // (the textures' average misses highlights, occlusion and the weight of lit tops); written by
-    // CoarseColourCheck (coarse_gains.json), keyed by "Type-Variant" and part name.
+    // CoarseColourCheck (coarse_gains.json), keyed by "Type-Variant" (or ProceduralGains for the procedural
+    // parts, shared by every type) and part name. A tinted part's light fabric can have a gain of its own
+    // (values 3 to 5); otherwise it takes the part's.
     private const string GainsPath = "res://assets/models/coarse_gains.json";
+    public const string ProceduralGains = "Procedural";
     private static Dictionary<string, Dictionary<string, float[]>>? _gains;
 
-    public static Vector3 CoarseGain(FurnitureType type, int variant, string part)
+    public static Vector3 CoarseGain(FurnitureType type, int variant, string part) => CoarseGain($"{type}-{variant}", part, fabric: false);
+
+    public static Vector3 CoarseFabricGain(FurnitureType type, int variant, string part) => CoarseGain($"{type}-{variant}", part, fabric: true);
+
+    public static Vector3 CoarseGain(string key, string part, bool fabric = false)
     {
         if (_gains is null)
         {
             using var file = Godot.FileAccess.Open(GainsPath, Godot.FileAccess.ModeFlags.Read);
             _gains = file is null ? [] : System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, Dictionary<string, float[]>>>(file.GetAsText()) ?? [];
         }
-        return _gains.TryGetValue($"{type}-{variant}", out var parts) && parts.TryGetValue(part, out var g) ? new Vector3(g[0], g[1], g[2]) : Vector3.One;
+        if (!_gains.TryGetValue(key, out var parts) || !parts.TryGetValue(part, out var g))
+            return Vector3.One;
+        var first = fabric && g.Length >= 6 ? 3 : 0;
+        return new Vector3(g[first], g[first + 1], g[first + 2]);
     }
 
     /// <summary>The model that draws a Furniture type and variant, or null if it is procedural.</summary>
@@ -610,8 +622,8 @@ public static class FurnitureModels
 
     /// <summary>
     /// The coarse mesh: the model's voxel proxy (<see cref="Proxy"/>) in one surface, each vertex
-    /// carrying its part in UV2.x and, on a tinted model, whether it lies on the light fabric that
-    /// takes the tint in UV2.y. The part tables hold each part's average colour.
+    /// carrying its part in UV2.x and, on a tinted model, its share of the light fabric that takes the
+    /// tint in UV2.y. The part tables hold each part's average colour.
     /// </summary>
     private static ArrayMesh CoarseMesh(Model model, List<Part> parts)
     {
@@ -625,6 +637,7 @@ public static class FurnitureModels
         var albedo = new Vector4[FurnitureMeshes.PartSlots];
         var surface = new Vector2[FurnitureMeshes.PartSlots];
         var glow = new Vector3[FurnitureMeshes.PartSlots];
+        var fabric = new Vector3[FurnitureMeshes.PartSlots];
         for (var s = 0; s < parts.Count; s++)
         {
             var part = parts[s];
@@ -633,6 +646,7 @@ public static class FurnitureModels
             var gain = CoarseGain(model.Type, model.Variant, part.Name);
             colour = new Color(colour.R * gain.X, colour.G * gain.Y, colour.B * gain.Z, colour.A);
             albedo[s] = new Vector4(colour.R, colour.G, colour.B, 0f);
+            fabric[s] = CoarseFabricGain(model.Type, model.Variant, part.Name);
             var orm = Decompressed(part.Material.RoughnessTexture);
             var packed = orm is null ? Colors.White : Average(part, orm, srgb: false);
             var channel = Orm(part.Material) ? 1 : 0;
@@ -664,6 +678,7 @@ public static class FurnitureModels
         material.SetShaderParameter("part_albedo", albedo);
         material.SetShaderParameter("part_surface", surface);
         material.SetShaderParameter("part_glow", glow);
+        material.SetShaderParameter("part_fabric", fabric);
         material.SetShaderParameter("lod_debug", _coarseInMagenta);
         CoarseMaterials.Add(material);
         mesh.SurfaceSetMaterial(0, material);
@@ -750,16 +765,18 @@ public static class FurnitureModels
                 }
         }
         bool Solid(Vector3I v) => Inside(v) && !outside[Index(v)];
-        // A surface voxel's part and fabric as one key (2 × part + fabric); inside voxels show no face.
+        // A surface voxel's part and its share of light fabric, in FabricSteps, as one key; inside voxels show
+        // no face. A voxel that is all fabric or none would make a saturated tint too pale or too strong.
         int Key(Vector3I v)
         {
             if (!votes.TryGetValue(Index(v), out var tally))
                 return -1;
             var best = 0;
-            for (var k = 1; k < tally.Length; k++)
-                if (tally[k] > tally[best])
-                    best = k;
-            return best;
+            for (var p = 1; p < parts.Count; p++)
+                if (tally[2 * p] + tally[2 * p + 1] > tally[2 * best] + tally[2 * best + 1])
+                    best = p;
+            var share = tally[2 * best + 1] / Mathf.Max(tally[2 * best] + tally[2 * best + 1], 1e-12f);
+            return best * (FabricSteps + 1) + (int)Mathf.Round(share * FabricSteps);
         }
 
         var (positions, normals, keys) = (new List<Vector3>(), new List<Vector3>(), new List<Vector2>());
@@ -812,7 +829,7 @@ public static class FurnitureModels
                         {
                             positions.Add(p);
                             normals.Add(shading);
-                            keys.Add(new Vector2(key / 2, key % 2));
+                            keys.Add(new Vector2(key / (FabricSteps + 1), (float)(key % (FabricSteps + 1)) / FabricSteps));
                         }
                     }
             }
