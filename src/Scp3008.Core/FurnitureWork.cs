@@ -97,7 +97,7 @@ public sealed partial class Simulation
         var people = _villagers.Snapshot();
         var workers = ids.Select(id => people.SingleOrDefault(v => v.Id == id)
             ?? throw new ArgumentException("No such Villager.")).ToArray();
-        if (workers.Any(v => v.FurnitureTaskId is not null || v.CarriedAmount + v.CarriedMaterials > 0))
+        if (workers.Any(v => v.Crafting || v.FurnitureTaskId is not null || v.CarriedAmount + v.CarriedMaterials > 0))
             throw new InvalidOperationException("A worker is already carrying a load or working on Furniture.");
         if (disassemble && (workers.Length != 1 || workers[0].VillageId is null || workers[0].Hand?.Kind == GearKind.ShoppingCart))
             throw new InvalidOperationException("Disassembly needs one Village member with hands available.");

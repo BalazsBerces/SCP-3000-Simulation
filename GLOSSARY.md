@@ -176,6 +176,12 @@ _Avoid_: Biome resource, specialty
 A known way to make a piece of Gear or a reinforcement from Materials, needing certain tools and sometimes a Workshop. Basic Recipes are known by everyone; others are discovered by experimenting, learned from assembly instructions found in the Store, brought by people who join, or traded and shared between Villages. A Village's know-how is the set of its Recipes.
 _Avoid_: Technology, tech, blueprint (that is a structure plan)
 
+**Skill**:
+A Villager's practice in a Role, kept when they switch Roles. Builder skill grows when making Gear or disassembling Furniture; it makes both faster, made Gear more durable, and disassembly richer in Materials.
+
+**Bandage**:
+Single-use Gear made from fabric with bare hands, consumed when used. It is for speeding a Wounded Villager's healing; there are no medicines in the Store.
+
 **Restock**:
 The Store's slow replenishment of Goods and Furniture, which keeps the world from running dry. Each Goods kind and Furniture restock at their own rate; Furniture reappears only where no Villager can see. Goods restock only on Stock Furniture, and the shelves visibly fill and empty.
 _Avoid_: Respawn, regeneration

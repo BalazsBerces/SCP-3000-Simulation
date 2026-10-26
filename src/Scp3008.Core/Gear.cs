@@ -2,7 +2,7 @@ using System.Numerics;
 
 namespace Scp3008.Core;
 
-public enum GearKind { HexKey, Screwdriver, KitchenKnife, Scissors, CanvasBag, ShoppingCart, Flashlight, QuiltedArmour, Crowbar }
+public enum GearKind { HexKey, Screwdriver, KitchenKnife, Scissors, CanvasBag, ShoppingCart, Flashlight, QuiltedArmour, Crowbar, TableLegClub, Candle, CardboardArmour, Bandage }
 public enum GearSlot { Hand, Bag, Armour }
 
 /// <summary>Found or carried Gear. Unclaimed Gear stays at its source Furniture until taken.</summary>
@@ -11,7 +11,7 @@ public sealed record Gear(int Id, GearKind Kind, Vector2 Position)
     public double Durability { get; init; } = 100;
     public double BatteryHours { get; init; }
     public int FurnitureId { get; init; } = -1;
-    public GearSlot Slot => Kind == GearKind.CanvasBag ? GearSlot.Bag : Kind == GearKind.QuiltedArmour ? GearSlot.Armour : GearSlot.Hand;
+    public GearSlot Slot => Kind == GearKind.CanvasBag ? GearSlot.Bag : Kind is GearKind.QuiltedArmour or GearKind.CardboardArmour ? GearSlot.Armour : GearSlot.Hand;
 
     internal void Validate()
     {
@@ -44,7 +44,8 @@ internal sealed partial class Villagers
     private bool SeekGear(Walker w, WorldSnapshot world)
     {
         if (w.CarriedAmount > 0 || w.CarriedMaterials > 0) return false;
-        var chosen = world.Gear.Where(g => CanEquip(w, g) &&
+        var homeGear = world.Villages.FirstOrDefault(v => v.Id == w.VillageId)?.Gear ?? [];
+        var chosen = world.Gear.Concat(homeGear).Where(g => CanEquip(w, g) &&
                 space.Distance(w.Position, g.Position) <= 12 * (1 - world.FogDensityAt(w.Position) * 0.8f) &&
                 !w.Unreachable.Contains(g.Position))
             .OrderBy(g => space.Distance(w.Position, g.Position))
@@ -108,7 +109,16 @@ public sealed partial class Simulation
     private bool TakeGear(int id, Gear gear)
     {
         var found = _gear.FirstOrDefault(g => g.Id == gear.Id);
-        if (found is null) return false;
+        if (found is null)
+        {
+            var worker = _villagers.Snapshot().Single(v => v.Id == id);
+            var village = _villages.FirstOrDefault(v => v.Id == worker.VillageId && v.Gear.Any(g => g.Id == gear.Id));
+            if (village is null) return false;
+            found = village.Gear.Single(g => g.Id == gear.Id);
+            _villagers.Equip(id, found);
+            _villages[village.Id] = village with { Gear = Array.AsReadOnly(village.Gear.Where(g => g.Id != found.Id).ToArray()) };
+            return true;
+        }
         _villagers.Equip(id, found);
         _gear.Remove(found);
         if (found.Kind == GearKind.ShoppingCart && found.FurnitureId >= 0)

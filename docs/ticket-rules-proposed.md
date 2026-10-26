@@ -23,3 +23,4 @@ Agents append here, one line each (`- <ticket>: <cause and fix>`), when a proble
 
 - 15: SeedPanel defers its initial sandbox camera move, which can overwrite a rendered check's camera position. Await an initial frame before positioning the camera for a sandbox capture.
 - 15: Rendering benchmarks must set the Store clock through Scenario.SetTimeOfDay rather than AdvanceTo. Advancing the full Store between lighting passes runs hours of Villager behaviour and can exhaust the Godot run timeout before rendering is measured.
+- 15a: Windows PowerShell Start-Process can leave ExitCode unset even after waiting for a fast Godot process. Use a runner that reliably returns the exit status, such as Python subprocess.run with a 300-second timeout, and keep stdout/stderr in ticket logs.

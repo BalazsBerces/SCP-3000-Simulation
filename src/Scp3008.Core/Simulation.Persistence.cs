@@ -6,7 +6,7 @@ namespace Scp3008.Core;
 
 public sealed partial class Simulation
 {
-    private const int SaveVersion = 3;
+    private const int SaveVersion = 4;
     private static readonly JsonSerializerOptions SaveJson = CreateSaveJson();
 
     private sealed record SaveFile(int Version, SaveState State);
@@ -104,11 +104,12 @@ public sealed partial class Simulation
         _bands.AddRange(s.Bands);
         _villages.AddRange(s.Villages);
         _chronicle.AddRange(s.Chronicle);
-        foreach (var gear in s.Gear.Concat(state.GearSources)) gear.Validate();
-        var liveGear = s.Gear.Concat(s.Villagers.SelectMany(v => new[] { v.Hand, v.Bag, v.Armour }).OfType<Gear>()).ToArray();
+        foreach (var gear in s.Gear.Concat(s.Villages.SelectMany(v => v.Gear)).Concat(state.GearSources)) gear.Validate();
+        var liveGear = s.Gear.Concat(s.Villages.SelectMany(v => v.Gear)).Concat(s.Villagers.SelectMany(v => new[] { v.Hand, v.Bag, v.Armour }).OfType<Gear>()).ToArray();
         if (liveGear.Select(g => g.Id).Distinct().Count() != liveGear.Length || state.NextGearId < 0 ||
             liveGear.Concat(state.GearSources).Any(g => g.Id >= state.NextGearId))
             throw new InvalidDataException("Invalid world save: inconsistent Gear ids.");
+        RestoreCrafting(s);
         _gear.AddRange(s.Gear);
         _gearSources.AddRange(state.GearSources);
         _nextGearId = state.NextGearId;

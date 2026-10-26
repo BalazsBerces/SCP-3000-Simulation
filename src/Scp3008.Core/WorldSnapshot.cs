@@ -53,6 +53,8 @@ public sealed record WorldSnapshot(
     public bool PointOfInterestShowcase { get; init; }
 
     /// <summary>Whether this is the tiny hand-placed Villager sandbox.</summary>
+    public IReadOnlyList<CraftingTask> CraftingTasks { get; init; } = [];
+
     public bool VillagerSandbox => PillarLayout == PillarLayout.VillagerSandbox;
 
     /// <summary>Running Dry spells; Department ids refer to Departments.All.</summary>

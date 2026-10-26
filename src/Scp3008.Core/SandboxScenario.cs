@@ -7,6 +7,7 @@ namespace Scp3008.Core;
 /// <summary>Wanderers sharing their observations while looking for a site.</summary>
 public sealed record Band(int Id, IReadOnlyList<int> VillagerIds)
 {
+    public IReadOnlyList<GearKind> Recipes { get; init; } = Array.AsReadOnly(Core.Recipes.Basic.Select(r => r.Gear).ToArray());
     public Vector2 Position { get; init; }
     public KnownMap KnownMap { get; init; } = new();
     public Vector2? Site { get; init; }

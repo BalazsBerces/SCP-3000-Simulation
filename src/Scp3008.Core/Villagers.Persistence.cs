@@ -32,14 +32,19 @@ internal sealed partial class Villagers
             var w = new Walker(v.Id, v.Position)
             {
                 Destination = v.Destination, Heading = v.Heading, Needs = v.Needs, Action = v.Action,
-                FurnitureTaskId = v.FurnitureTaskId, VillageId = v.VillageId, Role = v.Role, CarriedGoods = v.CarriedGoods,
+                Crafting = v.Crafting, FurnitureTaskId = v.FurnitureTaskId, VillageId = v.VillageId, Role = v.Role, CarriedGoods = v.CarriedGoods,
                 CarriedAmount = v.CarriedAmount, CarriedMaterials = v.CarriedMaterials,
                 Hand = v.Hand, Bag = v.Bag, Armour = v.Armour,
                 Waypoints = saved.Waypoints.ToList(), StarvingHours = saved.StarvingHours,
                 ThirstyHours = saved.ThirstyHours, NextDecision = saved.NextDecision,
                 Target = saved.Target is { } t ? new NeedTarget(t.Position, t.Goods, t.Water, t.Rest, t.Haul, t.Gear) : null,
             };
-            foreach (var skill in v.Skills) w.Skills.Add(skill.Key, skill.Value);
+            foreach (var skill in v.Skills)
+            {
+                if (!Enum.IsDefined(skill.Key) || !double.IsFinite(skill.Value) || skill.Value < 0)
+                    throw new ArgumentException("Invalid Villager skill.");
+                w.Skills.Add(skill.Key, skill.Value);
+            }
             w.ExploredGround.UnionWith(v.KnownMap.ExploredGround);
             foreach (var g in v.KnownMap.Goods) w.KnownGoods.Add((g.Goods.FurnitureId, g.Goods.Kind, g.Goods.LeftBehind), g);
             foreach (var water in v.KnownMap.Water) w.KnownWater.Add((water.FurnitureId, water.Position), water);

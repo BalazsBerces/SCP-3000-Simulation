@@ -21,6 +21,9 @@ public sealed partial class Simulation
                     _ => $"In {place}, {name}'s Band {founded.BandId} put down roots as {home}, {reason}.",
                 };
                 break;
+            case GearMade { First: true } made:
+                story = $"{Villager.NameOf(made.VillagerId)} made the first Gear for Village {made.VillageId}: {Recipes.Basic.Single(r => r.Gear == made.Gear.Kind).Name}. The community learned by doing.";
+                break;
             case VillagerDied died:
                 var person = Villager.NameOf(died.Body.VillagerId);
                 var village = _villages.FirstOrDefault(v => v.VillagerIds.Contains(died.Body.VillagerId));

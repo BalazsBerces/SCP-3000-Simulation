@@ -315,6 +315,7 @@ public sealed partial class Simulation : IDisposable
                     FogBanks = _weather.Snapshot(), Staff = _staff.Snapshot().Select(s => new Staff(s.Id, s.Position, s.Destination, s.Heading)).ToArray() },
                 _config.Needs ?? new NeedsConfig(), TakeGoods, Emit, CollectGoods, DeliverGoods, TakeGear);
         AdvanceFurnitureTasks(clock);
+        AdvanceCrafting(clock);
         AdvanceBands(clock);
         // Sandbox patrols use the same footprint navigation; daytime Staff remain dormant.
         if (clock.Phase == DayPhase.ClosingTime && _patrols.Count > 0)
@@ -495,6 +496,8 @@ public sealed partial class Simulation : IDisposable
     internal void SendVillager(int villagerId, Vector2 destination) => Publish(() =>
     {
         CancelFurnitureTasks(t => t.VillagerIds.Contains(villagerId));
+        if (_craftingTasks.RemoveAll(t => t.VillagerId == villagerId) > 0)
+            _villagers.CraftingPose(villagerId, false);
         _villagers.Send(villagerId, destination);
         return true;
     });
@@ -550,6 +553,7 @@ public sealed partial class Simulation : IDisposable
             Chronicle = _chronicle.ToList().AsReadOnly(),
             Gear = _gear.ToList().AsReadOnly(),
             FurnitureTasks = _furnitureTasks.ToList().AsReadOnly(),
+            CraftingTasks = _craftingTasks.ToList().AsReadOnly(),
             Staff = Array.AsReadOnly(_staff.Snapshot().Select(s => new Staff(s.Id, s.Position, s.Destination, s.Heading)).ToArray()),
         };
 
