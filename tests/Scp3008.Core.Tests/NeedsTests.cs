@@ -23,7 +23,7 @@ public class NeedsTests
     [InlineData(PointOfInterestType.AquariumAisle)]
     public void Villagers_eat_the_food_at_Points_of_interest(PointOfInterestType type)
     {
-        using var sim = Simulation.Create(new WorldConfig(3008, RuntimeRngSeed: 1, PointOfInterestShowcase: true));
+        using var sim = Simulation.Create(new WorldConfig(3008, StartingBands: false, RuntimeRngSeed: 1, PointOfInterestShowcase: true));
         var point = sim.Snapshot.PointsOfInterest.First(p => p.Type == type);
         var ids = sim.Snapshot.Furniture.Where(p => p.PointOfInterestId == point.Id).Select(p => p.Id).ToHashSet();
         var food = sim.Snapshot.Stock.First(g => ids.Contains(g.FurnitureId) && GoodsCatalog.ClassOf(g.Kind) == GoodsClass.Food);
@@ -61,7 +61,7 @@ public class NeedsTests
     [InlineData(WaterPointKind.ShowroomTap)]
     public void Villagers_drink_at_every_kind_of_running_Water_point(WaterPointKind kind)
     {
-        using var sim = Simulation.Create(new WorldConfig(3008, RuntimeRngSeed: 1,
+        using var sim = Simulation.Create(new WorldConfig(3008, StartingBands: false, RuntimeRngSeed: 1,
             LandmarkShowcase: kind is WaterPointKind.FountainCourt or WaterPointKind.CampingLake));
         var water = sim.Snapshot.WaterPoints.First(w => w.Kind == kind && w.Running);
         sim.Scenario.PlaceVillager(water.Position, new Needs(Thirst: 0.8));
@@ -75,7 +75,7 @@ public class NeedsTests
     [Fact]
     public void Dry_taps_supply_no_water()
     {
-        using var sim = Simulation.Create(new WorldConfig(3008, RuntimeRngSeed: 1, Water: new WaterConfig { RunningTapShare = 0 }));
+        using var sim = Simulation.Create(new WorldConfig(3008, StartingBands: false, RuntimeRngSeed: 1, Water: new WaterConfig { RunningTapShare = 0 }));
         var water = sim.Snapshot.WaterPoints.First(w => w.Kind == WaterPointKind.ShowroomTap &&
             sim.Snapshot.WaterPoints.Where(p => p.Running).All(p => sim.Snapshot.Space.Distance(w.Position, p.Position) > 100));
         sim.Scenario.RemoveFurniture(p => p.Id != water.FurnitureId);
@@ -116,7 +116,7 @@ public class NeedsTests
     [Fact]
     public void Exhausted_Villagers_rest_faster_inside_the_armchair_henge()
     {
-        using var sim = Simulation.Create(new WorldConfig(3008, RuntimeRngSeed: 1, PointOfInterestShowcase: true));
+        using var sim = Simulation.Create(new WorldConfig(3008, StartingBands: false, RuntimeRngSeed: 1, PointOfInterestShowcase: true));
         var henge = sim.Snapshot.PointsOfInterest.First(p => p.Type == PointOfInterestType.ArmchairHenge);
         var inside = sim.Scenario.PlaceVillager(henge.Centre, new Needs(Rest: 0.1));
         var outside = sim.Scenario.PlaceVillager(new Vector2(100, 100), new Needs(Rest: 0.1));
@@ -163,7 +163,7 @@ public class NeedsTests
     [Fact]
     public void Display_Fridges_are_empty_except_for_actual_left_behind_finds()
     {
-        using var sim = Simulation.Create(new WorldConfig(3008, RuntimeRngSeed: 1, Stock: new StockConfig { LeftBehindShare = 1 }));
+        using var sim = Simulation.Create(new WorldConfig(3008, StartingBands: false, RuntimeRngSeed: 1, Stock: new StockConfig { LeftBehindShare = 1 }));
         var pieces = sim.Snapshot.Furniture.ToDictionary(p => p.Id);
         var find = sim.Snapshot.Stock.First(g => g.LeftBehind && GoodsCatalog.ClassOf(g.Kind) == GoodsClass.Food &&
             pieces[g.FurnitureId].Type == FurnitureType.Fridge);

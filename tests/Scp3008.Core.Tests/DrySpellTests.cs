@@ -10,7 +10,7 @@ public class DrySpellTests
     [InlineData(1, 0, 4)]
     public void Dry_spell_slows_one_Department_boosts_another_and_ends_with_normal_refill(double strength, int dryUnits, int fastUnits)
     {
-        using var sim = Simulation.Create(new WorldConfig(3008, RuntimeRngSeed: 17,
+        using var sim = Simulation.Create(new WorldConfig(3008, StartingBands: false, RuntimeRngSeed: 17,
             Restock: new RestockConfig { GoodsPerStoreHour = 1, DrySpellIntervalHours = 4,
                 DrySpellDurationHours = 4, DrySpellStrength = strength }));
         var events = new List<DomainEvent>();
@@ -45,7 +45,7 @@ public class DrySpellTests
     [Fact]
     public void Long_run_visits_different_Departments_and_Sectors_without_stopping_all_food()
     {
-        using var sim = Simulation.Create(new WorldConfig(3008, RuntimeRngSeed: 17,
+        using var sim = Simulation.Create(new WorldConfig(3008, StartingBands: false, RuntimeRngSeed: 17,
             Restock: new RestockConfig { GoodsPerStoreHour = 0, DrySpellStrength = 1,
                 DrySpellIntervalHours = 24, DrySpellDurationHours = 24 }));
         sim.Scenario.SetFogBankFormation(false);
@@ -81,7 +81,7 @@ public class DrySpellTests
     {
         DrySpell[] Run(int runtimeSeed, bool weather, int mapSeed = 3008)
         {
-            using var sim = Simulation.Create(new WorldConfig(mapSeed, RuntimeRngSeed: runtimeSeed,
+            using var sim = Simulation.Create(new WorldConfig(mapSeed, StartingBands: false, RuntimeRngSeed: runtimeSeed,
                 PointOfInterestShowcase: true, Restock: new RestockConfig
                 { DrySpellIntervalHours = 2, DrySpellDurationHours = 1 }));
             sim.Scenario.SetFogBankFormation(weather);
@@ -137,7 +137,7 @@ public class DrySpellTests
     [Fact]
     public void Dry_spell_also_delays_Furniture_return_while_the_other_Department_returns_it_faster()
     {
-        using var sim = Simulation.Create(new WorldConfig(3008, RuntimeRngSeed: 17,
+        using var sim = Simulation.Create(new WorldConfig(3008, StartingBands: false, RuntimeRngSeed: 17,
             Restock: new RestockConfig { FurnitureHours = 2, LandmarkFurnitureHours = 2,
                 DrySpellIntervalHours = 4, DrySpellDurationHours = 4, DrySpellStrength = 1 }));
         sim.Scenario.SetFogBankFormation(false);

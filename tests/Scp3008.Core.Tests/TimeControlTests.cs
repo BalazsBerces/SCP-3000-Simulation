@@ -5,7 +5,7 @@ namespace Scp3008.Core.Tests;
 public class TimeControlTests
 {
     private static Simulation NewWorld() =>
-        Simulation.Create(new WorldConfig(Seed: 3008, RuntimeRngSeed: 1));
+        Simulation.Create(new WorldConfig(Seed: 3008, StartingBands: false, RuntimeRngSeed: 1));
 
     [Fact]
     public void A_new_world_runs_at_normal_speed()

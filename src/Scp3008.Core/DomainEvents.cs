@@ -6,6 +6,12 @@ namespace Scp3008.Core;
 /// <param name="At">The Store clock when the event happened.</param>
 public abstract record DomainEvent(StoreClock At);
 
+public sealed record VillageFounded(StoreClock At, int BandId, Village Village, bool Forced) : DomainEvent(At);
+
+public sealed record RoleChanged(StoreClock At, int VillagerId, Role Role) : DomainEvent(At);
+
+public sealed record GoodsDelivered(StoreClock At, int VillagerId, int VillageId, GoodsKind Kind) : DomainEvent(At);
+
 public sealed record VillagerDied(StoreClock At, Body Body) : DomainEvent(At);
 
 public sealed record GoodsConsumed(StoreClock At, int VillagerId, int FurnitureId, GoodsKind Kind) : DomainEvent(At);

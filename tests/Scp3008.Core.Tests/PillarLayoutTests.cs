@@ -7,7 +7,7 @@ namespace Scp3008.Core.Tests;
 public class PillarLayoutTests
 {
     private static Simulation Create(PillarLayout layout, int seed = 3008) =>
-        Simulation.Create(new WorldConfig(seed, RuntimeRngSeed: 1, PillarLayout: layout));
+        Simulation.Create(new WorldConfig(seed, StartingBands: false, RuntimeRngSeed: 1, PillarLayout: layout));
 
     [Fact]
     public void A_world_uses_the_3_x_3_layout_unless_told_otherwise()

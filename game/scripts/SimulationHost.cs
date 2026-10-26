@@ -214,6 +214,9 @@ public partial class SimulationHost : Node
         {
             switch (domainEvent)
             {
+                case VillageFounded founded:
+                    GD.Print($"Band {founded.BandId} founded Village {founded.Village.Id} with {founded.Village.VillagerIds.Count} Villagers.");
+                    break;
                 case StoreDayBegan began:
                     GD.Print($"Store day {began.Day} began.");
                     break;

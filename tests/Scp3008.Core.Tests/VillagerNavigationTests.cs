@@ -11,7 +11,7 @@ public class VillagerNavigationTests
     /// <summary>A Store whose floor is bare apart from the Pillars: the Point of interest showcase with its Furniture carried off.</summary>
     private static Simulation BareStore()
     {
-        var sim = Simulation.Create(new WorldConfig(3008, RuntimeRngSeed: 1, PointOfInterestShowcase: true));
+        var sim = Simulation.Create(new WorldConfig(3008, StartingBands: false, RuntimeRngSeed: 1, PointOfInterestShowcase: true));
         sim.Scenario.RemoveFurniture(_ => true);
         return sim;
     }
@@ -266,7 +266,7 @@ public class VillagerNavigationTests
     [Fact]
     public void A_Villager_finds_their_way_through_a_generated_Store()
     {
-        using var sim = Simulation.Create(new WorldConfig(3008, RuntimeRngSeed: 1));
+        using var sim = Simulation.Create(new WorldConfig(3008, StartingBands: false, RuntimeRngSeed: 1));
         var space = sim.Snapshot.Space;
         var pillar = sim.Snapshot.Pillars[0];
         // From the walkway ring of a Pillar out into the Displays and back along another side.

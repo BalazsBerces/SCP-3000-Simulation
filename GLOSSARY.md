@@ -219,7 +219,7 @@ A Villager's hunger, thirst, rest, safety and morale. Hunger and thirst rise as 
 What a Villager leaves at their position when they die of starvation or thirst. Distinct from Staff remains and from being Taken, which leaves no trace.
 
 **Band**:
-A small group of Wanderers travelling together, scavenging and looking for a site, before they found a Village. A run starts with Bands, not Villages.
+A small group of Wanderers travelling together, scavenging and looking for a site, before they found a Village. A run starts with 4–5 Bands of 2–6 people in different Departments, never in the dead zone. They share a Known map, prefer food and running water with Furniture nearby and a Pillar as a bonus, and accept a weaker site when hunger, exhaustion or losses force them to settle.
 _Avoid_: Party, group, tribe
 
 **Refugee**:
@@ -239,7 +239,7 @@ A small forward barricade a Village sets up near distant resources once its surr
 _Avoid_: Colony, camp, satellite
 
 **Known map**:
-What a Band or Village knows of the Store (held by each Villager before Bands share it): the ground it has explored, known food and water sources, dangerous places and other Villages. Source observations keep when they were last seen; stale observations retain their old amounts until seen again. A showroom tap stays untested until tried, then is remembered as running or dry. Scavenging goes to known places, scouting widens it; it can be traded or passed on, and goes stale as the Store restocks and the Staff move.
+What a Band or Village knows of the Store (shared by its members from their own observations): the ground it has explored, known food and water sources, dangerous places and other Villages. Source observations keep when they were last seen; stale observations retain their old amounts until seen again. A showroom tap stays untested until tried, then is remembered as running or dry. Scavenging goes to known places, scouting widens it; it can be traded or passed on, and goes stale as the Store restocks and the Staff move.
 _Avoid_: Fog of war, minimap, map (that is the Observer's strategic map)
 
 **Envoy**:
@@ -263,7 +263,7 @@ A Villager seized in a Raid who may later be absorbed into the captors' Village.
 _Avoid_: Prisoner, slave, hostage
 
 **Role**:
-A Villager's primary job (scavenger, builder, cook, guard, trader, farmer, night scout); a Villager may switch to another Role when the Village needs it.
+A Villager's primary job (scavenger, builder, cook, guard, trader, farmer, night scout); a Villager may switch to another Role when the Village needs it. Skills belong to the person, grow with use and survive Role switches.
 _Avoid_: Job, class, profession
 
 **Blueprint**:

@@ -21,6 +21,23 @@ public sealed record KnownDanger(int StaffId, Vector2 Position, StoreClock LastS
 internal sealed partial class Villagers
 {
     private const float GroundStep = 8;
+    private IReadOnlyList<FurniturePiece>? _indexedFurniture;
+    private ILookup<ChunkCoord, FurniturePiece>? _furnitureByChunk;
+    private float _largestPiece;
+
+    private void IndexFurniture(IReadOnlyList<FurniturePiece> pieces)
+    {
+        if (ReferenceEquals(pieces, _indexedFurniture))
+            return;
+        _indexedFurniture = pieces;
+        _furnitureByChunk = pieces.ToLookup(p => space.ChunkOf(p.Position));
+        _largestPiece = pieces.Select(p => FurnitureCatalog.Spec(p))
+            .Select(s => new Vector3(s.Width, s.Depth, s.Height).Length()).DefaultIfEmpty().Max();
+    }
+
+    public IEnumerable<FurniturePiece> FurnitureNear(Vector2 position, float range) =>
+        space.ChunkImagesAround(position, range).Select(c => c.Chunk).Distinct()
+            .SelectMany(c => _furnitureByChunk![c]);
 
     private sealed partial class Walker
     {
@@ -38,11 +55,12 @@ internal sealed partial class Villagers
     {
         walker.ExploredGround.Add(GroundAt(walker.Position));
         var viewer = new Villager(walker.Id, walker.Position, walker.Destination, walker.Heading);
-        var nearby = world.Furniture.Where(p => space.Distance(walker.Position, p.Position) <= RestockSight.Range).ToArray();
+        var blockers = FurnitureNear(walker.Position, RestockSight.Range + _largestPiece).ToArray();
+        var nearby = blockers.Where(p => space.Distance(walker.Position, p.Position) <= RestockSight.Range).ToArray();
         // A source within reach can be inspected even when its own Furniture hides its centre.
         bool Visible(FurniturePiece piece) => space.Distance(walker.Position, piece.Position) <= RestockSight.Range &&
             (space.Distance(walker.Position, navigation.NearestWalkable(piece.Position)) < 0.5f ||
-             RestockSight.CanSee(space, viewer, piece, world.Furniture, world.Pillars, world.FogBanks));
+             RestockSight.CanSee(space, viewer, piece, blockers, world.Pillars, world.FogBanks));
         var stock = world.Stock.ToLookup(g => g.FurnitureId);
         foreach (var (key, goods) in walker.KnownGoods.ToArray())
             if (!nearby.Any(p => p.Id == goods.Goods.FurnitureId && p.Position == goods.Position) &&

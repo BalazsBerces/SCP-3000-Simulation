@@ -59,6 +59,8 @@ public sealed record WorldSnapshot(
     public IReadOnlyList<DrySpell> DrySpells { get; init; } = [];
 
     public IReadOnlyList<Band> Bands { get; init; } = [];
+    public IReadOnlyList<Village> Villages { get; init; } = [];
+    public IReadOnlyList<string> Chronicle { get; init; } = [];
     public IReadOnlyList<Gear> Gear { get; init; } = [];
     public IReadOnlyList<Staff> Staff { get; init; } = [];
 

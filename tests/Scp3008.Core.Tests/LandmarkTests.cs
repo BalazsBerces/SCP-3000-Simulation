@@ -9,7 +9,7 @@ public class LandmarkTests
 
     private static WorldSnapshot Generate(int seed, PillarLayout layout = PillarLayout.ThreeByThree)
     {
-        using var sim = Simulation.Create(new WorldConfig(seed, RuntimeRngSeed: 1, PillarLayout: layout));
+        using var sim = Simulation.Create(new WorldConfig(seed, StartingBands: false, RuntimeRngSeed: 1, PillarLayout: layout));
         return sim.Snapshot;
     }
 
@@ -22,7 +22,7 @@ public class LandmarkTests
     public void The_same_seed_and_pillar_layout_give_the_same_landmarks_in_the_same_places(PillarLayout layout)
     {
         var first = Generate(42, layout);
-        using var again = Simulation.Create(new WorldConfig(42, RuntimeRngSeed: 7, PillarLayout: layout));
+        using var again = Simulation.Create(new WorldConfig(42, StartingBands: false, RuntimeRngSeed: 7, PillarLayout: layout));
         again.Advance(TimeSpan.FromHours(5));
         var second = again.Snapshot;
 
@@ -173,7 +173,7 @@ public class LandmarkTests
     {
         foreach (var seed in Seeds.Concat(Enumerable.Range(10, 40)))
         {
-            var sim = Simulation.Create(new WorldConfig(seed, RuntimeRngSeed: 1));
+            var sim = Simulation.Create(new WorldConfig(seed, StartingBands: false, RuntimeRngSeed: 1));
             var landmark = sim.Snapshot.Landmarks.FirstOrDefault(l => l.Type == type);
             if (landmark is not null)
             {
@@ -341,7 +341,7 @@ public class LandmarkTests
     [Fact]
     public void The_landmark_showcase_has_every_landmark_once_in_a_row_with_no_displays()
     {
-        using var sim = Simulation.Create(new WorldConfig(3008, RuntimeRngSeed: 1, LandmarkShowcase: true));
+        using var sim = Simulation.Create(new WorldConfig(3008, StartingBands: false, RuntimeRngSeed: 1, LandmarkShowcase: true));
         var snapshot = sim.Snapshot;
 
         Assert.True(snapshot.LandmarkShowcase);

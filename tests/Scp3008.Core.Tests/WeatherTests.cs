@@ -6,7 +6,7 @@ namespace Scp3008.Core.Tests;
 public class WeatherTests
 {
     private static Simulation NewWorld(int runtimeSeed = 1) =>
-        Simulation.Create(new WorldConfig(Seed: 3008, RuntimeRngSeed: runtimeSeed));
+        Simulation.Create(new WorldConfig(Seed: 3008, StartingBands: false, RuntimeRngSeed: runtimeSeed));
 
     /// <summary>A world with no Fog banks, where none form on their own.</summary>
     private static Simulation FogFreeWorld()
@@ -245,8 +245,8 @@ public class WeatherTests
     [Fact]
     public void The_store_seed_does_not_decide_the_weather()
     {
-        using var first = Simulation.Create(new WorldConfig(Seed: 3008, RuntimeRngSeed: 5));
-        using var otherStore = Simulation.Create(new WorldConfig(Seed: 4242, RuntimeRngSeed: 5));
+        using var first = Simulation.Create(new WorldConfig(Seed: 3008, StartingBands: false, RuntimeRngSeed: 5));
+        using var otherStore = Simulation.Create(new WorldConfig(Seed: 4242, StartingBands: false, RuntimeRngSeed: 5));
 
         Assert.Equal(first.Snapshot.FogBanks, otherStore.Snapshot.FogBanks);
     }

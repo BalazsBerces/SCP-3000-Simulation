@@ -25,6 +25,8 @@ public partial class VillagerRenderer : Node3D
     private Mesh _mesh = null!;
     private PanelContainer _needsPanel = null!;
     private Label _needs = null!;
+    private Label _communities = null!;
+    private readonly Dictionary<string, Label3D> _markers = [];
 
     public override void _Ready()
     {
@@ -40,6 +42,15 @@ public partial class VillagerRenderer : Node3D
         _needsPanel.OffsetBottom = -16;
         _needs = new Label();
         _needsPanel.AddChild(_needs);
+        var communitiesPanel = new PanelContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
+        layer.AddChild(communitiesPanel);
+        communitiesPanel.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.BottomRight);
+        communitiesPanel.OffsetLeft = -460;
+        communitiesPanel.OffsetTop = -230;
+        communitiesPanel.OffsetRight = -16;
+        communitiesPanel.OffsetBottom = -16;
+        _communities = new Label { Name = "Communities", AutowrapMode = TextServer.AutowrapMode.WordSmart };
+        communitiesPanel.AddChild(_communities);
         Host.WorldCreated += OnWorldCreated;
     }
 
@@ -52,13 +63,14 @@ public partial class VillagerRenderer : Node3D
         if (followed is not null)
         {
             var n = followed.Needs;
-            _needs.Text = $"Villager {followed.Id} | {followed.Action}\n" +
+            _needs.Text = $"Villager {followed.Id} | {followed.Role} | {followed.Action}\n" +
                 $"Hunger: {n.Hunger:P0}   Thirst: {n.Thirst:P0}\n" +
                 $"Rest: {n.Rest:P0}   Safety: {n.Safety:P0}\nMorale: {n.Morale:P0}\n" +
                 "Hunger / thirst rise as supplies run out.";
         }
         var space = Host.Snapshot.Space;
         var focus = Rig.Focus;
+        ShowCommunities(space, focus);
         var seen = new HashSet<int>();
         var bodies = Host.Snapshot.Bodies.ToDictionary(b => b.VillagerId);
         var figures = Host.InterpolatedVillagers.Concat(bodies.Values.Select(b =>
@@ -91,10 +103,42 @@ public partial class VillagerRenderer : Node3D
         }
     }
 
+    private void ShowCommunities(StoreSpace space, Vector3 focus)
+    {
+        var world = Host.Snapshot;
+        var lines = world.Bands.Select(b => $"Band {b.Id}: {b.VillagerIds.Count} Wanderers")
+            .Concat(world.Villages.Select(v => $"Village {v.Id}: {v.VillagerIds.Count} Villagers | " +
+                $"Stores: {string.Join(", ", v.Stores.Select(g => $"{g.Key} {g.Value}"))}"));
+        _communities.Text = string.Join("\n", lines.Concat(world.Chronicle.TakeLast(3)));
+        _communities.GetParent<PanelContainer>().Visible = world.Bands.Count + world.Villages.Count > 0;
+        var markers = world.Bands.Select(b => ($"Band {b.Id}", b.Position))
+            .Concat(world.Villages.Select(v => ($"Village {v.Id}", v.Position))).ToArray();
+        foreach (var (name, position) in markers)
+        {
+            if (!_markers.TryGetValue(name, out var marker))
+            {
+                marker = new Label3D { Text = name, FontSize = 48, PixelSize = 0.02f,
+                    Billboard = BaseMaterial3D.BillboardModeEnum.Enabled, NoDepthTest = true };
+                AddChild(marker);
+                _markers[name] = marker;
+            }
+            var near = space.Delta(focus.ToStore(), position);
+            marker.Position = new Vector3(focus.X + near.X, 3, focus.Z + near.Y);
+        }
+        foreach (var gone in _markers.Keys.Where(k => !markers.Any(m => m.Item1 == k)).ToArray())
+        {
+            _markers[gone].QueueFree();
+            _markers.Remove(gone);
+        }
+    }
+
     private void OnWorldCreated(WorldSnapshot snapshot)
     {
         foreach (var figure in _figures.Values)
             figure.QueueFree();
         _figures.Clear();
+        foreach (var marker in _markers.Values)
+            marker.QueueFree();
+        _markers.Clear();
     }
 }

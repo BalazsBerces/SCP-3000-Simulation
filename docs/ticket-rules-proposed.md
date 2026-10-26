@@ -13,3 +13,5 @@ Agents append here, one line each (`- <ticket>: <cause and fix>`), when a proble
 - 11a: Windows PowerShell can lose a short-lived Start-Process process's exit code before WaitForExit reads it. Retain its Handle immediately after starting it, then wait with a timeout and refresh before checking ExitCode.
 
 - 11b: Godot FindChildren filters on engine class names and does not match a C# script class such as SectorInspector. Leave the type filter empty and use OfType<T>() for scripted nodes; format numeric capture assertions with an explicit culture.
+
+- 12: When introducing autonomous populations, run a full-Store time-advance smoke check before rendering benchmarks. Sight and site scoring must query nearby Chunks rather than scan every Furniture piece for every person.

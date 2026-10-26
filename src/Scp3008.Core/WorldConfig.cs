@@ -26,6 +26,8 @@ namespace Scp3008.Core;
 /// <param name="Water">How many showroom taps run; the defaults if null.</param>
 /// <param name="Needs">Store hours of starvation and thirst before death; the defaults if null.</param>
 /// <param name="Restock">Goods refill rate and Furniture return delays; the defaults if null.</param>
+/// <param name="StartingBands">Populates a normal Store with Bands; false for isolated scenarios. Sandboxes and showcases stay hand-placed.</param>
 public sealed record WorldConfig(int Seed, int? RuntimeRngSeed = null, PillarLayout PillarLayout = PillarLayout.ThreeByThree,
     bool LandmarkShowcase = false, bool PointOfInterestShowcase = false, StockConfig? Stock = null,
-    WaterConfig? Water = null, NeedsConfig? Needs = null, RestockConfig? Restock = null);
+    WaterConfig? Water = null, NeedsConfig? Needs = null, RestockConfig? Restock = null,
+    bool StartingBands = true);

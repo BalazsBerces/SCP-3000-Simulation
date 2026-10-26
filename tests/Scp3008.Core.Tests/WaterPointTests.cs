@@ -11,7 +11,7 @@ public class WaterPointTests(ITestOutputHelper output)
     private static WorldSnapshot Store(int seed, PillarLayout layout = PillarLayout.ThreeByThree, WaterConfig? water = null,
         bool poiShowcase = false, bool landmarkShowcase = false)
     {
-        using var sim = Simulation.Create(new WorldConfig(seed, RuntimeRngSeed: 1, PillarLayout: layout, PointOfInterestShowcase: poiShowcase,
+        using var sim = Simulation.Create(new WorldConfig(seed, StartingBands: false, RuntimeRngSeed: 1, PillarLayout: layout, PointOfInterestShowcase: poiShowcase,
             LandmarkShowcase: landmarkShowcase, Water: water));
         return sim.Snapshot;
     }
@@ -95,7 +95,7 @@ public class WaterPointTests(ITestOutputHelper output)
     [Fact]
     public void Which_taps_run_does_not_change_as_time_advances()
     {
-        using var sim = Simulation.Create(new WorldConfig(42, RuntimeRngSeed: 1));
+        using var sim = Simulation.Create(new WorldConfig(42, StartingBands: false, RuntimeRngSeed: 1));
         var before = sim.Snapshot.WaterPoints;
         sim.Advance(TimeSpan.FromHours(30));
         Assert.Equal(before, sim.Snapshot.WaterPoints);

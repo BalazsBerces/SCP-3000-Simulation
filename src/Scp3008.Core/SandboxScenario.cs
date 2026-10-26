@@ -4,8 +4,14 @@ using System.Text.Json.Serialization;
 
 namespace Scp3008.Core;
 
-/// <summary>A Band's members; behaviour and Personality are added by the Band tickets.</summary>
-public sealed record Band(int Id, IReadOnlyList<int> VillagerIds);
+/// <summary>Wanderers sharing their observations while looking for a site.</summary>
+public sealed record Band(int Id, IReadOnlyList<int> VillagerIds)
+{
+    public Vector2 Position { get; init; }
+    public KnownMap KnownMap { get; init; } = new();
+    public Vector2? Site { get; init; }
+    public int FoundingPopulation { get; init; }
+}
 
 /// <summary>The found tools available to sandbox scenarios.</summary>
 public enum GearKind { HexKey, Screwdriver }
@@ -66,7 +72,7 @@ public sealed partial class ScenarioBuilder
             {
                 if (band is null || band.Length == 0)
                     throw new ArgumentException("A Band must have members.");
-                sim.PlaceBand(band.Select(Position).ToArray(), file.Needs);
+                scenario.PlaceBand(band.Select(Position).ToArray(), file.Needs);
             }
             foreach (var gear in file.Gear)
                 sim.PlaceGear(gear.Kind, Position(gear.Position));

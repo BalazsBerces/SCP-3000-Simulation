@@ -1,0 +1,28 @@
+# Ticket 12: Bands settle
+
+Review fixed point: `6911599beec1183ee5efa74b5ba14af0ea401d56`. Implements issue #13 against spec #1; the requested spec-review step was skipped.
+
+## Scope and decisions
+
+- A normal Store starts with 4–5 Bands of 2–6 people, placed with an independent runtime RNG stream in different Departments, outside the dead zone. Sandboxes and showcases keep their explicit population. `WorldConfig.StartingBands = false` lets existing isolated facade scenarios remain unpopulated; the affected tests now request that explicitly.
+- Bands share their members' observations, scout unexplored ground, use the existing Needs behavior to scavenge for themselves, and rest through Closing time. Their shared Known map passes to their Village and its members; tested taps retain their known running/dry state.
+- Decisions run every 0.1 Store hour. Sites come from explored ground and the Band's position, require reachable free floor and reject the dead zone. Known food and confirmed running water within 48 m make a good site; nearby Furniture adds up to 10 points, and a Pillar within 48 m adds 20. Rest below 20%, hunger at 85%, or losing a member permits a weaker site. These are reversible initial tuning choices, so no ADR was added.
+- Founding gives every living member a Village and a primary Role. A food shortage switches a non-scavenger to scavenging. Scavengers fetch one Goods unit per trip from known sources, physically carry it back, and gain scavenging skill on delivery. Village stores are an open pile, visible in immutable snapshots and usable for eating and drinking. Storehouse capacity, construction, advanced carrying and other Roles' work belong to later tickets.
+- The presentation reuses the existing Villager model, adds Band/Village labels, shows membership and stores, and displays recent founding chronicle entries. The followed Villager's panel also shows their Role. No models, props or textures were generated or downloaded.
+- Scope reaches the facade/configuration, Band/Village and Villager snapshots, scenario builder and sandbox loader, Needs/stock transfer, Known maps, events, presentation, facade tests and glossary. No save format exists yet to extend. Preexisting runner scripts and `.claude` files remain untouched.
+
+## Verification
+
+- Facade tests cover runtime placement with different runtime seeds, full-Store exploration, good and forced founding, Pillar preference, dead-zone rejection, shared knowledge, Closing-time rest, Role switching, physical pickup/delivery, growing skills, immutable previous stores, and consuming Village stores after a shelf disappears.
+- Focused integration: 54 cases passed before the spatial optimization. After that change, 19 Band/Known map cases passed; the final expanded Band suite passed 10 cases, including a populated full Store advancing one Store hour.
+- The first full-Store benchmark exposed repeated whole-Store Furniture scans and was stopped after diagnosis. Sight now caches Furniture by Chunk, rebuilding when Furniture changes; queries include the maximum Furniture extent so large occluders remain represented. Site scoring uses the same lookup. The populated full-Store smoke test then completed as part of a seven-second focused test run.
+- Windowed Godot check: `--path game -- --villager-sandbox --sandbox-preset=empty --pause --band-check=<absolute directory>`, with a 300-second timeout, exited 0. It verified the Band label, Village founding, delivered food, stores and the rendered founding chronicle. Evidence: `.ticket-logs/12-rendered/report.txt`, `band.png`, `village.png`, and the rendered stdout/stderr logs. Both 1280×720 screenshots were inspected once: two Wanderers and a Band label become a Village label with `TinnedFood 2` and its founding entry. Existing sandbox debug panels are also visible.
+- Final `dotnet build Scp3008.sln -c Release` succeeded with zero warnings and errors. Godot 4.7.2 .NET `--headless --path game --build-solutions --quit` exited 0. Logs: `.ticket-logs/12-final-build.log`, `12-final-godot-build.log` and `12-final-godot-build-errors.log`.
+- The restarted 20-second-per-view full-Store benchmark exited 0 on the RTX 2070 Super, at 1920×1080 with MSAA 4× and TAA. Average / 1% low fps: Open **124.8 / 67.3**, Closing time **155.2 / 84.2**, Closing time far **119.2 / 78.9**, Closing time at the LOD switch **100.5 / 77.1**. All pass ADR 0004's 90 / 60 gate; the two far views miss the 120 fps average target. It also advanced the populated world through founding and Closing time. Logs: `.ticket-logs/12-benchmark-fixed.log` and `12-benchmark-fixed-errors.log`; no benchmark screenshots were captured.
+- The full suite ran once, immediately before committing: `dotnet test tests/Scp3008.Core.Tests -c Release` passed **830 / 830**, with zero failures or skips, in **17 min 27 s**. Full output stays in `.ticket-logs/12-full-suite.log`. A separate runtime-seed-1 facade probe also advanced a populated Store through its first Store hour in 8.6 seconds including creation (`12-probe.log`).
+
+## Human review
+
+Review Band pacing, site quality, scavenging balance, and label/HUD readability among crowded Displays and at different zoom distances at the stage-end visual review. The rendered sandbox check confirms the requested state changes; it does not replace artistic review or long-run balance tuning. Staff-specific Closing-time strategies remain outside this ticket.
+
+Suggested rule: When introducing autonomous populations, run a full-Store time-advance smoke check before rendering benchmarks. Sight and site scoring must query nearby Chunks rather than scan every Furniture piece for every person.

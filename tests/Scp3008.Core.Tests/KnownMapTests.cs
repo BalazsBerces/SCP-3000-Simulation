@@ -8,7 +8,7 @@ public class KnownMapTests
     [Fact]
     public void Walking_through_a_Department_discovers_its_Water_points()
     {
-        using var sim = Simulation.Create(new WorldConfig(3008, RuntimeRngSeed: 1, PointOfInterestShowcase: true));
+        using var sim = Simulation.Create(new WorldConfig(3008, StartingBands: false, RuntimeRngSeed: 1, PointOfInterestShowcase: true));
         sim.Scenario.ClearFogBanks();
         sim.Scenario.SetFogBankFormation(false);
         var point = sim.Snapshot.WaterPoints.First(w => w.Kind == WaterPointKind.RestroomWashbasin);
@@ -85,7 +85,7 @@ public class KnownMapTests
     [InlineData(true)]
     public void Showroom_taps_reveal_whether_they_run_only_after_being_tried(bool running)
     {
-        using var sim = Simulation.Create(new WorldConfig(3008, RuntimeRngSeed: 1));
+        using var sim = Simulation.Create(new WorldConfig(3008, StartingBands: false, RuntimeRngSeed: 1));
         sim.Scenario.ClearFogBanks();
         sim.Scenario.SetFogBankFormation(false);
         var point = sim.Snapshot.WaterPoints.First(w => w.Kind == WaterPointKind.ShowroomTap && w.Running == running);

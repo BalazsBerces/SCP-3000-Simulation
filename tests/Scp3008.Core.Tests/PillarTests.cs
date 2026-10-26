@@ -13,7 +13,7 @@ public class PillarTests
     [InlineData(42)]
     public void Nine_identical_pillars_stand_on_the_3_x_3_grid_marked_by_their_grid_coordinate(int seed)
     {
-        using var sim = Simulation.Create(new WorldConfig(seed, RuntimeRngSeed: 1));
+        using var sim = Simulation.Create(new WorldConfig(seed, StartingBands: false, RuntimeRngSeed: 1));
         sim.Advance(TimeSpan.FromMinutes(1));
         var snapshot = sim.Snapshot;
 
@@ -34,8 +34,8 @@ public class PillarTests
     [Fact]
     public void Pillars_are_the_same_for_every_store_seed_runtime_seed_and_time()
     {
-        using var first = Simulation.Create(new WorldConfig(3008, RuntimeRngSeed: 1));
-        using var second = Simulation.Create(new WorldConfig(42, RuntimeRngSeed: 2));
+        using var first = Simulation.Create(new WorldConfig(3008, StartingBands: false, RuntimeRngSeed: 1));
+        using var second = Simulation.Create(new WorldConfig(42, StartingBands: false, RuntimeRngSeed: 2));
         first.Scenario.ClearFogBanks();
         second.Advance(TimeSpan.FromHours(12));
 
@@ -45,7 +45,7 @@ public class PillarTests
     [Fact]
     public void Pillars_rise_beyond_any_camera_height()
     {
-        using var sim = Simulation.Create(new WorldConfig(3008, RuntimeRngSeed: 1));
+        using var sim = Simulation.Create(new WorldConfig(3008, StartingBands: false, RuntimeRngSeed: 1));
         // The Observer camera stays within a few hundred metres of the floor.
         Assert.All(sim.Snapshot.Pillars, p => Assert.True(p.Height >= 1000f));
     }
@@ -53,7 +53,7 @@ public class PillarTests
     [Fact]
     public void Pillars_are_448_m_apart_in_both_directions_including_across_the_seams_and_clear_of_them()
     {
-        using var sim = Simulation.Create(new WorldConfig(3008, RuntimeRngSeed: 1));
+        using var sim = Simulation.Create(new WorldConfig(3008, StartingBands: false, RuntimeRngSeed: 1));
         var snapshot = sim.Snapshot;
         var space = snapshot.Space;
         var byCoordinate = snapshot.Pillars.ToDictionary(p => p.Coordinate);
@@ -80,7 +80,7 @@ public class PillarTests
     [InlineData(42)]
     public void No_furniture_stands_in_a_pillar_footprint_or_its_walkway_ring(int seed)
     {
-        using var sim = Simulation.Create(new WorldConfig(seed, RuntimeRngSeed: 1));
+        using var sim = Simulation.Create(new WorldConfig(seed, StartingBands: false, RuntimeRngSeed: 1));
         var snapshot = sim.Snapshot;
         foreach (var pillar in snapshot.Pillars)
         {
@@ -107,7 +107,7 @@ public class PillarTests
     [Fact]
     public void Pillars_remain_inert_landmarks_through_closing_time_and_reopening()
     {
-        using var sim = Simulation.Create(new WorldConfig(3008, RuntimeRngSeed: 1));
+        using var sim = Simulation.Create(new WorldConfig(3008, StartingBands: false, RuntimeRngSeed: 1));
         sim.Scenario.ClearFogBanks();
         sim.Scenario.SetFogBankFormation(false);
         var pillars = sim.Snapshot.Pillars.ToArray();

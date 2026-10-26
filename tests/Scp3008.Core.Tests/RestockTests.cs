@@ -67,7 +67,7 @@ public class RestockTests
     [Fact]
     public void Returned_Washbasins_keep_their_Water_points()
     {
-        using var sim = Simulation.Create(new WorldConfig(3008, RuntimeRngSeed: 1, PointOfInterestShowcase: true,
+        using var sim = Simulation.Create(new WorldConfig(3008, StartingBands: false, RuntimeRngSeed: 1, PointOfInterestShowcase: true,
             Restock: new RestockConfig { FurnitureHours = 1 }));
         var original = sim.Snapshot.WaterPoints.First(w => w.FurnitureId >= 0 && w.Running);
         sim.Scenario.RemoveFurniture(p => p.Id == original.FurnitureId);
@@ -146,7 +146,7 @@ public class RestockTests
     [Fact]
     public void Landmark_Furniture_can_return_into_its_original_arrangement()
     {
-        using var sim = Simulation.Create(new WorldConfig(3008, RuntimeRngSeed: 1, LandmarkShowcase: true,
+        using var sim = Simulation.Create(new WorldConfig(3008, StartingBands: false, RuntimeRngSeed: 1, LandmarkShowcase: true,
             Restock: new RestockConfig { LandmarkFurnitureHours = 1 }));
         var canyon = sim.Snapshot.Landmarks.Single(l => l.Type == LandmarkType.RackCanyon);
         var box = sim.Snapshot.Furniture.First(p => p.LandmarkId == canyon.Id && p.Type == FurnitureType.FlatPackBox && p.Elevation > 1);
@@ -158,7 +158,7 @@ public class RestockTests
     [Fact]
     public void Landmark_Furniture_returns_more_slowly_than_ordinary_Furniture()
     {
-        using var sim = Simulation.Create(new WorldConfig(3008, RuntimeRngSeed: 1, LandmarkShowcase: true,
+        using var sim = Simulation.Create(new WorldConfig(3008, StartingBands: false, RuntimeRngSeed: 1, LandmarkShowcase: true,
             Restock: new RestockConfig { FurnitureHours = 1, LandmarkFurnitureHours = 2 }));
         var landmark = sim.Snapshot.Furniture.First(p => p.LandmarkId >= 0 && !FurnitureCatalog.Spec(p).IsFixed);
         sim.Scenario.RemoveFurniture(p => p.LandmarkId == landmark.LandmarkId);
@@ -174,7 +174,7 @@ public class RestockTests
     [Fact]
     public void Set_dinner_tables_Cafeterias_Lost_and_found_and_Aquarium_aisles_refill()
     {
-        using var sim = Simulation.Create(new WorldConfig(3008, RuntimeRngSeed: 1, PointOfInterestShowcase: true,
+        using var sim = Simulation.Create(new WorldConfig(3008, StartingBands: false, RuntimeRngSeed: 1, PointOfInterestShowcase: true,
             Restock: new RestockConfig { GoodsPerStoreHour = 2 }));
         var initial = sim.Snapshot;
         PointOfInterestType[] types = [PointOfInterestType.SetDinnerTable, PointOfInterestType.Cafeteria,
@@ -192,7 +192,7 @@ public class RestockTests
     [Fact]
     public void Bare_Stock_Furniture_refills_but_showroom_fridges_and_cabinets_stay_empty()
     {
-        using var sim = Simulation.Create(new WorldConfig(3008, RuntimeRngSeed: 1,
+        using var sim = Simulation.Create(new WorldConfig(3008, StartingBands: false, RuntimeRngSeed: 1,
             Stock: new StockConfig { StockedShelfShare = 0, LeftBehindShare = 0, TableFoodChance = 0, SectorGuarantee = false },
             Restock: new RestockConfig { GoodsPerStoreHour = 1 }));
         var initial = sim.Snapshot;

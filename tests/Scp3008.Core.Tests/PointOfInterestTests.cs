@@ -18,7 +18,7 @@ public class PointOfInterestTests
 
     private static WorldSnapshot Generate(int seed, PillarLayout layout = PillarLayout.ThreeByThree, bool showcase = false)
     {
-        using var sim = Simulation.Create(new WorldConfig(seed, RuntimeRngSeed: 1, PillarLayout: layout, LandmarkShowcase: showcase));
+        using var sim = Simulation.Create(new WorldConfig(seed, StartingBands: false, RuntimeRngSeed: 1, PillarLayout: layout, LandmarkShowcase: showcase));
         return sim.Snapshot;
     }
 
@@ -31,7 +31,7 @@ public class PointOfInterestTests
     public void The_same_seed_and_pillar_layout_give_the_same_points_of_interest(PillarLayout layout)
     {
         var first = Generate(42, layout);
-        using var again = Simulation.Create(new WorldConfig(42, RuntimeRngSeed: 9, PillarLayout: layout));
+        using var again = Simulation.Create(new WorldConfig(42, StartingBands: false, RuntimeRngSeed: 9, PillarLayout: layout));
         again.Advance(TimeSpan.FromHours(7));
         var second = again.Snapshot;
 
@@ -336,7 +336,7 @@ public class PointOfInterestTests
     [MemberData(nameof(LayoutsAndSeeds))]
     public void The_three_ball_pits_are_one_network_the_staff_pass_through_only_at_closing_time(PillarLayout layout, int seed)
     {
-        using var sim = Simulation.Create(new WorldConfig(seed, RuntimeRngSeed: 1, PillarLayout: layout));
+        using var sim = Simulation.Create(new WorldConfig(seed, StartingBands: false, RuntimeRngSeed: 1, PillarLayout: layout));
         var pits = sim.Snapshot.PointsOfInterest.Where(p => p.Type == PointOfInterestType.BallPit).Select(p => p.Id).ToList();
         Assert.Equal(3, pits.Count);
         Assert.Equal(pits, sim.Snapshot.BallPitNetwork.BallPitIds);
@@ -422,7 +422,7 @@ public class PointOfInterestTests
     [MemberData(nameof(LayoutsAndSeeds))]
     public void The_point_of_interest_showcase_has_every_kind_once_with_no_displays_or_landmarks(PillarLayout layout, int seed)
     {
-        using var sim = Simulation.Create(new WorldConfig(seed, RuntimeRngSeed: 1, PillarLayout: layout, PointOfInterestShowcase: true));
+        using var sim = Simulation.Create(new WorldConfig(seed, StartingBands: false, RuntimeRngSeed: 1, PillarLayout: layout, PointOfInterestShowcase: true));
         var snapshot = sim.Snapshot;
 
         Assert.True(snapshot.PointOfInterestShowcase);
@@ -438,7 +438,7 @@ public class PointOfInterestTests
     [MemberData(nameof(LayoutsAndSeeds))]
     public void Every_lost_and_found_piece_in_the_showcase_stays_inside_its_rectangle_and_on_the_floor_or_a_surface(PillarLayout layout, int seed)
     {
-        using var sim = Simulation.Create(new WorldConfig(seed, RuntimeRngSeed: 1, PillarLayout: layout, PointOfInterestShowcase: true));
+        using var sim = Simulation.Create(new WorldConfig(seed, StartingBands: false, RuntimeRngSeed: 1, PillarLayout: layout, PointOfInterestShowcase: true));
         var snapshot = sim.Snapshot;
         var laf = Assert.Single(snapshot.PointsOfInterest, p => p.Type == PointOfInterestType.LostAndFound);
         var pieces = PiecesOf(snapshot, laf).ToList();
@@ -460,7 +460,7 @@ public class PointOfInterestTests
     [MemberData(nameof(LayoutsAndSeeds))]
     public void Every_store_restroom_piece_in_the_showcase_stays_inside_its_rectangle_and_on_the_floor_or_a_wall(PillarLayout layout, int seed)
     {
-        using var sim = Simulation.Create(new WorldConfig(seed, RuntimeRngSeed: 1, PillarLayout: layout, PointOfInterestShowcase: true));
+        using var sim = Simulation.Create(new WorldConfig(seed, StartingBands: false, RuntimeRngSeed: 1, PillarLayout: layout, PointOfInterestShowcase: true));
         var snapshot = sim.Snapshot;
         var restroom = Assert.Single(snapshot.PointsOfInterest, p => p.Type == PointOfInterestType.StoreRestroom);
         var pieces = PiecesOf(snapshot, restroom).ToList();
@@ -482,7 +482,7 @@ public class PointOfInterestTests
     [MemberData(nameof(LayoutsAndSeeds))]
     public void Every_cafeteria_piece_in_the_showcase_stays_inside_its_rectangle_and_on_the_floor_or_a_table(PillarLayout layout, int seed)
     {
-        using var sim = Simulation.Create(new WorldConfig(seed, RuntimeRngSeed: 1, PillarLayout: layout, PointOfInterestShowcase: true));
+        using var sim = Simulation.Create(new WorldConfig(seed, StartingBands: false, RuntimeRngSeed: 1, PillarLayout: layout, PointOfInterestShowcase: true));
         var snapshot = sim.Snapshot;
         var cafeteria = Assert.Single(snapshot.PointsOfInterest, p => p.Type == PointOfInterestType.Cafeteria);
         var pieces = PiecesOf(snapshot, cafeteria).ToList();

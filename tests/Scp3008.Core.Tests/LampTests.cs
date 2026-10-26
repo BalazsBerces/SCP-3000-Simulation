@@ -7,7 +7,7 @@ public class LampTests
     [Fact]
     public void Display_lamps_keep_their_light_radius_when_the_store_closes_and_reopens()
     {
-        using var sim = Simulation.Create(new WorldConfig(Seed: 3008, RuntimeRngSeed: 1));
+        using var sim = Simulation.Create(new WorldConfig(Seed: 3008, StartingBands: false, RuntimeRngSeed: 1));
         sim.Scenario.SetFogBankFormation(false);
         sim.Scenario.ClearFogBanks();
         var lamps = sim.Snapshot.Furniture.Where(p => p.DisplayId >= 0 && FurnitureCatalog.Spec(p.Type).IsLamp).ToArray();
@@ -46,7 +46,7 @@ public class LampTests
     [Fact]
     public void The_lighting_departments_are_full_of_lamps()
     {
-        using var sim = Simulation.Create(new WorldConfig(Seed: 3008, RuntimeRngSeed: 1));
+        using var sim = Simulation.Create(new WorldConfig(Seed: 3008, StartingBands: false, RuntimeRngSeed: 1));
         var snapshot = sim.Snapshot;
 
         var lampsByDepartment = snapshot.Furniture
@@ -70,7 +70,7 @@ public class LampLevelTests
 {
     private static Simulation NewSim()
     {
-        var sim = Simulation.Create(new WorldConfig(Seed: 3008, RuntimeRngSeed: 1));
+        var sim = Simulation.Create(new WorldConfig(Seed: 3008, StartingBands: false, RuntimeRngSeed: 1));
         sim.Scenario.SetFogBankFormation(false);
         sim.Scenario.ClearFogBanks();
         return sim;

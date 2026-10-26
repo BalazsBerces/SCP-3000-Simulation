@@ -133,6 +133,12 @@ public partial class DevCapture : Node
     {
         foreach (var arg in OS.GetCmdlineUserArgs())
         {
+            if (arg.StartsWith("--band-check="))
+            {
+                SetProcess(false);
+                CheckBands(arg["--band-check=".Length..]);
+                return;
+            }
             if (arg.StartsWith("--dry-spell-check="))
             {
                 SetProcess(false);

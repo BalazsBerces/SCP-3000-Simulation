@@ -116,6 +116,8 @@ public sealed partial class Simulation : IDisposable
         _snapshot = BuildSnapshot();
         InitializeRestock();
         ScheduleDrySpell();
+        if (config.StartingBands && !sandbox && !config.LandmarkShowcase && !config.PointOfInterestShowcase)
+            CreateStartingBands(SeededRandom.For(runtimeSeed, 3));
     }
 
     /// <summary>Creates a new world from the seed in <paramref name="config"/>.</summary>
@@ -302,12 +304,15 @@ public sealed partial class Simulation : IDisposable
         var clock = new StoreClock(_tick);
         _weather.Advance(StoreClock.TickDuration.TotalHours, clock, Emit);
         AdvanceRestock();
+        AdvanceVillages(clock);
         _villagers.Advance(StoreClock.TickDuration.TotalHours);
         if (_villagers.HasVillagers)
             _villagers.AdvanceNeeds(StoreClock.TickDuration.TotalHours, _snapshot with
                 { Clock = clock, Stock = _stock, Furniture = _furniture.Pieces, WaterPoints = _waterPoints,
+                    Bands = _bands.ToArray(), Villages = _villages.ToArray(),
                     FogBanks = _weather.Snapshot(), Staff = _staff.Snapshot().Select(s => new Staff(s.Id, s.Position, s.Destination, s.Heading)).ToArray() },
-                _config.Needs ?? new NeedsConfig(), TakeGoods, Emit);
+                _config.Needs ?? new NeedsConfig(), TakeGoods, Emit, CollectGoods, DeliverGoods);
+        AdvanceBands(clock);
         // Sandbox patrols use the same footprint navigation; daytime Staff remain dormant.
         if (clock.Phase == DayPhase.ClosingTime && _patrols.Count > 0)
         {
@@ -443,9 +448,17 @@ public sealed partial class Simulation : IDisposable
     internal Band PlaceBand(IReadOnlyList<Vector2> positions, Needs? needs = null) => Publish(() =>
     {
         (needs ?? new Needs()).Validate();
-        var band = new Band(_bands.Count, Array.AsReadOnly(positions.Select(p => _villagers.Place(p, needs).Id).ToArray()));
+        var band = new Band(_nextBandId++, Array.AsReadOnly(positions.Select(p => _villagers.Place(p, needs).Id).ToArray()))
+            { Position = _space.Wrap(positions[0]), FoundingPopulation = positions.Count };
         _bands.Add(band);
         return band;
+    });
+
+    internal WaterPoint AddWaterPoint(Vector2 position) => Publish(() =>
+    {
+        var water = new WaterPoint(WaterPointKind.FountainCourt, _space.Wrap(position), true, -1);
+        _waterPoints = Array.AsReadOnly(_waterPoints.Append(water).ToArray());
+        return water;
     });
 
     internal Gear PlaceGear(GearKind kind, Vector2 position) => Publish(() =>
@@ -517,6 +530,8 @@ public sealed partial class Simulation : IDisposable
             Villagers = Array.AsReadOnly(_villagers.Snapshot()),
             Bodies = _villagers.Bodies.ToList().AsReadOnly(),
             Bands = _bands.ToList().AsReadOnly(),
+            Villages = _villages.ToList().AsReadOnly(),
+            Chronicle = _chronicle.ToList().AsReadOnly(),
             Gear = _gear.ToList().AsReadOnly(),
             Staff = Array.AsReadOnly(_staff.Snapshot().Select(s => new Staff(s.Id, s.Position, s.Destination, s.Heading)).ToArray()),
         };

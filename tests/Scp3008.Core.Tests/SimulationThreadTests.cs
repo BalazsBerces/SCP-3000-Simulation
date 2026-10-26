@@ -8,7 +8,7 @@ public class SimulationThreadTests
     private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(10);
 
     private static Simulation NewWorld() =>
-        Simulation.Create(new WorldConfig(Seed: 3008, RuntimeRngSeed: 1));
+        Simulation.Create(new WorldConfig(Seed: 3008, StartingBands: false, RuntimeRngSeed: 1));
 
     [Fact]
     public void A_started_simulation_advances_on_its_own_thread()

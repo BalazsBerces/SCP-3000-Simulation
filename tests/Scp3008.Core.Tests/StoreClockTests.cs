@@ -5,7 +5,7 @@ namespace Scp3008.Core.Tests;
 public class StoreClockTests
 {
     private static Simulation NewWorld() =>
-        Simulation.Create(new WorldConfig(Seed: 3008, RuntimeRngSeed: 1));
+        Simulation.Create(new WorldConfig(Seed: 3008, StartingBands: false, RuntimeRngSeed: 1));
 
     [Fact]
     public void A_new_world_starts_on_day_one_at_store_opening()

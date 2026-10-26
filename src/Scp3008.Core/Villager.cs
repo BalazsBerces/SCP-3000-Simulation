@@ -18,6 +18,10 @@ public sealed record Villager(int Id, Vector2 Position, Vector2? Destination, fl
     public Needs Needs { get; init; } = new();
     public VillagerAction Action { get; init; }
     public KnownMap KnownMap { get; init; } = new();
+    public int? VillageId { get; init; }
+    public Role Role { get; init; } = Role.Scavenger;
+    public IReadOnlyDictionary<Role, double> Skills { get; init; } = new Dictionary<Role, double>();
+    public GoodsKind? CarriedGoods { get; init; }
 }
 
 /// <summary>The Villagers in the world and their walking, each tick along the path <see cref="Navigation"/> finds.</summary>
@@ -29,6 +33,10 @@ internal sealed partial class Villagers(StoreSpace space, Navigation navigation)
     private sealed partial class Walker(int id, Vector2 position)
     {
         public Needs Needs { get; set; } = new();
+        public int? VillageId { get; set; }
+        public Role Role { get; set; } = Role.Scavenger;
+        public Dictionary<Role, double> Skills { get; } = [];
+        public GoodsKind? CarriedGoods { get; set; }
         public VillagerAction Action { get; set; }
         public int Id { get; } = id;
         public Vector2 Position { get; set; } = position;
@@ -105,5 +113,7 @@ internal sealed partial class Villagers(StoreSpace space, Navigation navigation)
     }
 
     private static Villager View(Walker walker) => new(walker.Id, walker.Position, walker.Destination, walker.Heading)
-    { Needs = walker.Needs, Action = walker.Action, KnownMap = MapOf(walker) };
+    { Needs = walker.Needs, Action = walker.Action, KnownMap = MapOf(walker),
+        VillageId = walker.VillageId, Role = walker.Role, CarriedGoods = walker.CarriedGoods,
+        Skills = new System.Collections.ObjectModel.ReadOnlyDictionary<Role, double>(new Dictionary<Role, double>(walker.Skills)) };
 }
