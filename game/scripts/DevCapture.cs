@@ -133,6 +133,12 @@ public partial class DevCapture : Node
     {
         foreach (var arg in OS.GetCmdlineUserArgs())
         {
+            if (arg.StartsWith("--save-load-check="))
+            {
+                SetProcess(false);
+                CheckSaveLoad(arg["--save-load-check=".Length..]);
+                return;
+            }
             if (arg.StartsWith("--band-check="))
             {
                 SetProcess(false);

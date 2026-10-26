@@ -63,7 +63,7 @@ public partial class DebugPanel : Node
     {
         var layer = new CanvasLayer();
         AddChild(layer);
-        var panel = new PanelContainer { Position = new Vector2(400, 148) };
+        var panel = new PanelContainer { Position = new Vector2(400, 170) };
         layer.AddChild(panel);
         var column = new VBoxContainer();
         panel.AddChild(column);
@@ -81,7 +81,7 @@ public partial class DebugPanel : Node
     {
         var layer = new CanvasLayer();
         AddChild(layer);
-        var panel = new PanelContainer { Position = new Vector2(16, 148) };
+        var panel = new PanelContainer { Position = new Vector2(16, 170) };
         layer.AddChild(panel);
         var column = new VBoxContainer();
         panel.AddChild(column);

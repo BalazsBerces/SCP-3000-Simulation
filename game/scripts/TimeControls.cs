@@ -76,6 +76,7 @@ public partial class TimeControls : CanvasLayer
         _nightButton = new Button { FocusMode = Control.FocusModeEnum.None, CustomMinimumSize = new Vector2(64, 0) };
         _nightButton.Pressed += ToggleNight;
         row.AddChild(_nightButton);
+        AddPersistenceControls(column);
     }
 
     public override void _UnhandledKeyInput(InputEvent @event)
@@ -115,6 +116,7 @@ public partial class TimeControls : CanvasLayer
 
     public override void _Process(double delta)
     {
+        _saveButton.Disabled = _loadButton.Disabled = Host.IsGenerating;
         var storeTime = Host.InterpolatedStoreTime;
         var day = (int)storeTime.TotalDays + 1;
         var timeOfDay = TimeSpan.FromTicks(storeTime.Ticks % TimeSpan.TicksPerDay);

@@ -9,6 +9,8 @@ internal sealed class SeededRandom
 {
     private ulong _state;
 
+    internal ulong State { get => _state; set => _state = value; }
+
     public SeededRandom(ulong seed) => _state = seed;
 
     /// <summary>An independent stream for one part of the Store, derived from the seed and a few keys.</summary>

@@ -40,6 +40,9 @@ public partial class SimulationHost : Node
     private Simulation _simulation = null!;
     private IDisposable? _subscription;
     private Task<Simulation>? _nextWorld;
+    private bool _loadingSave;
+
+    public event Action<string>? WorldOperationFailed;
 
     /// <summary>Raised on the main thread for every domain event from the core.</summary>
     public event Action<DomainEvent>? DomainEventReceived;
@@ -190,17 +193,60 @@ public partial class SimulationHost : Node
         _nextWorld = Task.Run(() => ScenarioBuilder.LoadVillagerSandbox(preset));
     }
 
+    /// <summary>Writes beside the destination, then replaces it so a failed write keeps the previous save.</summary>
+    public void SaveWorld(string path)
+    {
+        if (IsGenerating) throw new InvalidOperationException("Wait for the Store to finish loading.");
+        var temporary = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
+        try
+        {
+            using (var stream = new System.IO.FileStream(temporary, System.IO.FileMode.CreateNew, System.IO.FileAccess.Write))
+            {
+                _simulation.Save(stream);
+                stream.Flush(flushToDisk: true);
+            }
+            System.IO.File.Move(temporary, path, overwrite: true);
+        }
+        finally
+        {
+            if (System.IO.File.Exists(temporary)) System.IO.File.Delete(temporary);
+        }
+    }
+
+    /// <summary>Loads in the background; a failed load keeps the current world running.</summary>
+    public void LoadWorld(string path)
+    {
+        if (IsGenerating) throw new InvalidOperationException("Wait for the Store to finish loading.");
+        _loadingSave = true;
+        _nextWorld = Task.Run(() =>
+        {
+            using var stream = System.IO.File.OpenRead(path);
+            return Simulation.Load(stream);
+        });
+    }
+
     public override void _Process(double delta)
     {
         if (_nextWorld is { IsFaulted: true } failed)
         {
             _nextWorld = null;
-            GD.PushError($"Store generation failed: {failed.Exception}");
+            _loadingSave = false;
+            WorldOperationFailed?.Invoke(failed.Exception!.GetBaseException().Message);
+            GD.Print($"Store loading failed: {failed.Exception.GetBaseException().Message}");
         }
         if (_nextWorld is { IsCompleted: true } next)
         {
             _nextWorld = null;
-            var speed = _simulation.Speed;
+            var speed = _loadingSave ? next.Result.Speed : _simulation.Speed;
+            if (_loadingSave)
+            {
+                Seed = next.Result.Snapshot.Seed;
+                Layout = next.Result.Snapshot.PillarLayout;
+                LandmarkShowcase = next.Result.Snapshot.LandmarkShowcase;
+                PointOfInterestShowcase = next.Result.Snapshot.PointOfInterestShowcase;
+                SandboxPreset = null;
+                _loadingSave = false;
+            }
             _subscription?.Dispose();
             _simulation.Dispose();
             _pendingEvents.Clear();

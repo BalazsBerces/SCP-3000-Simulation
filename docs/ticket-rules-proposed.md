@@ -15,3 +15,4 @@ Agents append here, one line each (`- <ticket>: <cause and fix>`), when a proble
 - 11b: Godot FindChildren filters on engine class names and does not match a C# script class such as SectorInspector. Leave the type filter empty and use OfType<T>() for scripted nodes; format numeric capture assertions with an explicit culture.
 
 - 12: When introducing autonomous populations, run a full-Store time-advance smoke check before rendering benchmarks. Sight and site scoring must query nearby Chunks rather than scan every Furniture piece for every person.
+- 13: Godot changes the working directory to its project when using `--path`, so relative capture/check output paths land inside `game`. Pass absolute paths for evidence under the workspace's `.ticket-logs` directory.

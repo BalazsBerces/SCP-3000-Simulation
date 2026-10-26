@@ -9,7 +9,7 @@ namespace Scp3008.Core;
 /// <see cref="MaxCoverage"/> of the floor, so clear stretches always remain between them.
 /// Driven by runtime randomness, never by the Store seed (ADR 0003).
 /// </summary>
-internal sealed class Weather
+internal sealed partial class Weather
 {
     /// <summary>The largest share of the Store floor that Fog banks may cover between them.</summary>
     public const float MaxCoverage = 0.45f;
@@ -156,6 +156,7 @@ internal sealed class Weather
 
     private sealed class Bank(int id, Vector2 position, float radius, float peakDensity, double forming, double lingering, double dissipating)
     {
+        public BankState Save() => new(Id, Position, radius, peakDensity, forming, lingering, dissipating, Age);
         public int Id { get; } = id;
         public Vector2 Position { get; set; } = position;
         public double Age { get; set; }
