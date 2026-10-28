@@ -5,14 +5,16 @@ namespace Scp3008.Core;
 public sealed partial class Simulation
 {
     private bool IsBuiltFurniture(int id) => _villages.Any(v => v.MessHall?.Slots.Any(s => s.FurnitureId == id) == true || v.Storehouse?.Slots.Any(s => s.FurnitureId == id) == true || v.Workshops.Any(w => w.Slot.FurnitureId == id) || v.Walls.Any(w =>
-        w.IncorporatedFurnitureId == id || w.Slots.Any(s => s.FurnitureId == id)));
+        w.IncorporatedFurnitureId == id || w.Slots.Any(s => s.FurnitureId == id)) || v.Castle.Any(c => c.Slots.Any(s => s.FurnitureId == id)));
 
     internal Blueprint PlanBarricade(int villageId) => Publish(() =>
     {
         var village = _villages.Single(v => v.Id == villageId);
         if (village.HomeWalls().LastOrDefault() is { Complete: false } pending) return pending;
         var wall = CreateBarricade(village);
-        _villages[villageId] = village with { Walls = Array.AsReadOnly(village.Walls.Append(wall).ToArray()) };
+        _villages[villageId] = village with { Walls = Array.AsReadOnly(village.Walls.Append(wall).ToArray()),
+            Heraldry = village.Heraldry ?? ChooseHeraldry(village) };
+        if (wall.Battlements) PlanCastle(villageId, village.Walls.Count);
         return wall;
     });
 
@@ -72,16 +74,22 @@ public sealed partial class Simulation
         var gateEdge = outline == WallOutline.Freeform ? 2 : 0;
         var gateCentre = (vertices[gateEdge] + vertices[gateEdge + 1]) / 2;
         var tangent = Vector2.Normalize(vertices[gateEdge + 1] - vertices[gateEdge]);
-        var gateStart = gateCentre - tangent;
-        var gateEnd = gateCentre + tangent;
+        // Every home ring after the first is a curtain wall: Battlements, and a gate wide enough for a Gatehouse.
+        var curtain = yard is null && village.HomeWalls().Any();
+        var gateStart = gateCentre - tangent * (curtain ? Castle.GateHalfWidth : 1);
+        var gateEnd = gateCentre + tangent * (curtain ? Castle.GateHalfWidth : 1);
         void Run(Vector2 start, Vector2 end)
         {
             var delta = end - start;
             var count = (int)MathF.Ceiling(delta.Length() / 0.6f);
             if (count == 0) return;
             for (var i = 0; i < count; i++)
-                slots.Add(new(_space.Wrap(start + delta * ((i + 0.5f) / count)), MathF.Atan2(delta.Y, delta.X),
-                    delta.Length() / count, outline == WallOutline.Round ? WallRun.Curved : i == 0 ? WallRun.Corner : WallRun.Straight));
+            {
+                var slot = new BlueprintSlot(_space.Wrap(start + delta * ((i + 0.5f) / count)), MathF.Atan2(delta.Y, delta.X),
+                    delta.Length() / count, outline == WallOutline.Round ? WallRun.Curved : i == 0 ? WallRun.Corner : WallRun.Straight);
+                // Battlements alternate tall units (wardrobes, bookcases) with short ones.
+                slots.Add(!curtain ? slot : slots.Count % 2 == 0 ? slot with { MinimumHeight = 1.8f } : slot with { MaximumHeight = 1.2f });
+            }
         }
         for (var i = 0; i < vertices.Length; i++)
         {
@@ -90,7 +98,7 @@ public sealed partial class Simulation
             else Run(vertices[i], vertices[(i + 1) % vertices.Length]);
         }
         return new(outline, village.VillagerIds.Count, Array.AsReadOnly(vertices.Append(vertices[0]).Select(_space.Wrap).ToArray()),
-            _space.Wrap(gateStart), _space.Wrap(gateEnd), slots.AsReadOnly(), furnitureId, pillarId);
+            _space.Wrap(gateStart), _space.Wrap(gateEnd), slots.AsReadOnly(), furnitureId, pillarId, curtain);
     }
 
     private void SetWallSlot(int villageId, int ring, int slot, BlueprintSlot replacement)
@@ -123,7 +131,7 @@ public sealed partial class Simulation
                 .Select(o => o.WallIndex).DefaultIfEmpty(-1).First();
             if (ring < 0) ring = current.Walls.ToList().FindIndex(w => !w.Complete &&
                 !current.Outposts.Any(o => o.Abandoned && current.Walls[o.WallIndex] == w));
-            if (ring < 0) { GatherToYard(_villages[village.Id], workers[0]); continue; }
+            if (ring < 0) { if (!BuildCastle(current, workers[0])) GatherToYard(_villages[village.Id], workers[0]); continue; }
             var wall = current.Walls[ring];
             if (wall.Slots.Any(s => s.ReservedFurnitureId is not null)) continue;
             var index = wall.Slots.ToList().FindIndex(s => s.FurnitureId is null);
@@ -152,7 +160,7 @@ public sealed partial class Simulation
 
     private void CompleteBlueprintPiece(FurnitureTask task, StoreClock clock)
     {
-        if (CompleteMessHall(task) || CompleteStorehouse(task) || CompleteWorkshop(task)) return;
+        if (CompleteMessHall(task) || CompleteStorehouse(task) || CompleteWorkshop(task) || CompleteCastle(task, clock)) return;
         foreach (var village in _villages.ToArray())
             for (var r = 0; r < village.Walls.Count; r++)
                 for (var s = 0; s < village.Walls[r].Slots.Count; s++)
@@ -172,6 +180,7 @@ public sealed partial class Simulation
         ClearMessHallFurniture(furnitureId, false);
         ClearStorehouseFurniture(furnitureId, false);
         ClearWorkshopFurniture(furnitureId, false);
+        ClearCastleFurniture(furnitureId, false);
         foreach (var village in _villages.ToArray())
             for (var r = 0; r < village.Walls.Count; r++)
                 for (var s = 0; s < village.Walls[r].Slots.Count; s++)
@@ -184,6 +193,7 @@ public sealed partial class Simulation
         ClearMessHallFurniture(id, true);
         ClearStorehouseFurniture(id, true);
         ClearWorkshopFurniture(id, true);
+        ClearCastleFurniture(id, true);
         foreach (var village in _villages.ToArray())
         {
             var walls = village.Walls.Select(w =>

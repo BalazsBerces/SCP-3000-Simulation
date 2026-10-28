@@ -18,6 +18,11 @@ public sealed record Village(int Id, Vector2 Position, IReadOnlyList<int> Villag
     public Personality Personality { get; init; } = Personality.Cautious;
     /// <summary>Home wall rings and Outpost barricades; Outposts identify their own WallIndex.</summary>
     public IReadOnlyList<Blueprint> Walls { get; init; } = [];
+    /// <summary>Towers, Gatehouses and the Keep, planned with the curtain walls.</summary>
+    public IReadOnlyList<CastleStructure> Castle { get; init; } = [];
+    public IReadOnlyList<Moat> Moats { get; init; } = [];
+    /// <summary>The arms on the Village's banners, chosen from local fabrics when its first wall is planned.</summary>
+    public Heraldry? Heraldry { get; init; }
     public IReadOnlyDictionary<MaterialKind, int> Materials { get; init; } =
         new System.Collections.ObjectModel.ReadOnlyDictionary<MaterialKind, int>(new Dictionary<MaterialKind, int>());
     public IReadOnlyList<GearKind> Recipes { get; init; } = Array.AsReadOnly(Core.Recipes.Basic.Select(r => r.Gear).ToArray());

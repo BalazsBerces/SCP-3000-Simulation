@@ -77,6 +77,7 @@ public partial class VillagerRenderer : Node3D
         ShowMessHalls();
         ShowCrops();
         ShowStorage();
+        ShowCastles();
         ShowVillagePanel(Host.Snapshot, delta);
         var seen = new HashSet<int>();
         var bodies = Host.Snapshot.Bodies.ToDictionary(b => b.VillagerId);

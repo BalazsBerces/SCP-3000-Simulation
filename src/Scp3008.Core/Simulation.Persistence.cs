@@ -123,6 +123,7 @@ public sealed partial class Simulation
         ValidateMessHalls();
         ValidateStorehouses();
         ValidateFurnitureYards();
+        ValidateCastles();
         if (state.SpoilingShelves.Any(h => !Enum.IsDefined(h.Kind) || GoodsCatalog.ClassOf(h.Kind) != GoodsClass.Food || h.Units <= 0 ||
                 !float.IsFinite(h.Progress) || h.Progress < 0 || h.Progress >= 1 || !furnitureIds.Contains(h.FurnitureId)) ||
             state.SpoilingShelves.Select(h => (h.FurnitureId, h.Kind)).Distinct().Count() != state.SpoilingShelves.Length)

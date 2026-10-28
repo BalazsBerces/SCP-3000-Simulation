@@ -317,6 +317,30 @@ _Avoid_: Stockpile, lumber yard, depot
 The central, strongest structure of a Village, stacked from showroom pieces; the Villagers' last refuge in a Siege.
 _Avoid_: Tower, citadel, stronghold
 
+**Curtain wall**:
+The second ring of a Village's walls, planned when it outgrows its barricade: tall wardrobes and bookcases with Battlements, a wider gap for its Gatehouse, and a Tower at each corner.
+_Avoid_: Outer wall, rampart
+
+**Battlements**:
+The top line of a Curtain wall, its slots alternating tall units (1.8 m and up) and short ones (1.2 m at most).
+_Avoid_: Crenellations, parapet
+
+**Tower**:
+A corner of a Curtain wall: two pieces of shelving stacked on each other with a watch-lamp on top. A Tower is not planned where a Pillar stands.
+_Avoid_: Turret, bastion
+
+**Gatehouse**:
+The gate of a Curtain wall: two tall flanking pieces with a double-door wardrobe laid across their tops, leaving a walkable passage beneath.
+_Avoid_: Gate tower, barbican
+
+**Moat**:
+A ditch outside a Curtain wall, broken by a causeway before the Gatehouse. Near standing water (a Water point or the Camping lake) it holds water; elsewhere it stays dry.
+_Avoid_: Trench, ditch (as a separate term)
+
+**Heraldry**:
+A Village's arms on its banners: a field and a charge colour taken from the most common fabric tints around it, and a division that tells apart Villages with the same fabrics.
+_Avoid_: Crest, flag, coat of arms
+
 **Dwelling**:
 A tent (a clothes rack or metal frame hung with curtains, blankets and rugs, quick to put up) or a house (built by Blueprint from Furniture: wardrobes and bookcases as walls, tabletops as a roof, a wardrobe door), with a number of sleeping places. Villagers rest and keep their morale best in a house, then a tent, then a bed in the open, and worst on the bare floor. Whether a Dwelling is shared, personal or a family's follows the Village's Personality. Dwellings stand inside the walls, around the Keep.
 _Avoid_: Hut, home, shelter

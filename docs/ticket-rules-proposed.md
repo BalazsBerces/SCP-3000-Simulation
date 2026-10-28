@@ -38,3 +38,4 @@ Agents append here, one line each (`- <ticket>: <cause and fix>`), when a proble
 - 17e: Git Bash heredocs containing quotes or backslashes corrupt multi-line edits. Write such scripts and files with the Write tool instead.
 - 17f: Sketchfab archives do not always name their glTF buffer scene.bin, so a hard-coded name crashes the fetch. Read the buffer file name from the glTF buffers[0].uri.
 - 18: `gh issue view N --comments` prints nothing in the runner's shell. Read tickets with `gh issue view N --json title,body,comments` into a file instead.
+- 19: A facade test that runs construction until a Blueprint completes must cap its tick loop and print the slots and each Builder's task on failure; a stalled Blueprint otherwise looks like a hung test run (and stalls slow every tick).
