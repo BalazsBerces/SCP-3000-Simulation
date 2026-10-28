@@ -8,7 +8,7 @@ public class WandererTests
     public void The_first_arrival_interval_counts_the_starting_Bands()
     {
         using var sim = Simulation.Create(new WorldConfig(3008, RuntimeRngSeed: 12,
-            Arrivals: new ArrivalConfig { IntervalHours = 0.002, AgentThreshold = 1 }));
+            Arrivals: new ArrivalConfig { IntervalHours = 0.002, PopulationThreshold = 1 }));
         var arrivals = new List<WanderersArrived>();
         using var subscription = sim.Subscribe(e => { if (e is WanderersArrived arrived) arrivals.Add(arrived); });
         Assert.True(sim.Snapshot.Villagers.Count > 1);
@@ -89,7 +89,7 @@ public class WandererTests
     public void Invalid_arrival_configuration_is_rejected(double interval, int threshold)
     {
         Assert.Throws<ArgumentOutOfRangeException>(() => Simulation.Create(new WorldConfig(3008,
-            Arrivals: new ArrivalConfig { IntervalHours = interval, AgentThreshold = threshold })));
+            Arrivals: new ArrivalConfig { IntervalHours = interval, PopulationThreshold = threshold })));
     }
 
     [Fact]
@@ -126,13 +126,13 @@ public class WandererTests
     }
 
     [Fact]
-    public void High_total_agent_count_slows_arrivals_and_includes_Staff()
+    public void High_total_population_slows_arrivals_and_includes_Staff()
     {
         static int CountArrivals(int threshold, bool staff)
         {
             var patrols = staff ? string.Join(",", Enumerable.Repeat("""{"position":[20,108],"patrol":[[20,108]]}""", 20)) : "";
             using var sim = ScenarioBuilder.LoadVillagerSandboxJson($$"""
-                {"runtimeRngSeed":12,"arrivals":{"intervalHours":0.25,"agentThreshold":{{threshold}}},"staff":[{{patrols}}]}
+                {"runtimeRngSeed":12,"arrivals":{"intervalHours":0.25,"populationThreshold":{{threshold}}},"staff":[{{patrols}}]}
                 """);
             var count = 0;
             using var subscription = sim.Subscribe(e => { if (e is WanderersArrived) count++; });
@@ -186,6 +186,65 @@ public class WandererTests
         Assert.Contains(sim.Snapshot.Villages[0].KnownMap.Water, w => w.Position == remoteWater.Position);
         Assert.Single(events.OfType<WanderersJoined>());
         Assert.Contains(sim.Snapshot.Chronicle, s => s.Contains("joined Village 0"));
+    }
+
+    [Fact]
+    public void Joining_stories_name_the_place()
+    {
+        using var sim = ScenarioBuilder.LoadVillagerSandbox("empty");
+        var founder = sim.Scenario.PlaceVillager(new(40, 108));
+        sim.Scenario.PlaceVillage(new(40, 108), [founder.Id]);
+        sim.Scenario.PlaceBand([new(36, 108)]);
+        sim.Advance(TimeSpan.FromMinutes(30));
+        Assert.Contains(sim.Snapshot.Chronicle, s => s.Contains("joined Village 0 in Sector "));
+    }
+
+    [Fact]
+    public void Only_arrivals_of_note_enter_the_Chronicle()
+    {
+        using var sim = Simulation.Create(new WorldConfig(3008, RuntimeRngSeed: 12,
+            PillarLayout: PillarLayout.VillagerSandbox, StartingBands: false,
+            Arrivals: new ArrivalConfig { IntervalHours = 0.25 }));
+        var arrivals = new List<WanderersArrived>();
+        using var subscription = sim.Subscribe(e => { if (e is WanderersArrived arrived) arrivals.Add(arrived); });
+        sim.Advance(TimeSpan.FromHours(3));
+        Assert.Contains(arrivals, e => e.Band.VillagerIds.Count < 3);
+        Assert.Equal(arrivals.Count(e => e.Band.VillagerIds.Count >= 3),
+            sim.Snapshot.Chronicle.Count(s => s.Contains("arrived")));
+    }
+
+    [Fact]
+    public void A_large_Band_founds_its_own_Village_at_a_good_site_nearer_than_a_known_one()
+    {
+        using var sim = ScenarioBuilder.LoadVillagerSandbox("empty");
+        var resident = sim.Scenario.PlaceVillager(new(100, 108));
+        sim.Scenario.PlaceVillage(new(100, 108), [resident.Id]);
+        var shelf = sim.Scenario.PlaceFurniture(FurnitureType.GroceryShelf, new(22, 110));
+        sim.Scenario.SetStock(shelf.Id, GoodsKind.TinnedFood, 100);
+        sim.Scenario.PlaceWaterPoint(new(22, 106));
+        var known = new KnownMap { Villages = Array.AsReadOnly(new[] { new KnownVillage(0, new(100, 108), sim.Snapshot.Clock) }) };
+        sim.Scenario.PlaceBand([new(20, 108), new(21, 108), new(22, 108)], knownMap: known);
+        var events = new List<DomainEvent>();
+        using var subscription = sim.Subscribe(events.Add);
+        sim.Advance(TimeSpan.FromHours(1));
+        Assert.Contains(events, e => e is VillageFounded);
+        Assert.DoesNotContain(events, e => e is WanderersJoined);
+    }
+
+    [Fact]
+    public void A_Band_that_finds_a_remembered_Village_abandoned_does_not_join_it()
+    {
+        using var sim = Simulation.Create(new WorldConfig(3008, PillarLayout: PillarLayout.VillagerSandbox,
+            Needs: new NeedsConfig(DehydrationHours: 0.5)));
+        var resident = sim.Scenario.PlaceVillager(new(40, 108), new Needs(Thirst: 1));
+        sim.Scenario.PlaceVillage(new(40, 108), [resident.Id]);
+        sim.Advance(TimeSpan.FromHours(1));
+        Assert.Empty(sim.Snapshot.Villages[0].VillagerIds);
+        var known = new KnownMap { Villages = Array.AsReadOnly(new[] { new KnownVillage(0, new(40, 108), sim.Snapshot.Clock) }) };
+        var band = sim.Scenario.PlaceBand([new(20, 108)], knownMap: known);
+        sim.Advance(TimeSpan.FromHours(1));
+        Assert.Null(sim.Snapshot.Villagers.Single(v => v.Id == band.VillagerIds[0]).VillageId);
+        Assert.All(sim.Snapshot.Bands.SelectMany(b => b.KnownMap.Villages), v => Assert.True(v.Abandoned));
     }
 
     [Fact]

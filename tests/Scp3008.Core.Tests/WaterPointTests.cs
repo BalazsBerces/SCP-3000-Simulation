@@ -98,7 +98,7 @@ public class WaterPointTests(ITestOutputHelper output)
     public void Which_taps_run_does_not_change_as_time_advances()
     {
         using var sim = Simulation.Create(new WorldConfig(42, StartingBands: false, RuntimeRngSeed: 1,
-            Arrivals: new ArrivalConfig { IntervalHours = 0 }));
+            Arrivals: ArrivalConfig.Off));
         var before = sim.Snapshot.WaterPoints;
         sim.Advance(TimeSpan.FromHours(30));
         Assert.Equal(before, sim.Snapshot.WaterPoints);

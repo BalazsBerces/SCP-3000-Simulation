@@ -8,7 +8,7 @@ public class DomainEventTests
     public void Crossing_midnight_starts_a_new_store_day_and_emits_one_event()
     {
         using var sim = Simulation.Create(new WorldConfig(Seed: 3008, StartingBands: false, RuntimeRngSeed: 1,
-            Arrivals: new ArrivalConfig { IntervalHours = 0 }));
+            Arrivals: ArrivalConfig.Off));
         var events = new List<DomainEvent>();
         using var subscription = sim.Subscribe(events.Add);
 
@@ -25,7 +25,7 @@ public class DomainEventTests
     public void A_disposed_subscription_receives_no_more_events()
     {
         using var sim = Simulation.Create(new WorldConfig(Seed: 3008, StartingBands: false, RuntimeRngSeed: 1,
-            Arrivals: new ArrivalConfig { IntervalHours = 0 }));
+            Arrivals: ArrivalConfig.Off));
         var events = new List<DomainEvent>();
         var subscription = sim.Subscribe(events.Add);
 

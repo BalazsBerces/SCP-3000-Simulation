@@ -9,7 +9,7 @@ public class SimulationThreadTests
 
     private static Simulation NewWorld() =>
         Simulation.Create(new WorldConfig(Seed: 3008, StartingBands: false, RuntimeRngSeed: 1,
-            Arrivals: new ArrivalConfig { IntervalHours = 0 }));
+            Arrivals: ArrivalConfig.Off));
 
     [Fact]
     public void A_started_simulation_advances_on_its_own_thread()

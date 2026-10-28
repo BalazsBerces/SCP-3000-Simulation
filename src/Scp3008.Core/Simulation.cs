@@ -24,6 +24,9 @@ public sealed partial class Simulation : IDisposable
 
     // Keys for the independent runtime random streams, one per subsystem.
     private const int WeatherStream = 1;
+    private const int RestockStream = 2;
+    private const int StartingBandStream = 3;
+    private const int ArrivalStream = 4;
 
     private readonly object _stepLock = new();
     private readonly WorldConfig _config;
@@ -104,8 +107,8 @@ public sealed partial class Simulation : IDisposable
             _pointsOfInterest, _landmarks);
         // Runtime randomness never comes from the Store seed (ADR 0003); it is unseeded unless a test fixes it.
         var runtimeSeed = config.RuntimeRngSeed ?? Random.Shared.Next();
-        _restockRandom = SeededRandom.For(runtimeSeed, 2);
-        _arrivalRandom = SeededRandom.For(runtimeSeed, 4);
+        _restockRandom = SeededRandom.For(runtimeSeed, RestockStream);
+        _arrivalRandom = SeededRandom.For(runtimeSeed, ArrivalStream);
         _weather = new Weather(_space, SeededRandom.For(runtimeSeed, WeatherStream));
         if (sandbox)
             _weather.SetFormation(false);
@@ -120,7 +123,7 @@ public sealed partial class Simulation : IDisposable
         InitializeRestock();
         ScheduleDrySpell();
         if (config.StartingBands && !sandbox && !config.LandmarkShowcase && !config.PointOfInterestShowcase)
-            CreateStartingBands(SeededRandom.For(runtimeSeed, 3));
+            CreateStartingBands(SeededRandom.For(runtimeSeed, StartingBandStream));
         ScheduleArrival();
     }
 

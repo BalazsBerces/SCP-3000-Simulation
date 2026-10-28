@@ -108,14 +108,7 @@ public sealed partial class Simulation
         _staff = new Villagers(_space, _navigation);
         _staff.Restore(state.Staff);
         var people = _villagers.Snapshot();
-        if (people.Any(v => v.VillageId is { } id &&
-                !s.Villages.Any(home => home.Id == id && home.VillagerIds.Contains(v.Id))) ||
-            s.Villages.Any(home => home.VillagerIds.Distinct().Count() != home.VillagerIds.Count ||
-                people.Any(v => home.VillagerIds.Contains(v.Id) && v.VillageId != home.Id)) ||
-            state.NextBandId < 0 || s.Bands.Any(b => b.Id < 0 || b.Id >= state.NextBandId) ||
-            s.Bands.Select(b => b.Id).Distinct().Count() != s.Bands.Count ||
-            s.Bands.SelectMany(b => b.VillagerIds).Distinct().Count() != s.Bands.Sum(b => b.VillagerIds.Count) ||
-            s.Bands.Any(b => people.Any(v => b.VillagerIds.Contains(v.Id) && v.VillageId is not null)))
+        if (!MembershipConsistent(people, s.Villages, s.Bands, state.NextBandId))
             throw new InvalidDataException("Invalid world save: inconsistent community membership.");
         var staffIds = _staff.Snapshot().Select(v => v.Id).ToHashSet();
         if (state.Patrols.Any(p => !staffIds.Contains(p.Id) || p.Route.Length == 0 || p.Next < 0 ||
@@ -149,6 +142,18 @@ public sealed partial class Simulation
         Scenario = new ScenarioBuilder(this);
         _snapshot = BuildSnapshot();
     }
+
+    // Every Villager belongs to at most one Village or Band, and both sides of each membership agree.
+    private static bool MembershipConsistent(IReadOnlyList<Villager> people, IReadOnlyList<Village> villages,
+        IReadOnlyList<Band> bands, int nextBandId) =>
+        !(people.Any(v => v.VillageId is { } id &&
+                !villages.Any(home => home.Id == id && home.VillagerIds.Contains(v.Id))) ||
+            villages.Any(home => home.VillagerIds.Distinct().Count() != home.VillagerIds.Count ||
+                people.Any(v => home.VillagerIds.Contains(v.Id) && v.VillageId != home.Id)) ||
+            nextBandId < 0 || bands.Any(b => b.Id < 0 || b.Id >= nextBandId) ||
+            bands.Select(b => b.Id).Distinct().Count() != bands.Count ||
+            bands.SelectMany(b => b.VillagerIds).Distinct().Count() != bands.Sum(b => b.VillagerIds.Count) ||
+            bands.Any(b => people.Any(v => b.VillagerIds.Contains(v.Id) && v.VillageId is not null)));
 
     private static JsonSerializerOptions CreateSaveJson()
     {

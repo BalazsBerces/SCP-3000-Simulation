@@ -6,7 +6,7 @@ public class LightCycleTests
 {
     private static Simulation NewWorld() =>
         Simulation.Create(new WorldConfig(Seed: 3008, StartingBands: false, RuntimeRngSeed: 1,
-            Arrivals: new ArrivalConfig { IntervalHours = 0 }));
+            Arrivals: ArrivalConfig.Off));
 
     [Fact]
     public void A_new_world_starts_with_the_store_open_and_fully_lit()

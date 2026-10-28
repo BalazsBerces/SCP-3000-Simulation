@@ -8,6 +8,13 @@ public sealed partial class Simulation
     private readonly List<string> _chronicle = [];
     private int _nextBandId;
 
+    // Members within this distance of a Village or site have arrived there.
+    internal const float ArrivalRadius = 2;
+    // A site with both food and water nearby; a Band founds unforced only on one of these.
+    private const int GoodSiteScore = 100;
+    // A Band this large may found its own Village rather than join one it knows.
+    private const int FoundingGroup = 3;
+
     private void AdvanceVillages(StoreClock clock)
     {
         if (_villages.Count == 0 || _tick % 50 != 1)
@@ -69,46 +76,37 @@ public sealed partial class Simulation
             _villagers.ShareKnowledge(updated.VillagerIds, known);
             if (clock.Phase == DayPhase.ClosingTime)
                 continue;
-            var destination = known.Villages.OrderBy(v => _space.Distance(updated.Position, v.Position))
-                .Select(v => _villages.FirstOrDefault(home => home.Id == v.VillageId && home.VillagerIds.Count > 0))
-                .FirstOrDefault(v => v is not null && members.All(m => _navigation.FindPath(m.Position, v.Position) is not null));
-            if (destination is not null)
+            var forced = members.Any(v => v.Needs.Rest < 0.2 || v.Needs.Hunger >= 0.85) ||
+                members.Length < band.FoundingPopulation;
+            // Only the Band's own Known map says where Villages are; whether one still lives is learned on arrival.
+            var destination = known.Villages.Where(v => !v.Abandoned)
+                .OrderBy(v => _space.Distance(updated.Position, v.Position))
+                .FirstOrDefault(v => members.All(m => _navigation.FindPath(m.Position, v.Position) is not null));
+            // A group of founders with a good site closer than any known Village builds its own.
+            var mayFound = destination is null || !forced && members.Length >= FoundingGroup;
+            var site = mayFound ? BestFoundingSite(updated.Position, known, forced) : null;
+            var founds = site is { } own && (destination is null ||
+                _space.Distance(updated.Position, own) < _space.Distance(updated.Position, destination.Position));
+            if (destination is not null && !founds)
             {
-                if (members.Any(m => _space.Distance(m.Position, destination.Position) > 2))
+                if (members.Any(m => _space.Distance(m.Position, destination.Position) > ArrivalRadius))
                 {
                     _bands[_bands.IndexOf(updated)] = updated with { Site = destination.Position };
                     continue;
                 }
-                var joined = destination with
-                {
-                    VillagerIds = Array.AsReadOnly(destination.VillagerIds.Concat(updated.VillagerIds).ToArray()),
-                    KnownMap = MergeMaps([destination.KnownMap, known]),
-                    Recipes = Array.AsReadOnly(destination.Recipes.Union(updated.Recipes).ToArray()),
-                };
-                _villages[joined.Id] = joined;
-                _bands.Remove(updated);
-                _villagers.JoinVillage(joined);
-                _villagers.ShareKnowledge(joined.VillagerIds, joined.KnownMap);
-                Emit(new WanderersJoined(clock, updated.Id, joined.Id, updated.VillagerIds));
+                if (_villages[destination.VillageId].VillagerIds.Count == 0)
+                    continue;
+                JoinVillage(clock, updated, _villages[destination.VillageId]);
                 continue;
             }
-            var forced = members.Any(v => v.Needs.Rest < 0.2 || v.Needs.Hunger >= 0.85) ||
-                members.Length < band.FoundingPopulation;
-            var candidates = known.ExploredGround.Append(updated.Position)
-                .Where(p => !_snapshot.GroundAt(p).HasFlag(GroundProperty.Darkness) && _navigation.IsWalkable(p))
-                .Select(p => (Position: p, Score: SiteScore(p, known)))
-                .OrderByDescending(s => s.Score).ThenBy(s => _space.Distance(updated.Position, s.Position));
-            var sites = candidates.Where(s => (forced || s.Score >= 100) &&
-                _navigation.FindPath(updated.Position, s.Position) is not null).Take(1).ToArray();
-            if (sites.Length == 0)
+            if (site is not { } position)
                 continue;
-            var site = sites[0];
-            if (_space.Distance(updated.Position, site.Position) > 2)
+            if (_space.Distance(updated.Position, position) > ArrivalRadius)
             {
-                _bands[_bands.IndexOf(updated)] = updated with { Site = site.Position };
+                _bands[_bands.IndexOf(updated)] = updated with { Site = position };
                 continue;
             }
-            var village = new Village(_villages.Count, site.Position, updated.VillagerIds)
+            var village = new Village(_villages.Count, position, updated.VillagerIds)
                 { KnownMap = known, Recipes = updated.Recipes };
             _villages.Add(village);
             _bands.Remove(updated);
@@ -117,12 +115,34 @@ public sealed partial class Simulation
         }
     }
 
+    private void JoinVillage(StoreClock clock, Band band, Village village)
+    {
+        var joined = village with
+        {
+            VillagerIds = Array.AsReadOnly(village.VillagerIds.Concat(band.VillagerIds).ToArray()),
+            KnownMap = MergeMaps([village.KnownMap, band.KnownMap]),
+            Recipes = Array.AsReadOnly(village.Recipes.Union(band.Recipes).ToArray()),
+        };
+        _villages[joined.Id] = joined;
+        _bands.Remove(band);
+        _villagers.JoinVillage(joined);
+        _villagers.ShareKnowledge(joined.VillagerIds, joined.KnownMap);
+        Emit(new WanderersJoined(clock, band.Id, joined.Id, band.VillagerIds));
+    }
+
+    private Vector2? BestFoundingSite(Vector2 from, KnownMap known, bool forced) =>
+        known.ExploredGround.Append(from).Where(IsSafeFloor)
+            .Select(p => (Position: p, Score: SiteScore(p, known)))
+            .OrderByDescending(s => s.Score).ThenBy(s => _space.Distance(from, s.Position))
+            .Where(s => (forced || s.Score >= GoodSiteScore) && _navigation.FindPath(from, s.Position) is not null)
+            .Select(s => (Vector2?)s.Position).FirstOrDefault();
+
     private int SiteScore(Vector2 position, KnownMap known)
     {
         var food = known.Goods.Any(g => g.Goods.Amount > 0 && GoodsCatalog.ClassOf(g.Goods.Kind) == GoodsClass.Food &&
             _space.Distance(position, g.Position) <= 48);
         var water = known.Water.Any(w => w.Running == true && _space.Distance(position, w.Position) <= 48);
-        return (food && water ? 100 : food || water ? 30 : 0) +
+        return (food && water ? GoodSiteScore : food || water ? 30 : 0) +
             _villagers.FurnitureNear(position, 24).Where(p => _space.Distance(position, p.Position) <= 24).Take(10).Count() +
             (_pillars.Any(p => _space.Distance(position, p.Position) <= 48) ? 20 : 0);
     }

@@ -8,7 +8,7 @@ public class PillarLayoutTests
 {
     private static Simulation Create(PillarLayout layout, int seed = 3008) =>
         Simulation.Create(new WorldConfig(seed, StartingBands: false, RuntimeRngSeed: 1, PillarLayout: layout,
-            Arrivals: new ArrivalConfig { IntervalHours = 0 }));
+            Arrivals: ArrivalConfig.Off));
 
     private static WorldSnapshot Store(PillarLayout layout, int seed = 3008) => TestStores.Get(seed, layout);
 

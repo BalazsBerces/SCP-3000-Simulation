@@ -19,7 +19,8 @@ public sealed record KnownWater(WaterPointKind Kind, Vector2 Position, int Furni
 
 public sealed record KnownDanger(int StaffId, Vector2 Position, StoreClock LastSeen, bool Stale = false);
 
-public sealed record KnownVillage(int VillageId, Vector2 Position, StoreClock LastSeen, bool Stale = false);
+/// <summary>Abandoned once a Villager has seen the place empty; the newest sighting wins when maps merge.</summary>
+public sealed record KnownVillage(int VillageId, Vector2 Position, StoreClock LastSeen, bool Stale = false, bool Abandoned = false);
 
 internal sealed partial class Villagers
 {
@@ -65,10 +66,11 @@ internal sealed partial class Villagers
         bool Visible(FurniturePiece piece) => space.Distance(walker.Position, piece.Position) <= RestockSight.Range &&
             (space.Distance(walker.Position, navigation.NearestWalkable(piece.Position)) < 0.5f ||
              RestockSight.CanSee(space, viewer, piece, blockers, world.Pillars, world.FogBanks));
+        bool VisibleAt(Vector2 position) => Visible(new FurniturePiece(-1, FurnitureType.CoffeeTable, position, 0, 0, 0));
         var stock = world.Stock.ToLookup(g => g.FurnitureId);
         foreach (var (key, goods) in walker.KnownGoods.ToArray())
             if (!nearby.Any(p => p.Id == goods.Goods.FurnitureId && p.Position == goods.Position) &&
-                Visible(new FurniturePiece(-1, FurnitureType.CoffeeTable, goods.Position, 0, 0, 0)))
+                VisibleAt(goods.Position))
                 walker.KnownGoods[key] = goods with { Goods = goods.Goods with { Amount = 0 }, LastSeen = world.Clock, Stale = false };
         foreach (var piece in nearby)
         {
@@ -101,14 +103,15 @@ internal sealed partial class Villagers
             if (world.Clock.TotalStoreTime - water.LastSeen.TotalStoreTime >= TimeSpan.FromHours(1))
                 walker.KnownWater[key] = water with { Stale = true };
         foreach (var staff in world.Staff)
-            if (world.Phase == DayPhase.ClosingTime && Visible(new FurniturePiece(-1, FurnitureType.CoffeeTable, staff.Position, 0, 0, 0)))
+            if (world.Phase == DayPhase.ClosingTime && VisibleAt(staff.Position))
                 walker.KnownDangers[staff.Id] = new(staff.Id, staff.Position, world.Clock);
         foreach (var (id, danger) in walker.KnownDangers.ToArray())
             if (world.Clock.TotalStoreTime - danger.LastSeen.TotalStoreTime >= TimeSpan.FromHours(1))
                 walker.KnownDangers[id] = danger with { Stale = true };
         foreach (var village in world.Villages)
-            if (village.VillagerIds.Count > 0 && Visible(new FurniturePiece(-1, FurnitureType.CoffeeTable, village.Position, 0, 0, 0)))
-                walker.KnownVillages[village.Id] = new(village.Id, village.Position, world.Clock);
+            if ((village.VillagerIds.Count > 0 || walker.KnownVillages.ContainsKey(village.Id)) && VisibleAt(village.Position))
+                walker.KnownVillages[village.Id] = new(village.Id, village.Position, world.Clock,
+                    Abandoned: village.VillagerIds.Count == 0);
         foreach (var (id, village) in walker.KnownVillages.ToArray())
             if (world.Clock.TotalStoreTime - village.LastSeen.TotalStoreTime >= TimeSpan.FromHours(1))
                 walker.KnownVillages[id] = village with { Stale = true };

@@ -10,15 +10,17 @@ public sealed partial class Simulation
         switch (domainEvent)
         {
             case WanderersJoined joined:
-                var newcomer = Villager.NameOf(joined.VillagerIds[0]);
+                var wanderer = Villager.NameOf(joined.VillagerIds[0]);
+                var joinPlace = ChroniclePlace(_villages[joined.VillageId].Position);
                 story = (_chronicle.Count % 3) switch
                 {
-                    0 => $"{newcomer} and Band {joined.BandId} joined Village {joined.VillageId}, bringing news of the Store.",
-                    1 => $"Band {joined.BandId} joined Village {joined.VillageId}; {newcomer} shared what the Wanderers knew.",
-                    _ => $"Following {newcomer}, Band {joined.BandId} joined Village {joined.VillageId} and found a home among its people.",
+                    0 => $"{wanderer} and Band {joined.BandId} joined Village {joined.VillageId} in {joinPlace}, bringing news of the Store.",
+                    1 => $"In {joinPlace}, Band {joined.BandId} joined Village {joined.VillageId}; {wanderer} shared what the Wanderers knew.",
+                    _ => $"Following {wanderer}, Band {joined.BandId} joined Village {joined.VillageId} in {joinPlace} and found a home among its people.",
                 };
                 break;
-            case WanderersArrived arrived:
+            // Lone shoppers and pairs arrive all the time; only a group large enough to found a Village is of note.
+            case WanderersArrived arrived when arrived.Band.VillagerIds.Count >= FoundingGroup:
                 var leader = Villager.NameOf(arrived.Band.VillagerIds[0]);
                 var count = arrived.Band.VillagerIds.Count;
                 var arrivalPlace = ChroniclePlace(arrived.Band.Position);

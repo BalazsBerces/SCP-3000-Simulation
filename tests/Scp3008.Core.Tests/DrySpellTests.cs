@@ -46,7 +46,7 @@ public class DrySpellTests
     public void Long_run_visits_different_Departments_and_Sectors_without_stopping_all_food()
     {
         using var sim = Simulation.Create(new WorldConfig(3008, StartingBands: false, RuntimeRngSeed: 17,
-            Arrivals: new ArrivalConfig { IntervalHours = 0 },
+            Arrivals: ArrivalConfig.Off,
             Restock: new RestockConfig { GoodsPerStoreHour = 0, DrySpellStrength = 1,
                 DrySpellIntervalHours = 24, DrySpellDurationHours = 24 }));
         sim.Scenario.SetFogBankFormation(false);

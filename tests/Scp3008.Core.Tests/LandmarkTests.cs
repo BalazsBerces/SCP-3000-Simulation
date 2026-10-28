@@ -177,7 +177,7 @@ public class LandmarkTests
             if (landmark is not null)
             {
                 var sim = Simulation.Create(new WorldConfig(seed, StartingBands: false, RuntimeRngSeed: 1,
-                    Arrivals: new ArrivalConfig { IntervalHours = 0 }));
+                    Arrivals: ArrivalConfig.Off));
                 sim.Scenario.SetFogBankFormation(false);
                 return (sim, landmark);
             }

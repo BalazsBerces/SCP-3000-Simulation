@@ -165,7 +165,7 @@ internal sealed partial class Villagers
                 world.Bands.FirstOrDefault(b => b.VillagerIds.Contains(walker.Id))?.Site is { } site)
             {
                 // Needs finish first; members wait together at the site rather than scouting away.
-                if (space.Distance(walker.Position, site) > 2)
+                if (space.Distance(walker.Position, site) > Simulation.ArrivalRadius)
                     Plan(walker, site);
                 else
                 {

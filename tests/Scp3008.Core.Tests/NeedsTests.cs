@@ -164,7 +164,7 @@ public class NeedsTests
     public void Display_Fridges_are_empty_except_for_actual_left_behind_finds()
     {
         using var sim = Simulation.Create(new WorldConfig(3008, StartingBands: false, RuntimeRngSeed: 1,
-            Stock: new StockConfig { LeftBehindShare = 1 }, Arrivals: new ArrivalConfig { IntervalHours = 0 }));
+            Stock: new StockConfig { LeftBehindShare = 1 }, Arrivals: ArrivalConfig.Off));
         var pieces = sim.Snapshot.Furniture.ToDictionary(p => p.Id);
         var find = sim.Snapshot.Stock.First(g => g.LeftBehind && GoodsCatalog.ClassOf(g.Kind) == GoodsClass.Food &&
             pieces[g.FurnitureId].Type == FurnitureType.Fridge);

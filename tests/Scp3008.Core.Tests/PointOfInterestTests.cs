@@ -333,7 +333,8 @@ public class PointOfInterestTests
     [MemberData(nameof(LayoutsAndSeeds))]
     public void The_three_ball_pits_are_one_network_the_staff_pass_through_only_at_closing_time(PillarLayout layout, int seed)
     {
-        using var sim = Simulation.Create(new WorldConfig(seed, StartingBands: false, RuntimeRngSeed: 1, PillarLayout: layout));
+        using var sim = Simulation.Create(new WorldConfig(seed, StartingBands: false, RuntimeRngSeed: 1, PillarLayout: layout,
+            Arrivals: ArrivalConfig.Off));
         var pits = sim.Snapshot.PointsOfInterest.Where(p => p.Type == PointOfInterestType.BallPit).Select(p => p.Id).ToList();
         Assert.Equal(3, pits.Count);
         Assert.Equal(pits, sim.Snapshot.BallPitNetwork.BallPitIds);
