@@ -9,11 +9,12 @@ public enum WallRun { Straight, Corner, Curved }
 
 /// <summary>
 /// A Furniture placement; size and weight are the first barricade's sturdiness requirements. A Battlements slot also caps the
-/// height, and a stacked Castle slot records the height its piece was set at.
+/// height, and a stacked Castle slot records the height its piece was set at. A wall slot's Tier is its piece's own (from its
+/// sturdiness, plus one each for Strapping and Backfill, at most 3).
 /// </summary>
 public sealed record BlueprintSlot(Vector2 Position, float Rotation, float Width, WallRun Run,
     float MinimumHeight = 0.8f, float MinimumWeight = 10, int? FurnitureId = null, int? ReservedFurnitureId = null,
-    float MaximumHeight = 100f, float Elevation = 0f)
+    float MaximumHeight = 100f, float Elevation = 0f, int Tier = 1, bool Strapped = false, bool Backfilled = false)
 {
     public bool Fits(FurniturePiece piece)
     {
@@ -35,6 +36,8 @@ public sealed record Blueprint(WallOutline Outline, int Population, IReadOnlyLis
     int? IncorporatedFurnitureId = null, int? IncorporatedPillarId = null, bool Battlements = false)
 {
     [JsonIgnore] public bool Complete => Slots.All(s => s.FurnitureId is not null);
+    /// <summary>The Tier of the whole wall: that of its weakest piece (0 while it is not complete); only a label.</summary>
+    [JsonIgnore] public int Tier => Complete ? Slots.Min(s => s.Tier) : 0;
 }
 
 public sealed record BlueprintPiecePlaced(StoreClock At, int VillageId, int Ring, int Slot, int FurnitureId) : DomainEvent(At);

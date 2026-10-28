@@ -121,6 +121,7 @@ public sealed partial class Simulation
             if (BuildWorkshop(village, workers[0])) continue;
             if (BuildMessHall(_villages[village.Id], workers[0])) continue;
             if (BuildStorehouse(_villages[village.Id], workers[0])) continue;
+            if (TendWalls(_villages[village.Id], workers[0], clock)) continue;
             var homeWalls = village.HomeWalls().ToArray();
             if (homeWalls.Length == 0 || homeWalls.All(w => w.Complete) &&
                 village.VillagerIds.Count >= homeWalls[^1].Population + 4)
@@ -141,7 +142,7 @@ public sealed partial class Simulation
                 (current.FurnitureYard?.WallIndex == ring ? current.FurnitureYard.Position : village.Position);
             var started = false;
             foreach (var piece in _villagers.FurnitureNear(site, 48).Where(p =>
-                slot.Fits(p) && p.Elevation == 0 && p.Tilt == 0 && p.Roll == 0 && !IsBuiltFurniture(p.Id) &&
+                slot.Fits(p) && p.Damage < 1f && p.Elevation == 0 && p.Tilt == 0 && p.Roll == 0 && !IsBuiltFurniture(p.Id) &&
                 _space.Distance(site, p.Position) <= 48 &&
                 !_furnitureTasks.Any(t => t.FurnitureId == p.Id)).OrderBy(p => InYard(current, p) ? 0 : 1).ThenBy(p => _space.Distance(workers[0].Position, p.Position)))
             {
@@ -168,7 +169,11 @@ public sealed partial class Simulation
                     var slot = village.Walls[r].Slots[s];
                     if (slot.ReservedFurnitureId != task.FurnitureId) continue;
                     MoveFurnitureCore(task.FurnitureId, slot.Position, slot.Rotation, 0);
-                    SetWallSlot(village.Id, r, s, slot with { FurnitureId = task.FurnitureId, ReservedFurnitureId = null });
+                    var swap = slot.FurnitureId is not null;
+                    var placed = swap ? SwapIn(village, slot, task.FurnitureId) : slot with { FurnitureId = task.FurnitureId, ReservedFurnitureId = null,
+                        Tier = TierOf(_furniture.Pieces.First(p => p.Id == task.FurnitureId), false, false) };
+                    SetWallSlot(village.Id, r, s, placed);
+                    if (swap) Emit(new WallPieceUpgraded(clock, village.Id, r, s, WallUpgrade.Swapped, placed.Tier));
                     foreach (var id in task.VillagerIds) _villagers.PracticeBuilding(id, false);
                     Emit(new BlueprintPiecePlaced(clock, village.Id, r, s, task.FurnitureId));
                     return;
@@ -227,7 +232,7 @@ public sealed partial class Simulation
                 w.Slots.Any(s => !Finite(s.Position) || !float.IsFinite(s.Rotation) || !Enum.IsDefined(s.Run) ||
                     !float.IsFinite(s.Width) || s.Width <= 0 || !float.IsFinite(s.MinimumHeight) || s.MinimumHeight <= 0 ||
                     !float.IsFinite(s.MinimumWeight) || s.MinimumWeight <= 0 ||
-                    s.FurnitureId is not null && s.ReservedFurnitureId is not null ||
+                    s.Tier is < 1 or > 3 ||
                     s.FurnitureId is { } id && !_furniture.Pieces.Any(p => p.Id == id && s.Fits(p) &&
                         p.Position == s.Position && p.Rotation == s.Rotation && p.Elevation == 0) ||
                     s.ReservedFurnitureId is { } reserved && (!_furniture.Pieces.Any(p => p.Id == reserved && s.Fits(p)) ||

@@ -39,3 +39,4 @@ Agents append here, one line each (`- <ticket>: <cause and fix>`), when a proble
 - 17f: Sketchfab archives do not always name their glTF buffer scene.bin, so a hard-coded name crashes the fetch. Read the buffer file name from the glTF buffers[0].uri.
 - 18: `gh issue view N --comments` prints nothing in the runner's shell. Read tickets with `gh issue view N --json title,body,comments` into a file instead.
 - 19: A facade test that runs construction until a Blueprint completes must cap its tick loop and print the slots and each Builder's task on failure; a stalled Blueprint otherwise looks like a hung test run (and stalls slow every tick).
+- 20: Git Bash heredocs with apostrophes inside a larger command break the whole command; write files with the Write tool and edits as a .py file under .ticket-logs. A Godot --wall-check style path is relative to game/, so pass an absolute path.

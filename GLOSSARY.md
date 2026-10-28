@@ -357,6 +357,9 @@ _Avoid_: Crafting table, factory
 A stronger variant of a Blueprint whose slots demand sturdier Furniture plus Material reinforcement. Each piece is upgraded on its own, by swapping it for sturdier Furniture, Strapping it or Backfilling behind it, so a structure is patchy, with strong and weak spots; a structure reaches a Tier once all its pieces have.
 _Avoid_: Level, upgrade stage
 
+**Wall piece Tier**:
+The Tier of one piece of a wall: 1 for a light piece, 2 for flat-pack wood, 3 for a reinforced cabinet, plus one for being Strapped and one for being Backfilled (at most 3). A wall's Tier is that of its weakest piece. Builders upgrade the weakest piece of a finished wall when they have the Materials (metal to Strap, foam to Backfill) or a sturdier piece to swap in, and mend Damaged pieces during the open Store.
+
 **Strapping**:
 Reinforcing a piece of a structure in place with Materials (metal straps, twisted cables, panels nailed on), visibly.
 _Avoid_: Weaving, plating

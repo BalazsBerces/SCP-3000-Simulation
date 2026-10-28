@@ -169,6 +169,12 @@ public partial class DevCapture : Node
                 CheckBlueprint(arg["--blueprint-check=".Length..]);
                 return;
             }
+            if (arg.StartsWith("--wall-check="))
+            {
+                SetProcess(false);
+                CheckWalls(arg["--wall-check=".Length..]);
+                return;
+            }
             if (arg.StartsWith("--castle-check="))
             {
                 SetProcess(false);
