@@ -26,7 +26,7 @@ public sealed partial class Simulation
             var known = MergeMaps(members.Select(v => v.KnownMap).Append(village.KnownMap));
             var updated = village with { KnownMap = known, VillagerIds = Array.AsReadOnly(members.Select(v => v.Id).ToArray()) };
             _villages[village.Id] = updated;
-            _villagers.ShareKnowledge(updated.VillagerIds, known);
+
             var shortage = village.Stores.Where(g => GoodsCatalog.ClassOf(g.Key) == GoodsClass.Food).Sum(g => g.Value) < members.Length;
             if (shortage && members.FirstOrDefault(v => v.Role != Role.Scavenger && v.FurnitureTaskId is null && !v.Crafting) is { } worker)
             {
@@ -134,7 +134,7 @@ public sealed partial class Simulation
         _villages[joined.Id] = joined;
         _bands.Remove(band);
         _villagers.JoinVillage(joined);
-        _villagers.ShareKnowledge(joined.VillagerIds, joined.KnownMap);
+        _villagers.ShareKnowledge(band.VillagerIds, joined.KnownMap);
         Emit(new WanderersJoined(clock, band.Id, joined.Id, band.VillagerIds));
     }
 

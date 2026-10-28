@@ -66,6 +66,7 @@ namespace Scp3008.Game;
 ///                          that took over twice the median, with the zoom and level of detail then.
 /// Does nothing in normal runs.
 /// Dry spell check: --pause --dry-spell-check=directory checks the live overview Sector panel.
+/// Mess hall check: --villager-sandbox --sandbox-preset=empty --pause --meal-check=directory verifies and captures shared meals.
 /// Restock check: --villager-sandbox --sandbox-preset=empty --pause --restock-check=directory captures and checks refill and return.
 /// </summary>
 public partial class DevCapture : Node
@@ -133,6 +134,12 @@ public partial class DevCapture : Node
     {
         foreach (var arg in OS.GetCmdlineUserArgs())
         {
+            if (arg.StartsWith("--meal-check="))
+            {
+                SetProcess(false);
+                CheckMeals(arg["--meal-check=".Length..]);
+                return;
+            }
             if (arg.StartsWith("--workshop-check="))
             {
                 SetProcess(false);

@@ -74,6 +74,7 @@ public partial class VillagerRenderer : Node3D
         var focus = Rig.Focus;
         ShowCommunities(space, focus);
         ShowWorkshops();
+        ShowMessHalls();
         ShowVillagePanel(Host.Snapshot, delta);
         var seen = new HashSet<int>();
         var bodies = Host.Snapshot.Bodies.ToDictionary(b => b.VillagerId);
@@ -103,6 +104,8 @@ public partial class VillagerRenderer : Node3D
                 figure.Rotation = new Vector3(-0.3f + 0.08f * MathF.Sin((float)Time.GetTicksMsec() / 140), figure.Rotation.Y, 0);
             else if (villager.Action == VillagerAction.DraggingFurniture)
                 figure.Rotation = new Vector3(-0.2f, figure.Rotation.Y, 0);
+            else if (villager.Action == VillagerAction.SharedMeal)
+                figure.Rotation = new Vector3(-0.1f + 0.025f * MathF.Sin((float)Time.GetTicksMsec() / 350), figure.Rotation.Y, 0);
             ShowGear(figure, villager);
         }
         foreach (var gone in _figures.Keys.Where(id => !seen.Contains(id)).ToList())
@@ -148,6 +151,8 @@ public partial class VillagerRenderer : Node3D
     private void OnWorldCreated(WorldSnapshot snapshot)
     {
         CloseVillagePanel();
+        foreach (var node in _messHalls.Values) node.QueueFree();
+        _messHalls.Clear();
         foreach (var button in _villageButtons.Values)
             button.QueueFree();
         _villageButtons.Clear();

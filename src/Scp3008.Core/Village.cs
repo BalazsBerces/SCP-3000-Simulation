@@ -7,6 +7,7 @@ public enum Role { Scavenger, Builder, Cook, Guard, Trader, Farmer, NightScout }
 /// <summary>A founding community; its stores are an open pile until it builds a Storehouse.</summary>
 public sealed record Village(int Id, Vector2 Position, IReadOnlyList<int> VillagerIds)
 {
+    public MessHall? MessHall { get; init; }
     public IReadOnlyList<Outpost> Outposts { get; init; } = [];
     public IReadOnlyList<Workshop> Workshops { get; init; } = [];
     public Personality Personality { get; init; } = Personality.Cautious;

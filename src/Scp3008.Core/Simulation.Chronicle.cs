@@ -49,6 +49,9 @@ public sealed partial class Simulation
             case OutpostAbandoned abandonedPost:
                 story = $"Village {abandonedPost.VillageId} abandoned Outpost {abandonedPost.OutpostId}; its forward barricade fell quiet.";
                 break;
+            case SharedMealServed meal:
+                story = $"Village {meal.VillageId} gathered at the Mess hall: {string.Join(", ", meal.VillagerIds.Select(Villager.NameOf))} ate together and exchanged news of the Store.";
+                break;
             case RecipeLearned learned:
                 story = $"Village {learned.VillageId} discovered a Recipe through {learned.Source}: {Recipes.All.Single(r => r.Gear == learned.Gear).Name}.";
                 break;

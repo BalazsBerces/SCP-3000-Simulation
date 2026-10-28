@@ -6,7 +6,7 @@ namespace Scp3008.Core;
 
 public sealed partial class Simulation
 {
-    private const int SaveVersion = 8;
+    private const int SaveVersion = 9;
     private static readonly JsonSerializerOptions SaveJson = CreateSaveJson();
 
     private sealed record SaveFile(int Version, SaveState State);
@@ -118,6 +118,7 @@ public sealed partial class Simulation
         _bands.AddRange(s.Bands);
         _villages.AddRange(s.Villages);
         ValidateBlueprints();
+        ValidateMessHalls();
         ValidateOutposts();
         _chronicle.AddRange(s.Chronicle);
         foreach (var gear in s.Gear.Concat(s.Villages.SelectMany(v => v.Gear)).Concat(state.GearSources)) gear.Validate();

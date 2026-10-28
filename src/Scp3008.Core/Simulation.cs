@@ -322,6 +322,7 @@ public sealed partial class Simulation : IDisposable
                     Bands = _bands.ToArray(), Villages = _villages.ToArray(), Gear = _gear.ToArray(),
                     FogBanks = _weather.Snapshot(), Staff = _staff.Snapshot().Select(s => new Staff(s.Id, s.Position, s.Destination, s.Heading)).ToArray() },
                 _config.Needs ?? new NeedsConfig(), TakeGoods, Emit, CollectGoods, DeliverGoods, TakeGear);
+        AdvanceMeals(clock);
         AdvanceFurnitureTasks(clock);
         AdvanceConstruction(clock);
         AdvanceCrafting(clock);

@@ -32,3 +32,5 @@ Agents append here, one line each (`- <ticket>: <cause and fix>`), when a proble
 
 - 17b: Run Godot through Python subprocess.run(timeout=300) with stdout/stderr redirected to ticket logs; PowerShell Start-Process can leave ExitCode unset after a successful build.
 - 17b: When bumping the save format, search tests for literal Version numbers and update damaged-save fixtures to the current format; otherwise they exercise version rejection instead of damaged-state validation.
+
+- 17d: A dev capture started from _Ready can finish scenario setup before CameraRig._Ready resets its view. Wait for scene initialization before jumping the camera, then verify the rendered subject is actually on screen.
