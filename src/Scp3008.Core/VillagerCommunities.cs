@@ -25,7 +25,8 @@ internal sealed partial class Villagers
                 if (walker.Bag is { } bag) walker.Bag = Wear(bag, 1);
                 if (walker.Hand is { Kind: GearKind.ShoppingCart or GearKind.PlatformCart } cart) walker.Hand = Wear(cart, 1);
                 walker.CarriedGoods = null;
-                walker.Skills[Role.Scavenger] = walker.Skills.GetValueOrDefault(Role.Scavenger) + 1;
+                var skill = walker.Role == Role.Farmer ? Role.Farmer : Role.Scavenger;
+                walker.Skills[skill] = walker.Skills.GetValueOrDefault(skill) + 1;
             }
             else if (walker.Destination is null)
                 Plan(walker, village.Position);
@@ -39,6 +40,8 @@ internal sealed partial class Villagers
             walker.Action = VillagerAction.Resting;
             return true;
         }
+        if (walker.Role == Role.Farmer && walker.Destination is null && Farm(walker, world, village))
+            return true;
         if (walker.Role != Role.Scavenger && outpost is null)
             return false;
         if (walker.Destination is not null)
@@ -56,6 +59,36 @@ internal sealed partial class Villagers
         }
         else
             Scout(walker);
+        return true;
+    }
+
+    // A farmer harvests ripe Crops and waters thirsty ones, fetching the water from a Water point it knows (ticket 17f).
+    private bool Farm(Walker walker, WorldSnapshot world, Village village)
+    {
+        var states = world.Crops.ToDictionary(c => c.FurnitureId);
+        var crops = FurnitureNear(village.Position, Crop.TendingRange)
+            .Where(p => p.Type == FurnitureType.Crop && states.TryGetValue(p.Id, out var c) && !c.Withered &&
+                space.Distance(p.Position, village.Position) <= Crop.TendingRange && !walker.Unreachable.Contains(p.Position))
+            .Select(p => (Piece: p, State: states[p.Id])).ToList();
+        var chosen = crops.Where(c => c.State.Ripe || walker.CarriedWater > 0 && c.State.Water < Crop.Thirsty)
+            .OrderBy(c => space.Distance(walker.Position, c.Piece.Position))
+            .Select(c => new NeedTarget(c.Piece.Position, Crop: c.Piece.Id)).FirstOrDefault(t => TryPlan(walker, t));
+        if (chosen is null && walker.CarriedWater == 0 && crops.Any(c => c.State.Water < Crop.Thirsty))
+        {
+            chosen = walker.KnownWater.Values.Where(w => w.Running != false && !walker.Unreachable.Contains(w.Position))
+                .OrderBy(w => space.Distance(walker.Position, w.Position))
+                .Select(w => new NeedTarget(w.Position, Water: new WaterPoint(w.Kind, w.Position, w.Running == true, w.FurnitureId), Fill: true))
+                .FirstOrDefault(t => TryPlan(walker, t));
+            if (chosen is null)
+            {
+                Scout(walker);
+                return true;
+            }
+        }
+        if (chosen is null)
+            return false;
+        walker.Target = chosen;
+        walker.Action = chosen.Fill ? VillagerAction.FetchingWater : VillagerAction.Tending;
         return true;
     }
 

@@ -33,6 +33,8 @@ public sealed record Villager(int Id, Vector2 Position, Vector2? Destination, fl
     public GoodsKind? CarriedGoods { get; init; }
     public int CarriedAmount { get; init; }
     public int CarriedMaterials { get; init; }
+    /// <summary>Waterings a farmer carries from a Water point to the Crops (ticket 17f).</summary>
+    public int CarriedWater { get; init; }
     public int? FurnitureTaskId { get; init; }
     public bool Crafting { get; init; }
     public Gear? Hand { get; init; }
@@ -59,6 +61,7 @@ internal sealed partial class Villagers(StoreSpace space, Navigation navigation)
         public GoodsKind? CarriedGoods { get; set; }
         public int CarriedAmount { get; set; }
         public int CarriedMaterials { get; set; }
+        public int CarriedWater { get; set; }
         public int? FurnitureTaskId { get; set; }
         public bool Crafting { get; set; }
         public Gear? Hand { get; set; }
@@ -151,7 +154,7 @@ internal sealed partial class Villagers(StoreSpace space, Navigation navigation)
     private static Villager View(Walker walker) => new(walker.Id, walker.Position, walker.Destination, walker.Heading)
     { Needs = walker.Needs, Action = walker.Action, KnownMap = MapOf(walker),
         VillageId = walker.VillageId, Role = walker.Role, CarriedGoods = walker.CarriedGoods,
-        CarriedAmount = walker.CarriedAmount, CarriedMaterials = walker.CarriedMaterials,
+        CarriedAmount = walker.CarriedAmount, CarriedMaterials = walker.CarriedMaterials, CarriedWater = walker.CarriedWater,
         Crafting = walker.Crafting, FurnitureTaskId = walker.FurnitureTaskId, Hand = walker.Hand, Bag = walker.Bag, Armour = walker.Armour,
         Skills = new System.Collections.ObjectModel.ReadOnlyDictionary<Role, double>(new Dictionary<Role, double>(walker.Skills)) };
 }

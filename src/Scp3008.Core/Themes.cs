@@ -179,7 +179,7 @@ public static class ThemeCatalog
         [DepartmentType.Showrooms] = [Sofa, Armchair, CoffeeTable, Bed, Wardrobe, Bookcase, Rug, FloorLamp, ArcLamp, TvBench, Dresser, Nightstand],
         [DepartmentType.BathroomsAndKitchens] = [KitchenCabinet, Fridge, Bathtub, Toilet, VanityUnit, WashingMachine, Stove],
         [DepartmentType.RestaurantAndFoodMarket] = [GroceryShelf, Freezer, Counter, DiningTable, Chair, BarStool],
-        [DepartmentType.PlantSection] = [PlantTable, PottedPlant, LargePlant, PlanterBox],
+        [DepartmentType.PlantSection] = [PlantTable, PottedPlant, LargePlant, PlanterBox, FurnitureType.Crop],
         [DepartmentType.KidsArea] = [ToyShelf, BunkBed, KidsTable, KidsChair, PlayCube, Rug, ToyChest],
         [DepartmentType.Workspaces] = [Desk, OfficeChair, FilingCabinet, MeetingTable, DeskLamp],
         [DepartmentType.TextilesAndDecor] = [CushionBin, BlanketStack, CurtainRack, FloorMirror, FrameDisplay],
@@ -474,6 +474,8 @@ public static class ThemeCatalog
         [
             Core(Centre, 1, 1, PlantTable) with { Pitch = new(3.1f, 2.6f), Jitter = 0.1f },
             Core(OnTop, 3, 6, PottedPlant).On(PlantTable),
+            // Crops (ticket 17f) stand among the decorative pots; only the Plant section grows them.
+            Common(0.6f, OnTop, 1, 3, FurnitureType.Crop).On(PlantTable),
             Common(0.5f, Loose, 1, 4, LargePlant),
             Common(0.5f, Wall, 1, 3, PlanterBox) with { Run = true, Gap = 0.2f },
             Accent(0.2f, Loose, 1, 1, GardenTable),
@@ -484,6 +486,7 @@ public static class ThemeCatalog
             Core(Centre, 1, 1, LargePlant) with { Pitch = new(1.6f, 1.6f), Jitter = 0.35f },
             Common(0.6f, Wall, 2, 4, PlanterBox) with { Gap = 0.2f },
             Accent(0.25f, Loose, 1, 3, PottedPlant),
+            Accent(0.35f, Loose, 1, 3, FurnitureType.Crop),
         ]);
         yield return new(Theme.LampDisplay,
         [

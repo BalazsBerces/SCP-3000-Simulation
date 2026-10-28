@@ -6,7 +6,7 @@ namespace Scp3008.Core;
 
 public sealed partial class Simulation
 {
-    private const int SaveVersion = 11;
+    private const int SaveVersion = 12;
     private static readonly JsonSerializerOptions SaveJson = CreateSaveJson();
 
     private sealed record SaveFile(int Version, SaveState State);
@@ -129,6 +129,7 @@ public sealed partial class Simulation
             throw new InvalidDataException("Invalid world save: inconsistent spoiling stock.");
         foreach (var h in state.SpoilingShelves) _spoilingShelf[(h.FurnitureId, h.Kind)] = (h.Units, h.Progress);
         ValidateOutposts();
+        RestoreCrops(s);
         _chronicle.AddRange(s.Chronicle);
         foreach (var gear in s.Gear.Concat(s.Villages.SelectMany(v => v.Gear)).Concat(state.GearSources)) gear.Validate();
         var liveGear = s.Gear.Concat(s.Villages.SelectMany(v => v.Gear)).Concat(s.Villagers.SelectMany(v => new[] { v.Hand, v.Bag, v.Armour }).OfType<Gear>()).ToArray();

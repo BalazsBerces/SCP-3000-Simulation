@@ -134,6 +134,12 @@ public partial class DevCapture : Node
     {
         foreach (var arg in OS.GetCmdlineUserArgs())
         {
+            if (arg.StartsWith("--crop-check="))
+            {
+                SetProcess(false);
+                CheckCrops(arg["--crop-check=".Length..]);
+                return;
+            }
             if (arg.StartsWith("--storage-check="))
             {
                 SetProcess(false);

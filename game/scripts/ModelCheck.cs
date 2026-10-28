@@ -21,7 +21,7 @@ public static class ModelCheck
          FurnitureType.Tent, FurnitureType.Tree, FurnitureType.TreeHouse, FurnitureType.CampfireRing, FurnitureType.LogSeat,
          FurnitureType.Kayak, FurnitureType.PlushBear, FurnitureType.Axe, FurnitureType.MarshmallowStick, FurnitureType.SleepingBag,
          FurnitureType.Hammock, FurnitureType.FishingRod, FurnitureType.RubberDuck, FurnitureType.TrailSign, FurnitureType.CampChair,
-         FurnitureType.SunLounger];
+         FurnitureType.SunLounger, FurnitureType.Crop];
 
     // In metres.
     private const float Tolerance = 0.001f;

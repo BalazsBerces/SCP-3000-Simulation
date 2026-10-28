@@ -36,3 +36,4 @@ Agents append here, one line each (`- <ticket>: <cause and fix>`), when a proble
 - 17d: A dev capture started from _Ready can finish scenario setup before CameraRig._Ready resets its view. Wait for scene initialization before jumping the camera, then verify the rendered subject is actually on screen.
 
 - 17e: Git Bash heredocs containing quotes or backslashes corrupt multi-line edits. Write such scripts and files with the Write tool instead.
+- 17f: Sketchfab archives do not always name their glTF buffer scene.bin, so a hard-coded name crashes the fetch. Read the buffer file name from the glTF buffers[0].uri.

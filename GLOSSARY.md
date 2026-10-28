@@ -165,7 +165,7 @@ The shared limit for the units of Goods and Materials a Villager carries, separa
 _Avoid_: Inventory slots, weight grid
 
 **Crop**:
-A real potted plant of the Plant section (herbs, vegetables) that a Village tends and that slowly yields food Goods: the only food a Village grows rather than finds.
+A real potted plant of the Plant section (herbs, vegetables) that a Village tends and that slowly yields food Goods: the only food a Village grows rather than finds. A Village's farmers water it from a Water point and harvest it when ripe, and they carry nearby Crops home inside the walls. A Crop the Store keeps stays as it is until someone first waters it. After that it grows only while it has water, and a **withered** Crop, dry too long, is dead for good.
 _Avoid_: Farm, field, plant (the decorative ones are Furniture)
 
 **Surplus** / **Shortage**:

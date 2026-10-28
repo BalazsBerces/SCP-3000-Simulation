@@ -75,6 +75,7 @@ public partial class VillagerRenderer : Node3D
         ShowCommunities(space, focus);
         ShowWorkshops();
         ShowMessHalls();
+        ShowCrops();
         ShowStorage();
         ShowVillagePanel(Host.Snapshot, delta);
         var seen = new HashSet<int>();

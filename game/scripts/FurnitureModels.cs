@@ -162,6 +162,8 @@ public static class FurnitureModels
         new(FurnitureType.SunLounger, 0, "sun_lounger_wood", 0f, ChairBudget, false, "kirill", "CC-BY", "https://sketchfab.com/3d-models/deck-chair-f7b31f2190ae425682a873e28bd3244c"),
         new(FurnitureType.SunLounger, 1, "sun_lounger_plastic", 0f, ChairBudget, false, "rodestrela", "CC-BY", "https://sketchfab.com/3d-models/sun-lounger-3d-974e74f55bbd4dc9a85c4a48fc987a18"),
         new(FurnitureType.SunLounger, 2, "deck_chair", 90f, ChairBudget, true, "MaX3Dd", "CC-BY", "https://sketchfab.com/3d-models/deck-chair-38de6171cbeb41c5bdc49c07df76ede9"),
+        // A Crop (ticket 17f): one potted basil stands for every herb and vegetable the Plant section grows.
+        new(FurnitureType.Crop, 0, "crop_basil", 0f, 3000, false, "sauti", "CC-BY", "https://sketchfab.com/3d-models/stylized-basil-pot-plant-ecc5bdf2230946f2a92cf5be4cf3a34c"),
         new(FurnitureType.Parasol, 1, "beach_umbrella", 0f, 2000, false, "stealth86", "CC-BY", "https://sketchfab.com/3d-models/beach-umbrella-1014ad7c8a4c4aa8ba5e88fc6151aa4f"),
     ];
 

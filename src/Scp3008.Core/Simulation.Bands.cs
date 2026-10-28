@@ -33,7 +33,17 @@ public sealed partial class Simulation
             // Scavengers at an active Outpost gather for it, not for home.
             var homeScavengers = members.Where(v => v.Role == Role.Scavenger &&
                 !village.Outposts.Any(o => !o.Abandoned && o.VillagerIds.Contains(v.Id))).ToArray();
-            if (shortage && members.FirstOrDefault(v => v.Role != Role.Scavenger && !(kitchen && v.Role == Role.Cook) &&
+            // Farmers with Crops to tend grow food, so a shortage leaves them farming (ticket 17f).
+            var crops = HasCrops(village);
+            if (crops && members.Length >= 2 && !members.Any(v => v.Role == Role.Farmer) &&
+                homeScavengers.LastOrDefault(v => v.FurnitureTaskId is null && !v.Crafting &&
+                    v.CarriedAmount + v.CarriedMaterials == 0 && v.Hand is null) is { } farmer)
+            {
+                _villagers.AssignRole(farmer.Id, Role.Farmer);
+                Emit(new RoleChanged(clock, farmer.Id, Role.Farmer));
+            }
+            else if (shortage && members.FirstOrDefault(v => v.Role != Role.Scavenger && !(kitchen && v.Role == Role.Cook) &&
+                !(crops && v.Role == Role.Farmer) &&
                 v.FurnitureTaskId is null && !v.Crafting) is { } worker)
             {
                 _villagers.AssignRole(worker.Id, Role.Scavenger);

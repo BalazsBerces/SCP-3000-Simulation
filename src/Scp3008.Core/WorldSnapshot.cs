@@ -67,6 +67,8 @@ public sealed record WorldSnapshot(
 
     public IReadOnlyList<Band> Bands { get; init; } = [];
     public IReadOnlyList<Village> Villages { get; init; } = [];
+    /// <summary>The growth of every Crop piece (ticket 17f).</summary>
+    public IReadOnlyList<Crop> Crops { get; init; } = [];
     public IReadOnlyList<string> Chronicle { get; init; } = [];
     public IReadOnlyList<Gear> Gear { get; init; } = [];
     public IReadOnlyList<Staff> Staff { get; init; } = [];

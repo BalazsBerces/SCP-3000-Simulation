@@ -75,6 +75,7 @@ Models are simplified for rendering and textures resized. The EXIT sign has adde
 - Sun lounger, folding canvas deck chair variant: [deck chair](https://sketchfab.com/3d-models/deck-chair-38de6171cbeb41c5bdc49c07df76ede9) by MaX3Dd, Sketchfab, CC-BY ([CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)) (`models/deck_chair`)
 - Parasol, beach umbrella variant: [Beach Umbrella](https://sketchfab.com/3d-models/beach-umbrella-1014ad7c8a4c4aa8ba5e88fc6151aa4f) by stealth86, Sketchfab, CC-BY ([CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)) (`models/beach_umbrella`)
 - Camping ground: rolled sleeping bag: [Camping sleeping bag](https://sketchfab.com/3d-models/camping-sleeping-bag-d2ab6e8a8ffc472e9fca8b920662dafe) by Fochdog, Sketchfab, CC-BY ([CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)) (`models/camp_sleeping_bag_rolled`)
+- Crop: potted basil: [Stylized basil pot plant](https://sketchfab.com/3d-models/stylized-basil-pot-plant-ecc5bdf2230946f2a92cf5be4cf3a34c) by sauti, Sketchfab, CC-BY ([CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)) (`models/crop_basil`)
 
 ## Cafeteria food models
 

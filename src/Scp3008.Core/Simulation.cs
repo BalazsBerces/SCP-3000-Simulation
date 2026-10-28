@@ -119,6 +119,7 @@ public sealed partial class Simulation : IDisposable
         _staff = new Villagers(_space, _navigation);
         Scenario = new ScenarioBuilder(this);
         if (!sandbox) GenerateGear();
+        AddCrops(_furniture.Pieces);
         _snapshot = BuildSnapshot();
         InitializeRestock();
         ScheduleDrySpell();
@@ -319,11 +320,12 @@ public sealed partial class Simulation : IDisposable
         if (_villagers.HasVillagers)
             _villagers.AdvanceNeeds(StoreClock.TickDuration.TotalHours, _snapshot with
                 { Clock = clock, Stock = _stock, Furniture = _furniture.Pieces, WaterPoints = _waterPoints,
-                    Bands = _bands.ToArray(), Villages = _villages.ToArray(), Gear = _gear.ToArray(),
+                    Bands = _bands.ToArray(), Villages = _villages.ToArray(), Gear = _gear.ToArray(), Crops = _crops.Values.ToArray(),
                     FogBanks = _weather.Snapshot(), Staff = _staff.Snapshot().Select(s => new Staff(s.Id, s.Position, s.Destination, s.Heading)).ToArray() },
-                _config.Needs ?? new NeedsConfig(), TakeGoods, Emit, CollectGoods, DeliverGoods, TakeGear);
+                _config.Needs ?? new NeedsConfig(), TakeGoods, Emit, CollectGoods, DeliverGoods, TakeGear, TendCrop);
         AdvanceMeals(clock);
         AdvanceSpoilage(clock);
+        AdvanceCrops(clock);
         AdvanceFurnitureTasks(clock);
         AdvanceConstruction(clock);
         AdvanceCrafting(clock);
@@ -406,6 +408,7 @@ public sealed partial class Simulation : IDisposable
                 _gear.RemoveAll(g => g.FurnitureId >= 0 && !ids.Contains(g.FurnitureId));
                 _instructions.RemoveAll(i => !keptIds.Contains(i.FurnitureId));
                 CancelFurnitureTasks(t => !keptIds.Contains(t.FurnitureId));
+                foreach (var id in _crops.Keys.Where(id => !keptIds.Contains(id)).ToArray()) _crops.Remove(id);
                 _snapshot = BuildSnapshot();
             }
             return removed;
@@ -440,6 +443,7 @@ public sealed partial class Simulation : IDisposable
                 rotation, variant, Tint: tint);
             _restockOrigins[piece.Id] = piece;
             _furniture = _furniture with { Pieces = _furniture.Pieces.Append(piece).ToList().AsReadOnly() };
+            AddCrops([piece]);
             _navigation.Update([], [piece]);
             _villagers.Replan();
             _staff.Replan();
@@ -575,6 +579,7 @@ public sealed partial class Simulation : IDisposable
             Bodies = _villagers.Bodies.ToList().AsReadOnly(),
             Bands = _bands.ToList().AsReadOnly(),
             Villages = _villages.ToList().AsReadOnly(),
+            Crops = _crops.Values.ToList().AsReadOnly(),
             Chronicle = _chronicle.ToList().AsReadOnly(),
             Gear = _gear.ToList().AsReadOnly(),
             FurnitureTasks = _furnitureTasks.ToList().AsReadOnly(),

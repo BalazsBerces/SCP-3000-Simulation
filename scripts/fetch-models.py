@@ -106,6 +106,8 @@ MODELS = [
     ("deck_chair", "sketchfab", "38de6171cbeb41c5bdc49c07df76ede9", "deck chair", "Sun lounger, folding canvas deck chair variant"),
     ("beach_umbrella", "sketchfab", "1014ad7c8a4c4aa8ba5e88fc6151aa4f", "Beach Umbrella", "Parasol, beach umbrella variant"),
     ("camp_sleeping_bag_rolled", "sketchfab", "d2ab6e8a8ffc472e9fca8b920662dafe", "Camping sleeping bag", "Camping ground: rolled sleeping bag"),
+    # Crops (ticket 17f): a tended potted herb of the Plant section.
+    ("crop_basil", "sketchfab", "ecc5bdf2230946f2a92cf5be4cf3a34c", "Stylized basil pot plant", "Crop: potted basil"),
 ]
 
 # Goods on Stock Furniture shelves (ticket 08r): one model per Goods kind, copied along the shelves.
@@ -141,6 +143,8 @@ KEEP_NODES = {
 # where the names are not unique.
 DROP_NODES = {
     "camp_kayak": ["Camera_7"],
+    # The basil source stacks a large and a small plant, each in its own pot, at the same spot: the Crop keeps the large one.
+    "crop_basil": ["Basil_B.002", "Pot.002"],
 }
 
 # Tinted models whose fabric is too dark to take the piece's tint (the game tints only texels lighter than its threshold):
@@ -271,8 +275,10 @@ def sketchfab(folder, uid):
             kept = [e for e in gltf.pop(key, []) if e not in ("KHR_materials_unlit", "KHR_materials_pbrSpecularGlossiness")]
             if kept:
                 gltf[key] = kept
-        gltf["buffers"] = [{"uri": f"{folder}.bin", "byteLength": len(archive.read("scene.bin"))}]
-        (target / f"{folder}.bin").write_bytes(archive.read("scene.bin"))
+        # Most archives name the buffer scene.bin; a few keep the exporter's own name.
+        buffer = archive.read(gltf["buffers"][0]["uri"])
+        gltf["buffers"] = [{"uri": f"{folder}.bin", "byteLength": len(buffer)}]
+        (target / f"{folder}.bin").write_bytes(buffer)
         (target / f"{folder}.gltf").write_text(json.dumps(gltf, indent=1), encoding="utf-8")
     if folder in DROP_NODES:
         gltf = json.loads((target / f"{folder}.gltf").read_text(encoding="utf-8"))

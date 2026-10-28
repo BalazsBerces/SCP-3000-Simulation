@@ -7,7 +7,9 @@ internal sealed partial class Villagers
     public bool HasVillagers => _walkers.Count > 0;
     public List<Body> Bodies { get; } = [];
 
-    private sealed record NeedTarget(Vector2 Position, StockedGoods? Goods = null, WaterPoint? Water = null, bool Rest = false, bool Haul = false, Gear? Gear = null);
+    // Crop: a Crop piece a farmer waters or harvests; Fill: fetch water for the Crops rather than drink (ticket 17f).
+    private sealed record NeedTarget(Vector2 Position, StockedGoods? Goods = null, WaterPoint? Water = null, bool Rest = false, bool Haul = false, Gear? Gear = null,
+        int? Crop = null, bool Fill = false);
 
     private sealed partial class Walker
     {
@@ -20,7 +22,8 @@ internal sealed partial class Villagers
 
     public void AdvanceNeeds(double hours, WorldSnapshot world, NeedsConfig config,
         Func<int, StockedGoods, StoreClock, bool> take, Action<DomainEvent> emit,
-        Func<StockedGoods, bool> collect, Action<int, int, GoodsKind> deliver, Func<int, Gear, bool> equip)
+        Func<StockedGoods, bool> collect, Action<int, int, GoodsKind> deliver, Func<int, Gear, bool> equip,
+        Func<int, int, int, bool, (int Picked, bool Watered)> tend)
     {
         IndexFurniture(world.Furniture);
         foreach (var walker in _walkers.ToArray())
@@ -123,6 +126,11 @@ internal sealed partial class Villagers
                         var key = (target.Water.Value.FurnitureId, target.Position);
                         if (walker.KnownWater.TryGetValue(key, out var known))
                             walker.KnownWater[key] = known with { Running = point.Running, LastSeen = world.Clock, Stale = false };
+                        if (point.Running && target.Fill)
+                        {
+                            walker.CarriedWater = Crop.WaterCarried;
+                            continue;
+                        }
                         if (point.Running)
                         {
                             walker.Needs = n with { Thirst = 0 };
@@ -131,6 +139,18 @@ internal sealed partial class Villagers
                             emit(new WaterDrunk(world.Clock, walker.Id, point));
                             continue;
                         }
+                    }
+                    if (target.Crop is { } crop && walker.VillageId is { } home &&
+                        world.Furniture.Any(p => p.Id == crop && p.Position == target.Position))
+                    {
+                        var (picked, watered) = tend(walker.Id, home, crop, walker.CarriedWater > 0);
+                        if (watered) walker.CarriedWater--;
+                        if (picked > 0)
+                        {
+                            walker.CarriedGoods = GoodsKind.FreshFood;
+                            walker.CarriedAmount += picked;
+                        }
+                        continue;
                     }
                     if (target.Rest)
                         walker.Action = VillagerAction.Resting;

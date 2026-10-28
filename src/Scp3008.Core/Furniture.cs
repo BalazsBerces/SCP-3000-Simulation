@@ -201,6 +201,8 @@ public enum FurnitureType
     CampfireRing,
     /// <summary>A marshmallow on a roasting stick, standing in the tasting tray.</summary>
     MarshmallowStick,
+    /// <summary>A Crop: a real potted herb or vegetable of the Plant section that a Village can tend for food (ticket 17f).</summary>
+    Crop,
 }
 
 /// <summary>The kinds of tent, as the variant of a <see cref="FurnitureType.Tent"/>.</summary>
@@ -590,6 +592,7 @@ public static class FurnitureCatalog
             new(FurnitureType.SunLounger, 0.7f, 1.9f, 0.95f, Variant: 1),      // white plastic lounger
             new(FurnitureType.SunLounger, 0.66f, 1.05f, 0.93f, Variant: 2),    // folding canvas deck chair
             new(FurnitureType.Parasol, 1.8f, 2.07f, 2.3f, Variant: 1),         // tilted beach umbrella
+            new(FurnitureType.Crop, 0.35f, 0.35f, 0.24f),                      // a potted herb
         ];
         var byType = new FurnitureSpec[Enum.GetValues<FurnitureType>().Length][];
         foreach (var group in specs.GroupBy(s => s.Type))
