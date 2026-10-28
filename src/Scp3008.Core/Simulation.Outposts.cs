@@ -35,7 +35,7 @@ public sealed partial class Simulation
             if (source is null) continue;
             var position = _navigation.NearestWalkable(_space.Wrap(source.Position + new Vector2(0, 6)));
             var workers = people.Where(p => p.VillageId == village.Id && p.Role == Role.Scavenger &&
-                p.FurnitureTaskId is null && !p.Crafting && _navigation.FindPath(p.Position, position) is not null)
+                IsAvailableWorker(p) && _navigation.FindPath(p.Position, position) is not null)
                 .Take(2).Select(p => p.Id).ToArray();
             if (workers.Length < 2) continue;
             var barricade = CreateBarricade(new Village(village.Id, position, Array.AsReadOnly(workers)));

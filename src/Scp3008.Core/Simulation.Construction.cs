@@ -105,7 +105,7 @@ public sealed partial class Simulation
         foreach (var village in _villages.ToArray())
         {
             var workers = _villagers.Snapshot().Where(v => v.VillageId == village.Id && v.Role == Role.Builder &&
-                v.FurnitureTaskId is null && !v.Crafting && v.Action is not (VillagerAction.GoingToMeal or VillagerAction.SharedMeal) && v.CarriedAmount + v.CarriedMaterials == 0 &&
+                IsAvailableWorker(v) && v.CarriedAmount + v.CarriedMaterials == 0 &&
                 v.Hand?.Kind is null or GearKind.ShoppingCart or GearKind.PlatformCart && v.Needs.Hunger < 0.7 && v.Needs.Thirst < 0.7).ToArray();
             if (workers.Length == 0) continue;
             if (BuildWorkshop(village, workers[0])) continue;

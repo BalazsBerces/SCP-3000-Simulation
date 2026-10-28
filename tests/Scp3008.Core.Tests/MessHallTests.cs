@@ -220,11 +220,21 @@ public class MessHallTests
     {
         using var sim = Ready(4);
         foreach (var v in sim.Snapshot.Villagers) sim.Scenario.AssignRole(v.Id, Role.Scavenger);
-        sim.AdvanceTicks(51);
+        for (var i = 0; i < 500 && sim.Snapshot.Villagers.All(v => v.Role != Role.Cook); i++) sim.AdvanceTicks(1);
         var cook = Assert.Single(sim.Snapshot.Villagers, v => v.Role == Role.Cook);
         sim.Scenario.SetStores(0, GoodsKind.TinnedFood, 0);
         sim.AdvanceTicks(100);
         Assert.Equal(Role.Cook, sim.Snapshot.Villagers.Single(v => v.Id == cook.Id).Role);
+    }
+
+    [Fact]
+    public void A_Village_short_of_food_does_not_take_a_scavenger_off_to_cook()
+    {
+        using var sim = Ready(4);
+        foreach (var v in sim.Snapshot.Villagers) sim.Scenario.AssignRole(v.Id, Role.Scavenger);
+        sim.Scenario.SetStores(0, GoodsKind.TinnedFood, 0);
+        sim.AdvanceTicks(100);
+        Assert.DoesNotContain(sim.Snapshot.Villagers, v => v.Role == Role.Cook);
     }
 
     [Fact]

@@ -64,8 +64,10 @@ public sealed partial class Simulation
     internal static long MealStart(StoreClock clock)
     {
         var hour = clock.TimeOfDay.TotalHours;
-        var start = MessHall.MealHours.FirstOrDefault(h => hour >= h && hour < h + 0.75, -1);
-        return start < 0 ? -1 : clock.Tick - StoreClock.TicksFor(clock.TimeOfDay) + StoreClock.TicksFor(TimeSpan.FromHours(start));
+        foreach (var start in MessHall.MealHours)
+            if (hour >= start && hour < start + 0.75)
+                return clock.Tick - StoreClock.TicksFor(clock.TimeOfDay) + StoreClock.TicksFor(TimeSpan.FromHours(start));
+        return -1;
     }
 }
 
@@ -87,18 +89,27 @@ internal sealed partial class Villagers
             return false;
         if (hall.LastMealTick >= start) return walker.Action == VillagerAction.SharedMeal;
         if (!village.Stores.Any(g => GoodsCatalog.ClassOf(g.Key) == GoodsClass.Food && g.Value > 0)) return false;
-        // A Villager on a trip (an errand, an order, scouting) keeps going and can miss the meal.
-        if (walker.Action != VillagerAction.GoingToMeal && (walker.Target is not null || walker.Destination is not null)) return false;
-        if (walker.Destination is null && space.Distance(walker.Position, hall.Position) > 5)
+        // A Villager on a trip (an errand, an order, scouting) keeps going and can miss the meal;
+        // one heading home to eat from the stores comes to the table instead.
+        var toStores = walker.Target is { Goods: { FurnitureId: -1 } goods } target && target.Position == village.Position &&
+            GoodsCatalog.ClassOf(goods.Kind) == GoodsClass.Food;
+        if (walker.Action != VillagerAction.GoingToMeal && !toStores && (walker.Target is not null || walker.Destination is not null)) return false;
+        if (walker.Destination is null || toStores)
         {
-            // Test the way first, so an unreachable seat leaves the current route alone.
-            var index = village.VillagerIds.ToList().IndexOf(walker.Id);
-            var angle = index * MathF.Tau / Math.Max(2, village.VillagerIds.Count);
-            var place = navigation.NearestWalkable(space.Wrap(hall.Position + new Vector2(MathF.Cos(angle), MathF.Sin(angle)) * 2.2f));
-            if (navigation.FindPath(walker.Position, place) is not { } path) return false;
-            walker.Waypoints = path;
-            walker.Destination = place;
+            if (space.Distance(walker.Position, hall.Position) > 5)
+            {
+                var index = village.VillagerIds.ToList().IndexOf(walker.Id);
+                var angle = index * MathF.Tau / Math.Max(2, village.VillagerIds.Count);
+                var place = navigation.NearestWalkable(space.Wrap(hall.Position + new Vector2(MathF.Cos(angle), MathF.Sin(angle)) * 2.2f));
+                if (!TryRoute(walker, place)) return false;
+            }
+            else
+            {
+                walker.Waypoints.Clear();
+                walker.Destination = null;
+            }
         }
+        walker.Target = null;
         walker.Action = VillagerAction.GoingToMeal;
         return true;
     }

@@ -112,7 +112,7 @@ public partial class VillagerRenderer
             string.Join("\n", current.Stores.OrderBy(g => g.Key).Select(g => $"{g.Key}: {g.Value}"));
         var workshops = string.Join(", ", current.Workshops.Select(w => $"{w.Kind}: {(w.Complete ? "built" : "planned")}"));
         var messHall = current.MessHall is not { } hall ? "Not planned" :
-            $"{(hall.Complete ? "Built" : $"{hall.Slots.Count(s => s.FurnitureId is not null)}/4 pieces")} | Meals: {string.Join(", ", MessHall.MealHours.Select(h => $"{h:00}:00"))}\n" +
+            $"{(hall.Complete ? "Built" : $"{hall.Slots.Count(s => s.FurnitureId is not null)}/4 pieces")} | Meals: {MealTimes}\n" +
             $"Eating together: {members.Count(v => v.Action == VillagerAction.SharedMeal)}";
         var recipes = string.Join("\n", current.Recipes.Select(k => Recipes.All.Single(r => r.Gear == k).Name));
         var skills = string.Join("\n", members.Select(v => $"{v.Name}: " + (v.Skills.Count == 0 ? "Unpractised" :

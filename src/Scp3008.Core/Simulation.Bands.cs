@@ -30,24 +30,27 @@ public sealed partial class Simulation
             var shortage = village.Stores.Where(g => GoodsCatalog.ClassOf(g.Key) == GoodsClass.Food).Sum(g => g.Value) < members.Length;
             // A cook at a built Mess hall stretches the stores, so a shortage keeps them cooking.
             var kitchen = village.MessHall is { Complete: true };
+            // Scavengers at an active Outpost gather for it, not for home.
+            var homeScavengers = members.Where(v => v.Role == Role.Scavenger &&
+                !village.Outposts.Any(o => !o.Abandoned && o.VillagerIds.Contains(v.Id))).ToArray();
             if (shortage && members.FirstOrDefault(v => v.Role != Role.Scavenger && !(kitchen && v.Role == Role.Cook) &&
                 v.FurnitureTaskId is null && !v.Crafting) is { } worker)
             {
                 _villagers.AssignRole(worker.Id, Role.Scavenger);
                 Emit(new RoleChanged(clock, worker.Id, Role.Scavenger));
             }
-            else if (!shortage && members.Length >= 2 && !members.Any(v => v.Role == Role.Builder) &&
-                members.LastOrDefault(v => v.Role == Role.Scavenger &&
-                    !village.Outposts.Any(o => !o.Abandoned && o.VillagerIds.Contains(v.Id)) && v.FurnitureTaskId is null && !v.Crafting &&
+            else if (shortage)
+                continue;
+            else if (members.Length >= 2 && !members.Any(v => v.Role == Role.Builder) &&
+                homeScavengers.LastOrDefault(v => v.FurnitureTaskId is null && !v.Crafting &&
                     v.CarriedAmount + v.CarriedMaterials == 0 && v.Hand?.Kind is null or GearKind.ShoppingCart) is { } builder)
             {
                 _villagers.AssignRole(builder.Id, Role.Builder);
                 Emit(new RoleChanged(clock, builder.Id, Role.Builder));
             }
-            else if (kitchen && !members.Any(v => v.Role == Role.Cook) && members.Count(v => v.Role == Role.Scavenger) >= 2 &&
-                members.LastOrDefault(v => v.Role == Role.Scavenger &&
-                    !village.Outposts.Any(o => !o.Abandoned && o.VillagerIds.Contains(v.Id)) && v.FurnitureTaskId is null && !v.Crafting &&
-                    v.CarriedAmount + v.CarriedMaterials == 0) is { } cook)
+            else if (kitchen && !members.Any(v => v.Role == Role.Cook) && homeScavengers.Length >= 2 &&
+                homeScavengers.LastOrDefault(v => v.FurnitureTaskId is null && !v.Crafting &&
+                    v.CarriedAmount + v.CarriedMaterials == 0 && v.Hand?.Kind is not (GearKind.ShoppingCart or GearKind.PlatformCart)) is { } cook)
             {
                 _villagers.AssignRole(cook.Id, Role.Cook);
                 Emit(new RoleChanged(clock, cook.Id, Role.Cook));

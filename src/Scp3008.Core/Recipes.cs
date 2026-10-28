@@ -122,9 +122,12 @@ public sealed partial class Simulation
         return true;
     });
 
+    // Free for a new job: not on a Furniture task, not crafting, not at a meal.
+    private static bool IsAvailableWorker(Villager worker) =>
+        worker.FurnitureTaskId is null && !worker.Crafting && worker.Action is not (VillagerAction.GoingToMeal or VillagerAction.SharedMeal);
+
     private bool CanMake(Villager worker, Village village, Recipe recipe) =>
-        worker.FurnitureTaskId is null && !worker.Crafting && worker.Action is not (VillagerAction.GoingToMeal or VillagerAction.SharedMeal) &&
-        worker.CarriedAmount + worker.CarriedMaterials == 0 &&
+        IsAvailableWorker(worker) && worker.CarriedAmount + worker.CarriedMaterials == 0 &&
         worker.Hand?.Kind is not (GearKind.ShoppingCart or GearKind.PlatformCart) && (recipe.Tool is null || worker.Hand?.Kind == recipe.Tool) &&
         _space.Distance(worker.Position, village.Position) <= 2 &&
         worker.Needs.Hunger < 0.9 && worker.Needs.Thirst < 0.9 &&

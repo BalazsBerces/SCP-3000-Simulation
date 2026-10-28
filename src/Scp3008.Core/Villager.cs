@@ -134,9 +134,18 @@ internal sealed partial class Villagers(StoreSpace space, Navigation navigation)
 
     private void Plan(Walker walker, Vector2 destination)
     {
-        var path = navigation.FindPath(walker.Position, destination);
-        walker.Waypoints = path ?? [];
-        walker.Destination = path is null ? null : destination;
+        if (TryRoute(walker, destination)) return;
+        walker.Waypoints = [];
+        walker.Destination = null;
+    }
+
+    // Sets the route only when a path exists, so a failed attempt leaves the current one alone.
+    private bool TryRoute(Walker walker, Vector2 destination)
+    {
+        if (navigation.FindPath(walker.Position, destination) is not { } path) return false;
+        walker.Waypoints = path;
+        walker.Destination = destination;
+        return true;
     }
 
     private static Villager View(Walker walker) => new(walker.Id, walker.Position, walker.Destination, walker.Heading)
