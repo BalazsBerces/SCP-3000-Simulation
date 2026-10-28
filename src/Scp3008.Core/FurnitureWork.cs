@@ -64,6 +64,7 @@ internal sealed partial class Villagers
 
 public sealed partial class Simulation
 {
+    private const float CarriedElevation = 0.7f;
     private readonly List<FurnitureTask> _furnitureTasks = [];
 
     private void RestoreFurnitureTasks(IReadOnlyList<FurnitureTask> tasks, IReadOnlyList<Village> villages)
@@ -170,7 +171,7 @@ public sealed partial class Simulation
                 else { position = _space.Wrap(position + delta / distance * left); left = 0; }
             }
             MoveFurnitureCore(piece.Id, position, piece.Rotation,
-                route.Count == 0 || task.Work == FurnitureWork.Drag ? 0 : 0.7f);
+                route.Count == 0 || task.Work == FurnitureWork.Drag ? 0 : CarriedElevation);
             var action = task.Work switch
             {
                 FurnitureWork.Drag => VillagerAction.DraggingFurniture,

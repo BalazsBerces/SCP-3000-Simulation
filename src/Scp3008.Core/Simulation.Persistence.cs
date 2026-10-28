@@ -6,7 +6,7 @@ namespace Scp3008.Core;
 
 public sealed partial class Simulation
 {
-    private const int SaveVersion = 9;
+    private const int SaveVersion = 10;
     private static readonly JsonSerializerOptions SaveJson = CreateSaveJson();
 
     private sealed record SaveFile(int Version, SaveState State);

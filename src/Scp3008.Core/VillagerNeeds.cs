@@ -75,7 +75,12 @@ internal sealed partial class Villagers
                 continue;
             }
             if (AttendMeal(walker, world)) continue;
-            if (walker.Action is VillagerAction.SharedMeal or VillagerAction.GoingToMeal) walker.Action = VillagerAction.Idle;
+            if (walker.Action is VillagerAction.SharedMeal or VillagerAction.GoingToMeal)
+            {
+                walker.Action = VillagerAction.Idle;
+                walker.Waypoints.Clear();
+                walker.Destination = null;
+            }
             if (walker.Target is { } target)
             {
                 if (walker.Destination is not null)

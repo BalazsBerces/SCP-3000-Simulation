@@ -8,6 +8,16 @@ public sealed record MessHall(Vector2 Position, IReadOnlyList<BlueprintSlot> Slo
 {
     [JsonIgnore] public bool Complete => Slots.Count == 4 && Slots.All(s => s.FurnitureId is not null);
     public long LastMealTick { get; init; } = -1;
+
+    /// <summary>The hours each daily shared meal starts gathering.</summary>
+    public static IReadOnlyList<int> MealHours { get; } = [9, 14, 20];
+
+    // Table, a seat at each end and the cooking surface south of it, all clear of the first barricade ring (radius 5 m and more).
+    internal static readonly Vector2 CentreOffset = new(0, -1.8f);
+    internal static readonly (Vector2 Offset, float Rotation)[] Layout =
+        [(Vector2.Zero, 0), (new(-1.7f, 0), MathF.PI / 2), (new(1.7f, 0), -MathF.PI / 2), (new(0, -1.5f), 0)];
+    internal static BlueprintSlot Slot(int index, Vector2 position) =>
+        new(position, Layout[index].Rotation, 0.4f, WallRun.Straight, 0.4f, 1);
 }
 
 public sealed partial class Simulation
@@ -16,10 +26,9 @@ public sealed partial class Simulation
     {
         if (village.MessHall is null)
         {
-            var centre = _space.Wrap(village.Position + new Vector2(0, -3));
-            var offsets = new[] { Vector2.Zero, new Vector2(0, -1.8f), new Vector2(0, 1.8f), new Vector2(3, 0) };
-            var hall = new MessHall(centre, Array.AsReadOnly(offsets.Select(o =>
-                new BlueprintSlot(_space.Wrap(centre + o), 0, 0.4f, WallRun.Straight, 0.4f, 1)).ToArray()));
+            var centre = _space.Wrap(village.Position + MessHall.CentreOffset);
+            var hall = new MessHall(centre, Array.AsReadOnly(MessHall.Layout.Select((l, i) =>
+                MessHall.Slot(i, _space.Wrap(centre + l.Offset))).ToArray()));
             _villages[village.Id] = village = village with { MessHall = hall };
         }
         var pending = village.MessHall;
@@ -28,7 +37,7 @@ public sealed partial class Simulation
         var index = pending.Slots.ToList().FindIndex(s => s.FurnitureId is null);
         var slot = pending.Slots[index];
         foreach (var piece in _villagers.FurnitureNear(village.Position, 48).Where(p =>
-            MessHallFits(index, p) && !IsBuiltFurniture(p.Id) && _space.Distance(village.Position, p.Position) <= 48 &&
+            MessHallFits(slot, index, p) && !IsBuiltFurniture(p.Id) && _space.Distance(village.Position, p.Position) <= 48 &&
             !_furnitureTasks.Any(t => t.FurnitureId == p.Id)).OrderBy(p => _space.Distance(worker.Position, p.Position)))
         {
             try
@@ -42,8 +51,10 @@ public sealed partial class Simulation
         return false;
     }
 
-    private static bool MessHallFits(int index, FurniturePiece p) =>
-        p.Elevation == 0 && p.Tilt == 0 && p.Roll == 0 && !FurnitureCatalog.Spec(p).IsFixed && (index switch
+    // Blueprint.Fits is the barricade's size rule; tables and counters are wider, so only height and weight apply here.
+    private static bool MessHallFits(BlueprintSlot slot, int index, FurniturePiece p) =>
+        p.Elevation == 0 && p.Tilt == 0 && p.Roll == 0 && !FurnitureCatalog.Spec(p).IsFixed &&
+        FurnitureCatalog.Spec(p).Height >= slot.MinimumHeight && FurnitureResources.Weight(p) >= slot.MinimumWeight && (index switch
         {
             0 => p.Type is FurnitureType.DiningTable or FurnitureType.GardenTable or FurnitureType.MeetingTable,
             1 or 2 => p.Type is FurnitureType.Chair or FurnitureType.GardenChair or FurnitureType.HallBench or FurnitureType.BarStool,
@@ -89,20 +100,18 @@ public sealed partial class Simulation
         {
             if (village.MessHall is not { } hall) continue;
             if (!float.IsFinite(hall.Position.X) || !float.IsFinite(hall.Position.Y) ||
-                hall.Position != _space.Wrap(village.Position + new Vector2(0, -3)) ||
+                hall.Position != _space.Wrap(village.Position + MessHall.CentreOffset) ||
                 hall.Slots.Count != 4 || hall.LastMealTick < -1 || hall.LastMealTick > _tick ||
                 hall.LastMealTick >= 0 && MealStart(new StoreClock(hall.LastMealTick)) != hall.LastMealTick)
                 throw new InvalidDataException("Invalid world save: inconsistent Mess hall.");
-            var offsets = new[] { Vector2.Zero, new Vector2(0, -1.8f), new Vector2(0, 1.8f), new Vector2(3, 0) };
             for (var i = 0; i < hall.Slots.Count; i++)
             {
                 var slot = hall.Slots[i];
-                if (slot.Position != _space.Wrap(hall.Position + offsets[i]) || slot.Rotation != 0 ||
-                    slot.Width != 0.4f || slot.MinimumHeight != 0.4f || slot.MinimumWeight != 1 || slot.Run != WallRun.Straight ||
+                if (slot with { FurnitureId = null, ReservedFurnitureId = null } != MessHall.Slot(i, _space.Wrap(hall.Position + MessHall.Layout[i].Offset)) ||
                     slot.FurnitureId is not null && slot.ReservedFurnitureId is not null ||
-                    slot.FurnitureId is { } f && !_furniture.Pieces.Any(p => p.Id == f && MessHallFits(i, p) && p.Position == slot.Position && p.Rotation == slot.Rotation) ||
-                    slot.ReservedFurnitureId is { } r && (!_furniture.Pieces.Any(p => p.Id == r && MessHallFits(i, p with { Elevation = 0 }) &&
-                        (p.Elevation == 0 || p.Elevation == 0.7f && _furnitureTasks.Any(t => t.FurnitureId == r && t.Started))) ||
+                    slot.FurnitureId is { } f && !_furniture.Pieces.Any(p => p.Id == f && MessHallFits(slot, i, p) && p.Position == slot.Position && p.Rotation == slot.Rotation) ||
+                    slot.ReservedFurnitureId is { } r && (!_furniture.Pieces.Any(p => p.Id == r && MessHallFits(slot, i, p with { Elevation = 0 }) &&
+                        (p.Elevation == 0 || p.Elevation == CarriedElevation && _furnitureTasks.Any(t => t.FurnitureId == r && t.Started))) ||
                         !_furnitureTasks.Any(t => t.FurnitureId == r && t.Work != FurnitureWork.Disassemble && t.VillagerIds.All(village.VillagerIds.Contains))))
                     throw new InvalidDataException("Invalid world save: inconsistent Mess hall Blueprint.");
             }

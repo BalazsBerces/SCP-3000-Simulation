@@ -151,7 +151,7 @@ public partial class VillagerRenderer : Node3D
     private void OnWorldCreated(WorldSnapshot snapshot)
     {
         CloseVillagePanel();
-        foreach (var node in _messHalls.Values) node.QueueFree();
+        foreach (var (node, _) in _messHalls.Values) node.QueueFree();
         _messHalls.Clear();
         foreach (var button in _villageButtons.Values)
             button.QueueFree();

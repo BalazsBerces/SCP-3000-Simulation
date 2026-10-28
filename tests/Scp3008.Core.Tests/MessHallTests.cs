@@ -203,6 +203,52 @@ public class MessHallTests
     }
 
     [Fact]
+    public void A_Villager_on_an_errand_keeps_going_and_misses_the_meal()
+    {
+        using var sim = Ready(4);
+        sim.Scenario.SendVillager(0, new(38, 104));
+        sim.Advance(TimeSpan.FromMinutes(6));
+        Assert.NotNull(sim.Snapshot.Villagers[0].Destination);
+        Assert.NotEqual(VillagerAction.GoingToMeal, sim.Snapshot.Villagers[0].Action);
+        sim.Advance(TimeSpan.FromMinutes(29));
+        Assert.NotEqual(VillagerAction.SharedMeal, sim.Snapshot.Villagers[0].Action);
+        Assert.All(sim.Snapshot.Villagers.Skip(1), v => Assert.Equal(VillagerAction.SharedMeal, v.Action));
+    }
+
+    [Fact]
+    public void A_Village_with_a_Mess_hall_takes_on_a_cook_and_keeps_them_through_a_shortage()
+    {
+        using var sim = Ready(4);
+        foreach (var v in sim.Snapshot.Villagers) sim.Scenario.AssignRole(v.Id, Role.Scavenger);
+        sim.AdvanceTicks(51);
+        var cook = Assert.Single(sim.Snapshot.Villagers, v => v.Role == Role.Cook);
+        sim.Scenario.SetStores(0, GoodsKind.TinnedFood, 0);
+        sim.AdvanceTicks(100);
+        Assert.Equal(Role.Cook, sim.Snapshot.Villagers.Single(v => v.Id == cook.Id).Role);
+    }
+
+    [Fact]
+    public void The_Mess_hall_stands_clear_of_the_first_barricade_ring()
+    {
+        using var sim = Ready(1);
+        var village = sim.Snapshot.Villages[0];
+        // The smallest round ring: radius 4 + sqrt(1), its runs' inner face at most 0.6 m inside the 12-gon's sides.
+        var clear = 5 * MathF.Cos(MathF.PI / 12) - 0.6f;
+        foreach (var slot in village.MessHall!.Slots)
+        {
+            var piece = sim.Snapshot.Furniture.Single(p => p.Id == slot.FurnitureId);
+            var spec = FurnitureCatalog.Spec(piece);
+            var along = new System.Numerics.Vector2(MathF.Cos(piece.Rotation), MathF.Sin(piece.Rotation));
+            var across = new System.Numerics.Vector2(-along.Y, along.X);
+            foreach (var (x, y) in new[] { (-1, -1), (-1, 1), (1, -1), (1, 1) })
+            {
+                var corner = sim.Snapshot.Space.Delta(village.Position, piece.Position) + along * x * spec.Width / 2 + across * y * spec.Depth / 2;
+                Assert.InRange(corner.Length(), 0, clear);
+            }
+        }
+    }
+
+    [Fact]
     public void Joining_Wanderers_do_not_broadcast_news_to_members_away_from_the_Village()
     {
         using var sim = Ready(3);
