@@ -31,17 +31,21 @@ internal sealed partial class Villagers
                 Plan(walker, village.Position);
             return true;
         }
+        var outpost = village.Outposts.FirstOrDefault(o => !o.Abandoned && o.VillagerIds.Contains(walker.Id));
         if (world.Phase == DayPhase.ClosingTime)
         {
+            if (outpost is not null && walker.Destination is null && space.Distance(walker.Position, outpost.Position) > Simulation.ArrivalRadius)
+                Plan(walker, outpost.Position);
             walker.Action = VillagerAction.Resting;
             return true;
         }
-        if (walker.Role != Role.Scavenger)
+        if (walker.Role != Role.Scavenger && outpost is null)
             return false;
         if (walker.Destination is not null)
             return true;
         var foodNeeded = village.Stores.Where(g => GoodsCatalog.ClassOf(g.Key) == GoodsClass.Food).Sum(g => g.Value) < village.VillagerIds.Count * 2;
         var sources = walker.KnownGoods.Values.Where(g => (g.Goods.Amount > 0 || g.Stale) &&
+            (outpost is null || space.Distance(outpost.Position, g.Position) <= 24) &&
             (!foodNeeded || GoodsCatalog.ClassOf(g.Goods.Kind) == GoodsClass.Food) && !walker.Unreachable.Contains(g.Position));
         var chosen = sources.OrderBy(g => space.Distance(walker.Position, g.Position))
             .Select(g => new NeedTarget(g.Position, g.Goods, Haul: true)).FirstOrDefault(t => TryPlan(walker, t));

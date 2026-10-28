@@ -123,12 +123,14 @@ public partial class VillagerRenderer : Node3D
                 $"Materials: {string.Join(", ", v.Materials.Select(m => $"{m.Key} {m.Value}"))}"));
         _communities.Text = string.Join("\n", lines.Concat(world.Chronicle.TakeLast(3)));
         _communities.GetParent<PanelContainer>().Visible = _selectedVillage is null && world.Bands.Count + world.Villages.Count > 0;
-        var markers = world.Bands.Select(b => ($"Band {b.Id}", b.Position)).ToArray();
+        var markers = world.Bands.Select(b => ($"Band {b.Id}", b.Position))
+            .Concat(world.Villages.SelectMany(v => v.Outposts.Where(o => !o.Abandoned)
+                .Select(o => ($"Village {v.Id} Outpost {o.Id}", o.Position)))).ToArray();
         foreach (var (name, position) in markers)
         {
             if (!_markers.TryGetValue(name, out var marker))
             {
-                marker = new Label3D { Text = name, FontSize = 48, PixelSize = 0.02f,
+                marker = new Label3D { Text = name, FontSize = 48, PixelSize = name.StartsWith("Village") ? 0.006f : 0.02f,
                     Billboard = BaseMaterial3D.BillboardModeEnum.Enabled, NoDepthTest = true };
                 AddChild(marker);
                 _markers[name] = marker;

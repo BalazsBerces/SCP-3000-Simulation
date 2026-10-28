@@ -313,6 +313,7 @@ public sealed partial class Simulation : IDisposable
         AdvanceRestock();
         AdvanceArrivals(clock);
         AdvanceVillages(clock);
+        AdvanceOutposts(clock);
         _villagers.AdvanceGear(StoreClock.TickDuration.TotalHours, clock, ReloadFlashlight);
         _villagers.Advance(StoreClock.TickDuration.TotalHours);
         if (_villagers.HasVillagers)

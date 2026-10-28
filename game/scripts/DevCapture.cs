@@ -139,6 +139,11 @@ public partial class DevCapture : Node
                 CheckWorkshops(arg["--workshop-check=".Length..]);
                 return;
             }
+            if (arg.StartsWith("--outpost-check="))
+            {
+                CheckOutpost(arg["--outpost-check=".Length..]);
+                return;
+            }
             if (arg.StartsWith("--blueprint-check="))
             {
                 SetProcess(false);

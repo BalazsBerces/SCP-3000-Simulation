@@ -115,12 +115,16 @@ public partial class VillagerRenderer
         var skills = string.Join("\n", members.Select(v => $"{v.Name}: " + (v.Skills.Count == 0 ? "Unpractised" :
             string.Join(", ", v.Skills.OrderBy(s => s.Key).Select(s => $"{s.Key} {s.Value:0.0}")))));
         var gear = current.Gear.Count == 0 ? "Empty" : string.Join("\n", current.Gear.Select(g => $"{g.Kind}: {g.Durability:0.0}"));
-        var wall = current.Walls.Count == 0 ? "Not planned" : string.Join("; ", current.Walls.Select(w =>
+        var outposts = current.Outposts.Count == 0 ? "None" : string.Join("\n", current.Outposts.Select(o =>
+            $"Outpost {o.Id} | Sector {world.SectorAt(o.Position).Name} | {(o.Abandoned ? "abandoned" : $"{o.VillagerIds.Count} Villagers")} | " +
+            $"{current.Walls[o.WallIndex].Slots.Count(s => s.FurnitureId is not null)}/{current.Walls[o.WallIndex].Slots.Count} barricade pieces"));
+        var homeWalls = current.Walls.Where((_, i) => !current.Outposts.Any(o => o.WallIndex == i)).ToArray();
+        var wall = homeWalls.Length == 0 ? "Not planned" : string.Join("; ", homeWalls.Select(w =>
             $"{w.Outline}: {w.Slots.Count(s => s.FurnitureId is not null)}/{w.Slots.Count} pieces"));
         // shortcut: history identifies Villages by their numbered names; use event references when names become editable.
         var history = world.Chronicle.Where(line => System.Text.RegularExpressions.Regex.IsMatch(line, $@"\bVillage {selected}\b"));
         _villageInfo.Text = $"Village {selected} | Sector {world.SectorAt(current.Position).Name}\n\n" +
-            $"Population: {members.Length}\n" + string.Join("\n", members.Select(v => $"{v.Name} — {v.Role}")) +
+            $"Population: {members.Length}\n\nOutposts\n{outposts}\n\n" + string.Join("\n", members.Select(v => $"{v.Name} — {v.Role}")) +
             $"\n\nStores\n{stores}\n\nMaterials\n{materials}\n\nWorkshops\n{workshops}\n\nRecipes\n{recipes}\n\nSkills\n{skills}\n\nGear\n{gear}\n\nWall condition: {wall}\nBeliefs: —\nRelations: —\n\nHistory\n" +
             string.Join("\n\n", history);
         _villagePanel.Show();

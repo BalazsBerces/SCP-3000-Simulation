@@ -38,3 +38,7 @@ public sealed record FogBankDissipated(StoreClock At, int FogBankId, System.Nume
 public sealed record DrySpellStarted(StoreClock At, DrySpell Spell) : DomainEvent(At);
 
 public sealed record DrySpellEnded(StoreClock At, DrySpell Spell) : DomainEvent(At);
+
+public sealed record OutpostFounded(StoreClock At, int VillageId, Outpost Outpost) : DomainEvent(At);
+
+public sealed record OutpostAbandoned(StoreClock At, int VillageId, int OutpostId) : DomainEvent(At);

@@ -29,3 +29,6 @@ Agents append here, one line each (`- <ticket>: <cause and fix>`), when a proble
 - 17: Read the proposed runner rules before starting verification: Windows PowerShell can lose a Godot process's ExitCode even after WaitForExit. Use Python subprocess.run with a timeout and redirected logs, which reliably preserves the exit status.
 
 - 17a: A tool returning a session ID means its test process is still running and holds the assemblies open. Resume that session until it exits before starting another dotnet test or build against the same output directory.
+
+- 17b: Run Godot through Python subprocess.run(timeout=300) with stdout/stderr redirected to ticket logs; PowerShell Start-Process can leave ExitCode unset after a successful build.
+- 17b: When bumping the save format, search tests for literal Version numbers and update damaged-save fixtures to the current format; otherwise they exercise version rejection instead of damaged-state validation.

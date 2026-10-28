@@ -43,6 +43,12 @@ public sealed partial class Simulation
                     _ => $"In {place}, {name}'s Band {founded.BandId} put down roots as {home}, {reason}.",
                 };
                 break;
+            case OutpostFounded foundedPost:
+                story = $"Village {foundedPost.VillageId} sent {Villager.NameOf(foundedPost.Outpost.VillagerIds[0])} and companions to Outpost {foundedPost.Outpost.Id} in {ChroniclePlace(foundedPost.Outpost.Position)}, following the dwindling shelves outward.";
+                break;
+            case OutpostAbandoned abandonedPost:
+                story = $"Village {abandonedPost.VillageId} abandoned Outpost {abandonedPost.OutpostId}; its forward barricade fell quiet.";
+                break;
             case RecipeLearned learned:
                 story = $"Village {learned.VillageId} discovered a Recipe through {learned.Source}: {Recipes.All.Single(r => r.Gear == learned.Gear).Name}.";
                 break;

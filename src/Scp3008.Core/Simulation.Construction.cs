@@ -10,7 +10,7 @@ public sealed partial class Simulation
     internal Blueprint PlanBarricade(int villageId) => Publish(() =>
     {
         var village = _villages.Single(v => v.Id == villageId);
-        if (village.Walls.LastOrDefault() is { Complete: false } pending) return pending;
+        if (village.Walls.Where((_, i) => !village.Outposts.Any(o => o.WallIndex == i)).LastOrDefault() is { Complete: false } pending) return pending;
         var wall = CreateBarricade(village);
         _villages[villageId] = village with { Walls = Array.AsReadOnly(village.Walls.Append(wall).ToArray()) };
         return wall;
@@ -18,9 +18,9 @@ public sealed partial class Simulation
 
     private Blueprint CreateBarricade(Village village)
     {
-        var outline = village.Walls.LastOrDefault()?.Outline ??
+        var outline = village.Walls.Where((_, i) => !village.Outposts.Any(o => o.WallIndex == i)).LastOrDefault()?.Outline ??
             (village.Personality == Personality.Builders ? WallOutline.Square : WallOutline.Round);
-        var radius = 4f + village.Walls.Count * 3 + MathF.Sqrt(village.VillagerIds.Count);
+        var radius = 4f + (village.Walls.Count - village.Outposts.Count) * 3 + MathF.Sqrt(village.VillagerIds.Count);
         var vertices = outline == WallOutline.Round
             ? Enumerable.Range(0, 12).Select(i => village.Position + new Vector2(
                 MathF.Cos(i * MathF.Tau / 12), MathF.Sin(i * MathF.Tau / 12)) * radius).ToArray()
@@ -28,7 +28,7 @@ public sealed partial class Simulation
                 village.Position + new Vector2(radius, radius), village.Position + new Vector2(-radius, radius) };
         int? furnitureId = null, pillarId = null;
         // Keep an existing anchor when extending a freeform ring.
-        var previous = village.Walls.LastOrDefault();
+        var previous = village.Walls.Where((_, i) => !village.Outposts.Any(o => o.WallIndex == i)).LastOrDefault();
         var shelf = _furniture.Pieces.Where(p => p.Type is FurnitureType.ShelfUnit or FurnitureType.Bookcase or FurnitureType.PalletRack &&
             p.Elevation == 0 && p.Tilt == 0 && p.Roll == 0 && !_furnitureTasks.Any(t => t.FurnitureId == p.Id) &&
             (!IsBuiltFurniture(p.Id) || previous?.IncorporatedFurnitureId == p.Id) && _space.Distance(village.Position, p.Position) < 12)
@@ -109,19 +109,25 @@ public sealed partial class Simulation
                 v.Hand?.Kind is null or GearKind.ShoppingCart or GearKind.PlatformCart && v.Needs.Hunger < 0.7 && v.Needs.Thirst < 0.7).ToArray();
             if (workers.Length == 0) continue;
             if (BuildWorkshop(village, workers[0])) continue;
-            if (village.Walls.Count == 0 || village.Walls.All(w => w.Complete) &&
-                village.VillagerIds.Count >= village.Walls[^1].Population + 4)
+            var homeWalls = village.Walls.Where((_, i) => !village.Outposts.Any(o => o.WallIndex == i)).ToArray();
+            if (homeWalls.Length == 0 || homeWalls.All(w => w.Complete) &&
+                village.VillagerIds.Count >= homeWalls[^1].Population + 4)
                 PlanBarricade(village.Id);
             var current = _villages[village.Id];
-            var ring = current.Walls.Count - 1;
+            var ring = current.Outposts.Where(o => !o.Abandoned && !current.Walls[o.WallIndex].Complete)
+                .Select(o => o.WallIndex).DefaultIfEmpty(-1).First();
+            if (ring < 0) ring = current.Walls.ToList().FindIndex(w => !w.Complete &&
+                !current.Outposts.Any(o => o.Abandoned && current.Walls[o.WallIndex] == w));
+            if (ring < 0) continue;
             var wall = current.Walls[ring];
             if (wall.Slots.Any(s => s.ReservedFurnitureId is not null)) continue;
             var index = wall.Slots.ToList().FindIndex(s => s.FurnitureId is null);
             if (index < 0) continue;
             var slot = wall.Slots[index];
-            foreach (var piece in _villagers.FurnitureNear(village.Position, 48).Where(p =>
+            var site = current.Outposts.FirstOrDefault(o => o.WallIndex == ring)?.Position ?? village.Position;
+            foreach (var piece in _villagers.FurnitureNear(site, 48).Where(p =>
                 slot.Fits(p) && p.Elevation == 0 && p.Tilt == 0 && p.Roll == 0 && !IsBuiltFurniture(p.Id) &&
-                _space.Distance(village.Position, p.Position) <= 48 &&
+                _space.Distance(site, p.Position) <= 48 &&
                 !_furnitureTasks.Any(t => t.FurnitureId == p.Id)).OrderBy(p => _space.Distance(workers[0].Position, p.Position)))
             {
                 try

@@ -34,7 +34,8 @@ public sealed partial class Simulation
                 Emit(new RoleChanged(clock, worker.Id, Role.Scavenger));
             }
             else if (!shortage && members.Length >= 2 && !members.Any(v => v.Role == Role.Builder) &&
-                members.LastOrDefault(v => v.Role == Role.Scavenger && v.FurnitureTaskId is null && !v.Crafting &&
+                members.LastOrDefault(v => v.Role == Role.Scavenger &&
+                    !village.Outposts.Any(o => !o.Abandoned && o.VillagerIds.Contains(v.Id)) && v.FurnitureTaskId is null && !v.Crafting &&
                     v.CarriedAmount + v.CarriedMaterials == 0 && v.Hand?.Kind is null or GearKind.ShoppingCart) is { } builder)
             {
                 _villagers.AssignRole(builder.Id, Role.Builder);
