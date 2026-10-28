@@ -46,7 +46,7 @@ public sealed partial class Simulation
         if (pending.Slot.ReservedFurnitureId is not null) return true;
         foreach (var piece in _villagers.FurnitureNear(village.Position, 48).Where(p =>
             WorkshopFits(pending.Slot, p) && !IsBuiltFurniture(p.Id) &&
-            !_furnitureTasks.Any(t => t.FurnitureId == p.Id)).OrderBy(p => _space.Distance(worker.Position, p.Position)))
+            !_furnitureTasks.Any(t => t.FurnitureId == p.Id)).OrderBy(p => InYard(village, p) ? 0 : 1).ThenBy(p => _space.Distance(worker.Position, p.Position)))
         {
             try
             {

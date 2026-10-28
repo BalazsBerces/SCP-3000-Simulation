@@ -134,6 +134,12 @@ public partial class DevCapture : Node
     {
         foreach (var arg in OS.GetCmdlineUserArgs())
         {
+            if (arg.StartsWith("--storage-check="))
+            {
+                SetProcess(false);
+                CheckStorage(arg["--storage-check=".Length..]);
+                return;
+            }
             if (arg.StartsWith("--meal-check="))
             {
                 SetProcess(false);

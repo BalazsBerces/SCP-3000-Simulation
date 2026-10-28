@@ -21,7 +21,8 @@ public class BlueprintTests
         var oversized = sim.Scenario.PlaceFurniture(FurnitureType.ShelfUnit, new(20, 104));
         var weak = sim.Scenario.PlaceFurniture(FurnitureType.CardboardBox, new(20, 110));
         var fragile = sim.Scenario.PlaceFurniture(FurnitureType.FloorMirror, new(20, 114));
-        foreach (var i in Enumerable.Range(0, plan.Slots.Count))
+        // Three spare pieces: the Storehouse takes shelving before the wall does.
+        foreach (var i in Enumerable.Range(0, plan.Slots.Count + 3))
             sim.Scenario.PlaceFurniture(type, new(4 + i % 12 * 2, 80 + i / 12 * 3), variant: variant, tint: i % 12);
         var originals = sim.Snapshot.Furniture.ToDictionary(p => p.Id);
         var placed = new List<BlueprintPiecePlaced>();
@@ -52,12 +53,14 @@ public class BlueprintTests
         for (var i = 0; i < 4; i++)
             sim.Scenario.PlaceBand([village.Position], knownMap: new KnownMap
                 { Villages = [new KnownVillage(village.Id, village.Position, sim.Snapshot.Clock)] });
-        sim.AdvanceTicks(151);
+        // A builder busy gathering Furniture for the yard plans the next ring when it is free.
+        for (var i = 0; i < 3000 && sim.Snapshot.Villages[0].HomeWalls().Count() < 2; i++) sim.AdvanceTicks(1);
         var grown = sim.Snapshot.Villages[0];
-        Assert.Equal(2, grown.Walls.Count);
-        Assert.True(grown.Walls[0].Complete);
-        Assert.Equal(wall.Outline, grown.Walls[1].Outline);
-        Assert.True(sim.Snapshot.Space.Distance(grown.Position, grown.Walls[1].Vertices[0]) >
+        var rings = grown.HomeWalls().ToArray();
+        Assert.Equal(2, rings.Length);
+        Assert.True(rings[0].Complete);
+        Assert.Equal(wall.Outline, rings[1].Outline);
+        Assert.True(sim.Snapshot.Space.Distance(grown.Position, rings[1].Vertices[0]) >
             sim.Snapshot.Space.Distance(grown.Position, wall.Vertices[0]));
     }
 

@@ -6,7 +6,7 @@ namespace Scp3008.Core;
 
 public sealed partial class Simulation
 {
-    private const int SaveVersion = 10;
+    private const int SaveVersion = 11;
     private static readonly JsonSerializerOptions SaveJson = CreateSaveJson();
 
     private sealed record SaveFile(int Version, SaveState State);
@@ -19,7 +19,8 @@ public sealed partial class Simulation
         MissingFurniture[] MissingFurniture, int NextFurnitureId, double RestockHours,
         double NextFurnitureCheck, StockTarget[] StockTargets, Dictionary<int, double> GoodsRestockCredit,
         ulong RestockRandom, DrySpell? DrySpell, double NextDrySpellHour, Gear[] GearSources, int NextGearId,
-        ulong ArrivalRandom, long NextArrivalTick);
+        ulong ArrivalRandom, long NextArrivalTick, SpoilingShelf[] SpoilingShelves);
+    private sealed record SpoilingShelf(int FurnitureId, GoodsKind Kind, int Units, float Progress);
 
     /// <summary>Saves the entire world at a tick boundary; leaves the caller's stream open.</summary>
     public void Save(Stream destination)
@@ -34,7 +35,8 @@ public sealed partial class Simulation
                 _restockHours, _nextFurnitureCheck,
                 _stockTargets.Select(t => new StockTarget(t.Key.FurnitureId, t.Key.Kind, t.Value)).ToArray(),
                 new(_goodsRestockCredit), _restockRandom.State, _drySpell, _nextDrySpellHour, _gearSources.ToArray(), _nextGearId,
-                _arrivalRandom.State, _nextArrivalTick);
+                _arrivalRandom.State, _nextArrivalTick,
+                _spoilingShelf.Select(s => new SpoilingShelf(s.Key.FurnitureId, s.Key.Kind, s.Value.Units, s.Value.Progress)).ToArray());
             JsonSerializer.Serialize(destination, new SaveFile(SaveVersion, state), SaveJson);
         }
     }
@@ -119,6 +121,13 @@ public sealed partial class Simulation
         _villages.AddRange(s.Villages);
         ValidateBlueprints();
         ValidateMessHalls();
+        ValidateStorehouses();
+        ValidateFurnitureYards();
+        if (state.SpoilingShelves.Any(h => !Enum.IsDefined(h.Kind) || GoodsCatalog.ClassOf(h.Kind) != GoodsClass.Food || h.Units <= 0 ||
+                !float.IsFinite(h.Progress) || h.Progress < 0 || h.Progress >= 1 || !furnitureIds.Contains(h.FurnitureId)) ||
+            state.SpoilingShelves.Select(h => (h.FurnitureId, h.Kind)).Distinct().Count() != state.SpoilingShelves.Length)
+            throw new InvalidDataException("Invalid world save: inconsistent spoiling stock.");
+        foreach (var h in state.SpoilingShelves) _spoilingShelf[(h.FurnitureId, h.Kind)] = (h.Units, h.Progress);
         ValidateOutposts();
         _chronicle.AddRange(s.Chronicle);
         foreach (var gear in s.Gear.Concat(s.Villages.SelectMany(v => v.Gear)).Concat(state.GearSources)) gear.Validate();

@@ -94,7 +94,7 @@ public sealed partial class Simulation
     private void RestoreKnowHow(WorldSnapshot world)
     {
         var slots = world.Villages.SelectMany(v => v.Workshops.Select(w => w.Slot)).ToArray();
-        var ids = slots.Concat(world.Villages.SelectMany(v => v.MessHall?.Slots ?? []))
+        var ids = slots.Concat(world.Villages.SelectMany(v => v.MessHall?.Slots ?? [])).Concat(world.Villages.SelectMany(v => v.Storehouse?.Slots ?? []))
             .Concat(world.Villages.SelectMany(v => v.Walls).SelectMany(w => w.Slots))
             .SelectMany(s => new[] { s.FurnitureId, s.ReservedFurnitureId }).OfType<int>().ToArray();
         if (ids.Distinct().Count() != ids.Length || world.Villages.Any(v =>

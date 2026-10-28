@@ -4,38 +4,40 @@ namespace Scp3008.Core;
 
 public sealed partial class Simulation
 {
-    private bool IsBuiltFurniture(int id) => _villages.Any(v => v.MessHall?.Slots.Any(s => s.FurnitureId == id) == true || v.Workshops.Any(w => w.Slot.FurnitureId == id) || v.Walls.Any(w =>
+    private bool IsBuiltFurniture(int id) => _villages.Any(v => v.MessHall?.Slots.Any(s => s.FurnitureId == id) == true || v.Storehouse?.Slots.Any(s => s.FurnitureId == id) == true || v.Workshops.Any(w => w.Slot.FurnitureId == id) || v.Walls.Any(w =>
         w.IncorporatedFurnitureId == id || w.Slots.Any(s => s.FurnitureId == id)));
 
     internal Blueprint PlanBarricade(int villageId) => Publish(() =>
     {
         var village = _villages.Single(v => v.Id == villageId);
-        if (village.Walls.Where((_, i) => !village.Outposts.Any(o => o.WallIndex == i)).LastOrDefault() is { Complete: false } pending) return pending;
+        if (village.HomeWalls().LastOrDefault() is { Complete: false } pending) return pending;
         var wall = CreateBarricade(village);
         _villages[villageId] = village with { Walls = Array.AsReadOnly(village.Walls.Append(wall).ToArray()) };
         return wall;
     });
 
-    private Blueprint CreateBarricade(Village village)
+    // A Furniture yard barricade is a small round ring around the yard, with no pillar or shelf anchor.
+    private Blueprint CreateBarricade(Village village, Vector2? yard = null)
     {
-        var outline = village.Walls.Where((_, i) => !village.Outposts.Any(o => o.WallIndex == i)).LastOrDefault()?.Outline ??
+        var outline = yard is not null ? WallOutline.Round : village.HomeWalls().LastOrDefault()?.Outline ??
             (village.Personality == Personality.Builders ? WallOutline.Square : WallOutline.Round);
-        var radius = 4f + (village.Walls.Count - village.Outposts.Count) * 3 + MathF.Sqrt(village.VillagerIds.Count);
+        var radius = yard is not null ? 2.6f : 4f + village.HomeWalls().Count() * 3 + MathF.Sqrt(village.VillagerIds.Count);
+        var centre = yard ?? village.Position;
         var vertices = outline == WallOutline.Round
-            ? Enumerable.Range(0, 12).Select(i => village.Position + new Vector2(
+            ? Enumerable.Range(0, 12).Select(i => centre + new Vector2(
                 MathF.Cos(i * MathF.Tau / 12), MathF.Sin(i * MathF.Tau / 12)) * radius).ToArray()
             : new[] { village.Position + new Vector2(-radius, -radius), village.Position + new Vector2(radius, -radius),
                 village.Position + new Vector2(radius, radius), village.Position + new Vector2(-radius, radius) };
         int? furnitureId = null, pillarId = null;
         // Keep an existing anchor when extending a freeform ring.
-        var previous = village.Walls.Where((_, i) => !village.Outposts.Any(o => o.WallIndex == i)).LastOrDefault();
-        var shelf = _furniture.Pieces.Where(p => p.Type is FurnitureType.ShelfUnit or FurnitureType.Bookcase or FurnitureType.PalletRack &&
+        var previous = yard is null ? village.HomeWalls().LastOrDefault() : null;
+        var shelf = yard is not null ? null : _furniture.Pieces.Where(p => p.Type is FurnitureType.ShelfUnit or FurnitureType.Bookcase or FurnitureType.PalletRack &&
             p.Elevation == 0 && p.Tilt == 0 && p.Roll == 0 && !_furnitureTasks.Any(t => t.FurnitureId == p.Id) &&
             (!IsBuiltFurniture(p.Id) || previous?.IncorporatedFurnitureId == p.Id) && _space.Distance(village.Position, p.Position) < 12)
             .OrderBy(p => _space.Distance(village.Position, p.Position)).Select(p => (FurniturePiece?)p).FirstOrDefault();
         Vector2 anchor = default, along = default;
         float width = 0;
-        foreach (var pillar in _pillars.OrderBy(p => _space.Distance(village.Position, p.Position)))
+        foreach (var pillar in _pillars.Where(_ => yard is null).OrderBy(p => _space.Distance(village.Position, p.Position)))
         {
             var d = _space.Delta(pillar.Position, village.Position);
             var normal = MathF.Abs(d.X) > MathF.Abs(d.Y) ? new Vector2(MathF.Sign(d.X), 0) : new Vector2(0, MathF.Sign(d.Y));
@@ -110,41 +112,47 @@ public sealed partial class Simulation
             if (workers.Length == 0) continue;
             if (BuildWorkshop(village, workers[0])) continue;
             if (BuildMessHall(_villages[village.Id], workers[0])) continue;
-            var homeWalls = village.Walls.Where((_, i) => !village.Outposts.Any(o => o.WallIndex == i)).ToArray();
+            if (BuildStorehouse(_villages[village.Id], workers[0])) continue;
+            var homeWalls = village.HomeWalls().ToArray();
             if (homeWalls.Length == 0 || homeWalls.All(w => w.Complete) &&
                 village.VillagerIds.Count >= homeWalls[^1].Population + 4)
                 PlanBarricade(village.Id);
+            PlanFurnitureYard(village.Id);
             var current = _villages[village.Id];
             var ring = current.Outposts.Where(o => !o.Abandoned && !current.Walls[o.WallIndex].Complete)
                 .Select(o => o.WallIndex).DefaultIfEmpty(-1).First();
             if (ring < 0) ring = current.Walls.ToList().FindIndex(w => !w.Complete &&
                 !current.Outposts.Any(o => o.Abandoned && current.Walls[o.WallIndex] == w));
-            if (ring < 0) continue;
+            if (ring < 0) { GatherToYard(_villages[village.Id], workers[0]); continue; }
             var wall = current.Walls[ring];
             if (wall.Slots.Any(s => s.ReservedFurnitureId is not null)) continue;
             var index = wall.Slots.ToList().FindIndex(s => s.FurnitureId is null);
-            if (index < 0) continue;
+            if (index < 0) { GatherToYard(_villages[village.Id], workers[0]); continue; }
             var slot = wall.Slots[index];
-            var site = current.Outposts.FirstOrDefault(o => o.WallIndex == ring)?.Position ?? village.Position;
+            var site = current.Outposts.FirstOrDefault(o => o.WallIndex == ring)?.Position ??
+                (current.FurnitureYard?.WallIndex == ring ? current.FurnitureYard.Position : village.Position);
+            var started = false;
             foreach (var piece in _villagers.FurnitureNear(site, 48).Where(p =>
                 slot.Fits(p) && p.Elevation == 0 && p.Tilt == 0 && p.Roll == 0 && !IsBuiltFurniture(p.Id) &&
                 _space.Distance(site, p.Position) <= 48 &&
-                !_furnitureTasks.Any(t => t.FurnitureId == p.Id)).OrderBy(p => _space.Distance(workers[0].Position, p.Position)))
+                !_furnitureTasks.Any(t => t.FurnitureId == p.Id)).OrderBy(p => InYard(current, p) ? 0 : 1).ThenBy(p => _space.Distance(workers[0].Position, p.Position)))
             {
                 try
                 {
                     StartFurnitureTask(piece.Id, [workers[0].Id], slot.Position, false, construction: true);
                     SetWallSlot(village.Id, ring, index, slot with { ReservedFurnitureId = piece.Id });
+                    started = true;
                     break;
                 }
                 catch (InvalidOperationException) { /* Try the next reachable, haulable piece. */ }
             }
+            if (!started) GatherToYard(_villages[village.Id], workers[0]);
         }
     }
 
     private void CompleteBlueprintPiece(FurnitureTask task, StoreClock clock)
     {
-        if (CompleteMessHall(task) || CompleteWorkshop(task)) return;
+        if (CompleteMessHall(task) || CompleteStorehouse(task) || CompleteWorkshop(task)) return;
         foreach (var village in _villages.ToArray())
             for (var r = 0; r < village.Walls.Count; r++)
                 for (var s = 0; s < village.Walls[r].Slots.Count; s++)
@@ -162,6 +170,7 @@ public sealed partial class Simulation
     private void ReleaseBlueprintReservation(int furnitureId)
     {
         ClearMessHallFurniture(furnitureId, false);
+        ClearStorehouseFurniture(furnitureId, false);
         ClearWorkshopFurniture(furnitureId, false);
         foreach (var village in _villages.ToArray())
             for (var r = 0; r < village.Walls.Count; r++)
@@ -173,6 +182,7 @@ public sealed partial class Simulation
     private void UnbuildFurniture(int id)
     {
         ClearMessHallFurniture(id, true);
+        ClearStorehouseFurniture(id, true);
         ClearWorkshopFurniture(id, true);
         foreach (var village in _villages.ToArray())
         {

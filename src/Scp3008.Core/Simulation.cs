@@ -323,6 +323,7 @@ public sealed partial class Simulation : IDisposable
                     FogBanks = _weather.Snapshot(), Staff = _staff.Snapshot().Select(s => new Staff(s.Id, s.Position, s.Destination, s.Heading)).ToArray() },
                 _config.Needs ?? new NeedsConfig(), TakeGoods, Emit, CollectGoods, DeliverGoods, TakeGear);
         AdvanceMeals(clock);
+        AdvanceSpoilage(clock);
         AdvanceFurnitureTasks(clock);
         AdvanceConstruction(clock);
         AdvanceCrafting(clock);

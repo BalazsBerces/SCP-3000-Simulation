@@ -38,7 +38,7 @@ public sealed partial class Simulation
         var slot = pending.Slots[index];
         foreach (var piece in _villagers.FurnitureNear(village.Position, 48).Where(p =>
             MessHallFits(slot, index, p) && !IsBuiltFurniture(p.Id) && _space.Distance(village.Position, p.Position) <= 48 &&
-            !_furnitureTasks.Any(t => t.FurnitureId == p.Id)).OrderBy(p => _space.Distance(worker.Position, p.Position)))
+            !_furnitureTasks.Any(t => t.FurnitureId == p.Id)).OrderBy(p => InYard(village, p) ? 0 : 1).ThenBy(p => _space.Distance(worker.Position, p.Position)))
         {
             try
             {
