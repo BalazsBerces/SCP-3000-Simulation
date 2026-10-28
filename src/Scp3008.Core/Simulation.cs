@@ -322,6 +322,7 @@ public sealed partial class Simulation : IDisposable
                     FogBanks = _weather.Snapshot(), Staff = _staff.Snapshot().Select(s => new Staff(s.Id, s.Position, s.Destination, s.Heading)).ToArray() },
                 _config.Needs ?? new NeedsConfig(), TakeGoods, Emit, CollectGoods, DeliverGoods, TakeGear);
         AdvanceFurnitureTasks(clock);
+        AdvanceConstruction(clock);
         AdvanceCrafting(clock);
         AdvanceBands(clock);
         // Sandbox patrols use the same footprint navigation; daytime Staff remain dormant.
@@ -385,7 +386,10 @@ public sealed partial class Simulation : IDisposable
             {
                 var keptIds = kept.Select(p => p.Id).ToHashSet();
                 foreach (var piece in _furniture.Pieces.Where(p => !keptIds.Contains(p.Id)))
+                {
                     VacateFurniture(piece.Id);
+                    if (IsBuiltFurniture(piece.Id)) UnbuildFurniture(piece.Id);
+                }
                 _navigation.Update(_furniture.Pieces.Where(p => !keptIds.Contains(p.Id)), []);
                 _furniture = _furniture with { Pieces = kept.AsReadOnly() };
                 _villagers.Replan();
@@ -424,11 +428,11 @@ public sealed partial class Simulation : IDisposable
     }
 
     /// <summary>Puts a new piece of Furniture on the floor (the next free id), lets walking Villagers find their way again and publishes a new snapshot.</summary>
-    internal FurniturePiece PlaceFurniture(FurnitureType type, Vector2 position, float rotation, int variant) =>
+    internal FurniturePiece PlaceFurniture(FurnitureType type, Vector2 position, float rotation, int variant, int tint) =>
         Publish(() =>
         {
             var piece = new FurniturePiece(_nextFurnitureId++, type, _space.Wrap(position), 0f,
-                rotation, variant);
+                rotation, variant, Tint: tint);
             _restockOrigins[piece.Id] = piece;
             _furniture = _furniture with { Pieces = _furniture.Pieces.Append(piece).ToList().AsReadOnly() };
             _navigation.Update([], [piece]);
@@ -442,6 +446,7 @@ public sealed partial class Simulation : IDisposable
         Publish(() =>
         {
             CancelFurnitureTasks(t => t.FurnitureId == furnitureId);
+            if (IsBuiltFurniture(furnitureId)) UnbuildFurniture(furnitureId);
             return MoveFurnitureCore(furnitureId, position, rotation);
         });
 
@@ -469,11 +474,12 @@ public sealed partial class Simulation : IDisposable
     }
 
     internal Band PlaceBand(IReadOnlyList<Vector2> positions, Needs? needs = null,
-        KnownMap? knownMap = null, IReadOnlyList<GearKind>? recipes = null) => Publish(() =>
+        KnownMap? knownMap = null, IReadOnlyList<GearKind>? recipes = null, Personality? personality = null) => Publish(() =>
     {
         (needs ?? new Needs()).Validate();
         var band = new Band(_nextBandId++, Array.AsReadOnly(positions.Select(p => _villagers.Place(p, needs).Id).ToArray()))
             { Position = _space.Wrap(positions[0]), FoundingPopulation = positions.Count,
+                Personality = personality ?? (Personality)_arrivalRandom.Next(3),
                 KnownMap = MergeMaps([knownMap ?? new KnownMap()]),
                 Recipes = Array.AsReadOnly((recipes ?? Recipes.Basic.Select(r => r.Gear).ToArray()).Distinct().ToArray()) };
         _bands.Add(band);

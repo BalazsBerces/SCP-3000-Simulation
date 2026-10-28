@@ -177,7 +177,7 @@ A known way to make a piece of Gear or a reinforcement from Materials, needing c
 _Avoid_: Technology, tech, blueprint (that is a structure plan)
 
 **Skill**:
-A Villager's practice in a Role, kept when they switch Roles. Builder skill grows when making Gear or disassembling Furniture; it makes both faster, made Gear more durable, and disassembly richer in Materials.
+A Villager's practice in a Role, kept when they switch Roles. Builder skill grows when making Gear, disassembling Furniture or placing Blueprint pieces; it makes Gear work and disassembly faster, made Gear more durable, and disassembly richer in Materials.
 
 **Bandage**:
 Single-use Gear made from fabric with bare hands, consumed when used. It is for speeding a Wounded Villager's healing; there are no medicines in the Store.
@@ -285,6 +285,9 @@ _Avoid_: Job, class, profession
 **Blueprint**:
 A plan for a structure (wall segment, tower, gate, keep, Pillar scaffold) made of slots that each demand a kind of Furniture by size and sturdiness, so the same Blueprint can be built from different Furniture. Each piece keeps its own look, so structures are a colourful patchwork, like a mixed Lego build; a Village's own colour comes from banners, draped fabrics and painted marks.
 _Avoid_: Template, recipe, design
+
+**Blueprint slot**:
+One required Furniture placement in a Blueprint, demanding size and sturdiness rather than one specific Furniture type. A Builder reserves a fitting piece, fetches it and places it before taking the next slot.
 
 **Storehouse**:
 A structure a Village builds inside its walls to hold its stores (Goods, Materials and unused Gear) up to a capacity. Whatever does not fit lies in an open pile, where food spoils faster and Raiders take it more easily; a Band or a new Village keeps everything in such a pile. A Storehouse is a prime Raid target.

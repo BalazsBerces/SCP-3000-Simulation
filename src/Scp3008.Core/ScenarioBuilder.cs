@@ -89,8 +89,13 @@ public sealed partial class ScenarioBuilder
     }
 
     /// <summary>Puts a new piece of Furniture on the floor (the next free id), standing upright; walking Villagers find their way around it.</summary>
-    public FurniturePiece PlaceFurniture(FurnitureType type, Vector2 position, float rotation = 0f, int variant = 0) =>
-        _simulation.PlaceFurniture(type, position, rotation, variant);
+    public FurniturePiece PlaceFurniture(FurnitureType type, Vector2 position, float rotation = 0f, int variant = 0, int tint = 0)
+    {
+        if (!Enum.IsDefined(type) || variant < 0 || variant >= FurnitureCatalog.VariantCount(type) || tint is < 0 or > 11 ||
+            !float.IsFinite(position.X) || !float.IsFinite(position.Y) || !float.IsFinite(rotation))
+            throw new ArgumentException("Furniture needs a valid type, variant, tint and finite placement.");
+        return _simulation.PlaceFurniture(type, position, rotation, variant, tint);
+    }
 
     /// <summary>Moves a piece of Furniture to a new position and rotation; walking Villagers find their way again.</summary>
     /// <exception cref="ArgumentException">There is no piece with that id.</exception>

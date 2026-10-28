@@ -17,8 +17,8 @@ public sealed partial class ScenarioBuilder
     public void DisassembleFurniture(int furnitureId, int villagerId) =>
         _simulation.StartFurnitureTask(furnitureId, [villagerId], Vector2.Zero, true);
 
-    public Village PlaceVillage(Vector2 position, IReadOnlyList<int> villagerIds) =>
-        _simulation.PlaceVillage(position, villagerIds);
+    public Village PlaceVillage(Vector2 position, IReadOnlyList<int> villagerIds, Personality personality = Personality.Cautious) =>
+        _simulation.PlaceVillage(position, villagerIds, personality);
 
     public void CarryFurniture(int furnitureId, IReadOnlyList<int> villagerIds, Vector2 destination) =>
         _simulation.StartFurnitureTask(furnitureId, villagerIds, destination, false);
@@ -84,7 +84,7 @@ public sealed partial class Simulation
         _furnitureTasks.AddRange(tasks);
     }
 
-    internal void StartFurnitureTask(int furnitureId, IReadOnlyList<int> ids, Vector2 destination, bool disassemble) => Publish(() =>
+    internal void StartFurnitureTask(int furnitureId, IReadOnlyList<int> ids, Vector2 destination, bool disassemble, bool construction = false) => Publish(() =>
     {
         ArgumentNullException.ThrowIfNull(ids);
         if (ids.Count is < 1 or > 4 || ids.Distinct().Count() != ids.Count ||
@@ -92,7 +92,7 @@ public sealed partial class Simulation
             throw new ArgumentException("Furniture work needs one to four distinct Villagers and a finite destination.");
         var piece = _furniture.Pieces.Where(p => p.Id == furnitureId).Select(p => (FurniturePiece?)p).SingleOrDefault()
             ?? throw new ArgumentException("No such Furniture.");
-        if (FurnitureCatalog.Spec(piece).IsFixed || _furnitureTasks.Any(t => t.FurnitureId == furnitureId))
+        if (FurnitureCatalog.Spec(piece).IsFixed || IsBuiltFurniture(furnitureId) || _furnitureTasks.Any(t => t.FurnitureId == furnitureId))
             throw new InvalidOperationException("Furniture is fixed or already reserved.");
         var people = _villagers.Snapshot();
         var workers = ids.Select(id => people.SingleOrDefault(v => v.Id == id)
@@ -118,6 +118,7 @@ public sealed partial class Simulation
             _navigation.Update([piece], []);
             try
             {
+                if (construction) destination = _navigation.NearestWalkable(destination);
                 if (!_navigation.IsWalkable(destination)) throw new InvalidOperationException("Destination is blocked.");
                 // shortcut: hauling uses pedestrian clearance; widen routes when narrow-aisle load clearance is added.
                 route = _navigation.FindPath(piece.Position, _space.Wrap(destination))
@@ -185,21 +186,22 @@ public sealed partial class Simulation
             if (route.Count == 0)
             {
                 if (task.Work == FurnitureWork.CartHaul) _villagers.WearFurnitureCart(workers[0].Id);
-                FinishFurnitureTask(task, workers);
+                FinishFurnitureTask(task, workers, completed: true);
+                CompleteBlueprintPiece(task, clock);
             }
             else _furnitureTasks[_furnitureTasks.IndexOf(task)] = task with { Started = true, Route = route.AsReadOnly() };
         }
     }
 
-    internal Village PlaceVillage(Vector2 position, IReadOnlyList<int> ids) => Publish(() =>
+    internal Village PlaceVillage(Vector2 position, IReadOnlyList<int> ids, Personality personality) => Publish(() =>
     {
         ArgumentNullException.ThrowIfNull(ids);
         var people = _villagers.Snapshot();
-        if (!float.IsFinite(position.X) || !float.IsFinite(position.Y) || ids.Count == 0 || ids.Distinct().Count() != ids.Count ||
+        if (!Enum.IsDefined(personality) || !float.IsFinite(position.X) || !float.IsFinite(position.Y) || ids.Count == 0 || ids.Distinct().Count() != ids.Count ||
             ids.Any(id => !people.Any(v => v.Id == id && v.VillageId is null)) ||
             _bands.Any(b => b.VillagerIds.Intersect(ids).Any()))
             throw new ArgumentException("A Village needs distinct, unclaimed Villagers and a finite position.");
-        var village = new Village(_villages.Count, _space.Wrap(position), Array.AsReadOnly(ids.ToArray()));
+        var village = new Village(_villages.Count, _space.Wrap(position), Array.AsReadOnly(ids.ToArray())) { Personality = personality };
         _villages.Add(village);
         _villagers.JoinVillage(village);
         return village;
@@ -238,12 +240,13 @@ public sealed partial class Simulation
             FinishFurnitureTask(task, people.Where(v => task.VillagerIds.Contains(v.Id)).ToArray());
     }
 
-    private void FinishFurnitureTask(FurnitureTask task, Villager[] workers)
+    private void FinishFurnitureTask(FurnitureTask task, Villager[] workers, bool completed = false)
     {
         if (task.Started && task.Work != FurnitureWork.Disassemble &&
             _furniture.Pieces.Where(p => p.Id == task.FurnitureId).Select(p => (FurniturePiece?)p).SingleOrDefault() is { } piece && piece.Elevation != 0)
             MoveFurnitureCore(piece.Id, piece.Position, piece.Rotation, 0);
         _furnitureTasks.Remove(task);
+        if (!completed) ReleaseBlueprintReservation(task.FurnitureId);
         foreach (var worker in workers) _villagers.FurniturePose(worker.Id, _navigation.NearestWalkable(worker.Position), VillagerAction.Idle);
     }
 }

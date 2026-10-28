@@ -114,11 +114,13 @@ public partial class VillagerRenderer
         var skills = string.Join("\n", members.Select(v => $"{v.Name}: " + (v.Skills.Count == 0 ? "Unpractised" :
             string.Join(", ", v.Skills.OrderBy(s => s.Key).Select(s => $"{s.Key} {s.Value:0.0}")))));
         var gear = current.Gear.Count == 0 ? "Empty" : string.Join("\n", current.Gear.Select(g => $"{g.Kind}: {g.Durability:0.0}"));
+        var wall = current.Walls.Count == 0 ? "Not planned" : string.Join("; ", current.Walls.Select(w =>
+            $"{w.Outline}: {w.Slots.Count(s => s.FurnitureId is not null)}/{w.Slots.Count} pieces"));
         // shortcut: history identifies Villages by their numbered names; use event references when names become editable.
         var history = world.Chronicle.Where(line => System.Text.RegularExpressions.Regex.IsMatch(line, $@"\bVillage {selected}\b"));
         _villageInfo.Text = $"Village {selected} | Sector {world.SectorAt(current.Position).Name}\n\n" +
             $"Population: {members.Length}\n" + string.Join("\n", members.Select(v => $"{v.Name} — {v.Role}")) +
-            $"\n\nStores\n{stores}\n\nMaterials\n{materials}\n\nRecipes\n{recipes}\n\nSkills\n{skills}\n\nGear\n{gear}\n\nWall condition: —\nBeliefs: —\nRelations: —\n\nHistory\n" +
+            $"\n\nStores\n{stores}\n\nMaterials\n{materials}\n\nRecipes\n{recipes}\n\nSkills\n{skills}\n\nGear\n{gear}\n\nWall condition: {wall}\nBeliefs: —\nRelations: —\n\nHistory\n" +
             string.Join("\n\n", history);
         _villagePanel.Show();
     }

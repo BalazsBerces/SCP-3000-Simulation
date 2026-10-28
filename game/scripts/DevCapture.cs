@@ -133,6 +133,12 @@ public partial class DevCapture : Node
     {
         foreach (var arg in OS.GetCmdlineUserArgs())
         {
+            if (arg.StartsWith("--blueprint-check="))
+            {
+                SetProcess(false);
+                CheckBlueprint(arg["--blueprint-check=".Length..]);
+                return;
+            }
             if (arg.StartsWith("--recipe-check="))
             {
                 SetProcess(false);

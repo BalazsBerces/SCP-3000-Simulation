@@ -26,3 +26,4 @@ Agents append here, one line each (`- <ticket>: <cause and fix>`), when a proble
 - 15a: Windows PowerShell Start-Process can leave ExitCode unset even after waiting for a fast Godot process. Use a runner that reliably returns the exit status, such as Python subprocess.run with a 300-second timeout, and keep stdout/stderr in ticket logs.
 - 16: Wait for a targeted dotnet test run to finish before rebuilding the same test project. On Windows, testhost locks the test assembly and overlapping builds fail to copy it.
 - 16: StartingBands=false only disables initial Bands; long world-only test fixtures must also set Arrivals.IntervalHours=0. Otherwise clock/weather checks silently become multi-day population simulations.
+- 17: Read the proposed runner rules before starting verification: Windows PowerShell can lose a Godot process's ExitCode even after WaitForExit. Use Python subprocess.run with a timeout and redirected logs, which reliably preserves the exit status.

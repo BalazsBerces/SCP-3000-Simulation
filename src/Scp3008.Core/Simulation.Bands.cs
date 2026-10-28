@@ -28,10 +28,17 @@ public sealed partial class Simulation
             _villages[village.Id] = updated;
             _villagers.ShareKnowledge(updated.VillagerIds, known);
             var shortage = village.Stores.Where(g => GoodsCatalog.ClassOf(g.Key) == GoodsClass.Food).Sum(g => g.Value) < members.Length;
-            if (shortage && members.FirstOrDefault(v => v.Role != Role.Scavenger) is { } worker)
+            if (shortage && members.FirstOrDefault(v => v.Role != Role.Scavenger && v.FurnitureTaskId is null && !v.Crafting) is { } worker)
             {
                 _villagers.AssignRole(worker.Id, Role.Scavenger);
                 Emit(new RoleChanged(clock, worker.Id, Role.Scavenger));
+            }
+            else if (!shortage && members.Length >= 2 && !members.Any(v => v.Role == Role.Builder) &&
+                members.LastOrDefault(v => v.Role == Role.Scavenger && v.FurnitureTaskId is null && !v.Crafting &&
+                    v.CarriedAmount + v.CarriedMaterials == 0 && v.Hand?.Kind is null or GearKind.ShoppingCart) is { } builder)
+            {
+                _villagers.AssignRole(builder.Id, Role.Builder);
+                Emit(new RoleChanged(clock, builder.Id, Role.Builder));
             }
         }
     }
@@ -107,7 +114,7 @@ public sealed partial class Simulation
                 continue;
             }
             var village = new Village(_villages.Count, position, updated.VillagerIds)
-                { KnownMap = known, Recipes = updated.Recipes };
+                { KnownMap = known, Recipes = updated.Recipes, Personality = updated.Personality };
             _villages.Add(village);
             _bands.Remove(updated);
             _villagers.JoinVillage(village);
@@ -169,14 +176,14 @@ public sealed partial class ScenarioBuilder
 {
     /// <summary>Places Wanderers, optionally carrying observations and a fallen Village's Recipes.</summary>
     public Band PlaceBand(IReadOnlyList<Vector2> positions, Needs? needs = null,
-        KnownMap? knownMap = null, IReadOnlyList<GearKind>? recipes = null)
+        KnownMap? knownMap = null, IReadOnlyList<GearKind>? recipes = null, Personality? personality = null)
     {
         ArgumentNullException.ThrowIfNull(positions);
-        if (positions.Count == 0 || positions.Any(p => !float.IsFinite(p.X) || !float.IsFinite(p.Y)))
+        if (personality is { } temperament && !Enum.IsDefined(temperament) || positions.Count == 0 || positions.Any(p => !float.IsFinite(p.X) || !float.IsFinite(p.Y)))
             throw new ArgumentException("A Band needs members at finite positions.", nameof(positions));
         if (recipes is not null && recipes.Any(k => !Recipes.Basic.Any(r => r.Gear == k)))
             throw new ArgumentException("Unknown Recipe.", nameof(recipes));
-        return _simulation.PlaceBand(positions, needs, knownMap, recipes);
+        return _simulation.PlaceBand(positions, needs, knownMap, recipes, personality);
     }
 
     /// <summary>Places a known kind of running water source for a scenario.</summary>
