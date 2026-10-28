@@ -27,3 +27,5 @@ Agents append here, one line each (`- <ticket>: <cause and fix>`), when a proble
 - 16: Wait for a targeted dotnet test run to finish before rebuilding the same test project. On Windows, testhost locks the test assembly and overlapping builds fail to copy it.
 - 16: StartingBands=false only disables initial Bands; long world-only test fixtures must also set Arrivals.IntervalHours=0. Otherwise clock/weather checks silently become multi-day population simulations.
 - 17: Read the proposed runner rules before starting verification: Windows PowerShell can lose a Godot process's ExitCode even after WaitForExit. Use Python subprocess.run with a timeout and redirected logs, which reliably preserves the exit status.
+
+- 17a: A tool returning a session ID means its test process is still running and holds the assemblies open. Resume that session until it exits before starting another dotnet test or build against the same output directory.

@@ -133,6 +133,12 @@ public partial class DevCapture : Node
     {
         foreach (var arg in OS.GetCmdlineUserArgs())
         {
+            if (arg.StartsWith("--workshop-check="))
+            {
+                SetProcess(false);
+                CheckWorkshops(arg["--workshop-check=".Length..]);
+                return;
+            }
             if (arg.StartsWith("--blueprint-check="))
             {
                 SetProcess(false);

@@ -324,6 +324,7 @@ public sealed partial class Simulation : IDisposable
         AdvanceFurnitureTasks(clock);
         AdvanceConstruction(clock);
         AdvanceCrafting(clock);
+        AdvanceKnowHow(clock);
         AdvanceBands(clock);
         // Sandbox patrols use the same footprint navigation; daytime Staff remain dormant.
         if (clock.Phase == DayPhase.ClosingTime && _patrols.Count > 0)
@@ -400,6 +401,7 @@ public sealed partial class Simulation : IDisposable
                 _sectorStocks = StockGenerator.Summarize(_stock, _furniture.Pieces, _space, _config.PillarLayout, StockConfig);
                 _waterPoints = _waterPoints.Where(w => w.FurnitureId < 0 || ids.Contains(w.FurnitureId)).ToList().AsReadOnly();
                 _gear.RemoveAll(g => g.FurnitureId >= 0 && !ids.Contains(g.FurnitureId));
+                _instructions.RemoveAll(i => !keptIds.Contains(i.FurnitureId));
                 CancelFurnitureTasks(t => !keptIds.Contains(t.FurnitureId));
                 _snapshot = BuildSnapshot();
             }
@@ -574,6 +576,8 @@ public sealed partial class Simulation : IDisposable
             Gear = _gear.ToList().AsReadOnly(),
             FurnitureTasks = _furnitureTasks.ToList().AsReadOnly(),
             CraftingTasks = _craftingTasks.ToList().AsReadOnly(),
+            Experiments = _experiments.ToList().AsReadOnly(),
+            AssemblyInstructions = _instructions.ToList().AsReadOnly(),
             Staff = Array.AsReadOnly(_staff.Snapshot().Select(s => new Staff(s.Id, s.Position, s.Destination, s.Heading)).ToArray()),
         };
 

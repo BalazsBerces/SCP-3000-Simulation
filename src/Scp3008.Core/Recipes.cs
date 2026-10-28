@@ -1,11 +1,24 @@
 namespace Scp3008.Core;
 
-/// <summary>A known way to make Gear. These basic Recipes need no Workshop.</summary>
+/// <summary>A known way to make Gear. The basic Recipes need no Workshop.</summary>
 public sealed record Recipe(GearKind Gear, string Name, MaterialKind? Material, int Amount,
-    GearKind? Tool = null, GoodsKind? Goods = null, double Hours = 0.5);
+    GearKind? Tool = null, GoodsKind? Goods = null, double Hours = 0.5, WorkshopKind? Workshop = null, MaterialKind? ExtraMaterial = null, int ExtraAmount = 0, bool ConsumesTool = false);
 
 public static class Recipes
 {
+    public static IReadOnlyList<Recipe> Middle { get; } = Array.AsReadOnly(new Recipe[]
+    {
+        new(GearKind.LeatherBackpack, "Leather backpack", MaterialKind.Leather, 4, GearKind.KitchenKnife, Workshop: WorkshopKind.SewingTable),
+        new(GearKind.Saw, "Saw", MaterialKind.Metal, 3, GearKind.HexKey, Workshop: WorkshopKind.Workbench),
+        new(GearKind.Crowbar, "Crowbar", MaterialKind.Metal, 3, GearKind.HexKey, Workshop: WorkshopKind.Workbench),
+        new(GearKind.Spear, "Spear", MaterialKind.Metal, 2, GearKind.KitchenKnife, Workshop: WorkshopKind.Workbench, ConsumesTool: true),
+        new(GearKind.TabletopShield, "Tabletop shield", MaterialKind.WoodPanel, 4, GearKind.HexKey, Workshop: WorkshopKind.Workbench),
+        new(GearKind.PlatformCart, "Platform cart", MaterialKind.Metal, 6, GearKind.HexKey, Workshop: WorkshopKind.Workbench, ExtraMaterial: MaterialKind.WoodPanel, ExtraAmount: 4),
+        new(GearKind.QuiltedArmour, "Quilted armour", MaterialKind.Fabric, 4, GearKind.Scissors, Workshop: WorkshopKind.SewingTable, ExtraMaterial: MaterialKind.Foam, ExtraAmount: 4),
+        new(GearKind.Lantern, "Lantern", MaterialKind.Electrics, 2, GearKind.Screwdriver, Workshop: WorkshopKind.ElectricsBench, ExtraMaterial: MaterialKind.Glass, ExtraAmount: 2),
+        new(GearKind.HandCrankedGenerator, "Hand-cranked generator", MaterialKind.Electrics, 4, GearKind.Screwdriver, Hours: 1, Workshop: WorkshopKind.ElectricsBench, ExtraMaterial: MaterialKind.Metal, ExtraAmount: 4),
+    });
+
     public static IReadOnlyList<Recipe> Basic { get; } = Array.AsReadOnly(new Recipe[]
     {
         new(GearKind.TableLegClub, "Table-leg club", MaterialKind.WoodPanel, 2),
@@ -14,6 +27,7 @@ public static class Recipes
         new(GearKind.CardboardArmour, "Cardboard armour", MaterialKind.WoodPanel, 2),
         new(GearKind.Bandage, "Bandage", MaterialKind.Fabric, 1, Hours: 0.1),
     });
+    public static IReadOnlyList<Recipe> All { get; } = Array.AsReadOnly(Basic.Concat(Middle).ToArray());
 }
 
 public sealed record CraftingTask(int VillagerId, int VillageId, GearKind Gear, double Progress = 0);
@@ -44,6 +58,8 @@ internal sealed partial class Villagers
         _walkers.Single(w => w.Id == id).Crafting = crafting;
     }
 
+    public void ConsumeCraftingTool(int id) => _walkers.Single(w => w.Id == id).Hand = null;
+
     public void FinishCrafting(int id, bool usedTool)
     {
         PracticeBuilding(id, usedTool);
@@ -66,13 +82,13 @@ public sealed partial class Simulation
     private void RestoreCrafting(WorldSnapshot world)
     {
         if (world.Villages.Any(v => v.Recipes.Distinct().Count() != v.Recipes.Count ||
-                v.Recipes.Any(k => !Recipes.Basic.Any(r => r.Gear == k))) ||
-            world.Bands.Any(b => b.Recipes.Any(k => !Recipes.Basic.Any(r => r.Gear == k))) ||
-            world.CraftingTasks.Select(t => t.VillagerId).Distinct().Count() != world.CraftingTasks.Count ||
+                v.Recipes.Any(k => !Recipes.All.Any(r => r.Gear == k))) ||
+            world.Bands.Any(b => b.Recipes.Distinct().Count() != b.Recipes.Count || b.Recipes.Any(k => !Recipes.All.Any(r => r.Gear == k))) ||
+            world.CraftingTasks.Select(t => t.VillagerId).Concat(world.Experiments.Select(e => e.VillagerId)).Distinct().Count() != world.CraftingTasks.Count + world.Experiments.Count ||
             world.CraftingTasks.Any(t => !double.IsFinite(t.Progress) || t.Progress < 0 || t.Progress >= 1 ||
                 !world.Villages.Any(v => v.Id == t.VillageId && v.Recipes.Contains(t.Gear)) ||
                 !world.Villagers.Any(v => v.Id == t.VillagerId && v.VillageId == t.VillageId && v.Crafting && v.FurnitureTaskId is null)) ||
-            world.Villagers.Any(v => v.Crafting != world.CraftingTasks.Any(t => t.VillagerId == v.Id)))
+            world.Villagers.Any(v => v.Crafting != (world.CraftingTasks.Any(t => t.VillagerId == v.Id) || world.Experiments.Any(e => e.VillagerId == v.Id))))
             throw new InvalidDataException("Invalid world save: inconsistent Recipes or crafting tasks.");
         _craftingTasks.AddRange(world.CraftingTasks);
     }
@@ -108,9 +124,11 @@ public sealed partial class Simulation
 
     private bool CanMake(Villager worker, Village village, Recipe recipe) =>
         worker.FurnitureTaskId is null && !worker.Crafting && worker.CarriedAmount + worker.CarriedMaterials == 0 &&
-        worker.Hand?.Kind != GearKind.ShoppingCart && (recipe.Tool is null || worker.Hand?.Kind == recipe.Tool) &&
+        worker.Hand?.Kind is not (GearKind.ShoppingCart or GearKind.PlatformCart) && (recipe.Tool is null || worker.Hand?.Kind == recipe.Tool) &&
         _space.Distance(worker.Position, village.Position) <= 2 &&
         worker.Needs.Hunger < 0.9 && worker.Needs.Thirst < 0.9 &&
+        (recipe.Workshop is null || village.Workshops.Any(w => w.Kind == recipe.Workshop && w.Complete)) &&
+        (recipe.ExtraMaterial is not { } extra || village.Materials.GetValueOrDefault(extra) >= recipe.ExtraAmount) &&
         (recipe.Material is not { } material || village.Materials.GetValueOrDefault(material) >= recipe.Amount) &&
         (recipe.Goods is not { } goods || village.Stores.GetValueOrDefault(goods) >= recipe.Amount);
 
@@ -118,7 +136,7 @@ public sealed partial class Simulation
     {
         var worker = _villagers.Snapshot().Single(v => v.Id == id);
         var village = _villages.Single(v => v.Id == worker.VillageId);
-        var recipe = Recipes.Basic.SingleOrDefault(r => r.Gear == kind && village.Recipes.Contains(kind))
+        var recipe = Recipes.All.SingleOrDefault(r => r.Gear == kind && village.Recipes.Contains(kind))
             ?? throw new InvalidOperationException("Recipe is not known.");
         if (!CanMake(worker, village, recipe)) throw new InvalidOperationException("Crafting needs a free worker at home, Materials and the required tool.");
         StartCrafting(worker, village, recipe);
@@ -128,6 +146,7 @@ public sealed partial class Simulation
     private void StartCrafting(Villager worker, Village village, Recipe recipe)
     {
         if (recipe.Material is { } material) SetMaterialsCore(village.Id, material, village.Materials[material] - recipe.Amount);
+        if (recipe.ExtraMaterial is { } extra) SetMaterialsCore(village.Id, extra, village.Materials[extra] - recipe.ExtraAmount);
         if (recipe.Goods is { } goods) ChangeStores(village.Id, goods, -recipe.Amount);
         _craftingTasks.Add(new(worker.Id, village.Id, recipe.Gear));
         _villagers.CraftingPose(worker.Id, true);
@@ -140,9 +159,10 @@ public sealed partial class Simulation
         foreach (var task in _craftingTasks.ToArray())
         {
             var worker = people.SingleOrDefault(v => v.Id == task.VillagerId);
-            var recipe = Recipes.Basic.Single(r => r.Gear == task.Gear);
+            var recipe = Recipes.All.Single(r => r.Gear == task.Gear);
             if (worker is null || worker.VillageId != task.VillageId ||
-                (recipe.Tool is { } tool && worker.Hand?.Kind != tool) || worker.Needs.Hunger >= 0.9 || worker.Needs.Thirst >= 0.9)
+                (recipe.Tool is { } tool && worker.Hand?.Kind != tool) ||
+                (recipe.Workshop is { } workshop && !_villages[task.VillageId].Workshops.Any(w => w.Kind == workshop && w.Complete)) || worker.Needs.Hunger >= 0.9 || worker.Needs.Thirst >= 0.9)
             {
                 _craftingTasks.Remove(task);
                 if (worker is not null) _villagers.CraftingPose(worker.Id, false);
@@ -160,13 +180,14 @@ public sealed partial class Simulation
             _villages[village.Id] = village with { Gear = Array.AsReadOnly(village.Gear.Append(gear).ToArray()), HasMadeGear = true };
             _craftingTasks.Remove(task);
             _villagers.FinishCrafting(worker.Id, recipe.Tool is not null);
+            if (recipe.ConsumesTool) _villagers.ConsumeCraftingTool(worker.Id);
             Emit(new GearMade(clock, worker.Id, village.Id, gear, !village.HasMadeGear));
         }
         if (_tick % 50 != 1) return;
         foreach (var worker in _villagers.Snapshot().Where(v => v.Role == Role.Builder && v.VillageId is not null))
         {
             var village = _villages[worker.VillageId!.Value];
-            var recipe = Recipes.Basic.FirstOrDefault(r => village.Recipes.Contains(r.Gear) && CanMake(worker, village, r) &&
+            var recipe = Recipes.All.FirstOrDefault(r => village.Recipes.Contains(r.Gear) && CanMake(worker, village, r) &&
                 village.Gear.Count(g => g.Kind == r.Gear) + people.Count(v => v.VillageId == village.Id &&
                     new[] { v.Hand, v.Bag, v.Armour }.Any(g => g?.Kind == r.Gear)) +
                     _craftingTasks.Count(t => t.VillageId == village.Id && t.Gear == r.Gear) < village.VillagerIds.Count);

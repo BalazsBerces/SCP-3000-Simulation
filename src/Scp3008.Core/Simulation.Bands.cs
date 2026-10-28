@@ -181,7 +181,7 @@ public sealed partial class ScenarioBuilder
         ArgumentNullException.ThrowIfNull(positions);
         if (personality is { } temperament && !Enum.IsDefined(temperament) || positions.Count == 0 || positions.Any(p => !float.IsFinite(p.X) || !float.IsFinite(p.Y)))
             throw new ArgumentException("A Band needs members at finite positions.", nameof(positions));
-        if (recipes is not null && recipes.Any(k => !Recipes.Basic.Any(r => r.Gear == k)))
+        if (recipes is not null && recipes.Any(k => !Recipes.All.Any(r => r.Gear == k)))
             throw new ArgumentException("Unknown Recipe.", nameof(recipes));
         return _simulation.PlaceBand(positions, needs, knownMap, recipes, personality);
     }

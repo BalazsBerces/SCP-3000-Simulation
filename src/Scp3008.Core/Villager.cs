@@ -38,7 +38,7 @@ public sealed record Villager(int Id, Vector2 Position, Vector2? Destination, fl
     public Gear? Hand { get; init; }
     public Gear? Bag { get; init; }
     public Gear? Armour { get; init; }
-    public int CarryingCapacity => Hand?.Kind == GearKind.ShoppingCart ? 32 : Bag is not null ? 8 : 2;
+    public int CarryingCapacity => Hand?.Kind is GearKind.ShoppingCart or GearKind.PlatformCart ? 32 : Bag?.Kind == GearKind.LeatherBackpack ? 20 : Bag is not null ? 8 : 2;
     public float Load => Math.Clamp((float)(CarriedAmount + CarriedMaterials) / CarryingCapacity, 0, 1);
     public float Speed => WalkingSpeed * (Hand?.Kind == GearKind.ShoppingCart ? 1.5f : 1) * (1 - Load * 0.5f);
 

@@ -36,7 +36,7 @@ internal sealed partial class Villagers
     public void WearFurnitureCart(int id)
     {
         var w = _walkers.Single(w => w.Id == id);
-        if (w.Hand is { Kind: GearKind.ShoppingCart } cart) w.Hand = Wear(cart, 1);
+        if (w.Hand is { Kind: GearKind.ShoppingCart or GearKind.PlatformCart } cart) w.Hand = Wear(cart, 1);
     }
 
     public void ReserveFurniture(int id, int furnitureId, Vector2 position)
@@ -99,10 +99,10 @@ public sealed partial class Simulation
             ?? throw new ArgumentException("No such Villager.")).ToArray();
         if (workers.Any(v => v.Crafting || v.FurnitureTaskId is not null || v.CarriedAmount + v.CarriedMaterials > 0))
             throw new InvalidOperationException("A worker is already carrying a load or working on Furniture.");
-        if (disassemble && (workers.Length != 1 || workers[0].VillageId is null || workers[0].Hand?.Kind == GearKind.ShoppingCart))
+        if (disassemble && (workers.Length != 1 || workers[0].VillageId is null || workers[0].Hand?.Kind is GearKind.ShoppingCart or GearKind.PlatformCart))
             throw new InvalidOperationException("Disassembly needs one Village member with hands available.");
         var weight = FurnitureResources.Weight(piece);
-        var cart = workers.Length == 1 && workers[0].Hand?.Kind is GearKind.ShoppingCart;
+        var cart = workers.Length == 1 && workers[0].Hand?.Kind is GearKind.ShoppingCart or GearKind.PlatformCart;
         if (!disassemble && !cart && weight > 100)
             throw new InvalidOperationException("This piece needs a cart or disassembly.");
         var work = disassemble ? FurnitureWork.Disassemble : cart ? FurnitureWork.CartHaul :
@@ -141,7 +141,7 @@ public sealed partial class Simulation
             var workers = people.Where(v => task.VillagerIds.Contains(v.Id)).ToArray();
             if (found is null || workers.Length != task.VillagerIds.Count ||
                 workers.Any(v => v.Needs.Hunger >= 0.9 || v.Needs.Thirst >= 0.9) ||
-                (task.Work == FurnitureWork.CartHaul && workers[0].Hand?.Kind is not (GearKind.ShoppingCart)))
+                (task.Work == FurnitureWork.CartHaul && workers[0].Hand?.Kind is not (GearKind.ShoppingCart or GearKind.PlatformCart)))
             {
                 FinishFurnitureTask(task, workers);
                 continue;

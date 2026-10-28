@@ -6,6 +6,12 @@ public sealed partial class Simulation
 
     private void GenerateGear()
     {
+        foreach (var group in _furniture.Pieces.Where(p => p.Type is FurnitureType.FlatPackBox or FurnitureType.LabelledBox)
+            .GroupBy(p => _departments.At(p.Position).Id))
+        {
+            var box = group.First();
+            _instructions.Add(new(box.Id, Recipes.Middle[box.Id % Recipes.Middle.Count].Gear));
+        }
         var random = SeededRandom.For(_config.Seed, 146);
         var candidates = _furniture.Pieces.SelectMany(piece => FoundKinds(piece).Select(kind => (piece, kind)))
             .GroupBy(p => (_departments.At(p.piece.Position).Id, p.kind));

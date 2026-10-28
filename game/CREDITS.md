@@ -12,6 +12,7 @@ Models are simplified for rendering and textures resized. The EXIT sign has adde
 - Gear: hex key: [Allen Wrench](https://sketchfab.com/3d-models/allen-wrench-02ebda14785f480b965da3fc2115cd7f) by IU Indianapolis University Library, Sketchfab, CC-BY ([CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)) (`models/gear_hex_key`)
 - Gear: kitchen knife: [Kitchen Knife](https://sketchfab.com/3d-models/kitchen-knife-4c75aae7dfa74b919b61a321242de7f4) by TheSpacePunk, Sketchfab, CC-BY ([CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)) (`models/gear_knife`)
 - Gear: scissors: [Scissors](https://sketchfab.com/3d-models/scissors-6e0defc85edc4920a794fe9e82b5f16b) by sweedboy69, Sketchfab, CC-BY ([CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)) (`models/gear_scissors`)
+- Gear: saw: [Handsaw Wood](https://polyhaven.com/a/handsaw_wood) by Konrad Szałankiewicz, Poly Haven, CC0 (`models/gear_saw`)
 - Gear: canvas bag: [Canvas Bag](https://sketchfab.com/3d-models/canvas-bag-3316c1f3fc4e4f95adf05b1ee5478813) by RatATatKat, Sketchfab, CC-BY ([CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)) (`models/gear_canvas_bag`)
 - Gear: screwdriver: [Flathead Screwdriver](https://polyhaven.com/a/flathead_screwdriver) by Dylan Detwiller, Poly Haven, CC0 (`models/gear_screwdriver`)
 - Gear: flashlight: [Vintage Flashlight](https://polyhaven.com/a/vintage_flashlight) by Omar M. El-Safy, Poly Haven, CC0 (`models/gear_flashlight`)

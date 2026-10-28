@@ -53,6 +53,9 @@ public sealed record WorldSnapshot(
     public bool PointOfInterestShowcase { get; init; }
 
     /// <summary>Whether this is the tiny hand-placed Villager sandbox.</summary>
+    public IReadOnlyList<Experiment> Experiments { get; init; } = [];
+    public IReadOnlyList<AssemblyInstructions> AssemblyInstructions { get; init; } = [];
+
     public IReadOnlyList<CraftingTask> CraftingTasks { get; init; } = [];
 
     public bool VillagerSandbox => PillarLayout == PillarLayout.VillagerSandbox;

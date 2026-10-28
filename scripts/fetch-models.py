@@ -41,6 +41,7 @@ MODELS = [
     ("gear_hex_key", "sketchfab", "02ebda14785f480b965da3fc2115cd7f", "Allen Wrench", "Gear: hex key"),
     ("gear_knife", "sketchfab", "4c75aae7dfa74b919b61a321242de7f4", "Kitchen Knife", "Gear: kitchen knife"),
     ("gear_scissors", "sketchfab", "6e0defc85edc4920a794fe9e82b5f16b", "Scissors", "Gear: scissors"),
+    ("gear_saw", "polyhaven", "handsaw_wood", "Handsaw Wood", "Gear: saw"),
     ("gear_canvas_bag", "sketchfab", "3316c1f3fc4e4f95adf05b1ee5478813", "Canvas Bag", "Gear: canvas bag"),
     ("gear_screwdriver", "polyhaven", "flathead_screwdriver", "Flathead Screwdriver", "Gear: screwdriver"),
     ("gear_flashlight", "polyhaven", "vintage_flashlight", "Vintage Flashlight", "Gear: flashlight"),

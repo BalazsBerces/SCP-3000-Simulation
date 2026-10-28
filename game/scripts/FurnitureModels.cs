@@ -23,6 +23,7 @@ public static class FurnitureModels
     // Few Villagers are close enough to read these small tools; bags keep more of their silhouette.
     public static readonly GearModel[] FoundGear =
     [
+        new(GearKind.Saw, "gear_saw", 0.65f, 1200, "Konrad Szałankiewicz", "CC0", "https://polyhaven.com/a/handsaw_wood"),
         new(GearKind.HexKey, "gear_hex_key", 0.17f, 300, "IU Indianapolis University Library", "CC-BY", "https://sketchfab.com/3d-models/allen-wrench-02ebda14785f480b965da3fc2115cd7f"),
         new(GearKind.Screwdriver, "gear_screwdriver", 0.25f, 500, "Dylan Detwiller", "CC0", "https://polyhaven.com/a/flathead_screwdriver"),
         new(GearKind.KitchenKnife, "gear_knife", 0.3f, 500, "TheSpacePunk", "CC-BY", "https://sketchfab.com/3d-models/kitchen-knife-4c75aae7dfa74b919b61a321242de7f4"),

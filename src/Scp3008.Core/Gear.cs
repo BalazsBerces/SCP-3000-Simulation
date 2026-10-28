@@ -2,7 +2,7 @@ using System.Numerics;
 
 namespace Scp3008.Core;
 
-public enum GearKind { HexKey, Screwdriver, KitchenKnife, Scissors, CanvasBag, ShoppingCart, Flashlight, QuiltedArmour, Crowbar, TableLegClub, Candle, CardboardArmour, Bandage }
+public enum GearKind { HexKey, Screwdriver, KitchenKnife, Scissors, CanvasBag, ShoppingCart, Flashlight, QuiltedArmour, Crowbar, TableLegClub, Candle, CardboardArmour, Bandage, LeatherBackpack, Saw, Spear, TabletopShield, PlatformCart, Lantern, HandCrankedGenerator }
 public enum GearSlot { Hand, Bag, Armour }
 
 /// <summary>Found or carried Gear. Unclaimed Gear stays at its source Furniture until taken.</summary>
@@ -11,7 +11,7 @@ public sealed record Gear(int Id, GearKind Kind, Vector2 Position)
     public double Durability { get; init; } = 100;
     public double BatteryHours { get; init; }
     public int FurnitureId { get; init; } = -1;
-    public GearSlot Slot => Kind == GearKind.CanvasBag ? GearSlot.Bag : Kind is GearKind.QuiltedArmour or GearKind.CardboardArmour ? GearSlot.Armour : GearSlot.Hand;
+    public GearSlot Slot => Kind is GearKind.CanvasBag or GearKind.LeatherBackpack ? GearSlot.Bag : Kind is GearKind.QuiltedArmour or GearKind.CardboardArmour ? GearSlot.Armour : GearSlot.Hand;
 
     internal void Validate()
     {
@@ -60,7 +60,7 @@ internal sealed partial class Villagers
     {
         foreach (var w in _walkers)
         {
-            if (w.Hand is not { Kind: GearKind.Flashlight } light || clock.Phase != DayPhase.ClosingTime) continue;
+            if (w.Hand is not { Kind: GearKind.Flashlight or GearKind.Lantern } light || clock.Phase != DayPhase.ClosingTime) continue;
             if (light.BatteryHours <= 1e-9)
             {
                 if (w.CarriedGoods == GoodsKind.Batteries && w.CarriedAmount > 0)
@@ -75,7 +75,7 @@ internal sealed partial class Villagers
         }
     }
 
-    private static int Capacity(Walker w) => w.Hand?.Kind == GearKind.ShoppingCart ? 32 : w.Bag is not null ? 8 : 2;
+    private static int Capacity(Walker w) => w.Hand?.Kind is GearKind.ShoppingCart or GearKind.PlatformCart ? 32 : w.Bag?.Kind == GearKind.LeatherBackpack ? 20 : w.Bag is not null ? 8 : 2;
     private static Gear? Wear(Gear gear, double amount) => gear.Durability <= amount + 1e-9 ? null : gear with { Durability = gear.Durability - amount };
 
     public void Equip(int id, Gear gear)

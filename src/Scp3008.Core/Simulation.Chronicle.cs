@@ -43,9 +43,12 @@ public sealed partial class Simulation
                     _ => $"In {place}, {name}'s Band {founded.BandId} put down roots as {home}, {reason}.",
                 };
                 break;
+            case RecipeLearned learned:
+                story = $"Village {learned.VillageId} discovered a Recipe through {learned.Source}: {Recipes.All.Single(r => r.Gear == learned.Gear).Name}.";
+                break;
             case GearMade { First: true } made:
                 var maker = Villager.NameOf(made.VillagerId);
-                var recipe = Recipes.Basic.Single(r => r.Gear == made.Gear.Kind).Name;
+                var recipe = Recipes.All.Single(r => r.Gear == made.Gear.Kind).Name;
                 var workshopPlace = ChroniclePlace(made.Gear.Position);
                 story = (_chronicle.Count % 3) switch
                 {

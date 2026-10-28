@@ -1330,11 +1330,8 @@ public static class FurnitureMeshes
             case FurnitureType.LanternTent:
                 // The tent's door cloth, lit from inside, with a person's silhouette against it.
                 b.Box(Part.LampShade, new Vector3(-hw, 0f, -hd), new Vector3(hw, h, hd - 0.02f));
-                if (!b.Coarse)
-                {
-                    b.Ellipsoid(Part.Rubber, new Vector3(-0.1f, h * 0.68f, hd), 0.12f, 0.13f, 0.02f, 8, 5);
-                    b.Ellipsoid(Part.Rubber, new Vector3(-0.1f, h * 0.32f, hd), 0.24f, h * 0.27f, 0.02f, 8, 5);
-                }
+                b.Ellipsoid(Part.Rubber, new Vector3(-0.1f, h * 0.68f, hd), 0.12f, 0.13f, 0.02f, 8, 5);
+                b.Ellipsoid(Part.Rubber, new Vector3(-0.1f, h * 0.32f, hd), 0.24f, h * 0.27f, 0.02f, 8, 5);
                 break;
             case FurnitureType.MarshmallowTray:
                 // A wooden tray with a foam block the marshmallow sticks stand in.

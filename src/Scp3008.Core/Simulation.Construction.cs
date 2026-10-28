@@ -4,7 +4,7 @@ namespace Scp3008.Core;
 
 public sealed partial class Simulation
 {
-    private bool IsBuiltFurniture(int id) => _villages.Any(v => v.Walls.Any(w =>
+    private bool IsBuiltFurniture(int id) => _villages.Any(v => v.Workshops.Any(w => w.Slot.FurnitureId == id) || v.Walls.Any(w =>
         w.IncorporatedFurnitureId == id || w.Slots.Any(s => s.FurnitureId == id)));
 
     internal Blueprint PlanBarricade(int villageId) => Publish(() =>
@@ -106,8 +106,9 @@ public sealed partial class Simulation
         {
             var workers = _villagers.Snapshot().Where(v => v.VillageId == village.Id && v.Role == Role.Builder &&
                 v.FurnitureTaskId is null && !v.Crafting && v.CarriedAmount + v.CarriedMaterials == 0 &&
-                v.Hand?.Kind is null or GearKind.ShoppingCart && v.Needs.Hunger < 0.7 && v.Needs.Thirst < 0.7).ToArray();
+                v.Hand?.Kind is null or GearKind.ShoppingCart or GearKind.PlatformCart && v.Needs.Hunger < 0.7 && v.Needs.Thirst < 0.7).ToArray();
             if (workers.Length == 0) continue;
+            if (BuildWorkshop(village, workers[0])) continue;
             if (village.Walls.Count == 0 || village.Walls.All(w => w.Complete) &&
                 village.VillagerIds.Count >= village.Walls[^1].Population + 4)
                 PlanBarricade(village.Id);
@@ -136,6 +137,7 @@ public sealed partial class Simulation
 
     private void CompleteBlueprintPiece(FurnitureTask task, StoreClock clock)
     {
+        if (CompleteWorkshop(task)) return;
         foreach (var village in _villages.ToArray())
             for (var r = 0; r < village.Walls.Count; r++)
                 for (var s = 0; s < village.Walls[r].Slots.Count; s++)
@@ -152,6 +154,7 @@ public sealed partial class Simulation
 
     private void ReleaseBlueprintReservation(int furnitureId)
     {
+        ClearWorkshopFurniture(furnitureId, false);
         foreach (var village in _villages.ToArray())
             for (var r = 0; r < village.Walls.Count; r++)
                 for (var s = 0; s < village.Walls[r].Slots.Count; s++)
@@ -161,6 +164,7 @@ public sealed partial class Simulation
 
     private void UnbuildFurniture(int id)
     {
+        ClearWorkshopFurniture(id, true);
         foreach (var village in _villages.ToArray())
         {
             var walls = village.Walls.Select(w =>

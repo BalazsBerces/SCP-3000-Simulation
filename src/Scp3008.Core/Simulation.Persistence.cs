@@ -6,7 +6,7 @@ namespace Scp3008.Core;
 
 public sealed partial class Simulation
 {
-    private const int SaveVersion = 6;
+    private const int SaveVersion = 7;
     private static readonly JsonSerializerOptions SaveJson = CreateSaveJson();
 
     private sealed record SaveFile(int Version, SaveState State);
@@ -125,6 +125,7 @@ public sealed partial class Simulation
             liveGear.Concat(state.GearSources).Any(g => g.Id >= state.NextGearId))
             throw new InvalidDataException("Invalid world save: inconsistent Gear ids.");
         RestoreCrafting(s);
+        RestoreKnowHow(s);
         _gear.AddRange(s.Gear);
         _gearSources.AddRange(state.GearSources);
         _nextGearId = state.NextGearId;

@@ -83,6 +83,8 @@ public static class SilhouetteCheck
         var result = new List<Vector3>();
         for (var s = 0; s < mesh.GetSurfaceCount(); s++)
         {
+            // Transparent glass is deliberately absent from coarse meshes and has no opaque silhouette.
+            if (mesh.SurfaceGetMaterial(s) is ShaderMaterial { Shader.ResourcePath: "res://shaders/furniture_glass.gdshader" }) continue;
             var arrays = mesh.SurfaceGetArrays(s);
             var vertices = arrays[(int)Mesh.ArrayType.Vertex].AsVector3Array();
             var indices = arrays[(int)Mesh.ArrayType.Index].AsInt32Array();

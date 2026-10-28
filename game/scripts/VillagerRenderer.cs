@@ -73,6 +73,7 @@ public partial class VillagerRenderer : Node3D
         var space = Host.Snapshot.Space;
         var focus = Rig.Focus;
         ShowCommunities(space, focus);
+        ShowWorkshops();
         ShowVillagePanel(Host.Snapshot, delta);
         var seen = new HashSet<int>();
         var bodies = Host.Snapshot.Bodies.ToDictionary(b => b.VillagerId);

@@ -26,11 +26,11 @@ internal static class FurnitureResources
 
     public static bool HasTool(FurniturePiece piece, Gear? hand) => Tool(piece) switch
     {
-        ToolLevel.BareHands => hand is null || hand.Kind is not GearKind.ShoppingCart,
+        ToolLevel.BareHands => hand is null || hand.Kind is not (GearKind.ShoppingCart or GearKind.PlatformCart),
         ToolLevel.HexKey => hand?.Kind == GearKind.HexKey,
         ToolLevel.KnifeOrScissors => hand?.Kind is GearKind.KitchenKnife or GearKind.Scissors,
         ToolLevel.Screwdriver => hand?.Kind == GearKind.Screwdriver,
-        ToolLevel.SawOrCrowbar => hand?.Kind == GearKind.Crowbar,
+        ToolLevel.SawOrCrowbar => hand?.Kind is GearKind.Saw or GearKind.Crowbar,
         _ => false,
     };
 
@@ -38,7 +38,8 @@ internal static class FurnitureResources
     {
         FurnitureType.Armchair or FurnitureType.Sofa => new()
             { [FurnitureCatalog.Spec(p).IsLeather || p.Type == FurnitureType.Armchair && p.Variant == 0 ? MaterialKind.Leather : MaterialKind.Fabric] = 4, [MaterialKind.Foam] = 4, [MaterialKind.WoodPanel] = 3 },
-        FurnitureType.Mattress or FurnitureType.Bed or FurnitureType.SleepingBag or FurnitureType.CushionBin => new()
+        FurnitureType.Bed => new() { [MaterialKind.Metal] = 6, [MaterialKind.Fabric] = 4, [MaterialKind.Foam] = 4 },
+        FurnitureType.Mattress or FurnitureType.SleepingBag or FurnitureType.CushionBin => new()
             { [MaterialKind.Fabric] = 4, [MaterialKind.Foam] = 4 },
         FurnitureType.Rug or FurnitureType.BlanketStack or FurnitureType.CurtainRack or FurnitureType.Tent or
         FurnitureType.Hammock or FurnitureType.PlushBear => new() { [MaterialKind.Fabric] = 4 },

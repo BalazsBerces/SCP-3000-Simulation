@@ -176,6 +176,12 @@ _Avoid_: Biome resource, specialty
 A known way to make a piece of Gear or a reinforcement from Materials, needing certain tools and sometimes a Workshop. Basic Recipes are known by everyone; others are discovered by experimenting, learned from assembly instructions found in the Store, brought by people who join, or traded and shared between Villages. A Village's know-how is the set of its Recipes.
 _Avoid_: Technology, tech, blueprint (that is a structure plan)
 
+**Assembly instructions**:
+A sheet found in a flat-pack box or a Lost and found box that teaches one Recipe to the finding Band or Village. Once read, the Recipe stays in that community's know-how and travels with people who join another Village.
+
+**Experimenting**:
+A Builder spending Materials and working time with the right tool and a completed Workshop to discover an unknown Recipe. Builder skill makes discovery faster; this is practice, not a research tree.
+
 **Skill**:
 A Villager's practice in a Role, kept when they switch Roles. Builder skill grows when making Gear, disassembling Furniture or placing Blueprint pieces; it makes Gear work and disassembly faster, made Gear more durable, and disassembly richer in Materials.
 

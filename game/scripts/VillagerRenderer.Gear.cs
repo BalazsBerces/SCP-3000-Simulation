@@ -11,19 +11,44 @@ public partial class VillagerRenderer
     internal static Mesh GearMesh(GearKind kind)
     {
         if (kind == GearKind.ShoppingCart) return FurnitureMeshes.For(FurnitureType.ShoppingCart);
-        if (kind == GearKind.TableLegClub) return _tableLeg ??= TableLeg();
+        if (kind == GearKind.TableLegClub) return _tableLeg ??= TablePart(false);
         if (kind == GearKind.CardboardArmour) return FurnitureModels.Product("cardboard_box_01", 0, 0.65f, 500);
         if (kind == GearKind.Bandage) return FurnitureModels.Product("rug", 0, 0.2f, 300);
         if (kind == GearKind.Candle) return FurnitureModels.Product("goods_candles", 0, 0.2f, 500);
-        // shortcut: scenarios use an existing cloth for armour, replace with fitted Gear when Recipes add armour.
         if (kind == GearKind.QuiltedArmour) return FurnitureModels.Product("rug", 0, 0.65f, 500);
+        if (kind == GearKind.LeatherBackpack) return _backpack ??= FurnitureModels.Product("gear_canvas_bag", 0, 0.65f, 1500);
+        if (kind == GearKind.TabletopShield) return _tabletop ??= TablePart(true);
+        if (kind == GearKind.Lantern) return FurnitureMeshes.For(FurnitureType.CampLantern);
+        if (kind == GearKind.PlatformCart) return _platformCart ??= Combine(
+            (FurnitureModels.Product("industrial_storage_cart", 0, 1.2f, 2000), Transform3D.Identity));
+        if (kind == GearKind.Spear) return _spear ??= Combine(
+            (GearMesh(GearKind.TableLegClub), new Transform3D(Basis.Identity.Scaled(new Vector3(0.65f, 2.5f, 0.65f)), Vector3.Zero)),
+            (GearMesh(GearKind.KitchenKnife), new Transform3D(Basis.Identity, new Vector3(0, 1.5f, 0))));
+        if (kind == GearKind.HandCrankedGenerator) return _generator ??= Combine(
+            (GearMesh(GearKind.Flashlight), new Transform3D(Basis.Identity.Scaled(new Vector3(2, 2, 2)), Vector3.Zero)),
+            (GearMesh(GearKind.HexKey), new Transform3D(Basis.Identity.Rotated(Vector3.Forward, Mathf.Pi / 2).Scaled(Vector3.One * 2), new Vector3(0.2f, 0.35f, 0))));
         var model = kind == GearKind.Crowbar ? CrowbarModel : FurnitureModels.FoundGear.Single(m => m.Kind == kind);
         return FurnitureModels.Product(model.Folder, 0, model.Size, model.Budget);
     }
 
-    private static ArrayMesh? _tableLeg;
+    private static ArrayMesh? _tableLeg, _tabletop, _spear, _generator, _backpack, _platformCart;
 
-    private static ArrayMesh TableLeg()
+    // Assemble existing downloaded triangles, keeping their UVs and PBR materials.
+    private static ArrayMesh Combine(params (Mesh Mesh, Transform3D Transform)[] parts)
+    {
+        var result = new ArrayMesh();
+        foreach (var (mesh, transform) in parts)
+            for (var s = 0; s < mesh.GetSurfaceCount(); s++)
+            {
+                var tool = new SurfaceTool();
+                tool.AppendFrom(mesh, s, transform);
+                tool.SetMaterial(mesh.SurfaceGetMaterial(s));
+                tool.Commit(result);
+            }
+        return result;
+    }
+
+    private static ArrayMesh TablePart(bool top)
     {
         // Reuse the triangles of one downloaded table leg, keeping its wood material and UVs.
         var table = FurnitureModels.Product("dining_table", 0, 0.8f, 1500);
@@ -34,7 +59,7 @@ public partial class VillagerRenderer
             var arrays = table.SurfaceGetArrays(s);
             var vertices = arrays[(int)Mesh.ArrayType.Vertex].AsVector3Array();
             var indices = arrays[(int)Mesh.ArrayType.Index].AsInt32Array();
-            bool InLeg(int i) => vertices[i].X < bounds.Position.X + bounds.Size.X * 0.3f &&
+            bool InLeg(int i) => top ? vertices[i].Y > bounds.Position.Y + bounds.Size.Y * 0.9f : vertices[i].X < bounds.Position.X + bounds.Size.X * 0.3f &&
                 vertices[i].Z < bounds.Position.Z + bounds.Size.Z * 0.3f &&
                 vertices[i].Y < bounds.Position.Y + bounds.Size.Y * 0.9f;
             var selected = new List<int>();
@@ -72,16 +97,16 @@ public partial class VillagerRenderer
             mesh.Mesh = GearMesh(gear.Kind);
             mesh.Position = slot == GearSlot.Bag ? new Vector3(-0.27f, 0.65f, 0) :
                 slot == GearSlot.Armour ? new Vector3(0, 0.85f, 0.18f) :
-                gear.Kind == GearKind.ShoppingCart ? new Vector3(0, 0, 0.95f) : new Vector3(0.37f, 0.8f, 0.1f);
+                gear.Kind is GearKind.ShoppingCart or GearKind.PlatformCart ? new Vector3(0, 0, 0.95f) : new Vector3(0.37f, 0.8f, 0.1f);
             mesh.Rotation = slot == GearSlot.Armour ? new Vector3(Mathf.Pi / 2, 0, 0) : Vector3.Zero;
             var beam = mesh.GetNodeOrNull<SpotLight3D>("Beam");
-            if (gear.Kind == GearKind.Flashlight && beam is null)
+            if (gear.Kind is GearKind.Flashlight or GearKind.Lantern && beam is null)
             {
                 beam = new SpotLight3D { Name = "Beam", SpotRange = 10, SpotAngle = 38,
                     LightEnergy = 2, LightColor = new Color(1, 0.94f, 0.8f), Rotation = new Vector3(0, Mathf.Pi, 0) };
                 mesh.AddChild(beam);
             }
-            if (beam is not null) beam.Visible = gear.Kind == GearKind.Flashlight && gear.BatteryHours > 0 &&
+            if (beam is not null) beam.Visible = gear.Kind is GearKind.Flashlight or GearKind.Lantern && gear.BatteryHours > 0 &&
                 Host.Snapshot.Phase == DayPhase.ClosingTime;
         }
     }
