@@ -148,7 +148,9 @@ public class DrySpellTests
             sim.Snapshot.Departments.At(p.Position).Id == id && sim.Snapshot.IsStockFurniture(p) && !FurnitureCatalog.Spec(p).IsFixed);
         var dry = Piece(spell.DepartmentId);
         var fast = Piece(spell.BoostedDepartmentId);
-        sim.Scenario.RemoveFurniture(p => p.Id == dry.Id || p.Id == fast.Id);
+        // What rests on them goes too: it would fall, and a moved piece blocks a return.
+        bool On(FurniturePiece p, FurniturePiece under) => p.Elevation > 0.05f && System.Numerics.Vector2.Distance(p.Position, under.Position) < 3f;
+        sim.Scenario.RemoveFurniture(p => p.Id == dry.Id || p.Id == fast.Id || On(p, dry) || On(p, fast));
         sim.Advance(TimeSpan.FromHours(1));
         Assert.Contains(fast, sim.Snapshot.Furniture);
         Assert.DoesNotContain(dry, sim.Snapshot.Furniture);

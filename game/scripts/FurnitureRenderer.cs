@@ -31,6 +31,7 @@ public partial class FurnitureRenderer : Node3D
             else if (arg.StartsWith("--map-height="))
                 FurnitureDetail.MapHeight = float.Parse(arg["--map-height=".Length..], System.Globalization.CultureInfo.InvariantCulture);
         Host.WorldCreated += Rebuild;
+        Host.DomainEventReceived += OnDomainEvent;
         FurnitureDetail.Changed += ShowDetail;
         FurnitureDetail.Update(Rig.Distance, Rig.Camera.GlobalPosition.Y);
         ShowDetail(FurnitureDetail.Coarse);
@@ -41,7 +42,10 @@ public partial class FurnitureRenderer : Node3D
     {
         foreach (var node in _work.Values) node.QueueFree();
         _work.Clear();
+        foreach (var fall in _falls.Values) fall.Node.QueueFree();
+        _falls.Clear();
         Host.WorldCreated -= Rebuild;
+        Host.DomainEventReceived -= OnDomainEvent;
         FurnitureDetail.Changed -= ShowDetail;
     }
 
@@ -53,7 +57,7 @@ public partial class FurnitureRenderer : Node3D
         if (!ReferenceEquals(_builtFurniture, world.Furniture))
         {
             var moving = world.FurnitureTasks.Where(t => t.Started && t.Work != FurnitureWork.Disassemble)
-                .Select(t => t.FurnitureId).ToHashSet();
+                .Select(t => t.FurnitureId).Concat(_falls.Keys).ToHashSet();
             var stationary = world.Furniture.Where(p => !moving.Contains(p.Id)).ToArray();
             if (!_stationary.SequenceEqual(stationary))
             {
@@ -63,6 +67,7 @@ public partial class FurnitureRenderer : Node3D
             _builtFurniture = world.Furniture;
         }
         ShowFurnitureWork(world);
+        ShowFalls(world);
     }
 
     private FurniturePiece[] _stationary = [];
@@ -109,11 +114,11 @@ public partial class FurnitureRenderer : Node3D
 
     /// <summary>
     /// A piece's instance colour: its tint, and for a clock of the clock wall its offset from the time to Closing time,
-    /// as a fraction of a day in the alpha, which turns its hands (furniture.gdshader).
+    /// as a fraction of a day in the alpha, which turns its hands (furniture.gdshader). Damage darkens a piece.
     /// </summary>
     private static Color Colour(WorldSnapshot snapshot, FurniturePiece piece)
     {
-        var colour = FurnitureMeshes.TintFor(piece);
+        var colour = FurnitureMeshes.TintFor(piece).Darkened(piece.Damage * 0.45f);
         if (piece.Type == FurnitureType.WallClock && piece.LandmarkId >= 0
             && snapshot.Landmarks[piece.LandmarkId].ClockOffsets.TryGetValue(piece.Id, out var offset))
             colour.A = (float)(offset.TotalSeconds / 86400.0);

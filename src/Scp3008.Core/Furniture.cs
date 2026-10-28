@@ -253,10 +253,14 @@ public enum TentKind
 /// <param name="Roll">
 /// How far the piece is rolled onto its side, in radians, about its depth axis through the centre of its base, applied
 /// before <paramref name="Tilt"/>: positive lifts its +width side, so a quarter turn stands it on its -width end (a sofa
-/// on end). Zero for everything but the Armchair henge's standing stones.
+/// on end). Zero for everything but the Armchair henge's standing stones; a fallen piece lies unrolled.
+/// </param>
+/// <param name="Damage">
+/// How damaged the piece is, from 0 (whole) to 1 (wrecked): falls damage it, and it carries that much less than its load
+/// capacity (<see cref="StructureCollapsed"/>). A piece that gave way under too much load is wrecked.
 /// </param>
 public readonly record struct FurniturePiece(int Id, FurnitureType Type, Vector2 Position, float Elevation, float Rotation,
-    int Variant = 0, int DisplayId = -1, int Tint = 0, int LandmarkId = -1, float Tilt = 0f, int PointOfInterestId = -1, float Roll = 0f);
+    int Variant = 0, int DisplayId = -1, int Tint = 0, int LandmarkId = -1, float Tilt = 0f, int PointOfInterestId = -1, float Roll = 0f, float Damage = 0f);
 
 /// <summary>The fixed properties of a Furniture type.</summary>
 /// <param name="Width">Size along the piece's width axis, in metres.</param>

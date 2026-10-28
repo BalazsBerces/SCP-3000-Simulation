@@ -180,6 +180,7 @@ public sealed partial class Simulation
                     _gearSources[i] = _gearSources[i] with { FurnitureId = restored.Id };
             _restockOrigins[restored.Id] = restored;
             _furniture = _furniture with { Pieces = _furniture.Pieces.Append(restored).ToList().AsReadOnly() };
+            _stabilityChanges.Add(restored);
             _waterPoints = _waterPoints.Concat(missing.Water.Select(w => w with { FurnitureId = restored.Id })).ToList().AsReadOnly();
             _navigation.Update([], [restored]);
             _villagers.Replan();

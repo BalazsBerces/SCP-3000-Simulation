@@ -97,6 +97,16 @@ A high place on Furniture from which to look out over the Store: on the climbabl
 A single physical object in the Store (wardrobe, shelf unit, sofa, lamp…) that can be moved, used, built with or disassembled.
 _Avoid_: Prop, object, item
 
+**Load capacity**:
+The weight a piece of Furniture can carry on it, less its **Damage** (a wardrobe carries ten times its weight, a cardboard box 60 kg, a pallet rack 3 t). Fixed and flat pieces never give way. A piece rests on the floor, on the pieces under it (sharing its weight and its load equally among them), or hangs where it was put (a wall clock, a mirror).
+
+**Damage**:
+How broken a piece of Furniture is, from 0 (whole) to 1 (wrecked). A fall adds to it, and a piece that gives way in a Collapse is wrecked. It lowers the Load capacity and darkens the piece.
+
+**Collapse**:
+A structure of Furniture breaking the stability rules (ADR 0002): the lowest overloaded piece gives way, and every piece left with nothing under it falls to the floor, toppling if it is tall. It happens only when something in the structure changes, so a Store stands as generated. A Landmark's pieces never give way under load, because its heaps would not stand otherwise, but they fall when their support is taken away. A Collapse of three or more pieces enters the Chronicle.
+_Avoid_: Cave-in, physics
+
 **Lamp**:
 A piece of Furniture that gives light (table lamp, floor lamp). Lamps on display are off while the Store is open and come on one by one as the Store lights fade before Closing time, going out again as the Store lights return; none is ever lit in the dead zone. A Lamp on display draws power from the Store, so Villagers may switch it on while the Store is open; a Lamp taken away from its display needs a Village power source (battery or generator).
 _Avoid_: Fixture, light (that is what a Lamp gives)

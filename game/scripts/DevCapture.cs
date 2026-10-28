@@ -181,6 +181,12 @@ public partial class DevCapture : Node
                 CheckFurnitureWork(arg["--furniture-work-check=".Length..]);
                 return;
             }
+            if (arg.StartsWith("--collapse-check="))
+            {
+                SetProcess(false);
+                CheckCollapse(arg["--collapse-check=".Length..]);
+                return;
+            }
             if (arg.StartsWith("--gear-check="))
             {
                 SetProcess(false);

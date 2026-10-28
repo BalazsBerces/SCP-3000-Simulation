@@ -328,6 +328,7 @@ public sealed partial class Simulation : IDisposable
         AdvanceCrops(clock);
         AdvanceFurnitureTasks(clock);
         AdvanceConstruction(clock);
+        AdvanceStability(clock);
         AdvanceCrafting(clock);
         AdvanceKnowHow(clock);
         AdvanceBands(clock);
@@ -393,6 +394,7 @@ public sealed partial class Simulation : IDisposable
                 var keptIds = kept.Select(p => p.Id).ToHashSet();
                 foreach (var piece in _furniture.Pieces.Where(p => !keptIds.Contains(p.Id)))
                 {
+                    _stabilityChanges.Add(piece);
                     VacateFurniture(piece.Id);
                     if (IsBuiltFurniture(piece.Id)) UnbuildFurniture(piece.Id);
                 }
@@ -435,14 +437,15 @@ public sealed partial class Simulation : IDisposable
         }
     }
 
-    /// <summary>Puts a new piece of Furniture on the floor (the next free id), lets walking Villagers find their way again and publishes a new snapshot.</summary>
-    internal FurniturePiece PlaceFurniture(FurnitureType type, Vector2 position, float rotation, int variant, int tint) =>
+    /// <summary>Puts a new piece of Furniture on the floor or on top of others (the next free id), lets walking Villagers find their way again and publishes a new snapshot.</summary>
+    internal FurniturePiece PlaceFurniture(FurnitureType type, Vector2 position, float rotation, int variant, int tint, float elevation = 0f) =>
         Publish(() =>
         {
-            var piece = new FurniturePiece(_nextFurnitureId++, type, _space.Wrap(position), 0f,
+            var piece = new FurniturePiece(_nextFurnitureId++, type, _space.Wrap(position), elevation,
                 rotation, variant, Tint: tint);
             _restockOrigins[piece.Id] = piece;
             _furniture = _furniture with { Pieces = _furniture.Pieces.Append(piece).ToList().AsReadOnly() };
+            _stabilityChanges.Add(piece);
             AddCrops([piece]);
             _navigation.Update([], [piece]);
             _villagers.Replan();
@@ -466,7 +469,18 @@ public sealed partial class Simulation : IDisposable
             throw new ArgumentException($"No piece {furnitureId}.", nameof(furnitureId));
         var before = _furniture.Pieces[index];
         var moved = before with { Position = _space.Wrap(position), Rotation = rotation, Elevation = elevation ?? before.Elevation };
+        // What stood on a piece loses it wherever the piece goes; a carried piece only settles once it is put down.
         if (moved != before)
+            _stabilityChanges.AddRange(IsHeld(furnitureId) ? [before] : [before, moved]);
+        return SetPose(index, before, moved);
+    }
+
+    /// <summary>Puts a piece in a new pose and lets everything that depends on where it stands follow.</summary>
+    private FurniturePiece SetPose(int index, FurniturePiece before, FurniturePiece moved)
+    {
+        var furnitureId = before.Id;
+        if (moved.Position != before.Position || moved.Rotation != before.Rotation || moved.Elevation != before.Elevation ||
+            moved.Tilt != before.Tilt || moved.Roll != before.Roll)
         {
             VacateFurniture(furnitureId);
             _waterPoints = _waterPoints.Where(w => w.FurnitureId != furnitureId).ToList().AsReadOnly();

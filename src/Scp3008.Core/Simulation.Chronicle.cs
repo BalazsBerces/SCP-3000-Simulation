@@ -79,6 +79,22 @@ public sealed partial class Simulation
                     _ => $"There was no relief for {person}{community} in {location}; {cause} took its toll.",
                 };
                 break;
+            // A box sliding off a shelf is not history; a structure coming down is.
+            case StructureCollapsed collapse when collapse.Fallen.Count >= NotableCollapse:
+                var fell = collapse.Fallen.Count;
+                var ruin = ChroniclePlace(collapse.Position);
+                var landmarkId = collapse.Fallen.Select(f => f.From.LandmarkId).FirstOrDefault(id => id >= 0, -1);
+                var what = landmarkId >= 0
+                    ? "part of the " + System.Text.RegularExpressions.Regex.Replace(_landmarks[landmarkId].Type.ToString(), "(?<=.)([A-Z])", " $1").ToLowerInvariant()
+                    : "a stack of Furniture";
+                var why = collapse.Broken.Count > 0 ? "when a piece gave way under the load" : "when its support was taken away";
+                story = (_chronicle.Count % 3) switch
+                {
+                    0 => $"In {ruin}, {what} collapsed {why}: {fell} pieces came crashing down.",
+                    1 => $"{char.ToUpperInvariant(what[0])}{what[1..]} came down in {ruin} {why}; {fell} pieces lay scattered across the floor.",
+                    _ => $"A crash echoed through {ruin}: {what} fell {why}, bringing {fell} pieces down with it.",
+                };
+                break;
             default:
                 return;
         }
