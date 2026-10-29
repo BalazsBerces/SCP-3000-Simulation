@@ -102,7 +102,7 @@ public class CampingGroundTests
             var (snapshot, camp) = CampStore(seed);
             var sector = snapshot.Sectors[camp.SectorId];
             Assert.True(camp.Size.X * camp.Size.Y <= sector.Size * sector.Size / 4f);
-            Assert.Equal(1, snapshot.Landmarks.Count(l => l.SectorId == camp.SectorId));
+            Assert.Equal(1, snapshot.Landmarks.Count(l => l.SectorId == camp.SectorId && l.Type != LandmarkType.AbandonedScaffold));
             foreach (var pillar in snapshot.Pillars)
             {
                 var delta = snapshot.Space.Delta(pillar.Position, camp.Centre);

@@ -193,8 +193,12 @@ public partial class CameraRig : Node3D
             if (villager is null)
                 _following = null;
             else
+            {
                 FlyTo(villager.Position, _targetDistance);
+                _targetFocus.Y = villager.Elevation;
+            }
         }
+        else _targetFocus.Y = 0;
 
         // Frame-rate independent exponential easing towards the targets.
         var blend = 1f - Mathf.Exp(-Smoothing * dt);

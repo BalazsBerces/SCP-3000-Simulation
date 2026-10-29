@@ -69,6 +69,7 @@ internal sealed partial class Villagers
                 continue;
             walker.NextDecision = 0.1;
             Observe(walker, world);
+            if (walker.ClimbWaypoints.Count > 0) continue;
             n = walker.Needs;
             if (world.Phase == DayPhase.ClosingTime && world.Bands.Any(b => b.VillagerIds.Contains(walker.Id)))
             {
@@ -220,7 +221,7 @@ internal sealed partial class Villagers
             {
                 walker.Action = VillagerAction.Idle;
                 if (n.Hunger >= 0.5 || n.Thirst >= 0.5 || world.Bands.Any(b => b.VillagerIds.Contains(walker.Id)))
-                    Scout(walker);
+                    Scout(walker, world);
             }
         }
     }

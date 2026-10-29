@@ -8,7 +8,7 @@ namespace Scp3008.Core;
 /// of Furniture a Villager cannot step over or walk under. Each chunk's cells are worked out when first needed and
 /// again after Furniture in it changes (<see cref="Update"/>).
 /// </summary>
-internal sealed class Navigation
+internal sealed partial class Navigation
 {
     public const float CellSize = 0.5f;
 

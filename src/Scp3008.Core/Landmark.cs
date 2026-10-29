@@ -34,6 +34,8 @@ public enum LandmarkType
     /// Brachiosaurus's back. Its ground is visual only (<see cref="GroundProperty.None"/>).
     /// </summary>
     CampingGround,
+    /// <summary>A half-built scaffold with abandoned rooms on one Pillar's walkway ring.</summary>
+    AbandonedScaffold,
 }
 
 /// <summary>

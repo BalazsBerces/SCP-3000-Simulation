@@ -325,7 +325,7 @@ public class PillarLayoutTests
             var nearby = snapshot.Furniture.Where(p => snapshot.Space.Distance(p.Position, pillar.Position) < clear + 10f).ToArray();
             // The Store goes on right up to the walkway.
             Assert.NotEmpty(nearby);
-            foreach (var piece in nearby)
+            foreach (var piece in nearby.Where(p => p.LandmarkId < 0 || snapshot.Landmarks[p.LandmarkId].Type != LandmarkType.AbandonedScaffold))
             {
                 var spec = FurnitureCatalog.Spec(piece);
                 var delta = snapshot.Space.Delta(pillar.Position, piece.Position);

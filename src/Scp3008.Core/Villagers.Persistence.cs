@@ -6,13 +6,19 @@ internal sealed partial class Villagers
 {
     internal sealed record TargetState(Vector2 Position, StockedGoods? Goods, WaterPoint? Water, bool Rest, bool Haul, Gear? Gear, int? Crop, bool Fill);
     internal sealed record WalkerState(Villager Villager, Vector2[] Waypoints, double StarvingHours,
-        double ThirstyHours, double NextDecision, TargetState? Target, Vector2[] Unreachable);
+        double ThirstyHours, double NextDecision, TargetState? Target, Vector2[] Unreachable)
+    {
+        public Vector3[] ClimbWaypoints { get; init; } = [];
+        public Vector3? ClimbDestination { get; init; }
+        public Vector3[] VisitedLookouts { get; init; } = [];
+    }
     internal sealed record State(int NextId, WalkerState[] Walkers, Body[] Bodies);
 
     internal State Save() => new(_nextId, _walkers.Select(w => new WalkerState(View(w), w.Waypoints.ToArray(),
         w.StarvingHours, w.ThirstyHours, w.NextDecision,
         w.Target is { } t ? new TargetState(t.Position, t.Goods, t.Water, t.Rest, t.Haul, t.Gear, t.Crop, t.Fill) : null,
-        w.Unreachable.ToArray())).ToArray(), Bodies.ToArray());
+        w.Unreachable.ToArray()) { ClimbWaypoints = w.ClimbWaypoints.ToArray(), ClimbDestination = w.ClimbDestination,
+            VisitedLookouts = w.VisitedLookouts.ToArray() }).ToArray(), Bodies.ToArray());
 
     internal void Restore(State state)
     {
@@ -28,6 +34,8 @@ internal sealed partial class Villagers
             var v = saved.Villager;
             static bool Finite(Vector2 p) => float.IsFinite(p.X) && float.IsFinite(p.Y);
             if (!Finite(v.Position) || v.Destination is { } destination && !Finite(destination) ||
+                !float.IsFinite(v.Elevation) || v.Elevation < 0 || saved.ClimbWaypoints.Concat(saved.VisitedLookouts).Append(saved.ClimbDestination ?? Vector3.Zero)
+                    .Any(p => !float.IsFinite(p.X) || !float.IsFinite(p.Y) || !float.IsFinite(p.Z) || p.Z < 0) ||
                 !float.IsFinite(v.Heading) || saved.Waypoints.Any(p => !Finite(p)) ||
                 !Enum.IsDefined(v.Role) || !Enum.IsDefined(v.Action))
                 throw new ArgumentException("Invalid Villager movement or Role.");
@@ -40,6 +48,7 @@ internal sealed partial class Villagers
             var w = new Walker(v.Id, v.Position)
             {
                 SleepingPlace = v.SleepingPlace,
+                Elevation = v.Elevation, ClimbWaypoints = saved.ClimbWaypoints.ToList(), ClimbDestination = saved.ClimbDestination,
                 Destination = v.Destination, Heading = v.Heading, Needs = v.Needs, Action = v.Action,
                 Crafting = v.Crafting, FurnitureTaskId = v.FurnitureTaskId, VillageId = v.VillageId, Role = v.Role, CarriedGoods = v.CarriedGoods,
                 CarriedAmount = v.CarriedAmount, CarriedMaterials = v.CarriedMaterials, CarriedWater = v.CarriedWater,
@@ -60,6 +69,7 @@ internal sealed partial class Villagers
             foreach (var danger in v.KnownMap.Dangers) w.KnownDangers.Add(danger.StaffId, danger);
             foreach (var village in v.KnownMap.Villages) w.KnownVillages.Add(village.VillageId, village);
             w.Unreachable.UnionWith(saved.Unreachable);
+            w.VisitedLookouts.UnionWith(saved.VisitedLookouts);
             _walkers.Add(w);
         }
     }

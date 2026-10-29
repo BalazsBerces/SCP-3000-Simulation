@@ -61,7 +61,7 @@ public class LandmarkTests
     {
         var snapshot = Generate(seed, layout);
         Assert.Equal(Enumerable.Range(0, snapshot.Landmarks.Count), snapshot.Landmarks.Select(l => l.Id));
-        var landmarks = snapshot.Landmarks;
+        var landmarks = snapshot.Landmarks.Where(l => l.Type != LandmarkType.AbandonedScaffold).ToList();
         Assert.Equal(landmarks.Count, landmarks.Select(l => l.SectorId).Distinct().Count());
 
         var pillarLess = snapshot.Sectors.Count(s => !snapshot.Pillars.Any(p => p.Coordinate == s.Name));
@@ -99,7 +99,7 @@ public class LandmarkTests
         foreach (var landmark in snapshot.Landmarks)
         {
             var pieces = PiecesOf(snapshot, landmark).ToList();
-            Assert.True(pieces.Count >= 300, $"{landmark.Type} has only {pieces.Count} pieces.");
+            Assert.True(pieces.Count >= (landmark.Type == LandmarkType.AbandonedScaffold ? 9 : 300), $"{landmark.Type} has only {pieces.Count} pieces.");
             Assert.All(pieces, p => Assert.Equal(-1, p.DisplayId));
             var top = pieces.Max(p => FurnitureCatalog.Corners(p).Max(c => c.Z));
             Assert.Equal(top, landmark.Height, 3);
@@ -350,7 +350,7 @@ public class LandmarkTests
         Assert.All(snapshot.Furniture, p => Assert.True(p.LandmarkId >= 0, $"{p.Type} {p.Id} is not Landmark Furniture."));
         Assert.All(snapshot.Landmarks, l => Assert.NotEmpty(PiecesOf(snapshot, l)));
 
-        var row = snapshot.Landmarks.OrderBy(l => l.Centre.X).ToList();
+        var row = snapshot.Landmarks.Where(l => l.Type != LandmarkType.AbandonedScaffold).OrderBy(l => l.Centre.X).ToList();
         // Side by side along x, on one row, without overlapping each other or any Pillar's walkway ring.
         Assert.All(row, l => Assert.Equal(row[0].Centre.Y, l.Centre.Y));
         foreach (var (a, b) in row.Zip(row.Skip(1)))

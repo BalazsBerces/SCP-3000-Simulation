@@ -329,6 +329,7 @@ public static class LandmarkNames
         LandmarkType.ClockWall => "Clock wall",
         LandmarkType.FountainCourt => "Fountain court",
         LandmarkType.CampingGround => "Camping ground",
+        LandmarkType.AbandonedScaffold => "Abandoned scaffold",
         _ => type.ToString(),
     };
 }

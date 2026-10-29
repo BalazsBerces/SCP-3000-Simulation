@@ -4,7 +4,7 @@ namespace Scp3008.Core;
 
 public sealed partial class Simulation
 {
-    private bool IsBuiltFurniture(int id) => _villages.Any(v =>
+    private bool IsBuiltFurniture(int id) => _villages.Any(v => v.PillarScaffold?.Slots.Any(s => s.FurnitureId == id) == true ||
         v.Dwellings.Any(d => d.Slots.Any(s => s.FurnitureId == id)) || v.MessHall?.Slots.Any(s => s.FurnitureId == id) == true || v.Storehouse?.Slots.Any(s => s.FurnitureId == id) == true || v.Workshops.Any(w => w.Slot.FurnitureId == id) || v.Walls.Any(w =>
         w.IncorporatedFurnitureId == id || w.Slots.Any(s => s.FurnitureId == id)) || v.Castle.Any(c => c.Slots.Any(s => s.FurnitureId == id)));
 
@@ -121,6 +121,7 @@ public sealed partial class Simulation
                 IsAvailableWorker(v) && v.CarriedAmount + v.CarriedMaterials == 0 &&
                 v.Hand?.Kind is null or GearKind.ShoppingCart or GearKind.PlatformCart && v.Needs.Hunger < 0.7 && v.Needs.Thirst < 0.7).ToArray();
             if (workers.Length == 0) continue;
+            if (BuildPillarScaffold(village, workers[0], clock)) continue;
             if (BuildDwellings(village, workers[0])) continue;
             if (TendDwellings(_villages[village.Id])) continue;
             if (BuildWorkshop(_villages[village.Id], workers[0])) continue;
@@ -137,7 +138,17 @@ public sealed partial class Simulation
                 .Select(o => o.WallIndex).DefaultIfEmpty(-1).First();
             if (ring < 0) ring = current.Walls.ToList().FindIndex(w => !w.Complete &&
                 !current.Outposts.Any(o => o.Abandoned && current.Walls[o.WallIndex] == w));
-            if (ring < 0) { if (!BuildCastle(current, workers[0])) GatherToYard(_villages[village.Id], workers[0]); continue; }
+            if (ring < 0)
+            {
+                if (BuildCastle(current, workers[0])) continue;
+                if (current.PillarScaffold is null && current.Castle.Count > 0 && current.Castle.All(c => c.Complete))
+                {
+                    var pillar = _pillars.OrderBy(p => _space.Distance(current.Position, p.Position)).FirstOrDefault(p =>
+                        _space.Distance(current.Position, p.Position) <= 80 && !_villages.Any(v => v.PillarScaffold?.PillarId == p.Id));
+                    if (pillar is not null) PlanScaffold(current.Id, pillar.Id);
+                }
+                GatherToYard(_villages[village.Id], workers[0]); continue;
+            }
             var wall = current.Walls[ring];
             if (wall.Slots.Any(s => s.ReservedFurnitureId is not null)) continue;
             var index = wall.Slots.ToList().FindIndex(s => s.FurnitureId is null);
@@ -207,6 +218,7 @@ public sealed partial class Simulation
         ClearStorehouseFurniture(id, true);
         ClearWorkshopFurniture(id, true);
         ClearCastleFurniture(id, true);
+        ClearScaffoldFurniture(id);
         foreach (var village in _villages.ToArray())
         {
             var walls = village.Walls.Select(w =>

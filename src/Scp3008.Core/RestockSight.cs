@@ -4,16 +4,16 @@ namespace Scp3008.Core;
 
 internal static class RestockSight
 {
-    // shortcut: omnidirectional 40 m sight and catalogue boxes; replace with the shared Villager sight rules when those are introduced.
+    // shortcut: omnidirectional sight and catalogue boxes; add a facing cone when sneaking needs it.
     internal const float Range = 40;
     private const float EyeHeight = 1.6f;
 
     public static bool CanSee(StoreSpace space, Villager villager, FurniturePiece spot,
         IReadOnlyList<FurniturePiece> furniture, IReadOnlyList<Pillar> pillars, IReadOnlyList<FogBank> fog)
     {
-        if (space.Distance(villager.Position, spot.Position) > Range)
+        if (space.Distance(villager.Position, spot.Position) > villager.ViewRange)
             return false;
-        var eye = new Vector3(villager.Position, EyeHeight);
+        var eye = new Vector3(villager.Position, EyeHeight + villager.Elevation);
         foreach (var corner in FurnitureCatalog.Corners(spot))
         {
             var delta = space.Delta(villager.Position, new Vector2(corner.X, corner.Y));
@@ -42,7 +42,7 @@ internal static class RestockSight
         var spec = FurnitureCatalog.Spec(piece);
         if (spec.IsFloorCovering)
             return false;
-        if (space.Distance(new Vector2(eye.X, eye.Y), piece.Position) > Range + Math.Max(spec.Width, Math.Max(spec.Depth, spec.Height)))
+        if (space.Distance(new Vector2(eye.X, eye.Y), piece.Position) > Range + MathF.Max(0, eye.Z - EyeHeight) * 2 + Math.Max(spec.Width, Math.Max(spec.Depth, spec.Height)))
             return false;
         var centre = new Vector3(new Vector2(eye.X, eye.Y) + space.Delta(new Vector2(eye.X, eye.Y), piece.Position), piece.Elevation);
         Vector3 Local(Vector3 point)

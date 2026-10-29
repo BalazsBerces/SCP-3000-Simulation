@@ -101,7 +101,7 @@ public partial class VillagerRenderer : Node3D
                 _figures[villager.Id] = figure;
             }
             var near = space.Delta(focus.ToStore(), villager.Position);
-            figure.Position = new Vector3(focus.X + near.X, bodies.ContainsKey(villager.Id) ? 0.25f : 0f, focus.Z + near.Y);
+            figure.Position = new Vector3(focus.X + near.X, bodies.ContainsKey(villager.Id) ? 0.25f : villager.Elevation, focus.Z + near.Y);
             // Heading runs from east towards south (+X towards +Z): face (cos, sin) in world X and Z.
             figure.Rotation = new Vector3(bodies.ContainsKey(villager.Id) ? MathF.PI / 2 : 0f,
                 Mathf.Atan2(MathF.Cos(villager.Heading), MathF.Sin(villager.Heading)), 0f);

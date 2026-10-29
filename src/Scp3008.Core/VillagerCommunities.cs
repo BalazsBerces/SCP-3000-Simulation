@@ -59,7 +59,7 @@ internal sealed partial class Villagers
             walker.Action = VillagerAction.Scavenging;
         }
         else
-            Scout(walker);
+            Scout(walker, world);
         return true;
     }
 
@@ -82,7 +82,7 @@ internal sealed partial class Villagers
                 .FirstOrDefault(t => TryPlan(walker, t));
             if (chosen is null)
             {
-                Scout(walker);
+                Scout(walker, world);
                 return true;
             }
         }

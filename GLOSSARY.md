@@ -93,6 +93,12 @@ _Avoid_: Ladder, tower
 **Lookout**:
 A high place on Furniture from which to look out over the Store: on the climbable Landmarks (rack canyon, mattress mountain, Camping ground) and at the top of the Abandoned scaffold.
 
+**Pillar scaffold**:
+A Village's tall Blueprint climbing a nearby Pillar on its walkway ring, built one stage at a time from Materials. Open rack stages provide Climbable links and a Lookout; finishing the Abandoned scaffold reuses its existing stages and costs fewer Materials.
+
+**Climbable link**:
+A bidirectional route up open shelving's rungs or along a mattress surface, joining places at different heights. Links follow the actual Furniture and disappear when it is moved, wrecked or taken away. A Villager's height extends their view range and their observations enter their community's Known map.
+
 **Furniture**:
 A single physical object in the Store (wardrobe, shelf unit, sofa, lamp…) that can be moved, used, built with or disassembled.
 _Avoid_: Prop, object, item

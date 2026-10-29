@@ -29,6 +29,8 @@ public sealed record Villager(int Id, Vector2 Position, Vector2? Destination, fl
     public Needs Needs { get; init; } = new();
     public VillagerAction Action { get; init; }
     public KnownMap KnownMap { get; init; } = new();
+    public float Elevation { get; init; }
+    public float ViewRange => 40 + Elevation * 2;
     public int? VillageId { get; init; }
     public Role Role { get; init; } = Role.Scavenger;
     public IReadOnlyDictionary<Role, double> Skills { get; init; } = new Dictionary<Role, double>();
@@ -76,6 +78,9 @@ internal sealed partial class Villagers(StoreSpace space, Navigation navigation)
         public Vector2? Destination { get; set; }
         public float Heading { get; set; }
         public List<Vector2> Waypoints { get; set; } = [];
+        public float Elevation { get; set; }
+        public Vector3? ClimbDestination { get; set; }
+        public List<Vector3> ClimbWaypoints { get; set; } = [];
     }
 
     /// <summary>Places a standing Villager at the position, or on the nearest free floor if Furniture stands there.</summary>
@@ -93,7 +98,8 @@ internal sealed partial class Villagers(StoreSpace space, Navigation navigation)
         var walker = _walkers.Find(w => w.Id == villagerId) ?? throw new ArgumentException($"No Villager {villagerId}.", nameof(villagerId));
         walker.Target = null;
         walker.Action = VillagerAction.Idle;
-        Plan(walker, navigation.NearestWalkable(destination));
+        if (walker.Elevation > 0) SendClimbing(walker, new(destination, 0));
+        else { walker.ClimbWaypoints.Clear(); walker.ClimbDestination = null; Plan(walker, navigation.NearestWalkable(destination)); }
     }
 
     /// <summary>Finds every walking Villager's way again, after the Furniture changed.</summary>
@@ -102,6 +108,15 @@ internal sealed partial class Villagers(StoreSpace space, Navigation navigation)
         foreach (var walker in _walkers)
         {
             walker.Unreachable.Clear();
+            if (walker.Elevation > 0 && !navigation.SupportsClimber(new(walker.Position, walker.Elevation)))
+            {
+                walker.Elevation = 0;
+                walker.Position = navigation.NearestWalkable(walker.Position);
+                walker.ClimbDestination = null;
+                walker.ClimbWaypoints.Clear();
+                walker.Destination = null;
+            }
+            if (walker.ClimbDestination is { } climb) { SendClimbing(walker, climb); continue; }
             if (walker.Destination is { } destination)
                 Plan(walker, navigation.NearestWalkable(destination));
         }
@@ -113,6 +128,11 @@ internal sealed partial class Villagers(StoreSpace space, Navigation navigation)
         foreach (var walker in _walkers)
         {
             var left = stride * (walker.Hand?.Kind == GearKind.ShoppingCart ? 1.5f : 1) * (1 - Math.Clamp((float)(walker.CarriedAmount + walker.CarriedMaterials) / Capacity(walker), 0, 1) * 0.5f);
+            if (walker.ClimbWaypoints.Count > 0)
+            {
+                AdvanceClimbing(walker, left * 0.5f);
+                continue;
+            }
             while (left > 0f && walker.Waypoints.Count > 0)
             {
                 var delta = space.Delta(walker.Position, walker.Waypoints[0]);
@@ -148,6 +168,7 @@ internal sealed partial class Villagers(StoreSpace space, Navigation navigation)
     // Sets the route only when a path exists, so a failed attempt leaves the current one alone.
     private bool TryRoute(Walker walker, Vector2 destination)
     {
+        if (walker.Elevation > 0) return SendClimbing(walker, new(destination, 0));
         if (navigation.FindPath(walker.Position, destination) is not { } path) return false;
         walker.Waypoints = path;
         walker.Destination = destination;
@@ -155,7 +176,7 @@ internal sealed partial class Villagers(StoreSpace space, Navigation navigation)
     }
 
     private static Villager View(Walker walker) => new(walker.Id, walker.Position, walker.Destination, walker.Heading)
-    { SleepingPlace = walker.SleepingPlace, Needs = walker.Needs, Action = walker.Action, KnownMap = MapOf(walker),
+    { Elevation = walker.Elevation, SleepingPlace = walker.SleepingPlace, Needs = walker.Needs, Action = walker.Action, KnownMap = MapOf(walker),
         VillageId = walker.VillageId, Role = walker.Role, CarriedGoods = walker.CarriedGoods,
         CarriedAmount = walker.CarriedAmount, CarriedMaterials = walker.CarriedMaterials, CarriedWater = walker.CarriedWater,
         Crafting = walker.Crafting, FurnitureTaskId = walker.FurnitureTaskId, Hand = walker.Hand, Bag = walker.Bag, Armour = walker.Armour,

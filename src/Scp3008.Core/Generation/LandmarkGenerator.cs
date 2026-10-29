@@ -83,8 +83,14 @@ internal static class LandmarkGenerator
                 throw new InvalidOperationException($"No room for the {type} in Sector {sector.Name}.");
             sites.Add(new LandmarkSite(sites.Count, type, sector.Id, random.Pick(candidates), size, quarters));
         }
+        var pillar = pillars[((seed % pillars.Count) + pillars.Count) % pillars.Count];
+        sites.Add(ScaffoldSite(sites.Count, pillar, sectors));
         return sites.AsReadOnly();
     }
+
+    private static LandmarkSite ScaffoldSite(int id, Pillar pillar, IReadOnlyList<Sector> sectors) =>
+        new(id, LandmarkType.AbandonedScaffold, sectors.Single(s => s.Name == pillar.Coordinate).Id,
+            pillar.Position + new Vector2(0, pillar.Width / 2 + 0.55f), new(8, 3), 0);
 
     /// <summary>Gap between neighbouring Landmarks in the showcase row.</summary>
     private const float ShowcaseGap = 32f;
@@ -118,7 +124,10 @@ internal static class LandmarkGenerator
                 x += size.X + ShowcaseGap;
             }
             if (sites.All(site => pillars.All(p => Clear(space.Delta(p.Position, site.Centre), p.ClearHalfWidth + cellSize, site.Size / 2f))))
+            {
+                sites.Add(ScaffoldSite(sites.Count, pillars.OrderBy(p => space.Distance(p.Position, new(space.Size / 2, y))).First(), sectors));
                 return sites.AsReadOnly();
+            }
         }
         throw new InvalidOperationException("No row of the Store keeps the showcase clear of the Pillars.");
     }
@@ -142,6 +151,15 @@ internal static class LandmarkGenerator
                 case LandmarkType.ClockWall: BuildClockWall(builder); break;
                 case LandmarkType.FountainCourt: BuildFountainCourt(builder); break;
                 case LandmarkType.CampingGround: camping = CampingGroundGenerator.Build(builder); break;
+                case LandmarkType.AbandonedScaffold:
+                    for (var level = 0; level < 5; level++)
+                        builder.Put(FurnitureType.PalletRack, Vector2.Zero, level * 4.6f, 0);
+                    // Side rooms use the same rack platforms, left partly furnished and open to the Store.
+                    for (var level = 0; level < 3; level++)
+                        builder.Put(FurnitureType.PalletRack, new(2.65f, 0), level * 4.6f, 0);
+                    builder.Put(FurnitureType.OfficeChair, new(2.65f, 0), 13.8f, 0);
+                    builder.Lookouts.Add(new(0, 0.55f, 23));
+                    break;
             }
             var first = pieces.Count;
             foreach (var piece in builder.Pieces)

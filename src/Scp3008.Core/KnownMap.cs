@@ -59,11 +59,11 @@ internal sealed partial class Villagers
     private void Observe(Walker walker, WorldSnapshot world)
     {
         walker.ExploredGround.Add(GroundAt(walker.Position));
-        var viewer = new Villager(walker.Id, walker.Position, walker.Destination, walker.Heading);
-        var blockers = FurnitureNear(walker.Position, RestockSight.Range + _largestPiece).ToArray();
-        var nearby = blockers.Where(p => space.Distance(walker.Position, p.Position) <= RestockSight.Range).ToArray();
+        var viewer = new Villager(walker.Id, walker.Position, walker.Destination, walker.Heading) { Elevation = walker.Elevation };
+        var blockers = FurnitureNear(walker.Position, viewer.ViewRange + _largestPiece).ToArray();
+        var nearby = blockers.Where(p => space.Distance(walker.Position, p.Position) <= viewer.ViewRange).ToArray();
         // A source within reach can be inspected even when its own Furniture hides its centre.
-        bool Visible(FurniturePiece piece) => space.Distance(walker.Position, piece.Position) <= RestockSight.Range &&
+        bool Visible(FurniturePiece piece) => space.Distance(walker.Position, piece.Position) <= viewer.ViewRange &&
             (space.Distance(walker.Position, navigation.NearestWalkable(piece.Position)) < 0.5f ||
              RestockSight.CanSee(space, viewer, piece, blockers, world.Pillars, world.FogBanks));
         bool VisibleAt(Vector2 position) => Visible(new FurniturePiece(-1, FurnitureType.CoffeeTable, position, 0, 0, 0));
@@ -84,7 +84,7 @@ internal sealed partial class Villagers
             foreach (var goods in stock[piece.Id])
                 walker.KnownGoods[(piece.Id, goods.Kind, goods.LeftBehind)] = new(piece.Position, goods, world.Clock);
         }
-        foreach (var point in world.WaterPoints.Where(w => space.Distance(walker.Position, w.Position) <= RestockSight.Range))
+        foreach (var point in world.WaterPoints.Where(w => space.Distance(walker.Position, w.Position) <= viewer.ViewRange))
         {
             var piece = point.FurnitureId >= 0
                 ? nearby.FirstOrDefault(p => p.Id == point.FurnitureId)
@@ -126,8 +126,19 @@ internal sealed partial class Villagers
         Villages = walker.KnownVillages.Values.ToList().AsReadOnly(),
     };
 
-    private void Scout(Walker walker)
+    private void Scout(Walker walker, WorldSnapshot world)
     {
+        if (walker.Elevation == 0)
+        {
+            var lookouts = world.Landmarks.SelectMany(l => l.Lookouts).Concat(world.Villages
+                .Where(v => v.PillarScaffold?.Complete == true).Select(v => v.PillarScaffold!.Lookout));
+            foreach (var lookout in lookouts.Where(p => space.Distance(walker.Position, new(p.X, p.Y)) < 80)
+                .OrderBy(p => space.Distance(walker.Position, new(p.X, p.Y))))
+            {
+                if (!walker.VisitedLookouts.Add(lookout)) continue;
+                if (SendClimbing(walker, lookout)) { walker.Action = VillagerAction.Scouting; return; }
+            }
+        }
         var ground = new List<Vector2>();
         for (float y = GroundStep / 2; y < space.Size; y += GroundStep)
             for (float x = GroundStep / 2; x < space.Size; x += GroundStep)

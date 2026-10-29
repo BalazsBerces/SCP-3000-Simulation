@@ -78,6 +78,7 @@ public partial class LandmarkMarkers : Node3D
         LandmarkType.ClockWall => "K",
         LandmarkType.FountainCourt => "F",
         LandmarkType.CampingGround => "G",
+        LandmarkType.AbandonedScaffold => "S",
         _ => "?",
     };
 }

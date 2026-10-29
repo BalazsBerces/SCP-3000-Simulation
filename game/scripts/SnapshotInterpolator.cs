@@ -97,6 +97,7 @@ public sealed class SnapshotInterpolator(TimeSpan stepInterval)
             {
                 Position = before.Position + _latest.Space.Delta(before.Position, villager.Position) * blend,
                 Heading = before.Heading + turn * blend,
+                Elevation = before.Elevation + (villager.Elevation - before.Elevation) * blend,
             };
         }
     }

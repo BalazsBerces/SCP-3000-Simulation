@@ -133,6 +133,9 @@ public partial class VillagerRenderer
         var structures = village.Castle.Count == 0 ? "No Castle planned" : string.Join("\n", village.Castle.Select(c =>
             $"{c.Part}: {c.Slots.Count(s => s.FurnitureId is not null)}/{c.Slots.Count}{(c.Complete ? " built" : "")}"));
         var moats = village.Moats.Count == 0 ? "No Moat" : string.Join("\n", village.Moats.Select(m => $"Moat: {(m.Water ? "water-filled" : "dry ditch")}"));
-        return $"{arms}\n{structures}\n{moats}";
+        var scaffold = village.PillarScaffold is not { } s ? "No Pillar scaffold" :
+            $"Pillar scaffold: {s.Slots.Count(slot => slot.FurnitureId is not null)}/{s.Slots.Count} pieces" +
+            (s.Complete ? $" | Lookout {s.Lookout.Z:0.0} m" : $" | {s.MaterialsNeeded} metal needed");
+        return $"{arms}\n{structures}\n{moats}\n{scaffold}";
     }
 }

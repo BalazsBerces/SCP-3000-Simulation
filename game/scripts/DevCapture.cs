@@ -188,6 +188,12 @@ public partial class DevCapture : Node
                 CheckCastle(arg["--castle-check=".Length..]);
                 return;
             }
+            if (arg.StartsWith("--climbing-check="))
+            {
+                SetProcess(false);
+                CheckClimbing(arg["--climbing-check=".Length..]);
+                return;
+            }
             if (arg.StartsWith("--recipe-check="))
             {
                 SetProcess(false);

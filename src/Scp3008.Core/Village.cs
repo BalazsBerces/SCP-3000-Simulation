@@ -24,6 +24,7 @@ public sealed record Village(int Id, Vector2 Position, IReadOnlyList<int> Villag
     public IReadOnlyList<Blueprint> Walls { get; init; } = [];
     /// <summary>Towers, Gatehouses and the Keep, planned with the curtain walls.</summary>
     public IReadOnlyList<CastleStructure> Castle { get; init; } = [];
+    public PillarScaffold? PillarScaffold { get; init; }
     public IReadOnlyList<Moat> Moats { get; init; } = [];
     /// <summary>The arms on the Village's banners, chosen from local fabrics when its first wall is planned.</summary>
     public Heraldry? Heraldry { get; init; }
