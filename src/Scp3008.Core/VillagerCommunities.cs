@@ -33,7 +33,7 @@ internal sealed partial class Villagers
             return true;
         }
         var outpost = village.Outposts.FirstOrDefault(o => !o.Abandoned && o.VillagerIds.Contains(walker.Id));
-        if (world.Phase == DayPhase.ClosingTime)
+        if (world.Phase == DayPhase.ClosingTime && world.LightBrightnessAt(walker.Position) < 0.2f)
         {
             if (outpost is not null && walker.Destination is null && space.Distance(walker.Position, outpost.Position) > Simulation.ArrivalRadius)
                 Plan(walker, outpost.Position);

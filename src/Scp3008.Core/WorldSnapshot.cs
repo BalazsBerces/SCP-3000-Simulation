@@ -72,6 +72,11 @@ public sealed record WorldSnapshot(
     public IReadOnlyList<string> Chronicle { get; init; } = [];
     public IReadOnlyList<Gear> Gear { get; init; } = [];
     public IReadOnlyList<Staff> Staff { get; init; } = [];
+    public IReadOnlyList<LampPower> LampPower { get; init; } = [];
+    public IReadOnlyList<LitArea> LitAreas { get; init; } = [];
+
+    public float LightBrightnessAt(Vector2 position) => Math.Max((float)StoreLightLevelAt(position),
+        LitAreas.Where(a => Space.Distance(position, a.Position) <= a.Radius).Select(a => a.Brightness).DefaultIfEmpty().Max());
 
     /// <summary>The Villagers in the Store.</summary>
     public IReadOnlyList<Villager> Villagers { get; init; } = [];
@@ -159,8 +164,16 @@ public sealed record WorldSnapshot(
     /// How far a Lamp has come on, from 0 (off) to 1 (fully lit); see <see cref="StoreHours.LampLevelAt"/>.
     /// A Lamp on ground with <see cref="GroundProperty.Darkness"/> is never lit.
     /// </summary>
-    public float LampLevel(FurniturePiece lamp) =>
-        GroundAt(lamp.Position).HasFlag(GroundProperty.Darkness) ? 0f : StoreHours.LampLevelAt(lamp.Id, Clock.TimeOfDay);
+    public float LampLevel(FurniturePiece lamp) => LampLevel(lamp, Clock.TimeOfDay);
+
+    public float LampLevel(FurniturePiece lamp, TimeSpan timeOfDay)
+    {
+        if (lamp.Damage >= 1 || GroundAt(lamp.Position).HasFlag(GroundProperty.Darkness)) return 0;
+        var power = LampPower.FirstOrDefault(p => p.FurnitureId == lamp.Id);
+        if (power?.TakenFromDisplay == true)
+            return Phase == DayPhase.ClosingTime && (power.BatteryHours > 1e-9 || power.GeneratorPowered) ? 1 : 0;
+        return power?.SwitchedOn == true ? 1 : StoreHours.LampLevelAt(lamp.Id, timeOfDay);
+    }
 
     /// <summary>
     /// What the ground is like at a Store position (it may be unwrapped): the <see cref="Landmark.Ground"/> of the

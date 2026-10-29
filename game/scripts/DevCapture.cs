@@ -135,6 +135,12 @@ public partial class DevCapture : Node
     {
         foreach (var arg in OS.GetCmdlineUserArgs())
         {
+            if (arg.StartsWith("--power-check="))
+            {
+                SetProcess(false);
+                CheckPower(arg["--power-check=".Length..]);
+                return;
+            }
             if (arg.StartsWith("--crop-check="))
             {
                 SetProcess(false);

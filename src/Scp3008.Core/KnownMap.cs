@@ -103,7 +103,9 @@ internal sealed partial class Villagers
             if (world.Clock.TotalStoreTime - water.LastSeen.TotalStoreTime >= TimeSpan.FromHours(1))
                 walker.KnownWater[key] = water with { Stale = true };
         foreach (var staff in world.Staff)
-            if (world.Phase == DayPhase.ClosingTime && VisibleAt(staff.Position))
+            if (world.Phase == DayPhase.ClosingTime &&
+                space.Distance(walker.Position, staff.Position) <= 12 + 28 * world.LightBrightnessAt(walker.Position) + walker.Elevation * 2 &&
+                VisibleAt(staff.Position))
                 walker.KnownDangers[staff.Id] = new(staff.Id, staff.Position, world.Clock);
         foreach (var (id, danger) in walker.KnownDangers.ToArray())
             if (world.Clock.TotalStoreTime - danger.LastSeen.TotalStoreTime >= TimeSpan.FromHours(1))

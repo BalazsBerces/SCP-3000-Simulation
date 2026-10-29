@@ -105,7 +105,7 @@ public partial class VillagerRenderer : Node3D
             // Heading runs from east towards south (+X towards +Z): face (cos, sin) in world X and Z.
             figure.Rotation = new Vector3(bodies.ContainsKey(villager.Id) ? MathF.PI / 2 : 0f,
                 Mathf.Atan2(MathF.Cos(villager.Heading), MathF.Sin(villager.Heading)), 0f);
-            if (villager.Action == VillagerAction.Disassembling)
+            if (villager.Action is VillagerAction.Disassembling or VillagerAction.Cranking)
                 figure.Rotation = new Vector3(-0.3f + 0.08f * MathF.Sin((float)Time.GetTicksMsec() / 140), figure.Rotation.Y, 0);
             else if (villager.Action == VillagerAction.DraggingFurniture)
                 figure.Rotation = new Vector3(-0.2f, figure.Rotation.Y, 0);

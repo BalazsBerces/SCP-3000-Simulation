@@ -20,6 +20,14 @@ public sealed record Staff(int Id, Vector2 Position, Vector2? Destination, float
 
 public sealed partial class ScenarioBuilder
 {
+    public Staff PlaceStaff(Vector2 position, Vector2[] patrol)
+    {
+        ArgumentNullException.ThrowIfNull(patrol);
+        if (patrol.Length == 0 || patrol.Append(position).Any(p => !float.IsFinite(p.X) || !float.IsFinite(p.Y)))
+            throw new ArgumentException("A Staff patrol needs finite positions and at least one destination.");
+        return _simulation.PlaceStaff(position, patrol);
+    }
+
     /// <summary>Built-in sandbox presets, embedded from the same JSON files used by the game.</summary>
     public static IReadOnlyList<string> VillagerSandboxPresets { get; } = typeof(Simulation).Assembly
         .GetManifestResourceNames().Where(n => n.Contains(".Scenarios.") && n.EndsWith(".json"))

@@ -316,13 +316,19 @@ public sealed partial class Simulation : IDisposable
         AdvanceVillages(clock);
         AdvanceOutposts(clock);
         _villagers.AdvanceGear(StoreClock.TickDuration.TotalHours, clock, ReloadFlashlight);
+        AdvancePower(clock);
         _villagers.Advance(StoreClock.TickDuration.TotalHours);
         if (_villagers.HasVillagers)
+        {
+            var lightWorld = _snapshot with { Clock = clock, LampPower = _lampPower.Values.ToArray(), Villagers = _villagers.Snapshot() };
+            var workingLights = LightAreas(lightWorld, local: true);
             _villagers.AdvanceNeeds(StoreClock.TickDuration.TotalHours, _snapshot with
                 { Clock = clock, Stock = _stock, Furniture = _furniture.Pieces, WaterPoints = _waterPoints,
+                    LampPower = lightWorld.LampPower, LitAreas = workingLights,
                     Bands = _bands.ToArray(), Villages = _villages.ToArray(), Gear = _gear.ToArray(), Crops = _crops.Values.ToArray(),
                     FogBanks = _weather.Snapshot(), Staff = _staff.Snapshot().Select(s => new Staff(s.Id, s.Position, s.Destination, s.Heading)).ToArray() },
                 _config.Needs ?? new NeedsConfig(), TakeGoods, Emit, CollectGoods, DeliverGoods, TakeGear, TendCrop);
+        }
         AdvanceMeals(clock);
         AdvanceSpoilage(clock);
         AdvanceCrops(clock);
@@ -482,6 +488,8 @@ public sealed partial class Simulation : IDisposable
         if (moved.Position != before.Position || moved.Rotation != before.Rotation || moved.Elevation != before.Elevation ||
             moved.Tilt != before.Tilt || moved.Roll != before.Roll)
         {
+            if (FurnitureCatalog.Spec(before).IsLamp && (moved.Position != before.Position || moved.Elevation != before.Elevation))
+                _lampPower[furnitureId] = (_lampPower.GetValueOrDefault(furnitureId) ?? new(furnitureId)) with { TakenFromDisplay = true, SwitchedOn = false };
             VacateFurniture(furnitureId);
             _waterPoints = _waterPoints.Where(w => w.FurnitureId != furnitureId).ToList().AsReadOnly();
         }
@@ -576,7 +584,14 @@ public sealed partial class Simulation : IDisposable
         }
     }
 
-    private WorldSnapshot BuildSnapshot() =>
+    private WorldSnapshot BuildSnapshot()
+    {
+        Lamps();
+        var world = SnapshotWithoutLightAreas();
+        return world with { LitAreas = LightAreas(world) };
+    }
+
+    private WorldSnapshot SnapshotWithoutLightAreas() =>
         new(_config.Seed, _config.PillarLayout, new StoreClock(_tick), _space, _speed, _departments, _furniture.Pieces, _furniture.Displays, _furniture.Cells, Array.AsReadOnly(_weather.Snapshot()), _weather.Wind, _pillars, _sectors, _landmarks, _pointsOfInterest, _config.LandmarkShowcase)
         {
             BallPitNetwork = _ballPitNetwork,
@@ -596,6 +611,7 @@ public sealed partial class Simulation : IDisposable
             Crops = _crops.Values.ToList().AsReadOnly(),
             Chronicle = _chronicle.ToList().AsReadOnly(),
             Gear = _gear.ToList().AsReadOnly(),
+            LampPower = _lampPower.Values.ToList().AsReadOnly(),
             FurnitureTasks = _furnitureTasks.ToList().AsReadOnly(),
             CraftingTasks = _craftingTasks.ToList().AsReadOnly(),
             Experiments = _experiments.ToList().AsReadOnly(),

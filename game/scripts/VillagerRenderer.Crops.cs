@@ -9,16 +9,22 @@ public partial class VillagerRenderer
     private const float CropDistance = 30;
     private static readonly Color Sprouting = new(0.45f, 0.75f, 0.3f), Ripe = new(0.95f, 0.8f, 0.2f), Withered = new(0.45f, 0.3f, 0.15f);
     private readonly Dictionary<int, Node3D> _crops = [];
+    private IReadOnlyList<FurniturePiece>? _cropFurniture;
+    private Dictionary<int, FurniturePiece> _cropPieces = [];
 
     private void ShowCrops()
     {
         var world = Host.Snapshot;
         var focus = Rig.Focus.ToStore();
-        var pieces = world.Furniture.Where(p => p.Type == FurnitureType.Crop).ToDictionary(p => p.Id);
+        if (!ReferenceEquals(_cropFurniture, world.Furniture))
+        {
+            _cropFurniture = world.Furniture;
+            _cropPieces = world.Furniture.Where(p => p.Type == FurnitureType.Crop).ToDictionary(p => p.Id);
+        }
         var seen = new HashSet<int>();
         foreach (var crop in world.Crops)
         {
-            if (!crop.Tended || !pieces.TryGetValue(crop.FurnitureId, out var piece)) continue;
+            if (!crop.Tended || !_cropPieces.TryGetValue(crop.FurnitureId, out var piece)) continue;
             var near = world.Space.Delta(focus, piece.Position);
             if (near.Length() > CropDistance) continue;
             seen.Add(crop.FurnitureId);

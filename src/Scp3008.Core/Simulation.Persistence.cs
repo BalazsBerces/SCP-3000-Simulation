@@ -6,7 +6,7 @@ namespace Scp3008.Core;
 
 public sealed partial class Simulation
 {
-    private const int SaveVersion = 14;
+    private const int SaveVersion = 15;
     private static readonly JsonSerializerOptions SaveJson = CreateSaveJson();
 
     private sealed record SaveFile(int Version, SaveState State);
@@ -119,6 +119,11 @@ public sealed partial class Simulation
         RestoreFurnitureTasks(s.FurnitureTasks, s.Villages);
         _bands.AddRange(s.Bands);
         _villages.AddRange(s.Villages);
+        if (s.LampPower.Select(p => p.FurnitureId).Distinct().Count() != s.LampPower.Count ||
+            s.LampPower.Any(p => !s.Furniture.Any(f => f.Id == p.FurnitureId && FurnitureCatalog.Spec(f).IsLamp) ||
+                !double.IsFinite(p.BatteryHours) || p.BatteryHours < 0 || p.BatteryHours > 4))
+            throw new InvalidDataException("Invalid world save: inconsistent Lamp power.");
+        foreach (var power in s.LampPower) _lampPower.Add(power.FurnitureId, power);
         ValidateBlueprints();
         ValidateDwellings();
         _villagers.ValidateSleepingPlaces(_villages, _furniture.Pieces);

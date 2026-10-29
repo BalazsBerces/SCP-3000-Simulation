@@ -120,6 +120,12 @@ _Avoid_: Fixture, light (that is what a Lamp gives)
 **Display**:
 A room or free-standing set of Furniture generated from exactly one Theme, with one coordinated Palette. Every generated piece outside a Landmark or a Point of interest belongs to one Display.
 
+**Lit area**:
+A light source's footprint, height, radius and brightness exposed by the simulation. It lets Villagers spot approaching Staff earlier, continue work at Closing time and lose less morale. It never repels the Staff and does not depend on the camera's light budget.
+
+**Cranking**:
+A Villager operating a hand-cranked generator near their Village instead of doing other work. It drains rest and supplies nearby moved Lamps only while the Villager keeps cranking; it stores no power. Batteries hold four Store hours per Lamp, while a Candle is weak carried Gear consumed over four Store hours of Closing time.
+
 **Theme**:
 The strict catalogue entry for what a Display shows (bedroom, patio, kitchen, etc.). It lists allowed Furniture in Core, Common and Accent tiers and their Placement roles; each Department type allows only certain Themes, chosen by weight.
 

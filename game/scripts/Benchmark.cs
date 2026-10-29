@@ -182,6 +182,19 @@ public partial class Benchmark : Node
     private async Task RunBothLightings()
     {
         Host.Speed = Scp3008.Core.SimulationSpeed.Paused;
+        if (OS.GetCmdlineUserArgs().Contains("--benchmark-power"))
+        {
+            var people = Enumerable.Range(0, 3).Select(i => Host.Scenario.PlaceVillager(new(Start.X + i * 2, Start.Y))).ToArray();
+            var home = Host.Scenario.PlaceVillage(people[0].Position, people.Select(p => p.Id).ToArray());
+            Host.Scenario.EquipGear(people[1].Id, Scp3008.Core.GearKind.HandCrankedGenerator);
+            Host.Scenario.EquipGear(people[2].Id, Scp3008.Core.GearKind.Candle);
+            Host.Scenario.SetStores(home.Id, Scp3008.Core.GoodsKind.Batteries, 1);
+            var lamp = Host.Scenario.PlaceFurniture(Scp3008.Core.FurnitureType.FloorLamp, home.Position + new System.Numerics.Vector2(0, 8));
+            Host.Scenario.MoveFurniture(lamp.Id, home.Position + new System.Numerics.Vector2(0, 2), 0);
+            Host.Scenario.SetTimeOfDay(TimeSpan.FromHours(23));
+            Host.SkipTime(TimeSpan.FromMinutes(1));
+            GD.Print($"Village power benchmark: {Host.Snapshot.LitAreas.Count} light areas, including a moved Lamp and a Candle.");
+        }
         var results = new List<Result>();
         if (_overviewOnly)
         {

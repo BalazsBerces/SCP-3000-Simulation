@@ -42,3 +42,5 @@ Agents append here, one line each (`- <ticket>: <cause and fix>`), when a proble
 - 20: Git Bash heredocs with apostrophes inside a larger command break the whole command; write files with the Write tool and edits as a .py file under .ticket-logs. A Godot --wall-check style path is relative to game/, so pass an absolute path.
 - 17c: Scenario construction deliveries can trap a Builder when spawned in their unloading position or in a wall footprint. Deliver outside the wall with clearance from both the next slot and the previous unloading position, and budget for hauling time.
 - 21: Sandbox startup defers its camera move; wait for that move before setting a capture camera. Run tests and builds sequentially when they share output folders, since a running testhost locks the assemblies.
+
+- 22: Cache presentation Furniture lookups by the snapshot's Furniture reference and rebuild them only when it changes. Scanning all 415,000 pieces every render frame made the full Store benchmark fail even without the new lights.

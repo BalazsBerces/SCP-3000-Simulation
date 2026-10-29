@@ -99,15 +99,6 @@ public partial class VillagerRenderer
                 slot == GearSlot.Armour ? new Vector3(0, 0.85f, 0.18f) :
                 gear.Kind is GearKind.ShoppingCart or GearKind.PlatformCart ? new Vector3(0, 0, 0.95f) : new Vector3(0.37f, 0.8f, 0.1f);
             mesh.Rotation = slot == GearSlot.Armour ? new Vector3(Mathf.Pi / 2, 0, 0) : Vector3.Zero;
-            var beam = mesh.GetNodeOrNull<SpotLight3D>("Beam");
-            if (gear.Kind is GearKind.Flashlight or GearKind.Lantern && beam is null)
-            {
-                beam = new SpotLight3D { Name = "Beam", SpotRange = 10, SpotAngle = 38,
-                    LightEnergy = 2, LightColor = new Color(1, 0.94f, 0.8f), Rotation = new Vector3(0, Mathf.Pi, 0) };
-                mesh.AddChild(beam);
-            }
-            if (beam is not null) beam.Visible = gear.Kind is GearKind.Flashlight or GearKind.Lantern && gear.BatteryHours > 0 &&
-                Host.Snapshot.Phase == DayPhase.ClosingTime;
         }
     }
 }

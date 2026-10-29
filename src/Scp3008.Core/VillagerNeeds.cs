@@ -42,6 +42,7 @@ internal sealed partial class Villagers
                 ? world.Staff.OrderBy(s => space.Distance(walker.Position, s.Position)).FirstOrDefault() : null;
             var threatened = danger is not null && space.Distance(walker.Position, danger.Position) < 12;
             var safety = threatened ? 0 : world.Phase == DayPhase.ClosingTime ? 0.35 : 1;
+            var lit = world.LightBrightnessAt(walker.Position) >= 0.2f;
             var sleepQuality = SleepQuality(walker, world);
             walker.Needs = n with
             {
@@ -49,7 +50,7 @@ internal sealed partial class Villagers
                 Thirst = Math.Min(1, n.Thirst + hours / 12),
                 Rest = Math.Clamp(n.Rest + hours * (walker.Action == VillagerAction.Resting ? (henge ? 0.25 : sleepQuality switch { 3 => 0.25, 2 => 0.18, 1 => 0.125, _ => 0.08 }) : -1.0 / 24), 0, 1),
                 Safety = safety,
-                Morale = Math.Clamp(n.Morale - hours * (safety < 0.5 ? 1.0 / 48 : 1.0 / 240) +
+                Morale = Math.Clamp(n.Morale - hours * (safety < 0.5 && !lit ? 1.0 / 48 : 1.0 / 240) +
                     (walker.Action == VillagerAction.Resting ? hours * (sleepQuality switch { 3 => 0.02, 2 => 0.005, 1 => -0.01, _ => -0.04 }) : 0), 0, 1),
             };
             walker.StarvingHours = n.Hunger >= 1 ? walker.StarvingHours + hours : 0;
@@ -63,7 +64,7 @@ internal sealed partial class Villagers
                 emit(new VillagerDied(world.Clock, body));
                 continue;
             }
-            if (walker.FurnitureTaskId is not null || walker.Crafting) continue;
+            if (walker.FurnitureTaskId is not null || walker.Crafting || walker.Action == VillagerAction.Cranking) continue;
             walker.NextDecision -= hours;
             if (walker.NextDecision > 0)
                 continue;

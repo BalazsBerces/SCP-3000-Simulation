@@ -60,6 +60,8 @@ internal sealed partial class Villagers
     {
         foreach (var w in _walkers)
         {
+            if (w.Hand is { Kind: GearKind.Candle } candle && clock.Phase == DayPhase.ClosingTime)
+                w.Hand = Wear(candle, hours * 25);
             if (w.Hand is not { Kind: GearKind.Flashlight or GearKind.Lantern } light || clock.Phase != DayPhase.ClosingTime) continue;
             if (light.BatteryHours <= 1e-9)
             {

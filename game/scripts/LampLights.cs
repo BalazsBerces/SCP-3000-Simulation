@@ -36,6 +36,9 @@ public partial class LampLights : Node3D
 
     private readonly Dictionary<ChunkCoord, Lamp[]> _lampsByChunk = new();
     private IReadOnlyList<FurniturePiece>? _builtFurniture;
+    private readonly Dictionary<int, FurniturePiece> _lampPieces = [];
+    private LitArea[] _carriedAreas = [];
+    private WorldSnapshot? _levelSnapshot;
     // The nearest candidates, farthest first out; holds one more than there are lights, for the fade cutoff.
     private readonly PriorityQueue<Candidate, float> _nearest = new();
     private readonly List<Candidate> _lit = [];
@@ -137,7 +140,8 @@ public partial class LampLights : Node3D
 
     public override void _Process(double delta)
     {
-        if (!ReferenceEquals(_builtFurniture, Host.Snapshot.Furniture))
+        var carried = Host.Snapshot.LitAreas.Where(a => a.Id < 0).ToArray();
+        if (!ReferenceEquals(_builtFurniture, Host.Snapshot.Furniture) || !_carriedAreas.SequenceEqual(carried))
             Rebuild(Host.Snapshot);
         // The camera that renders: the Observer camera, or a dev camera such as the eye-level one.
         var camera = GetViewport().GetCamera3D() ?? Rig.Camera;
@@ -179,7 +183,8 @@ public partial class LampLights : Node3D
         foreach (var c in _visible)
         {
             _bulbs.Add(c.Position);
-            _haloLevels.Add(_levels[c.Lamp.Index]);
+            // Carried flames need a readable source at far zoom; their surface light stays weak.
+            _haloLevels.Add(c.Lamp.Id < 0 && _levels[c.Lamp.Index] > 0 ? 1 : _levels[c.Lamp.Index]);
         }
         _halos.Show(_bulbs, _haloLevels);
     }
@@ -194,13 +199,16 @@ public partial class LampLights : Node3D
         var timeOfDay = TimeSpan.FromTicks(Host.InterpolatedStoreTime.Ticks % TimeSpan.TicksPerDay);
         var stamp = StoreHours.LampsSwitchingAt(timeOfDay) ? timeOfDay.Ticks / LevelStep :
             StoreHours.LightLevelAt(timeOfDay) >= 1.0 ? -2 : -3;
-        if (stamp == _levelStamp)
+        var snapshot = Host.Snapshot;
+        if (stamp == _levelStamp && _levelSnapshot is { } previous && previous.LampPower.SequenceEqual(snapshot.LampPower))
             return false;
         _levelStamp = stamp;
-        LampPools.SetSteadyLevel(stamp == -2 ? 0f : stamp == -3 ? 1f : -1f);
+        _levelSnapshot = snapshot;
+        LampPools.SetSteadyLevel(snapshot.LampPower.Count > 0 || _carriedAreas.Length > 0 ? -1f : stamp == -2 ? 0f : stamp == -3 ? 1f : -1f);
         foreach (var lamps in _lampsByChunk.Values)
             foreach (var lamp in lamps)
-                _levels[lamp.Index] = StoreHours.LampLevelAt(lamp.Id, timeOfDay);
+                _levels[lamp.Index] = lamp.Id < 0 ? _carriedAreas.Single(a => a.Id == lamp.Id).Brightness :
+                    snapshot.LampLevel(_lampPieces[lamp.Id], timeOfDay);
         return true;
     }
 
@@ -389,12 +397,18 @@ public partial class LampLights : Node3D
         _lastView = null;
         _levelStamp = -1;
         _lampsByChunk.Clear();
+        _lampPieces.Clear();
         Array.Fill(_shadowSlots, -1);
         Array.Fill(_shadowOpacity, 0f);
         Array.Fill(_lightPositions, null);
         // Lamps on dark ground (the dead zone) are never lit, so they cast no light.
         var lamps = snapshot.Furniture.Where(p => FurnitureCatalog.Spec(p).IsLamp && !snapshot.GroundAt(p.Position).HasFlag(GroundProperty.Darkness))
             .Select(ToLamp).ToList();
+        foreach (var piece in snapshot.Furniture.Where(p => FurnitureCatalog.Spec(p).IsLamp)) _lampPieces.Add(piece.Id, piece);
+        // shortcut: moving carried lights rebuild the pool grid; update its cells incrementally if large crowds carry lights.
+        _carriedAreas = snapshot.LitAreas.Where(a => a.Id < 0).ToArray();
+        foreach (var area in _carriedAreas)
+            lamps.Add(new(area.Id, lamps.Count, area.Position.ToWorld(area.Elevation), area.Radius, 0.35f * area.Radius));
         foreach (var chunk in lamps.GroupBy(l => _space.ChunkOf(l.Bulb.ToStore())))
             _lampsByChunk[chunk.Key] = chunk.ToArray();
         _levels = new float[lamps.Count];
