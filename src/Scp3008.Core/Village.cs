@@ -7,6 +7,10 @@ public enum Role { Scavenger, Builder, Cook, Guard, Trader, Farmer, NightScout }
 /// <summary>A founding community; its stores are an open pile until it builds a Storehouse.</summary>
 public sealed record Village(int Id, Vector2 Position, IReadOnlyList<int> VillagerIds)
 {
+    public IReadOnlyList<Dwelling> Dwellings { get; init; } = [];
+    /// <summary>Completed covered places available under the Village's current sharing rule.</summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public int CoveredSleepingPlaces => Dwellings.Sum(d => d.Complete && Dwelling.Sharing(Personality) == DwellingSharing.Personal ? 1 : d.SleepingPlaces);
     public MessHall? MessHall { get; init; }
     public Storehouse? Storehouse { get; init; }
     public FurnitureYard? FurnitureYard { get; init; }

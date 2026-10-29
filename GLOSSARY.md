@@ -345,6 +345,9 @@ _Avoid_: Crest, flag, coat of arms
 A tent (a clothes rack or metal frame hung with curtains, blankets and rugs, quick to put up) or a house (built by Blueprint from Furniture: wardrobes and bookcases as walls, tabletops as a roof, a wardrobe door), with a number of sleeping places. Villagers rest and keep their morale best in a house, then a tent, then a bed in the open, and worst on the bare floor. Whether a Dwelling is shared, personal or a family's follows the Village's Personality. Dwellings stand inside the walls, around the Keep.
 _Avoid_: Hut, home, shelter
 
+**Sleeping place**:
+One place in a completed Dwelling, or one bed, mattress, sleeping bag, sofa or armchair in the open (a bunk bed has two). A Villager remembers their usual place, chooses the best free place when resting and uses the floor when none is available. A Dwelling holds two places when shared; a personal Dwelling admits one Villager. Cautious Villages share communally, bold Villages keep personal Dwellings, and builders share them per family; until relationships exist, a family is a pair in Village membership order. The sharing rule follows the current Personality.
+
 **Mess hall**:
 A Village's shared place for cooking and eating together; eating there together raises morale, cooks feed more people from fewer Goods, and news, Beliefs and Known map knowledge spread there.
 _Avoid_: Canteen (an old name for the Cafeteria), kitchen, dining room

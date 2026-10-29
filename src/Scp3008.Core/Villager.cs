@@ -24,6 +24,8 @@ public sealed record Villager(int Id, Vector2 Position, Vector2? Destination, fl
     /// </summary>
     public const float WalkingSpeed = 60f;
 
+    /// <summary>The usual place, remembered while awake; null means sleeping on the floor when resting.</summary>
+    public SleepingPlace? SleepingPlace { get; init; }
     public Needs Needs { get; init; } = new();
     public VillagerAction Action { get; init; }
     public KnownMap KnownMap { get; init; } = new();
@@ -54,6 +56,7 @@ internal sealed partial class Villagers(StoreSpace space, Navigation navigation)
 
     private sealed partial class Walker(int id, Vector2 position)
     {
+        public SleepingPlace? SleepingPlace { get; set; }
         public Needs Needs { get; set; } = new();
         public int? VillageId { get; set; }
         public Role Role { get; set; } = Role.Scavenger;
@@ -152,7 +155,7 @@ internal sealed partial class Villagers(StoreSpace space, Navigation navigation)
     }
 
     private static Villager View(Walker walker) => new(walker.Id, walker.Position, walker.Destination, walker.Heading)
-    { Needs = walker.Needs, Action = walker.Action, KnownMap = MapOf(walker),
+    { SleepingPlace = walker.SleepingPlace, Needs = walker.Needs, Action = walker.Action, KnownMap = MapOf(walker),
         VillageId = walker.VillageId, Role = walker.Role, CarriedGoods = walker.CarriedGoods,
         CarriedAmount = walker.CarriedAmount, CarriedMaterials = walker.CarriedMaterials, CarriedWater = walker.CarriedWater,
         Crafting = walker.Crafting, FurnitureTaskId = walker.FurnitureTaskId, Hand = walker.Hand, Bag = walker.Bag, Armour = walker.Armour,

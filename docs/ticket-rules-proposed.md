@@ -40,3 +40,4 @@ Agents append here, one line each (`- <ticket>: <cause and fix>`), when a proble
 - 18: `gh issue view N --comments` prints nothing in the runner's shell. Read tickets with `gh issue view N --json title,body,comments` into a file instead.
 - 19: A facade test that runs construction until a Blueprint completes must cap its tick loop and print the slots and each Builder's task on failure; a stalled Blueprint otherwise looks like a hung test run (and stalls slow every tick).
 - 20: Git Bash heredocs with apostrophes inside a larger command break the whole command; write files with the Write tool and edits as a .py file under .ticket-logs. A Godot --wall-check style path is relative to game/, so pass an absolute path.
+- 17c: Scenario construction deliveries can trap a Builder when spawned in their unloading position or in a wall footprint. Deliver outside the wall with clearance from both the next slot and the previous unloading position, and budget for hauling time.

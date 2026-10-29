@@ -28,6 +28,12 @@ internal sealed partial class Villagers
         IndexFurniture(world.Furniture);
         foreach (var walker in _walkers.ToArray())
         {
+            // Personality changes and lost cover can make a usual place unavailable.
+            if (walker.SleepingPlace is not null && !SleepingPlaces(walker, world).Any(p => p.Place == walker.SleepingPlace))
+            {
+                walker.SleepingPlace = null;
+                if (walker.Target?.Rest == true) { walker.Target = null; walker.Waypoints.Clear(); walker.Destination = null; }
+            }
             var n = walker.Needs;
             var henge = world.PointsOfInterest.Any(p => p.Type == PointOfInterestType.ArmchairHenge &&
                 MathF.Abs(space.Delta(p.Centre, walker.Position).X) <= p.Size.X / 2 &&
@@ -36,13 +42,15 @@ internal sealed partial class Villagers
                 ? world.Staff.OrderBy(s => space.Distance(walker.Position, s.Position)).FirstOrDefault() : null;
             var threatened = danger is not null && space.Distance(walker.Position, danger.Position) < 12;
             var safety = threatened ? 0 : world.Phase == DayPhase.ClosingTime ? 0.35 : 1;
+            var sleepQuality = SleepQuality(walker, world);
             walker.Needs = n with
             {
                 Hunger = Math.Min(1, n.Hunger + hours / 24),
                 Thirst = Math.Min(1, n.Thirst + hours / 12),
-                Rest = Math.Clamp(n.Rest + hours * (walker.Action == VillagerAction.Resting ? (henge ? 0.25 : 0.125) : -1.0 / 24), 0, 1),
+                Rest = Math.Clamp(n.Rest + hours * (walker.Action == VillagerAction.Resting ? (henge ? 0.25 : sleepQuality switch { 3 => 0.25, 2 => 0.18, 1 => 0.125, _ => 0.08 }) : -1.0 / 24), 0, 1),
                 Safety = safety,
-                Morale = Math.Clamp(n.Morale - hours * (safety < 0.5 ? 1.0 / 48 : 1.0 / 240), 0, 1),
+                Morale = Math.Clamp(n.Morale - hours * (safety < 0.5 ? 1.0 / 48 : 1.0 / 240) +
+                    (walker.Action == VillagerAction.Resting ? hours * (sleepQuality switch { 3 => 0.02, 2 => 0.005, 1 => -0.01, _ => -0.04 }) : 0), 0, 1),
             };
             walker.StarvingHours = n.Hunger >= 1 ? walker.StarvingHours + hours : 0;
             walker.ThirstyHours = n.Thirst >= 1 ? walker.ThirstyHours + hours : 0;
@@ -158,7 +166,10 @@ internal sealed partial class Villagers
             }
             if (walker.Action == VillagerAction.Resting && n.Rest < 0.95 && n.Hunger < 0.75 && n.Thirst < 0.75 &&
                 !world.GroundAt(walker.Position).HasFlag(GroundProperty.Darkness))
+            {
+                if (walker.SleepingPlace is null || SleepQuality(walker, world) == 0) SeekSleep(walker, world);
                 continue;
+            }
             var priorities = new[] { (GoodsClass.Drink, n.Thirst), (GoodsClass.Food, n.Hunger), (GoodsClass.Comfort, 1 - n.Morale) }
                 .Where(p => p.Item2 >= 0.5).OrderByDescending(p => p.Item2);
             NeedTarget? chosen = null;
@@ -203,13 +214,7 @@ internal sealed partial class Villagers
             }
             else if (n.Rest < 0.4)
             {
-                var places = world.PointsOfInterest.Where(p => p.Type == PointOfInterestType.ArmchairHenge)
-                    .Select(p => new NeedTarget(p.Centre, Rest: true))
-                    .Concat(world.Furniture.Where(p => p.Type is FurnitureType.Bed or FurnitureType.Sofa or FurnitureType.Armchair)
-                        .Select(p => new NeedTarget(p.Position, Rest: true)));
-                walker.Target = places.Where(t => space.Distance(walker.Position, t.Position) <= 30 && !walker.Unreachable.Contains(t.Position))
-                    .OrderBy(t => space.Distance(walker.Position, t.Position)).FirstOrDefault(t => TryPlan(walker, t));
-                walker.Action = walker.Target is null ? VillagerAction.Resting : VillagerAction.Idle;
+                SeekSleep(walker, world);
             }
             else if (walker.Destination is null)
             {

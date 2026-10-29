@@ -46,6 +46,7 @@ public sealed partial class Simulation
         if (index < 0)
             throw new ArgumentException($"No piece {furnitureId}.", nameof(furnitureId));
         var damaged = _furniture.Pieces[index] with { Damage = damage };
+        if (damage >= 1f && IsBuiltFurniture(furnitureId)) UnbuildFurniture(furnitureId);
         _stabilityChanges.Add(damaged);
         return SetPose(index, _furniture.Pieces[index], damaged);
     });

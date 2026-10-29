@@ -39,6 +39,7 @@ internal sealed partial class Villagers
                 throw new ArgumentException("Invalid Villager Gear or load.");
             var w = new Walker(v.Id, v.Position)
             {
+                SleepingPlace = v.SleepingPlace,
                 Destination = v.Destination, Heading = v.Heading, Needs = v.Needs, Action = v.Action,
                 Crafting = v.Crafting, FurnitureTaskId = v.FurnitureTaskId, VillageId = v.VillageId, Role = v.Role, CarriedGoods = v.CarriedGoods,
                 CarriedAmount = v.CarriedAmount, CarriedMaterials = v.CarriedMaterials, CarriedWater = v.CarriedWater,

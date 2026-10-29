@@ -37,7 +37,8 @@ internal sealed partial class Villagers
         {
             if (outpost is not null && walker.Destination is null && space.Distance(walker.Position, outpost.Position) > Simulation.ArrivalRadius)
                 Plan(walker, outpost.Position);
-            walker.Action = VillagerAction.Resting;
+            if (outpost is null) SeekSleep(walker, world);
+            else walker.Action = VillagerAction.Resting; // Outposts keep their own resting position.
             return true;
         }
         if (walker.Role == Role.Farmer && walker.Destination is null && Farm(walker, world, village))

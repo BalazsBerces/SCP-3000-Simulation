@@ -6,7 +6,7 @@ namespace Scp3008.Core;
 
 public sealed partial class Simulation
 {
-    private const int SaveVersion = 13;
+    private const int SaveVersion = 14;
     private static readonly JsonSerializerOptions SaveJson = CreateSaveJson();
 
     private sealed record SaveFile(int Version, SaveState State);
@@ -120,6 +120,8 @@ public sealed partial class Simulation
         _bands.AddRange(s.Bands);
         _villages.AddRange(s.Villages);
         ValidateBlueprints();
+        ValidateDwellings();
+        _villagers.ValidateSleepingPlaces(_villages, _furniture.Pieces);
         ValidateMessHalls();
         ValidateStorehouses();
         ValidateFurnitureYards();

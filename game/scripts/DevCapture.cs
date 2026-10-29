@@ -68,6 +68,7 @@ namespace Scp3008.Game;
 /// Dry spell check: --pause --dry-spell-check=directory checks the live overview Sector panel.
 /// Mess hall check: --villager-sandbox --sandbox-preset=empty --pause --meal-check=directory verifies and captures shared meals.
 /// Restock check: --villager-sandbox --sandbox-preset=empty --pause --restock-check=directory captures and checks refill and return.
+/// Dwelling check: --villager-sandbox --sandbox-preset=empty --pause --dwelling-check=directory verifies and captures sleeping places.
 /// </summary>
 public partial class DevCapture : Node
 {
@@ -144,6 +145,12 @@ public partial class DevCapture : Node
             {
                 SetProcess(false);
                 CheckStorage(arg["--storage-check=".Length..]);
+                return;
+            }
+            if (arg.StartsWith("--dwelling-check="))
+            {
+                SetProcess(false);
+                CheckDwellings(arg["--dwelling-check=".Length..]);
                 return;
             }
             if (arg.StartsWith("--meal-check="))

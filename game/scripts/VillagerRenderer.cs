@@ -75,6 +75,7 @@ public partial class VillagerRenderer : Node3D
         ShowCommunities(space, focus);
         ShowWorkshops();
         ShowMessHalls();
+        ShowDwellings();
         ShowCrops();
         ShowStorage();
         ShowCastles();
@@ -155,6 +156,8 @@ public partial class VillagerRenderer : Node3D
     private void OnWorldCreated(WorldSnapshot snapshot)
     {
         CloseVillagePanel();
+        foreach (var label in _dwellings.Values) label.QueueFree();
+        _dwellings.Clear();
         foreach (var (node, _) in _messHalls.Values) node.QueueFree();
         _messHalls.Clear();
         foreach (var button in _villageButtons.Values)

@@ -85,7 +85,7 @@ public partial class VillagerRenderer
             {
                 var id = village.Id;
                 button = new Button { Name = $"InspectVillage{id}", Text = $"Village {id}",
-                    TooltipText = "Inspect population, stores and history" };
+                    TooltipText = "Inspect sleeping places, population, stores and history" };
                 button.Pressed += () => SelectVillage(id);
                 _villageLayer.AddChild(button);
                 _villageButtons.Add(id, button);
@@ -127,7 +127,7 @@ public partial class VillagerRenderer
         // shortcut: history identifies Villages by their numbered names; use event references when names become editable.
         var history = world.Chronicle.Where(line => System.Text.RegularExpressions.Regex.IsMatch(line, $@"\bVillage {selected}\b"));
         _villageInfo.Text = $"Village {selected} | Sector {world.SectorAt(current.Position).Name}\n\n" +
-            $"Mess hall\n{messHall}\n\nPopulation: {members.Length}\n\nOutposts\n{outposts}\n\n" + string.Join("\n", members.Select(v => $"{v.Name} — {v.Role}")) +
+            $"Dwellings\n{DwellingText(current)}\n\nMess hall\n{messHall}\n\nPopulation: {members.Length}\n\nOutposts\n{outposts}\n\n" + string.Join("\n", members.Select(v => $"{v.Name} — {v.Role}")) +
             $"\n\nStores\n{stores}\n\nStorage\n{StorageText(current)}\n\nMaterials\n{materials}\n\nWorkshops\n{workshops}\n\nRecipes\n{recipes}\n\nSkills\n{skills}\n\nGear\n{gear}\n\nWall condition: {wall}\n\nCastle\n{CastleText(current)}\n\nBeliefs: —\nRelations: —\n\nHistory\n" +
             string.Join("\n\n", history);
         _villagePanel.Show();

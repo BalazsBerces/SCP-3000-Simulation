@@ -4,7 +4,8 @@ namespace Scp3008.Core;
 
 public sealed partial class Simulation
 {
-    private bool IsBuiltFurniture(int id) => _villages.Any(v => v.MessHall?.Slots.Any(s => s.FurnitureId == id) == true || v.Storehouse?.Slots.Any(s => s.FurnitureId == id) == true || v.Workshops.Any(w => w.Slot.FurnitureId == id) || v.Walls.Any(w =>
+    private bool IsBuiltFurniture(int id) => _villages.Any(v =>
+        v.Dwellings.Any(d => d.Slots.Any(s => s.FurnitureId == id)) || v.MessHall?.Slots.Any(s => s.FurnitureId == id) == true || v.Storehouse?.Slots.Any(s => s.FurnitureId == id) == true || v.Workshops.Any(w => w.Slot.FurnitureId == id) || v.Walls.Any(w =>
         w.IncorporatedFurnitureId == id || w.Slots.Any(s => s.FurnitureId == id)) || v.Castle.Any(c => c.Slots.Any(s => s.FurnitureId == id)));
 
     internal Blueprint PlanBarricade(int villageId) => Publish(() =>
@@ -24,6 +25,8 @@ public sealed partial class Simulation
         var outline = yard is not null ? WallOutline.Round : village.HomeWalls().LastOrDefault()?.Outline ??
             (village.Personality == Personality.Builders ? WallOutline.Square : WallOutline.Round);
         var radius = yard is not null ? 2.6f : 4f + village.HomeWalls().Count() * 3 + MathF.Sqrt(village.VillagerIds.Count);
+        if (yard is null && village.Dwellings.Count > 0)
+            radius = MathF.Max(radius, village.Dwellings.Max(d => _space.Distance(village.Position, d.Position)) + 3.5f);
         var centre = yard ?? village.Position;
         var vertices = outline == WallOutline.Round
             ? Enumerable.Range(0, 12).Select(i => centre + new Vector2(
@@ -118,7 +121,9 @@ public sealed partial class Simulation
                 IsAvailableWorker(v) && v.CarriedAmount + v.CarriedMaterials == 0 &&
                 v.Hand?.Kind is null or GearKind.ShoppingCart or GearKind.PlatformCart && v.Needs.Hunger < 0.7 && v.Needs.Thirst < 0.7).ToArray();
             if (workers.Length == 0) continue;
-            if (BuildWorkshop(village, workers[0])) continue;
+            if (BuildDwellings(village, workers[0])) continue;
+            if (TendDwellings(_villages[village.Id])) continue;
+            if (BuildWorkshop(_villages[village.Id], workers[0])) continue;
             if (BuildMessHall(_villages[village.Id], workers[0])) continue;
             if (BuildStorehouse(_villages[village.Id], workers[0])) continue;
             if (TendWalls(_villages[village.Id], workers[0], clock)) continue;
@@ -161,7 +166,7 @@ public sealed partial class Simulation
 
     private void CompleteBlueprintPiece(FurnitureTask task, StoreClock clock)
     {
-        if (CompleteMessHall(task) || CompleteStorehouse(task) || CompleteWorkshop(task) || CompleteCastle(task, clock)) return;
+        if (CompleteDwelling(task) || CompleteMessHall(task) || CompleteStorehouse(task) || CompleteWorkshop(task) || CompleteCastle(task, clock)) return;
         foreach (var village in _villages.ToArray())
             for (var r = 0; r < village.Walls.Count; r++)
                 for (var s = 0; s < village.Walls[r].Slots.Count; s++)
@@ -182,6 +187,7 @@ public sealed partial class Simulation
 
     private void ReleaseBlueprintReservation(int furnitureId)
     {
+        ClearDwellingFurniture(furnitureId, false);
         ClearMessHallFurniture(furnitureId, false);
         ClearStorehouseFurniture(furnitureId, false);
         ClearWorkshopFurniture(furnitureId, false);
@@ -195,6 +201,8 @@ public sealed partial class Simulation
 
     private void UnbuildFurniture(int id)
     {
+        ClearDwellingFurniture(id, true);
+        _villagers.ForgetSleepingFurniture(id, _villages);
         ClearMessHallFurniture(id, true);
         ClearStorehouseFurniture(id, true);
         ClearWorkshopFurniture(id, true);

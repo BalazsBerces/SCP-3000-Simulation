@@ -9,7 +9,7 @@ public partial class VillagerRenderer
     private static readonly Color BackfillSoft = new(0.62f, 0.5f, 0.38f);
     private readonly Dictionary<int, (Node3D Node, int Signature)> _wallUpgrades = [];
 
-    // Strapping shows as two metal bands round the piece; Backfill as a soft slab packed behind it, on the Village side.
+    // Walls and houses share Strapping bands and Backfill; stacked pieces use their Blueprint elevation.
     // Damage is drawn by FurnitureRenderer (it darkens the piece). Generated boxes: plain bands and a slab are not models to search for.
     private void ShowWallUpgrades()
     {
@@ -17,7 +17,7 @@ public partial class VillagerRenderer
         var seen = new HashSet<int>();
         foreach (var village in world.Villages)
         {
-            var slots = village.HomeWalls().SelectMany(w => w.Slots).Where(s => s.FurnitureId is not null && (s.Strapped || s.Backfilled)).ToArray();
+            var slots = village.HomeWalls().SelectMany(w => w.Slots).Concat(village.Dwellings.SelectMany(d => d.Slots)).Where(s => s.FurnitureId is not null && (s.Strapped || s.Backfilled)).ToArray();
             if (slots.Length == 0) continue;
             seen.Add(village.Id);
             if (!_wallUpgrades.TryGetValue(village.Id, out var entry))
@@ -40,13 +40,13 @@ public partial class VillagerRenderer
                     var turn = new Vector3(0, -slot.Rotation, 0);
                     if (slot.Strapped)
                         foreach (var height in new[] { 0.3f, 0.7f })
-                            Add(entry.Node, new Vector3(slot.Width + 0.04f, 0.05f, spec.Depth + 0.04f), StrapMetal,
-                                new Vector3(at.X, spec.Height * height, at.Y), turn, 0.3f);
+                            Add(entry.Node, new Vector3(spec.Width + 0.04f, 0.05f, spec.Depth + 0.04f), StrapMetal,
+                                new Vector3(at.X, slot.Elevation + spec.Height * height, at.Y), turn, 0.3f);
                     if (slot.Backfilled)
                     {
                         var behind = at + inward * (spec.Depth / 2 + 0.12f);
-                        Add(entry.Node, new Vector3(slot.Width, spec.Height * 0.8f, 0.2f), BackfillSoft,
-                            new Vector3(behind.X, spec.Height * 0.4f, behind.Y), turn, 1f);
+                        Add(entry.Node, new Vector3(spec.Width, spec.Height * 0.8f, 0.2f), BackfillSoft,
+                            new Vector3(behind.X, slot.Elevation + spec.Height * 0.4f, behind.Y), turn, 1f);
                     }
                 }
                 entry.Signature = signature;
