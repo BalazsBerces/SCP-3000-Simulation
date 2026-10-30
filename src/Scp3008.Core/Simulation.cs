@@ -317,6 +317,7 @@ public sealed partial class Simulation : IDisposable
         AdvanceOutposts(clock);
         _villagers.AdvanceGear(StoreClock.TickDuration.TotalHours, clock, ReloadFlashlight);
         AdvancePower(clock);
+        AdvanceFridges(clock);
         _villagers.Advance(StoreClock.TickDuration.TotalHours);
         if (_villagers.HasVillagers)
         {
@@ -490,6 +491,8 @@ public sealed partial class Simulation : IDisposable
         {
             if (FurnitureCatalog.Spec(before).IsLamp && (moved.Position != before.Position || moved.Elevation != before.Elevation))
                 _lampPower[furnitureId] = (_lampPower.GetValueOrDefault(furnitureId) ?? new(furnitureId)) with { TakenFromDisplay = true, SwitchedOn = false };
+            if (before.Type == FurnitureType.Fridge && (moved.Position != before.Position || moved.Elevation != before.Elevation))
+                _fridgePower.TryAdd(furnitureId, new(furnitureId));
             VacateFurniture(furnitureId);
             _waterPoints = _waterPoints.Where(w => w.FurnitureId != furnitureId).ToList().AsReadOnly();
         }
@@ -612,6 +615,7 @@ public sealed partial class Simulation : IDisposable
             Chronicle = _chronicle.ToList().AsReadOnly(),
             Gear = _gear.ToList().AsReadOnly(),
             LampPower = _lampPower.Values.ToList().AsReadOnly(),
+            FridgePower = Fridges().Select(p => _fridgePower.GetValueOrDefault(p.Id)).OfType<FridgePower>().ToList().AsReadOnly(),
             FurnitureTasks = _furnitureTasks.ToList().AsReadOnly(),
             CraftingTasks = _craftingTasks.ToList().AsReadOnly(),
             Experiments = _experiments.ToList().AsReadOnly(),

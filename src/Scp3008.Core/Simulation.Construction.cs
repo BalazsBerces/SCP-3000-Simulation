@@ -4,7 +4,9 @@ namespace Scp3008.Core;
 
 public sealed partial class Simulation
 {
-    private bool IsBuiltFurniture(int id) => _villages.Any(v => v.PillarScaffold?.Slots.Any(s => s.FurnitureId == id) == true ||
+    private bool IsBuiltFurniture(int id) => IsHomeFridge(id) || IsSlotFurniture(id);
+
+    private bool IsSlotFurniture(int id) => _villages.Any(v => v.PillarScaffold?.Slots.Any(s => s.FurnitureId == id) == true ||
         v.Dwellings.Any(d => d.Slots.Any(s => s.FurnitureId == id)) || v.MessHall?.Slots.Any(s => s.FurnitureId == id) == true || v.Storehouse?.Slots.Any(s => s.FurnitureId == id) == true || v.Workshops.Any(w => w.Slot.FurnitureId == id) || v.Walls.Any(w =>
         w.IncorporatedFurnitureId == id || w.Slots.Any(s => s.FurnitureId == id)) || v.Castle.Any(c => c.Slots.Any(s => s.FurnitureId == id)));
 
@@ -121,6 +123,7 @@ public sealed partial class Simulation
                 IsAvailableWorker(v) && v.CarriedAmount + v.CarriedMaterials == 0 &&
                 v.Hand?.Kind is null or GearKind.ShoppingCart or GearKind.PlatformCart && v.Needs.Hunger < 0.7 && v.Needs.Thirst < 0.7).ToArray();
             if (workers.Length == 0) continue;
+            if (GatherFridge(village, workers)) continue;
             if (BuildPillarScaffold(village, workers[0], clock)) continue;
             if (BuildDwellings(village, workers[0])) continue;
             if (TendDwellings(_villages[village.Id])) continue;

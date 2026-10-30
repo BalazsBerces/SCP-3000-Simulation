@@ -18,7 +18,7 @@ public sealed partial class ScenarioBuilder
 {
     /// <summary>
     /// Puts taken food back on a piece of Stock Furniture, as if a Villager had returned it. It stays in the stock but keeps spoiling:
-    /// putting it back does not restore Limbo.
+    /// putting it back does not restore Limbo. Only a powered Fridge keeps it from spoiling.
     /// </summary>
     /// <exception cref="ArgumentException">The piece is not Stock Furniture, or the kind is not food.</exception>
     public void PutBack(int furnitureId, GoodsKind kind, int amount) => _simulation.PutBack(furnitureId, kind, amount);
@@ -34,8 +34,8 @@ public sealed partial class Simulation
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(amount);
         if (GoodsCatalog.ClassOf(kind) != GoodsClass.Food) throw new ArgumentException("Only food spoils.", nameof(kind));
-        if (!_furniture.Pieces.Any(p => p.Id == furnitureId && _snapshot.IsStockFurniture(p)))
-            throw new ArgumentException($"Piece {furnitureId} is not Stock Furniture.", nameof(furnitureId));
+        if (!_furniture.Pieces.Any(p => p.Id == furnitureId && (_snapshot.IsStockFurniture(p) || p.Type == FurnitureType.Fridge)))
+            throw new ArgumentException($"Piece {furnitureId} is not Stock Furniture or a Fridge.", nameof(furnitureId));
         var stock = _stock.ToList();
         var index = stock.FindIndex(g => g.FurnitureId == furnitureId && g.Kind == kind && !g.LeftBehind);
         if (index < 0) stock.Add(new StockedGoods(furnitureId, kind, amount));
@@ -54,10 +54,16 @@ public sealed partial class Simulation
         foreach (var village in _villages.ToArray())
         {
             var progress = village.SpoilProgress.ToDictionary();
-            foreach (var (kind, count) in village.Stores.Where(g => g.Value > 0 && GoodsCatalog.ClassOf(g.Key) == GoodsClass.Food).ToArray())
+            var coldRoom = Fridges().Where(p => _fridgePower.GetValueOrDefault(p.Id)?.Home == village.Id && FridgePowered(p))
+                .Sum(p => Math.Max(0, FridgeCapacity - _stock.Where(g => g.FurnitureId == p.Id && !g.LeftBehind).Sum(g => g.Amount)));
+            foreach (var (kind, count) in village.Stores.Where(g => g.Value > 0 && GoodsCatalog.ClassOf(g.Key) == GoodsClass.Food)
+                .OrderByDescending(g => GoodsCatalog.SpoilsFast(g.Key)).ThenBy(g => g.Key).ToArray())
             {
-                var pile = village.PileGoods().GetValueOrDefault(kind);
-                var total = progress.GetValueOrDefault(kind) + Spoilage.RateOf(kind) * (count - pile + pile * Spoilage.PileFactor) * days;
+                var cold = Math.Min(count, coldRoom);
+                coldRoom -= cold;
+                var warm = count - cold;
+                var pile = Math.Min(warm, village.PileGoods().GetValueOrDefault(kind));
+                var total = progress.GetValueOrDefault(kind) + Spoilage.RateOf(kind) * (warm - pile + pile * Spoilage.PileFactor) * days;
                 var lost = Math.Min(count, (int)total);
                 total -= (int)total;
                 if (total > 0) progress[kind] = total; else progress.Remove(kind);
@@ -73,6 +79,7 @@ public sealed partial class Simulation
         {
             var index = _stock.ToList().FindIndex(g => g.FurnitureId == key.FurnitureId && g.Kind == key.Kind && !g.LeftBehind);
             if (index < 0) { _spoilingShelf.Remove(key); continue; }
+            if (Fridges().Any(p => p.Id == key.FurnitureId && FridgePowered(p))) continue;
             var (units, fraction) = _spoilingShelf[key];
             units = Math.Min(units, _stock[index].Amount);
             fraction += Spoilage.RateOf(key.Kind) * units * days;

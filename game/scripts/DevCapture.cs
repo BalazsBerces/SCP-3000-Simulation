@@ -135,6 +135,12 @@ public partial class DevCapture : Node
     {
         foreach (var arg in OS.GetCmdlineUserArgs())
         {
+            if (arg.StartsWith("--fridge-check="))
+            {
+                SetProcess(false);
+                CheckFridges(arg["--fridge-check=".Length..]);
+                return;
+            }
             if (arg.StartsWith("--power-check="))
             {
                 SetProcess(false);

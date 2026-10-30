@@ -93,7 +93,7 @@ public sealed partial class Simulation
             throw new ArgumentException("Furniture work needs one to four distinct Villagers and a finite destination.");
         var piece = _furniture.Pieces.Where(p => p.Id == furnitureId).Select(p => (FurniturePiece?)p).SingleOrDefault()
             ?? throw new ArgumentException("No such Furniture.");
-        if (FurnitureCatalog.Spec(piece).IsFixed || IsBuiltFurniture(furnitureId) || _furnitureTasks.Any(t => t.FurnitureId == furnitureId))
+        if (FurnitureCatalog.Spec(piece).IsFixed || IsSlotFurniture(furnitureId) || construction && IsHomeFridge(furnitureId) || _furnitureTasks.Any(t => t.FurnitureId == furnitureId))
             throw new InvalidOperationException("Furniture is fixed or already reserved.");
         var people = _villagers.Snapshot();
         var workers = ids.Select(id => people.SingleOrDefault(v => v.Id == id)

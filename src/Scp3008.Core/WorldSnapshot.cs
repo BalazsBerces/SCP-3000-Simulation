@@ -73,6 +73,7 @@ public sealed record WorldSnapshot(
     public IReadOnlyList<Gear> Gear { get; init; } = [];
     public IReadOnlyList<Staff> Staff { get; init; } = [];
     public IReadOnlyList<LampPower> LampPower { get; init; } = [];
+    public IReadOnlyList<FridgePower> FridgePower { get; init; } = [];
     public IReadOnlyList<LitArea> LitAreas { get; init; } = [];
 
     public float LightBrightnessAt(Vector2 position) => Math.Max((float)StoreLightLevelAt(position),

@@ -41,7 +41,7 @@ public sealed partial class Simulation
     private void AdvancePower(StoreClock clock)
     {
         if (_villages.Count == 0 && _lampPower.Count == 0) return;
-        _villagers.AdvanceCranking(clock, _villages);
+        _villagers.AdvanceCranking(clock, _villages, NeedsFridgeCranking);
         var people = _villagers.Snapshot();
         Lamps();
         foreach (var lamp in _villageLamps)
@@ -102,15 +102,16 @@ public sealed partial class Simulation
 
 internal sealed partial class Villagers
 {
-    public void AdvanceCranking(StoreClock clock, IReadOnlyList<Village> villages)
+    public void AdvanceCranking(StoreClock clock, IReadOnlyList<Village> villages, Func<int, bool> needsFridgeCranking)
     {
         foreach (var w in _walkers)
         {
             var home = villages.FirstOrDefault(v => v.Id == w.VillageId);
-            var crank = clock.Phase == DayPhase.ClosingTime && w.Hand?.Kind == GearKind.HandCrankedGenerator &&
+            var crank = w.Hand?.Kind == GearKind.HandCrankedGenerator &&
                 home is not null && space.Distance(w.Position, home.Position) <= 2 && w.Destination is null &&
                 w.FurnitureTaskId is null && !w.Crafting && w.ClimbWaypoints.Count == 0 &&
-                w.Needs.Rest > (w.Action == VillagerAction.Cranking ? 0.25 : 0.6) && w.Needs.Hunger < 0.7 && w.Needs.Thirst < 0.7 && w.Needs.Safety > 0;
+                w.Needs.Rest > (w.Action == VillagerAction.Cranking ? 0.25 : 0.6) && w.Needs.Hunger < 0.7 && w.Needs.Thirst < 0.7 && w.Needs.Safety > 0 &&
+                (clock.Phase == DayPhase.ClosingTime || needsFridgeCranking(home.Id));
             if (crank)
             {
                 w.Action = VillagerAction.Cranking;

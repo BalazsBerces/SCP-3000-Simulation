@@ -6,7 +6,7 @@ namespace Scp3008.Core;
 
 public sealed partial class Simulation
 {
-    private const int SaveVersion = 15;
+    private const int SaveVersion = 16;
     private static readonly JsonSerializerOptions SaveJson = CreateSaveJson();
 
     private sealed record SaveFile(int Version, SaveState State);
@@ -124,6 +124,12 @@ public sealed partial class Simulation
                 !double.IsFinite(p.BatteryHours) || p.BatteryHours < 0 || p.BatteryHours > 4))
             throw new InvalidDataException("Invalid world save: inconsistent Lamp power.");
         foreach (var power in s.LampPower) _lampPower.Add(power.FurnitureId, power);
+        if (s.FridgePower.Select(p => p.FurnitureId).Distinct().Count() != s.FridgePower.Count ||
+            s.FridgePower.Any(p => !s.Furniture.Any(f => f.Id == p.FurnitureId && f.Type == FurnitureType.Fridge) ||
+                !double.IsFinite(p.BatteryHours) || p.BatteryHours < 0 || p.BatteryHours > 4 ||
+                p.Home is { } home && !s.Villages.Any(v => v.Id == home)))
+            throw new InvalidDataException("Invalid world save: inconsistent Fridge power.");
+        foreach (var power in s.FridgePower) _fridgePower.Add(power.FurnitureId, power);
         ValidateBlueprints();
         ValidateDwellings();
         _villagers.ValidateSleepingPlaces(_villages, _furniture.Pieces);

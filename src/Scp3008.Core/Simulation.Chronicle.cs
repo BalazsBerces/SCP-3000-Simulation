@@ -49,6 +49,9 @@ public sealed partial class Simulation
             case OutpostAbandoned abandonedPost:
                 story = $"Village {abandonedPost.VillageId} abandoned Outpost {abandonedPost.OutpostId}; its forward barricade fell quiet.";
                 break;
+            case FridgeBroughtHome fridge:
+                story = $"Village {fridge.VillageId} brought a Fridge home to keep its food while powered.";
+                break;
             case SharedMealServed meal:
                 story = $"Village {meal.VillageId} gathered at the Mess hall: {string.Join(", ", meal.VillagerIds.Select(Villager.NameOf))} ate together and exchanged news of the Store.";
                 break;
