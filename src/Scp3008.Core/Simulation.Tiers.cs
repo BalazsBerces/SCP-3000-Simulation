@@ -38,7 +38,7 @@ public sealed partial class Simulation
             for (var s = 0; s < village.Walls[r].Slots.Count; s++)
             {
                 if (village.Walls[r].Slots[s].FurnitureId is not { } id) continue;
-                var index = _furniture.Pieces.ToList().FindIndex(p => p.Id == id);
+                var index = PieceIndex(id);
                 var piece = _furniture.Pieces[index];
                 if (piece.Damage is <= 0f or >= 1f || clock.Phase != DayPhase.Open) continue;
                 var mended = piece with { Damage = MathF.Max(0f, piece.Damage - RepairStep) };
@@ -66,7 +66,7 @@ public sealed partial class Simulation
     private void Reinforce(int villageId, MaterialKind kind, int amount, int ring, int index, BlueprintSlot slot, WallUpgrade how, StoreClock clock)
     {
         SetMaterialsCore(villageId, kind, _villages[villageId].Materials[kind] - amount);
-        var piece = _furniture.Pieces.First(p => p.Id == slot.FurnitureId);
+        var piece = Piece(slot.FurnitureId);
         slot = slot with { Tier = TierOf(piece, slot.Strapped, slot.Backfilled) };
         SetWallSlot(villageId, ring, index, slot);
         Emit(new WallPieceUpgraded(clock, villageId, ring, index, how, slot.Tier));
@@ -97,7 +97,7 @@ public sealed partial class Simulation
         // shortcut: the old piece is just set down by the Village centre; give it a proper place (the yard) if swaps become common.
         if (slot.FurnitureId is { } old)
             MoveFurnitureCore(old, village.Position + new Vector2(0, 3), 0, 0);
-        var piece = _furniture.Pieces.First(p => p.Id == newId);
+        var piece = Piece(newId);
         return slot with { FurnitureId = newId, ReservedFurnitureId = null, Strapped = false, Tier = TierOf(piece, false, slot.Backfilled) };
     }
 
@@ -108,7 +108,7 @@ public sealed partial class Simulation
             village.Walls[ring].Slots[slot].FurnitureId is not { } id)
             throw new ArgumentException("No built wall piece there.");
         var s = village.Walls[ring].Slots[slot];
-        var index = _furniture.Pieces.ToList().FindIndex(p => p.Id == id);
+        var index = PieceIndex(id);
         var piece = _furniture.Pieces[index];
         var damage = MathF.Min(1f, piece.Damage + BlowDamage * (s.Strapped ? 0.5f : 1f) * (s.Backfilled ? 0.6f : 1f));
         var noise = BlowNoise * (s.Backfilled ? 0.4f : 1f);

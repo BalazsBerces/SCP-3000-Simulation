@@ -18,8 +18,18 @@ public partial class VillagerRenderer
         var focus = Rig.Focus.ToStore();
         if (!ReferenceEquals(_cropFurniture, world.Furniture))
         {
+            if (WorldSnapshot.FurnitureChanges(_cropFurniture, world.Furniture) is { } changes)
+            {
+                // Follow the moved pieces instead of going over every piece again.
+                foreach (var change in changes)
+                {
+                    if (change.Before is { Type: FurnitureType.Crop } before) _cropPieces.Remove(before.Id);
+                    if (change.After.Type == FurnitureType.Crop) _cropPieces[change.After.Id] = change.After;
+                }
+            }
+            else
+                _cropPieces = world.Furniture.Where(p => p.Type == FurnitureType.Crop).ToDictionary(p => p.Id);
             _cropFurniture = world.Furniture;
-            _cropPieces = world.Furniture.Where(p => p.Type == FurnitureType.Crop).ToDictionary(p => p.Id);
         }
         var seen = new HashSet<int>();
         foreach (var crop in world.Crops)

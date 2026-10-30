@@ -26,6 +26,9 @@ internal static class Stability
     /// <summary>How far, in cells, from a change the structures touching it are looked for.</summary>
     private const int Reach = 5;
 
+    /// <summary>How far from a changed pose, along either axis, <see cref="Settle"/> looks at Furniture.</summary>
+    public const float RegionReach = (Reach + 1) * CellSize;
+
     private readonly record struct Bounds(Vector2 Min, Vector2 Max, float Bottom, float Top);
 
     /// <summary>The weight, in kg, that a piece can carry on it when undamaged.</summary>

@@ -1,4 +1,5 @@
 using Scp3008.Core.Generation;
+using System.Numerics;
 
 namespace Scp3008.Core;
 
@@ -57,9 +58,24 @@ public sealed partial class Simulation
         Emit(new DrySpellStarted(now, _drySpell));
     }
 
+    private HashSet<int>? _restockedPlaces;
+    private HashSet<int>? _restockedLandmarks;
+
+    /// <summary>
+    /// Whether Restock looks after a piece: only the Cafeterias and the Camping ground are restocked, their Furniture
+    /// coming back and their Goods laid again; everywhere else what is taken stays gone.
+    /// </summary>
+    private bool Restocked(FurniturePiece piece)
+    {
+        _restockedPlaces ??= _pointsOfInterest.Where(p => p.Type == PointOfInterestType.Cafeteria).Select(p => p.Id).ToHashSet();
+        _restockedLandmarks ??= _landmarks.Where(l => l.Type == LandmarkType.CampingGround).Select(l => l.Id).ToHashSet();
+        return piece.PointOfInterestId >= 0 && _restockedPlaces.Contains(piece.PointOfInterestId) ||
+            piece.LandmarkId >= 0 && _restockedLandmarks.Contains(piece.LandmarkId);
+    }
+
     private void InitializeRestock()
     {
-        foreach (var piece in _furniture.Pieces)
+        foreach (var piece in _furniture.Pieces.Where(Restocked))
             _restockOrigins[piece.Id] = piece;
         _nextFurnitureId = _furniture.Pieces.Count == 0 ? 0 : _furniture.Pieces.Max(p => p.Id) + 1;
         // Give initially bare Stock Furniture a target too, using the same catalogue and placement rules as generation.
@@ -67,10 +83,10 @@ public sealed partial class Simulation
             _furniture.Pieces, _furniture.Displays, _departments, _pointsOfInterest, _tankFish, _counterMeals, _campGoods,
             _landmarks, _space, _config.PillarLayout);
         var initial = _stock.Where(g => !g.LeftBehind).ToLookup(g => g.FurnitureId);
-        foreach (var group in fullStock.Where(g => !g.LeftBehind).GroupBy(g => g.FurnitureId))
+        foreach (var group in fullStock.Where(g => !g.LeftBehind && _restockOrigins.ContainsKey(g.FurnitureId)).GroupBy(g => g.FurnitureId))
             foreach (var goods in initial.Contains(group.Key) ? initial[group.Key] : group)
                 _stockTargets[(goods.FurnitureId, goods.Kind)] = goods.Amount;
-        foreach (var goods in _stock.Where(g => !g.LeftBehind))
+        foreach (var goods in _stock.Where(g => !g.LeftBehind && _restockOrigins.ContainsKey(g.FurnitureId)))
             _stockTargets[(goods.FurnitureId, goods.Kind)] = goods.Amount;
     }
 
@@ -105,13 +121,13 @@ public sealed partial class Simulation
         }
         if (refill.Count == 0)
             return;
-        var present = _furniture.Pieces.Select(p => p.Id).ToHashSet();
+        bool present(int id) => PieceIndex(id) >= 0;
         RestockGear(refill, present);
         var stock = _stock.ToDictionary(g => (g.FurnitureId, g.Kind, g.LeftBehind));
         var changed = false;
         foreach (var (key, capacity) in _stockTargets)
         {
-            if (!present.Contains(key.FurnitureId) || !_restockOrigins.ContainsKey(key.FurnitureId))
+            if (!present(key.FurnitureId) || !_restockOrigins.ContainsKey(key.FurnitureId))
                 continue;
             var units = refill.GetValueOrDefault(_departments.At(_restockOrigins[key.FurnitureId].Position).Id);
             if (units == 0)
@@ -144,6 +160,28 @@ public sealed partial class Simulation
         }
     }
 
+    private FurnitureIndex? _piecesIndexStore;
+    // The current Furniture by chunk, for questions about one place; bring it up to date before use.
+    private FurnitureIndex _piecesIndex => _piecesIndexStore ??= new FurnitureIndex(_space);
+
+    private readonly List<FurniturePiece> _restockBlockers = [];
+    // The Furniture that may hide pieces from each Villager, by id, while the Furniture and the Villager stay as they were.
+    private readonly Dictionary<int, (SightBlockers Sight, IReadOnlyList<FurniturePiece> Furniture, Vector2 Position, float Extent)> _restockSight = [];
+
+    private SightBlockers SightAround(Villager villager)
+    {
+        var extent = villager.ViewRange + _piecesIndex.LargestPiece;
+        if (_restockSight.TryGetValue(villager.Id, out var known) && ReferenceEquals(known.Furniture, _furniture.Pieces) &&
+            known.Position == villager.Position && known.Extent == extent)
+            return known.Sight;
+        var sight = known.Sight ?? new SightBlockers();
+        _restockBlockers.Clear();
+        _restockBlockers.AddRange(_piecesIndex.Near(villager.Position, extent));
+        sight.Prepare(_space, villager.Position, _restockBlockers, extent);
+        _restockSight[villager.Id] = (sight, _furniture.Pieces, villager.Position, extent);
+        return sight;
+    }
+
     private void RestoreFurniture()
     {
         if (_missingFurniture.Count == 0 || _restockHours + 1e-9 < _nextFurnitureCheck)
@@ -160,13 +198,18 @@ public sealed partial class Simulation
                 ((piece.DisplayId >= 0 && p.DisplayId == piece.DisplayId) ||
                  (piece.LandmarkId >= 0 && p.LandmarkId == piece.LandmarkId) ||
                  (piece.PointOfInterestId >= 0 && p.PointOfInterestId == piece.PointOfInterestId));
-            var occupied = _furniture.Pieces.Any(p => !OriginalNeighbour(p) && RestockSight.Overlaps(_space, piece, p)) ||
+            // Only pieces within both boxes' reach can overlap it, and only those within sight range can hide it.
+            _piecesIndex.Update(_furniture.Pieces);
+            var spec = FurnitureCatalog.Spec(piece);
+            var reach = new System.Numerics.Vector3(spec.Width, spec.Depth, spec.Height).Length() + _piecesIndex.LargestPiece;
+            var occupied = _piecesIndex.Near(piece.Position, reach).Any(p => !OriginalNeighbour(p) && RestockSight.Overlaps(_space, piece, p)) ||
                 villagers.Any(v => _space.Distance(v.Position, piece.Position) < Math.Max(FurnitureCatalog.Spec(piece).Width, FurnitureCatalog.Spec(piece).Depth) / 2 + 0.4f);
             if (occupied)
                 continue;
-            if (villagers.Any(v => RestockSight.CanSee(_space, v, piece, _furniture.Pieces, _pillars, fog)))
+            if (villagers.Any(v => _space.Distance(v.Position, piece.Position) <= v.ViewRange &&
+                    RestockSight.CanSee(_space, v, piece, SightAround(v), _pillars, fog)))
                 continue;
-            var restored = _furniture.Pieces.Any(p => p.Id == piece.Id) ? piece with { Id = _nextFurnitureId++ } : piece;
+            var restored = PieceIndex(piece.Id) >= 0 ? piece with { Id = _nextFurnitureId++ } : piece;
             if (restored.Id != piece.Id)
             {
                 foreach (var target in _stockTargets.Where(t => t.Key.FurnitureId == piece.Id).ToArray())
@@ -179,7 +222,7 @@ public sealed partial class Simulation
                 if (_gearSources[i].FurnitureId == piece.Id)
                     _gearSources[i] = _gearSources[i] with { FurnitureId = restored.Id };
             _restockOrigins[restored.Id] = restored;
-            _furniture = _furniture with { Pieces = _furniture.Pieces.Append(restored).ToList().AsReadOnly() };
+            _furniture = _furniture with { Pieces = FurnitureList.From(_furniture.Pieces).Add(restored) };
             _stabilityChanges.Add(restored);
             _waterPoints = _waterPoints.Concat(missing.Water.Select(w => w with { FurnitureId = restored.Id })).ToList().AsReadOnly();
             _navigation.Update([], [restored]);

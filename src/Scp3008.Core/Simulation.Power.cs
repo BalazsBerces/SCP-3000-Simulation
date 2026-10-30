@@ -17,9 +17,12 @@ public sealed partial class Simulation
     private ILookup<ChunkCoord, FurniturePiece>? _lampsByChunk;
     private FurniturePiece[] _villageLamps = [];
     private int _powerVillageCount = -1;
+    private readonly Dictionary<System.Numerics.Vector2, GroundProperty> _groundUnder = [];
 
     private FurniturePiece[] Lamps()
     {
+        if (!ReferenceEquals(_powerFurniture, _furniture.Pieces) && UntouchedSince(_powerFurniture, p => FurnitureCatalog.Spec(p).IsLamp))
+            _powerFurniture = _furniture.Pieces;
         if (!ReferenceEquals(_powerFurniture, _furniture.Pieces))
         {
             _powerFurniture = _furniture.Pieces;
@@ -78,9 +81,16 @@ public sealed partial class Simulation
         var lamps = Lamps();
         var nearby = local ? world.Villagers.SelectMany(v => _space.ChunkImagesAround(v.Position, 16))
             .Select(c => c.Chunk).Distinct().SelectMany(c => _lampsByChunk![c]) : lamps.AsEnumerable();
+        var power = new Dictionary<int, LampPower>();
+        foreach (var p in world.LampPower)
+            power.TryAdd(p.FurnitureId, p);
+        var timeOfDay = world.Clock.TimeOfDay;
         foreach (var lamp in nearby)
         {
-            var brightness = world.LampLevel(lamp);
+            // The ground belongs to the Store, so what lies under a lamp's spot is worked out once.
+            if (!_groundUnder.TryGetValue(lamp.Position, out var ground))
+                _groundUnder[lamp.Position] = ground = world.GroundAt(lamp.Position);
+            var brightness = world.LampLevel(lamp, timeOfDay, power.GetValueOrDefault(lamp.Id), ground);
             if (brightness > 0) areas.Add(new(lamp.Id, lamp.Position, lamp.Elevation + 1, FurnitureCatalog.Spec(lamp).LightRadius, brightness));
         }
         if (world.Phase == DayPhase.ClosingTime)

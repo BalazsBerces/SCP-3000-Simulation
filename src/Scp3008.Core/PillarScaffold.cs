@@ -55,7 +55,7 @@ public sealed partial class Simulation
         { _villagers.Send(worker.Id, slot.Position); return true; }
         var prototype = new FurniturePiece(-1, FurnitureType.PalletRack, slot.Position, slot.Elevation, 0, 0);
         // The full weight of the stages above must fit every support's remaining load capacity.
-        if (plan.Slots.Take(index).Select(s => _furniture.Pieces.FirstOrDefault(p => p.Id == s.FurnitureId)).Any(p =>
+        if (plan.Slots.Take(index).Select(s => (PieceById(s.FurnitureId) ?? default)).Any(p =>
             p.Type != FurnitureType.PalletRack || p.Damage > 0 || p.Position != slot.Position ||
             FurnitureResources.Weight(prototype) * (index + 1) > Stability.LoadCapacity(p))) return false;
         SetMaterialsCore(village.Id, MaterialKind.Metal, village.Materials[MaterialKind.Metal] - PillarScaffold.MetalPerStage);

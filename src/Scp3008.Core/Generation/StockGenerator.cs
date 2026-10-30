@@ -149,9 +149,14 @@ internal static class StockGenerator
         var sectors = layout.SectorsPerSide() * layout.SectorsPerSide();
         var classes = Enum.GetValues<GoodsClass>();
         var amounts = new int[sectors, classes.Length];
-        var byId = pieces.ToDictionary(p => p.Id);  // ids are not list indexes once Furniture has been removed
+        // Ids are not list indexes once Furniture has been removed; the Store's own list looks them up without a copy.
+        var list = pieces as FurnitureList;
+        var byId = list is null ? pieces.ToDictionary(p => p.Id) : null;
         foreach (var goods in stock)
-            amounts[PillarGenerator.SectorIndexAt(space, layout, byId[goods.FurnitureId].Position), (int)GoodsCatalog.ClassOf(goods.Kind)] += goods.Amount;
+        {
+            var piece = list is not null ? list[list.IndexOf(goods.FurnitureId)] : byId![goods.FurnitureId];
+            amounts[PillarGenerator.SectorIndexAt(space, layout, piece.Position), (int)GoodsCatalog.ClassOf(goods.Kind)] += goods.Amount;
+        }
         var means = classes.Select(c => Enumerable.Range(0, sectors).Sum(s => (double)amounts[s, (int)c]) / sectors).ToArray();
         return Enumerable.Range(0, sectors).Select(s => new SectorStock(s,
             classes.ToDictionary(c => c, c => amounts[s, (int)c]),

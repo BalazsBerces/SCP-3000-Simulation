@@ -59,22 +59,97 @@ public partial class ShelfGoods : Node3D
 
     private IReadOnlyList<StockedGoods>? _built;
     private IReadOnlyList<FurniturePiece>? _builtFurniture;
+    // Every piece by id, and the fish tanks, followed as the Furniture changes.
+    private Dictionary<int, FurniturePiece> _pieces = [];
+    private Dictionary<int, FurniturePiece> _tanks = [];
+    // The pieces holding the built stock.
+    private HashSet<int> _stocked = [];
+    // The instance groups shown, by name, with what they show: a group whose instances stay the same is kept as it is.
+    private readonly Dictionary<string, (WrappedInstances Node, Array Instances)> _groups = [];
 
     public override void _Process(double delta)
     {
-        if (!ReferenceEquals(Host.Snapshot.Stock, _built) || !ReferenceEquals(Host.Snapshot.Furniture, _builtFurniture))
-            Build(Host.Snapshot);
+        var snapshot = Host.Snapshot;
+        if (ReferenceEquals(snapshot.Stock, _built) && ReferenceEquals(snapshot.Furniture, _builtFurniture))
+            return;
+        var changes = WorldSnapshot.FurnitureChanges(_builtFurniture, snapshot.Furniture);
+        Follow(snapshot, changes);
+        // Carried and moved Furniture that holds no Goods and no fish leaves the Goods as they are.
+        if (ReferenceEquals(snapshot.Stock, _built) && changes is not null &&
+            changes.All(c => !Holds(c.After) && (c.Before is not { } before || !Holds(before))))
+            _builtFurniture = snapshot.Furniture;
+        else
+            Show(snapshot);
+    }
+
+    private bool Holds(FurniturePiece piece) => piece.Type == FurnitureType.FishTank || _stocked.Contains(piece.Id);
+
+    private void Follow(WorldSnapshot snapshot, IReadOnlyList<FurnitureChange>? changes)
+    {
+        if (changes is null)
+        {
+            _pieces = snapshot.Furniture.ToDictionary(p => p.Id);
+            _tanks = _pieces.Values.Where(p => p.Type == FurnitureType.FishTank).ToDictionary(p => p.Id);
+            return;
+        }
+        foreach (var change in changes)
+        {
+            if (change.Before is { } before)
+            {
+                _pieces.Remove(before.Id);
+                _tanks.Remove(before.Id);
+            }
+            _pieces[change.After.Id] = change.After;
+            if (change.After.Type == FurnitureType.FishTank) _tanks[change.After.Id] = change.After;
+        }
     }
 
     public void Build(WorldSnapshot snapshot)
     {
-        foreach (var child in GetChildren())
-            child.QueueFree();
+        Follow(snapshot, WorldSnapshot.FurnitureChanges(_builtFurniture, snapshot.Furniture));
+        Show(snapshot);
+    }
+
+    private void Show(WorldSnapshot snapshot)
+    {
         _built = snapshot.Stock;
         _builtFurniture = snapshot.Furniture;
-        FurnitureRenderer.AddFish(this, snapshot, Rig, Visibility);
-        if (System.Environment.GetEnvironmentVariable("NOGOODS") != null) return;
-        var pieces = snapshot.Furniture.ToDictionary(p => p.Id);
+        _stocked = snapshot.Stock.Select(g => g.FurnitureId).ToHashSet();
+        var wanted = new HashSet<string>();
+        foreach (var (variant, kind, placements) in FurnitureRenderer.FishSchools(snapshot, _tanks))
+            Group(wanted, $"Fish-{kind}-{variant}", placements,
+                () => FurnitureRenderer.FishInstances(variant, kind, snapshot, Rig, Visibility),
+                (node, instances) => node.SetInstances(snapshot.Space, instances));
+        if (System.Environment.GetEnvironmentVariable("NOGOODS") == null)
+            ShowGoods(snapshot, wanted);
+        foreach (var name in _groups.Keys.Where(name => !wanted.Contains(name)).ToArray())
+        {
+            _groups[name].Node.QueueFree();
+            _groups.Remove(name);
+        }
+    }
+
+    // Shows one instance group, built anew only when what it shows changed.
+    private void Group<T>(HashSet<string> wanted, string name, T[] instances, Func<WrappedInstances> create, Action<WrappedInstances, T[]> set)
+    {
+        wanted.Add(name);
+        if (_groups.TryGetValue(name, out var shown))
+        {
+            if (shown.Instances is T[] same && same.SequenceEqual(instances))
+                return;
+        }
+        else
+        {
+            shown = (create(), instances);
+            AddChild(shown.Node);
+        }
+        set(shown.Node, instances);
+        _groups[name] = (shown.Node, instances);
+    }
+
+    private void ShowGoods(WorldSnapshot snapshot, HashSet<string> wanted)
+    {
+        var pieces = _pieces;
         var shown = snapshot.Stock
             .Where(g => (!g.LeftBehind || GoodsCatalog.FoodTables.Contains(pieces[g.FurnitureId].Type)) && Products.ContainsKey(g.Kind))
             .Select(g => (Goods: g, Piece: pieces[g.FurnitureId]))
@@ -82,20 +157,21 @@ public partial class ShelfGoods : Node3D
         // shortcut: a second kind on one piece (only SetStock makes one) is drawn over the first; give each kind its share of the runs if pieces ever stock two kinds.
         foreach (var group in shown.GroupBy(s => (s.Piece.Type, s.Piece.Variant, s.Goods.Kind, Step: snapshot.FillStep(s.Goods))))
         {
-            var instances = new WrappedInstances
-            {
-                Name = $"Goods-{group.Key.Type}-{group.Key.Variant}-{group.Key.Kind}-{group.Key.Step}",
-                Rig = Rig,
-                FarDistance = Distance,
-                ViewReach = Visibility.PlacementReach(Rig, snapshot.Space.ChunkSize),
-                Mesh = Load(group.Key.Type, group.Key.Variant, group.Key.Kind, group.Key.Step),
-                CoarseMesh = new ArrayMesh(),
-                CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
-            };
-            AddChild(instances);
-            instances.SetInstances(snapshot.Space, group.Select(s => FurnitureRenderer.Placement(s.Piece)));
+            var key = group.Key;
+            Group(wanted, $"Goods-{key.Type}-{key.Variant}-{key.Kind}-{key.Step}",
+                group.Select(s => FurnitureRenderer.Placement(s.Piece)).ToArray(),
+                () => new WrappedInstances
+                {
+                    Name = $"Goods-{key.Type}-{key.Variant}-{key.Kind}-{key.Step}",
+                    Rig = Rig,
+                    FarDistance = Distance,
+                    ViewReach = Visibility.PlacementReach(Rig, snapshot.Space.ChunkSize),
+                    Mesh = Load(key.Type, key.Variant, key.Kind, key.Step),
+                    CoarseMesh = new ArrayMesh(),
+                    CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+                },
+                (node, instances) => node.SetInstances(snapshot.Space, instances));
         }
-        GD.Print($"ShelfGoods: {GetChildCount()} groups.");
     }
 
     /// <summary>The runs of Goods on a Furniture type, or none if it shows no Goods.</summary>

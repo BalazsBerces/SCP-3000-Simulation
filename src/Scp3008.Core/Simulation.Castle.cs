@@ -116,7 +116,7 @@ public sealed partial class Simulation
     private FurniturePiece[]? Supports(CastleStructure structure, int index)
     {
         var below = Castle.Support(structure.Part, index).Select(i => structure.Slots[i].FurnitureId).ToArray();
-        return below.Any(id => id is null) ? null : below.Select(id => _furniture.Pieces.Single(p => p.Id == id)).ToArray();
+        return below.Any(id => id is null) ? null : below.Select(id => Piece(id)).ToArray();
     }
 
     /// <summary>Starts the next Castle piece once every wall ring is built: one slot at a time, a stacked slot after what carries it.</summary>
@@ -163,7 +163,7 @@ public sealed partial class Simulation
                         SetCastleSlot(village.Id, c, i, slot with { ReservedFurnitureId = null });
                         return true;
                     }
-                    var piece = _furniture.Pieces.Single(p => p.Id == task.FurnitureId);
+                    var piece = Piece(task.FurnitureId);
                     var elevation = supports.Length == 0 ? 0 : supports.Max(s => s.Elevation + FurnitureCatalog.Spec(s).Height);
                     var position = slot.Position;
                     // A Gatehouse flanker stands with its inner face at the passage's edge, whatever its width.
@@ -207,9 +207,9 @@ public sealed partial class Simulation
                     c.Slots.Count != (c.Part == CastlePart.Keep ? 4 : 3) ||
                     c.Slots.Select((s, i) => (s, i)).Any(x => !Finite(x.s.Position) || !float.IsFinite(x.s.Rotation) || !float.IsFinite(x.s.Elevation) ||
                         x.s.FurnitureId is not null && x.s.ReservedFurnitureId is not null ||
-                        x.s.FurnitureId is { } f && !_furniture.Pieces.Any(p => p.Id == f && Castle.Fits(c.Part, x.i, p) &&
+                        x.s.FurnitureId is { } f && !HasPiece(f, p => Castle.Fits(c.Part, x.i, p) &&
                             p.Position == x.s.Position && p.Rotation == x.s.Rotation && p.Elevation == x.s.Elevation) ||
-                        x.s.ReservedFurnitureId is { } r && (!_furniture.Pieces.Any(p => p.Id == r && Castle.Fits(c.Part, x.i, p)) ||
+                        x.s.ReservedFurnitureId is { } r && (!HasPiece(r, p => Castle.Fits(c.Part, x.i, p)) ||
                             !_furnitureTasks.Any(t => t.FurnitureId == r && t.Work != FurnitureWork.Disassemble && t.VillagerIds.All(v.VillagerIds.Contains)))))))
             throw new InvalidDataException("Invalid world save: inconsistent Castle.");
     }

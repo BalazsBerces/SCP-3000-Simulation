@@ -104,8 +104,8 @@ public sealed partial class Simulation
                 var slot = house.Slots[i];
                 if (slot with { FurnitureId = null, ReservedFurnitureId = null } != Storehouse.Slot(_space.Wrap(village.Position + Storehouse.Offsets[i])) ||
                     slot.FurnitureId is not null && slot.ReservedFurnitureId is not null ||
-                    slot.FurnitureId is { } f && !_furniture.Pieces.Any(p => p.Id == f && StorehouseFits(slot, p) && p.Position == slot.Position && p.Rotation == slot.Rotation) ||
-                    slot.ReservedFurnitureId is { } r && (!_furniture.Pieces.Any(p => p.Id == r && StorehouseFits(slot, p with { Elevation = 0 }) &&
+                    slot.FurnitureId is { } f && !HasPiece(f, p => StorehouseFits(slot, p) && p.Position == slot.Position && p.Rotation == slot.Rotation) ||
+                    slot.ReservedFurnitureId is { } r && (!HasPiece(r, p => StorehouseFits(slot, p with { Elevation = 0 }) &&
                         (p.Elevation == 0 || p.Elevation == CarriedElevation && _furnitureTasks.Any(t => t.FurnitureId == r && t.Started))) ||
                         !_furnitureTasks.Any(t => t.FurnitureId == r && t.Work != FurnitureWork.Disassemble && t.VillagerIds.All(village.VillagerIds.Contains))))
                     throw new InvalidDataException("Invalid world save: inconsistent Storehouse Blueprint.");

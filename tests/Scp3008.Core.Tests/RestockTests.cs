@@ -5,6 +5,11 @@ namespace Scp3008.Core.Tests;
 
 public class RestockTests
 {
+    /// <summary>Whether Restock looks after a generated piece: Cafeteria and Camping ground Furniture.</summary>
+    internal static bool Restocked(WorldSnapshot world, FurniturePiece piece) =>
+        piece.PointOfInterestId >= 0 && world.PointsOfInterest[piece.PointOfInterestId].Type == PointOfInterestType.Cafeteria ||
+        world.Landmarks.Any(l => l.Id == piece.LandmarkId && l.Type == LandmarkType.CampingGround);
+
     private static Simulation EmptyStore(double furnitureHours = 1) => Simulation.Create(new WorldConfig(3008,
         PillarLayout: PillarLayout.VillagerSandbox, Restock: new RestockConfig { FurnitureHours = furnitureHours }));
 
@@ -27,7 +32,7 @@ public class RestockTests
     public void Furniture_delay_is_configurable_and_zero_disables_return(double delay, bool returns)
     {
         using var sim = EmptyStore(delay);
-        var piece = sim.Scenario.PlaceFurniture(FurnitureType.Armchair, new Vector2(20));
+        var piece = sim.Scenario.PlaceFurniture(FurnitureType.Armchair, new Vector2(20), restocked: true);
         sim.Scenario.RemoveFurniture(p => p.Id == piece.Id);
         sim.Advance(TimeSpan.FromHours(1) - StoreClock.TickDuration);
         Assert.Empty(sim.Snapshot.Furniture);
@@ -36,10 +41,25 @@ public class RestockTests
     }
 
     [Fact]
+    public void Furniture_Restock_does_not_look_after_stays_gone_and_its_shelf_stays_bare()
+    {
+        using var sim = Simulation.Create(new WorldConfig(3008, PillarLayout: PillarLayout.VillagerSandbox,
+            Restock: new RestockConfig { FurnitureHours = 1, GoodsPerStoreHour = 2 }));
+        var shelf = sim.Scenario.PlaceFurniture(FurnitureType.GroceryShelf, new Vector2(20));
+        var chair = sim.Scenario.PlaceFurniture(FurnitureType.Armchair, new Vector2(40));
+        sim.Scenario.SetStock(shelf.Id, GoodsKind.TinnedFood, 3);
+        sim.Scenario.SetStock(shelf.Id, GoodsKind.TinnedFood, 0);
+        sim.Scenario.RemoveFurniture(p => p.Id == chair.Id);
+        sim.Advance(TimeSpan.FromHours(4));
+        Assert.DoesNotContain(chair, sim.Snapshot.Furniture);
+        Assert.DoesNotContain(sim.Snapshot.Stock, g => g.FurnitureId == shelf.Id);
+    }
+
+    [Fact]
     public void Returned_Furniture_rebuilds_walking_routes_and_reserved_ids_are_not_reused()
     {
         using var sim = EmptyStore();
-        var piece = sim.Scenario.PlaceFurniture(FurnitureType.Wardrobe, new Vector2(30));
+        var piece = sim.Scenario.PlaceFurniture(FurnitureType.Wardrobe, new Vector2(30), restocked: true);
         sim.Scenario.PlaceVillager(new Vector2(70, 80));
         sim.Scenario.RemoveFurniture(p => p.Id == piece.Id);
         var other = sim.Scenario.PlaceFurniture(FurnitureType.CoffeeTable, new Vector2(80));
@@ -65,23 +85,23 @@ public class RestockTests
     }
 
     [Fact]
-    public void Returned_Washbasins_keep_their_Water_points()
+    public void Taken_showroom_Washbasins_and_their_Water_points_stay_gone()
     {
         using var sim = Simulation.Create(new WorldConfig(3008, StartingBands: false, RuntimeRngSeed: 1, PointOfInterestShowcase: true,
             Restock: new RestockConfig { FurnitureHours = 1 }));
         var original = sim.Snapshot.WaterPoints.First(w => w.FurnitureId >= 0 && w.Running);
         sim.Scenario.RemoveFurniture(p => p.Id == original.FurnitureId);
         Assert.DoesNotContain(original, sim.Snapshot.WaterPoints);
-        sim.Advance(TimeSpan.FromHours(1));
-        Assert.Contains(original, sim.Snapshot.WaterPoints);
-        Assert.Single(sim.Snapshot.WaterPoints, w => w == original);
+        sim.Advance(TimeSpan.FromHours(2));
+        Assert.DoesNotContain(original, sim.Snapshot.WaterPoints);
+        Assert.DoesNotContain(sim.Snapshot.Furniture, p => p.Id == original.FurnitureId);
     }
 
     [Fact]
     public void Furniture_waits_while_seen_and_returns_when_the_Villager_leaves()
     {
         using var sim = EmptyStore();
-        var piece = sim.Scenario.PlaceFurniture(FurnitureType.Armchair, new Vector2(20));
+        var piece = sim.Scenario.PlaceFurniture(FurnitureType.Armchair, new Vector2(20), restocked: true);
         var villager = sim.Scenario.PlaceVillager(new Vector2(25, 20));
         sim.Scenario.RemoveFurniture(p => p.Id == piece.Id);
         sim.Advance(TimeSpan.FromHours(1));
@@ -99,7 +119,7 @@ public class RestockTests
     {
         using var sim = EmptyStore();
         var spot = acrossSeam ? new Vector2(2, 20) : new Vector2(20);
-        var piece = sim.Scenario.PlaceFurniture(FurnitureType.Armchair, spot);
+        var piece = sim.Scenario.PlaceFurniture(FurnitureType.Armchair, spot, restocked: true);
         sim.Scenario.PlaceVillager(acrossSeam ? new Vector2(125, 20) : new Vector2(25, 20));
         sim.Scenario.RemoveFurniture(p => p.Id == piece.Id);
         sim.Advance(TimeSpan.FromHours(1));
@@ -117,7 +137,7 @@ public class RestockTests
         foreach (var type in new[] { FurnitureType.Wardrobe, FurnitureType.CoffeeTable })
         {
             using var sim = EmptyStore();
-            var piece = sim.Scenario.PlaceFurniture(FurnitureType.Armchair, new Vector2(20));
+            var piece = sim.Scenario.PlaceFurniture(FurnitureType.Armchair, new Vector2(20), restocked: true);
             sim.Scenario.PlaceFurniture(type, new Vector2(23, 20), MathF.PI / 2);
             sim.Scenario.PlaceVillager(new Vector2(26, 20));
             sim.Scenario.RemoveFurniture(p => p.Id == piece.Id);
@@ -130,7 +150,7 @@ public class RestockTests
     public void Occupied_spots_wait_and_moved_Furniture_does_not_duplicate_its_id()
     {
         using var sim = EmptyStore();
-        var original = sim.Scenario.PlaceFurniture(FurnitureType.Armchair, new Vector2(20));
+        var original = sim.Scenario.PlaceFurniture(FurnitureType.Armchair, new Vector2(20), restocked: true);
         sim.Scenario.MoveFurniture(original.Id, new Vector2(30), 0);
         var occupant = sim.Scenario.PlaceFurniture(FurnitureType.Wardrobe, original.Position);
         sim.Advance(TimeSpan.FromHours(1));
@@ -144,25 +164,30 @@ public class RestockTests
     }
 
     [Fact]
-    public void Landmark_Furniture_can_return_into_its_original_arrangement()
+    public void Camping_ground_Furniture_returns_into_its_original_arrangement_but_other_Landmarks_stay_bare()
     {
         using var sim = Simulation.Create(new WorldConfig(3008, StartingBands: false, RuntimeRngSeed: 1, LandmarkShowcase: true,
             Restock: new RestockConfig { LandmarkFurnitureHours = 1 }));
+        var camp = sim.Snapshot.Landmarks.Single(l => l.Type == LandmarkType.CampingGround);
         var canyon = sim.Snapshot.Landmarks.Single(l => l.Type == LandmarkType.RackCanyon);
+        var piece = sim.Snapshot.Furniture.First(p => p.LandmarkId == camp.Id && !FurnitureCatalog.Spec(p).IsFixed &&
+            !sim.Snapshot.Furniture.Any(o => o.Elevation > p.Elevation + 0.05f && Vector2.Distance(o.Position, p.Position) < 3f));
         var box = sim.Snapshot.Furniture.First(p => p.LandmarkId == canyon.Id && p.Type == FurnitureType.FlatPackBox && p.Elevation > 1);
-        sim.Scenario.RemoveFurniture(p => p.Id == box.Id);
+        sim.Scenario.RemoveFurniture(p => p.Id == piece.Id || p.Id == box.Id);
         sim.Advance(TimeSpan.FromHours(1));
-        Assert.Contains(box, sim.Snapshot.Furniture);
+        Assert.Contains(piece, sim.Snapshot.Furniture);
+        Assert.DoesNotContain(box, sim.Snapshot.Furniture);
     }
 
     [Fact]
-    public void Landmark_Furniture_returns_more_slowly_than_ordinary_Furniture()
+    public void Camping_ground_Furniture_returns_more_slowly_than_Cafeteria_Furniture()
     {
         using var sim = Simulation.Create(new WorldConfig(3008, StartingBands: false, RuntimeRngSeed: 1, LandmarkShowcase: true,
             Restock: new RestockConfig { FurnitureHours = 1, LandmarkFurnitureHours = 2 }));
-        var landmark = sim.Snapshot.Furniture.First(p => p.LandmarkId >= 0 && !FurnitureCatalog.Spec(p).IsFixed);
+        var camp = sim.Snapshot.Landmarks.Single(l => l.Type == LandmarkType.CampingGround);
+        var landmark = sim.Snapshot.Furniture.First(p => p.LandmarkId == camp.Id && !FurnitureCatalog.Spec(p).IsFixed);
         sim.Scenario.RemoveFurniture(p => p.LandmarkId == landmark.LandmarkId);
-        var ordinary = sim.Scenario.PlaceFurniture(FurnitureType.Armchair, new Vector2(20));
+        var ordinary = sim.Scenario.PlaceFurniture(FurnitureType.Armchair, new Vector2(20), restocked: true);
         sim.Scenario.RemoveFurniture(p => p.Id == ordinary.Id);
         sim.Advance(TimeSpan.FromHours(1));
         Assert.Contains(ordinary, sim.Snapshot.Furniture);
@@ -172,7 +197,7 @@ public class RestockTests
     }
 
     [Fact]
-    public void Set_dinner_tables_Cafeterias_Lost_and_found_and_Aquarium_aisles_refill()
+    public void Cafeterias_refill_but_Set_dinner_tables_Lost_and_found_and_Aquarium_aisles_stay_empty()
     {
         using var sim = Simulation.Create(new WorldConfig(3008, StartingBands: false, RuntimeRngSeed: 1, PointOfInterestShowcase: true,
             Restock: new RestockConfig { GoodsPerStoreHour = 2 }));
@@ -184,13 +209,15 @@ public class RestockTests
             pieces[g.FurnitureId].PointOfInterestId >= 0 && initial.PointsOfInterest[pieces[g.FurnitureId].PointOfInterestId].Type == type)).ToArray();
         sim.Scenario.SetStock(goods.Select(g => (g.FurnitureId, g.Kind)), 0);
         sim.Advance(TimeSpan.FromHours(0.5));
-        Assert.All(goods, g => Assert.Equal(1, sim.Snapshot.Stock.Single(s => s.FurnitureId == g.FurnitureId && s.Kind == g.Kind).Amount));
+        Assert.Equal(1, sim.Snapshot.Stock.Single(s => s.FurnitureId == goods[1].FurnitureId && s.Kind == goods[1].Kind).Amount);
+        Assert.All(goods.Where((_, i) => i != 1), g =>
+            Assert.DoesNotContain(sim.Snapshot.Stock, s => s.FurnitureId == g.FurnitureId && s.Kind == g.Kind));
         Assert.NotSame(initial.Stock, sim.Snapshot.Stock);
         Assert.All(goods, g => Assert.Contains(g, initial.Stock));
     }
 
     [Fact]
-    public void Bare_Stock_Furniture_refills_but_showroom_fridges_and_cabinets_stay_empty()
+    public void Only_Cafeteria_and_Camping_ground_Stock_Furniture_refills_from_bare()
     {
         using var sim = Simulation.Create(new WorldConfig(3008, StartingBands: false, RuntimeRngSeed: 1,
             Stock: new StockConfig { StockedShelfShare = 0, LeftBehindShare = 0, TableFoodChance = 0, SectorGuarantee = false },
@@ -203,9 +230,16 @@ public class RestockTests
         Assert.NotEmpty(displays);
         Assert.NotEmpty(shelves);
         Assert.DoesNotContain(initial.Stock, g => shelves.Contains(g.FurnitureId));
+        // Cafeteria counters and Camping ground stands start laid whatever the shelves hold, so clear them first.
+        var restocked = initial.Stock.Where(g => !g.LeftBehind && Restocked(initial, pieces[g.FurnitureId])).Select(g => (g.FurnitureId, g.Kind)).ToArray();
+        Assert.NotEmpty(restocked);
+        sim.Scenario.SetStock(restocked, 0);
         sim.Advance(TimeSpan.FromHours(2));
+        var refilled = sim.Snapshot.Stock.Where(g => !g.LeftBehind && restocked.Contains((g.FurnitureId, g.Kind))).ToArray();
+        Assert.NotEmpty(refilled);
+        Assert.All(refilled, g => Assert.True(Restocked(initial, pieces[g.FurnitureId])));
+        Assert.DoesNotContain(sim.Snapshot.Stock, g => shelves.Contains(g.FurnitureId) && !Restocked(initial, pieces[g.FurnitureId]));
         Assert.DoesNotContain(sim.Snapshot.Stock, g => displays.Contains(g.FurnitureId));
-        Assert.Contains(sim.Snapshot.Stock, g => shelves.Contains(g.FurnitureId));
         Assert.All(sim.Snapshot.Stock.Where(g => !g.LeftBehind), g => Assert.True(sim.Snapshot.IsStockFurniture(pieces[g.FurnitureId])));
     }
 
@@ -217,7 +251,7 @@ public class RestockTests
     {
         using var sim = Simulation.Create(new WorldConfig(3008, PillarLayout: PillarLayout.VillagerSandbox,
             Restock: new RestockConfig { GoodsPerStoreHour = rate }));
-        var shelf = sim.Scenario.PlaceFurniture(FurnitureType.GroceryShelf, new Vector2(20));
+        var shelf = sim.Scenario.PlaceFurniture(FurnitureType.GroceryShelf, new Vector2(20), restocked: true);
         sim.Scenario.SetStock(shelf.Id, GoodsKind.TinnedFood, 3);
         sim.Scenario.SetStock(shelf.Id, GoodsKind.TinnedFood, 0);
 

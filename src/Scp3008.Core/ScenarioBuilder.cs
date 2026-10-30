@@ -91,15 +91,17 @@ public sealed partial class ScenarioBuilder
     /// <summary>
     /// Puts a new piece of Furniture (the next free id), standing upright, on the floor or at <paramref name="elevation"/>, on top
     /// of what stands there; walking Villagers find their way around it. A piece that is not held up, or a structure it overloads,
-    /// collapses at the next tick (<see cref="StructureCollapsed"/>).
+    /// collapses at the next tick (<see cref="StructureCollapsed"/>). With <paramref name="restocked"/>, Restock looks after the
+    /// piece as it does Cafeteria and Camping ground Furniture (a mark that does not survive saving); otherwise, once taken, it
+    /// stays gone.
     /// </summary>
     public FurniturePiece PlaceFurniture(FurnitureType type, Vector2 position, float rotation = 0f, int variant = 0, int tint = 0,
-        float elevation = 0f)
+        float elevation = 0f, bool restocked = false)
     {
         if (!Enum.IsDefined(type) || variant < 0 || variant >= FurnitureCatalog.VariantCount(type) || tint is < 0 or > 11 ||
             !float.IsFinite(position.X) || !float.IsFinite(position.Y) || !float.IsFinite(rotation) || !float.IsFinite(elevation) || elevation < 0)
             throw new ArgumentException("Furniture needs a valid type, variant, tint and finite placement.");
-        return _simulation.PlaceFurniture(type, position, rotation, variant, tint, elevation);
+        return _simulation.PlaceFurniture(type, position, rotation, variant, tint, elevation, restocked);
     }
 
     /// <summary>Moves a piece of Furniture to a new position and rotation; walking Villagers find their way again.</summary>

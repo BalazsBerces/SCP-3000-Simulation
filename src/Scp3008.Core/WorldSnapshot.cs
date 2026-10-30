@@ -167,10 +167,27 @@ public sealed record WorldSnapshot(
     /// </summary>
     public float LampLevel(FurniturePiece lamp) => LampLevel(lamp, Clock.TimeOfDay);
 
-    public float LampLevel(FurniturePiece lamp, TimeSpan timeOfDay)
+    /// <summary>
+    /// The pieces that changed from an earlier snapshot's <see cref="Furniture"/> to <paramref name="later"/>, oldest change
+    /// first, so a view can follow a few moved pieces instead of going over every piece again. Null when they are not
+    /// known (a different world, pieces taken away, or too many changes ago): then go over all of <paramref name="later"/>.
+    /// </summary>
+    public static IReadOnlyList<FurnitureChange>? FurnitureChanges(IReadOnlyList<FurniturePiece>? earlier, IReadOnlyList<FurniturePiece> later)
     {
-        if (lamp.Damage >= 1 || GroundAt(lamp.Position).HasFlag(GroundProperty.Darkness)) return 0;
-        var power = LampPower.FirstOrDefault(p => p.FurnitureId == lamp.Id);
+        if (earlier is null || later is not FurnitureList list)
+            return null;
+        var changes = new List<FurnitureChange>();
+        return list.ChangesSince(earlier, changes) ? changes : null;
+    }
+
+    public float LampLevel(FurniturePiece lamp, TimeSpan timeOfDay) =>
+        lamp.Damage >= 1 || GroundAt(lamp.Position).HasFlag(GroundProperty.Darkness) ? 0
+            : LampLevel(lamp, timeOfDay, LampPower.FirstOrDefault(p => p.FurnitureId == lamp.Id), GroundProperty.None);
+
+    /// <summary><see cref="LampLevel(FurniturePiece, TimeSpan)"/> with the lamp's power and the ground under it already looked up.</summary>
+    internal float LampLevel(FurniturePiece lamp, TimeSpan timeOfDay, LampPower? power, GroundProperty ground)
+    {
+        if (lamp.Damage >= 1 || ground.HasFlag(GroundProperty.Darkness)) return 0;
         if (power?.TakenFromDisplay == true)
             return Phase == DayPhase.ClosingTime && (power.BatteryHours > 1e-9 || power.GeneratorPowered) ? 1 : 0;
         return power?.SwitchedOn == true ? 1 : StoreHours.LampLevelAt(lamp.Id, timeOfDay);

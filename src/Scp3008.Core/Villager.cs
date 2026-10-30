@@ -102,8 +102,11 @@ internal sealed partial class Villagers(StoreSpace space, Navigation navigation)
         else { walker.ClimbWaypoints.Clear(); walker.ClimbDestination = null; Plan(walker, navigation.NearestWalkable(destination)); }
     }
 
-    /// <summary>Finds every walking Villager's way again, after the Furniture changed.</summary>
-    public void Replan()
+    /// <summary>
+    /// Finds every walking Villager's way again, after the Furniture changed; <paramref name="nearChange"/> keeps the
+    /// ways that do not pass by the change (<see cref="Navigation.Crosses"/>).
+    /// </summary>
+    public void Replan(bool nearChange = false)
     {
         foreach (var walker in _walkers)
         {
@@ -117,7 +120,7 @@ internal sealed partial class Villagers(StoreSpace space, Navigation navigation)
                 walker.Destination = null;
             }
             if (walker.ClimbDestination is { } climb) { SendClimbing(walker, climb); continue; }
-            if (walker.Destination is { } destination)
+            if (walker.Destination is { } destination && (!nearChange || navigation.Crosses(walker.Position, walker.Waypoints)))
                 Plan(walker, navigation.NearestWalkable(destination));
         }
     }

@@ -60,11 +60,11 @@ public sealed partial class Simulation
             yield return GearKind.Flashlight;
     }
 
-    private void RestockGear(IReadOnlyDictionary<int, double> refill, HashSet<int> present)
+    private void RestockGear(IReadOnlyDictionary<int, double> refill, Func<int, bool> present)
     {
         foreach (var source in _gearSources)
         {
-            if (!present.Contains(source.FurnitureId) || !_restockOrigins.ContainsKey(source.FurnitureId) ||
+            if (!present(source.FurnitureId) || !_restockOrigins.ContainsKey(source.FurnitureId) ||
                 refill.GetValueOrDefault(_departments.At(source.Position).Id) < 1 ||
                 _gear.Any(g => g.FurnitureId == source.FurnitureId && g.Kind == source.Kind)) continue;
             _gear.Add(source with { Id = NextGearId() });

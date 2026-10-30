@@ -34,7 +34,7 @@ public sealed partial class Simulation
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(amount);
         if (GoodsCatalog.ClassOf(kind) != GoodsClass.Food) throw new ArgumentException("Only food spoils.", nameof(kind));
-        if (!_furniture.Pieces.Any(p => p.Id == furnitureId && (_snapshot.IsStockFurniture(p) || p.Type == FurnitureType.Fridge)))
+        if (!HasPiece(furnitureId, p => (_snapshot.IsStockFurniture(p) || p.Type == FurnitureType.Fridge)))
             throw new ArgumentException($"Piece {furnitureId} is not Stock Furniture or a Fridge.", nameof(furnitureId));
         var stock = _stock.ToList();
         var index = stock.FindIndex(g => g.FurnitureId == furnitureId && g.Kind == kind && !g.LeftBehind);

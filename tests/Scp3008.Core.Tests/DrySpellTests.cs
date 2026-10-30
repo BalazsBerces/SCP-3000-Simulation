@@ -22,7 +22,7 @@ public class DrySpellTests
         var spell = Assert.Single(before.DrySpells);
         var pieces = before.Furniture.ToDictionary(p => p.Id);
         StockedGoods Source(int department) => before.Stock.First(g => !g.LeftBehind && g.Amount >= 3 &&
-            before.Departments.At(pieces[g.FurnitureId].Position).Id == department);
+            RestockTests.Restocked(before, pieces[g.FurnitureId]) && before.Departments.At(pieces[g.FurnitureId].Position).Id == department);
         var dry = Source(spell.DepartmentId);
         var fast = Source(spell.BoostedDepartmentId);
         sim.Scenario.SetStock([(dry.FurnitureId, dry.Kind), (fast.FurnitureId, fast.Kind)], 10);
@@ -43,7 +43,7 @@ public class DrySpellTests
         Assert.Equal(1, sim.Snapshot.Stock.Single(g => g.FurnitureId == fast.FurnitureId && g.Kind == fast.Kind).Amount);
     }
     [Fact]
-    public void Long_run_visits_different_Departments_and_Sectors_without_stopping_all_food()
+    public void Long_run_visits_the_restocked_Departments_without_stopping_all_food()
     {
         using var sim = Simulation.Create(new WorldConfig(3008, StartingBands: false, RuntimeRngSeed: 17,
             Arrivals: ArrivalConfig.Off,
@@ -60,12 +60,16 @@ public class DrySpellTests
         });
         var initial = sim.Snapshot;
         var pieces = initial.Furniture.ToDictionary(p => p.Id);
-        var foodDepartments = initial.Stock.Where(g => !g.LeftBehind && GoodsCatalog.ClassOf(g.Kind) == GoodsClass.Food)
+        var restocked = initial.Stock.Where(g => !g.LeftBehind && RestockTests.Restocked(initial, pieces[g.FurnitureId])).ToArray();
+        var departments = restocked.Select(g => initial.Departments.At(pieces[g.FurnitureId].Position).Id).ToHashSet();
+        var foodDepartments = restocked.Where(g => GoodsCatalog.ClassOf(g.Kind) == GoodsClass.Food)
             .Select(g => initial.Departments.At(pieces[g.FurnitureId].Position).Id).Distinct().ToArray();
+        Assert.True(departments.Count >= 2);
         sim.Advance(TimeSpan.FromDays(60));
         Assert.InRange(starts.Count, 20, 40);
-        Assert.True(starts.Select(e => e.Spell.DepartmentId).Distinct().Count() > 10);
-        Assert.True(starts.Select(e => initial.SectorAt(initial.Departments.All[e.Spell.DepartmentId].Anchor).Id).Distinct().Count() > 3);
+        Assert.All(starts, e => Assert.Contains(e.Spell.DepartmentId, departments));
+        Assert.All(starts, e => Assert.Contains(e.Spell.BoostedDepartmentId, departments));
+        Assert.True(starts.Select(e => e.Spell.DepartmentId).Distinct().Count() >= 2);
         Assert.All(starts, e =>
         {
             Assert.Equal(e.At, e.Spell.StartedAt);
@@ -83,7 +87,7 @@ public class DrySpellTests
         DrySpell[] Run(int runtimeSeed, bool weather, int mapSeed = 3008)
         {
             using var sim = Simulation.Create(new WorldConfig(mapSeed, StartingBands: false, RuntimeRngSeed: runtimeSeed,
-                PointOfInterestShowcase: true, Restock: new RestockConfig
+                Restock: new RestockConfig
                 { DrySpellIntervalHours = 2, DrySpellDurationHours = 1 }));
             sim.Scenario.SetFogBankFormation(weather);
             var spells = new List<DrySpell>();
@@ -128,7 +132,7 @@ public class DrySpellTests
         Assert.Empty(events.OfType<DrySpellStarted>());
         using var sandbox = Simulation.Create(new WorldConfig(3008, PillarLayout: PillarLayout.VillagerSandbox,
             Restock: new RestockConfig { GoodsPerStoreHour = 1, DrySpellIntervalHours = 0.1, DrySpellStrength = 1 }));
-        var shelf = sandbox.Scenario.PlaceFurniture(FurnitureType.GroceryShelf, new System.Numerics.Vector2(20));
+        var shelf = sandbox.Scenario.PlaceFurniture(FurnitureType.GroceryShelf, new System.Numerics.Vector2(20), restocked: true);
         sandbox.Scenario.SetStock(shelf.Id, GoodsKind.TinnedFood, 3);
         sandbox.Scenario.SetStock(shelf.Id, GoodsKind.TinnedFood, 0);
         sandbox.Advance(TimeSpan.FromHours(2));
@@ -144,7 +148,7 @@ public class DrySpellTests
         sim.Scenario.SetFogBankFormation(false);
         while (sim.Snapshot.DrySpells.Count == 0) sim.AdvanceTicks(1);
         var spell = Assert.Single(sim.Snapshot.DrySpells);
-        FurniturePiece Piece(int id) => sim.Snapshot.Furniture.First(p =>
+        FurniturePiece Piece(int id) => sim.Snapshot.Furniture.First(p => RestockTests.Restocked(sim.Snapshot, p) &&
             sim.Snapshot.Departments.At(p.Position).Id == id && sim.Snapshot.IsStockFurniture(p) && !FurnitureCatalog.Spec(p).IsFixed);
         var dry = Piece(spell.DepartmentId);
         var fast = Piece(spell.BoostedDepartmentId);

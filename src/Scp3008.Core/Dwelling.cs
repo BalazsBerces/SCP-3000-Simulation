@@ -210,11 +210,11 @@ public sealed partial class Simulation
                         return true;
                     }
                     var supportIndex = dwelling.Kind == DwellingKind.Tent ? 0 : i == 4 ? 2 : 3;
-                    var support = roof ? new[] { _furniture.Pieces.Single(p => p.Id == dwelling.Slots[supportIndex].FurnitureId) } : [];
+                    var support = roof ? new[] { Piece(dwelling.Slots[supportIndex].FurnitureId) } : [];
                     var elevation = roof ? support.Max(p => p.Elevation + FurnitureCatalog.Spec(p).Height) : 0;
                     MoveFurnitureCore(task.FurnitureId, slot.Position, slot.Rotation, elevation);
                     SetDwellingSlot(village.Id, dwelling.Id, i, slot with { FurnitureId = task.FurnitureId,
-                        ReservedFurnitureId = null, Elevation = elevation, Tier = TierOf(_furniture.Pieces.Single(p => p.Id == task.FurnitureId), false, false) });
+                        ReservedFurnitureId = null, Elevation = elevation, Tier = TierOf(Piece(task.FurnitureId), false, false) });
                     foreach (var id in task.VillagerIds) _villagers.PracticeBuilding(id, false);
                     return true;
                 }
@@ -244,7 +244,7 @@ public sealed partial class Simulation
                 if (!metal && !foam) continue;
                 SetMaterialsCore(village.Id, metal ? MaterialKind.Metal : MaterialKind.Foam,
                     village.Materials[metal ? MaterialKind.Metal : MaterialKind.Foam] - (metal ? StrapMetal : BackfillFoam));
-                var piece = _furniture.Pieces.Single(p => p.Id == slot.FurnitureId);
+                var piece = Piece(slot.FurnitureId);
                 var upgraded = slot with { Strapped = slot.Strapped || metal, Backfilled = slot.Backfilled || !metal };
                 SetDwellingSlot(village.Id, d.Id, index, upgraded with { Tier = TierOf(piece, upgraded.Strapped, upgraded.Backfilled) });
                 return true;
@@ -268,9 +268,9 @@ public sealed partial class Simulation
                     var s = dwelling.Slots[i];
                     if (s.Position != layout[i].Position || s.Rotation != layout[i].Rotation || !float.IsFinite(s.Elevation) || s.Elevation < 0 ||
                         s.Tier is < 1 or > 3 || s.FurnitureId is not null && s.ReservedFurnitureId is not null ||
-                        s.FurnitureId is { } f && !_furniture.Pieces.Any(p => p.Id == f && Dwelling.Fits(dwelling.Kind, i, p) &&
+                        s.FurnitureId is { } f && !HasPiece(f, p => Dwelling.Fits(dwelling.Kind, i, p) &&
                             p.Position == s.Position && p.Rotation == s.Rotation && p.Elevation == s.Elevation) ||
-                        s.ReservedFurnitureId is { } r && (!_furniture.Pieces.Any(p => p.Id == r && Dwelling.Fits(dwelling.Kind, i, p)) ||
+                        s.ReservedFurnitureId is { } r && (!HasPiece(r, p => Dwelling.Fits(dwelling.Kind, i, p)) ||
                             !_furnitureTasks.Any(t => t.FurnitureId == r && t.VillagerIds.All(village.VillagerIds.Contains))))
                         throw new InvalidDataException("Invalid world save: inconsistent Dwelling Blueprint.");
                 }

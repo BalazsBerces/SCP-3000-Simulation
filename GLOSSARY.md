@@ -39,7 +39,7 @@ One of the equal squares the Pillar layout divides the Store into, named by its 
 _Avoid_: Zone, region, quadrant, district
 
 **Landmark**:
-A huge, far-visible, unique place of the Store that shapes what Villagers do there (the ruined Village, Abandoned scaffold, rack canyon, dead zone, clock wall, mattress mountain, fountain court, box fort or Camping ground). Every world has the ruined Village; the seed picks which of the others it has, at most one Landmark per Sector, preferring Sectors without a Pillar. It stands on a rectangle of at most a quarter of its Sector, clear of the Pillar and its walkway ring, which no Display enters, and rises well above the shelving and the Fog banks. It is made entirely of Furniture, which Villages may take and Restock slowly brings back (the one exception is the Camping ground's tree house shell, a fixed part of the Landmark); some also give their ground a lasting property, such as darkness or water, that stays when the Furniture is gone. Pillars are not Landmarks. The climbable ones (rack canyon, mattress mountain, Camping ground) have **Lookouts**: high places on their Furniture to look out from.
+A huge, far-visible, unique place of the Store that shapes what Villagers do there (the ruined Village, Abandoned scaffold, rack canyon, dead zone, clock wall, mattress mountain, fountain court, box fort or Camping ground). Every world has the ruined Village; the seed picks which of the others it has, at most one Landmark per Sector, preferring Sectors without a Pillar. It stands on a rectangle of at most a quarter of its Sector, clear of the Pillar and its walkway ring, which no Display enters, and rises well above the shelving and the Fog banks. It is made entirely of Furniture, which Villages may take; only the Camping ground's is slowly brought back by Restock (its tree house shell is a fixed part of the Landmark), the other Landmarks stay stripped; some also give their ground a lasting property, such as darkness or water, that stays when the Furniture is gone. Pillars are not Landmarks. The climbable ones (rack canyon, mattress mountain, Camping ground) have **Lookouts**: high places on their Furniture to look out from.
 _Avoid_: Point of interest (small, seen only up close)
 
 **Landmark showcase**:
@@ -211,11 +211,11 @@ A Villager's practice in a Role, kept when they switch Roles. Builder skill grow
 Single-use Gear made from fabric with bare hands, consumed when used. It is for speeding a Wounded Villager's healing; there are no medicines in the Store.
 
 **Restock**:
-The Store's slow replenishment of Goods and Furniture, which keeps the world from running dry. Each Goods kind and Furniture restock at their own rate; Furniture reappears only where no Villager can see. Goods restock only on Stock Furniture, and the shelves visibly fill and empty.
+The Store's slow replenishment of Goods and Furniture, found only in the Cafeterias and the Camping ground: their Furniture reappears where it stood, only where no Villager can see, and their Goods are laid again on their Stock Furniture. Everywhere else, what is taken stays gone (shelves, Displays, other Points of interest and Landmarks, found Gear), so the Store slowly runs dry around Villages and these few places become the lasting sources worth settling near or fighting over. Goods and Furniture restock at their own rates.
 _Avoid_: Respawn, regeneration
 
 **Dry spell**:
-A stretch of a few Store days in which a Department's Restock slows or stops, while elsewhere it runs faster, so Shortages wander across the Store and Villages must adapt. Villages may form Beliefs about them.
+A stretch of a few Store days in which Restock slows or stops in one Department holding a Cafeteria or the Camping ground, while in another it runs faster, so Shortages wander across the Store and Villages must adapt. Villages may form Beliefs about them.
 _Avoid_: Famine, drought, shortage (a Sector's lasting lack)
 
 **Fog bank**:

@@ -87,7 +87,7 @@ public sealed partial class Simulation
             throw new InvalidDataException("Invalid world save: inconsistent world state.");
         _space = s.Space;
         _departments = s.Departments;
-        _furniture = new(s.Furniture, s.Displays, s.CellLayouts);
+        _furniture = new(FurnitureList.From(s.Furniture), s.Displays, s.CellLayouts);
         _pillars = s.Pillars;
         _sectors = s.Sectors;
         _landmarks = s.Landmarks;
@@ -158,12 +158,13 @@ public sealed partial class Simulation
         _nextGearId = state.NextGearId;
         _patrols.AddRange(state.Patrols.Select(p => (p.Id, p.Route, p.Next)));
         _nextBandId = state.NextBandId;
-        foreach (var piece in state.RestockOrigins) _restockOrigins.Add(piece.Id, piece);
-        _missingFurniture.AddRange(state.MissingFurniture);
+        // Saves from before Restock kept to the Cafeterias and the Camping ground lose what it no longer looks after.
+        foreach (var piece in state.RestockOrigins.Where(Restocked)) _restockOrigins.Add(piece.Id, piece);
+        _missingFurniture.AddRange(state.MissingFurniture.Where(m => Restocked(m.Piece)));
         _nextFurnitureId = state.NextFurnitureId;
         _restockHours = state.RestockHours;
         _nextFurnitureCheck = state.NextFurnitureCheck;
-        foreach (var target in state.StockTargets) _stockTargets.Add((target.FurnitureId, target.Kind), target.Amount);
+        foreach (var target in state.StockTargets.Where(t => _restockOrigins.ContainsKey(t.FurnitureId))) _stockTargets.Add((target.FurnitureId, target.Kind), target.Amount);
         foreach (var credit in state.GoodsRestockCredit) _goodsRestockCredit.Add(credit.Key, credit.Value);
         _restockRandom = new SeededRandom(state.RestockRandom);
         _drySpell = state.DrySpell;

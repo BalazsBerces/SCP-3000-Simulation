@@ -66,6 +66,9 @@ public sealed partial class Simulation
 {
     private const float CarriedElevation = 0.7f;
     private readonly List<FurnitureTask> _furnitureTasks = [];
+    // Carrying routes found wanting, with why, while the free cells stay as they were at _noRouteVersion.
+    private readonly Dictionary<(FurniturePiece, Vector2, bool), string> _noRoute = [];
+    private int _noRouteVersion = -1;
 
     private void RestoreFurnitureTasks(IReadOnlyList<FurnitureTask> tasks, IReadOnlyList<Village> villages)
     {
@@ -78,7 +81,7 @@ public sealed partial class Simulation
                 !double.IsFinite(t.Progress) || t.Progress < 0 || t.Progress >= 1 ||
                 !float.IsFinite(t.Destination.X) || !float.IsFinite(t.Destination.Y) ||
                 t.Route.Any(p => !float.IsFinite(p.X) || !float.IsFinite(p.Y)) ||
-                !_furniture.Pieces.Any(p => p.Id == t.FurnitureId && !FurnitureCatalog.Spec(p).IsFixed) ||
+                !HasPiece(t.FurnitureId, p => !FurnitureCatalog.Spec(p).IsFixed) ||
                 t.VillagerIds.Any(id => !workers.Any(v => v.Id == id && v.FurnitureTaskId == t.FurnitureId))) ||
             workers.Any(v => v.FurnitureTaskId is { } id && !tasks.Any(t => t.FurnitureId == id && t.VillagerIds.Contains(v.Id))))
             throw new InvalidDataException("Invalid world save: inconsistent Furniture tasks.");
@@ -91,7 +94,7 @@ public sealed partial class Simulation
         if (ids.Count is < 1 or > 4 || ids.Distinct().Count() != ids.Count ||
             !float.IsFinite(destination.X) || !float.IsFinite(destination.Y))
             throw new ArgumentException("Furniture work needs one to four distinct Villagers and a finite destination.");
-        var piece = _furniture.Pieces.Where(p => p.Id == furnitureId).Select(p => (FurniturePiece?)p).SingleOrDefault()
+        var piece = PieceById(furnitureId)
             ?? throw new ArgumentException("No such Furniture.");
         if (FurnitureCatalog.Spec(piece).IsFixed || IsSlotFurniture(furnitureId) || construction && IsHomeFridge(furnitureId) || _furnitureTasks.Any(t => t.FurnitureId == furnitureId))
             throw new InvalidOperationException("Furniture is fixed or already reserved.");
@@ -111,22 +114,35 @@ public sealed partial class Simulation
             workers.Length == 1 && weight <= 25 ? FurnitureWork.Carry : FurnitureWork.Drag;
         if (!disassemble && workers.Any(v => v.Hand is not null) && !cart)
             throw new InvalidOperationException("Carrying Furniture needs free hands.");
-        if (workers.Any(v => _navigation.FindPath(v.Position, _navigation.NearestWalkable(piece.Position)) is null))
-            throw new InvalidOperationException("A worker cannot reach the Furniture.");
+        // The carrying route first: when it fails it mostly fails fast, before the long way of each worker to the piece.
         List<Vector2> route = [];
         if (!disassemble)
         {
-            _navigation.Update([piece], []);
-            try
+            // The same piece fails the same way to the same place until the free cells change.
+            if (_noRouteVersion != _navigation.Version)
             {
-                if (construction) destination = _navigation.NearestWalkable(destination);
-                if (!_navigation.IsWalkable(destination)) throw new InvalidOperationException("Destination is blocked.");
-                // shortcut: hauling uses pedestrian clearance; widen routes when narrow-aisle load clearance is added.
-                route = _navigation.FindPath(piece.Position, _space.Wrap(destination))
-                    ?? throw new InvalidOperationException("No carrying route.");
+                _noRoute.Clear();
+                _noRouteVersion = _navigation.Version;
             }
-            finally { _navigation.Update([], [piece]); }
+            var key = (piece, destination, construction);
+            if (_noRoute.TryGetValue(key, out var known))
+                throw new InvalidOperationException(known);
+            var (found, to, failure) = _navigation.Without(piece, () =>
+            {
+                var to = construction ? _navigation.NearestWalkable(destination) : destination;
+                if (!_navigation.IsWalkable(to)) return (null, to, "Destination is blocked.");
+                // shortcut: hauling uses pedestrian clearance; widen routes when narrow-aisle load clearance is added.
+                return (_navigation.FindPath(piece.Position, _space.Wrap(to)), to, "No carrying route.");
+            });
+            if (found is null)
+            {
+                _noRoute[key] = failure;
+                throw new InvalidOperationException(failure);
+            }
+            (route, destination) = (found, to);
         }
+        if (workers.Any(v => _navigation.FindPath(v.Position, _navigation.NearestWalkable(piece.Position)) is null))
+            throw new InvalidOperationException("A worker cannot reach the Furniture.");
         _furnitureTasks.Add(new(furnitureId, Array.AsReadOnly(ids.ToArray()), work, _space.Wrap(destination), route.AsReadOnly()));
         foreach (var id in ids) _villagers.ReserveFurniture(id, furnitureId, piece.Position);
         return true;
@@ -136,7 +152,7 @@ public sealed partial class Simulation
     {
         foreach (var task in _furnitureTasks.ToArray())
         {
-            var found = _furniture.Pieces.Where(p => p.Id == task.FurnitureId).Select(p => (FurniturePiece?)p).SingleOrDefault();
+            var found = PieceById(task.FurnitureId);
             var piece = found.GetValueOrDefault();
             var people = _villagers.Snapshot();
             var workers = people.Where(v => task.VillagerIds.Contains(v.Id)).ToArray();
@@ -244,7 +260,7 @@ public sealed partial class Simulation
     private void FinishFurnitureTask(FurnitureTask task, Villager[] workers, bool completed = false)
     {
         if (task.Started && task.Work != FurnitureWork.Disassemble &&
-            _furniture.Pieces.Where(p => p.Id == task.FurnitureId).Select(p => (FurniturePiece?)p).SingleOrDefault() is { } piece && piece.Elevation != 0)
+            PieceById(task.FurnitureId) is { } piece && piece.Elevation != 0)
             MoveFurnitureCore(piece.Id, piece.Position, piece.Rotation, 0);
         _furnitureTasks.Remove(task);
         if (!completed) ReleaseBlueprintReservation(task.FurnitureId);

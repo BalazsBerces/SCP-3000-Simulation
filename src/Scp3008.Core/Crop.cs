@@ -99,11 +99,23 @@ public sealed partial class Simulation
         GatherCrops();
     }
 
+    private IReadOnlyList<FurniturePiece>? _cropFurniture;
+    private FurniturePiece[] _cropPieces = [];
+
+    // The Crops among the Furniture, gone over again only when a Crop changed.
+    private FurniturePiece[] CropPieces()
+    {
+        if (!ReferenceEquals(_cropFurniture, _furniture.Pieces) && !UntouchedSince(_cropFurniture, p => p.Type == FurnitureType.Crop))
+            _cropPieces = _furniture.Pieces.Where(p => p.Type == FurnitureType.Crop).ToArray();
+        _cropFurniture = _furniture.Pieces;
+        return _cropPieces;
+    }
+
     // An idle farmer of a Village tending fewer than Crop.Kept Crops carries the nearest living one home from further out.
     private void GatherCrops()
     {
         if (_villages.Count == 0) return;
-        var pieces = _furniture.Pieces.Where(p => p.Type == FurnitureType.Crop && !_crops[p.Id].Withered).ToArray();
+        var pieces = CropPieces().Where(p => !_crops[p.Id].Withered).ToArray();
         if (pieces.Length == 0) return;
         var people = _villagers.Snapshot();
         foreach (var village in _villages)
@@ -133,7 +145,7 @@ public sealed partial class Simulation
 
     // Living Crops a Village tends, or could carry home: they keep its farmers from being sent scavenging.
     private bool HasCrops(Village village) =>
-        _furniture.Pieces.Any(p => p.Type == FurnitureType.Crop && !_crops[p.Id].Withered &&
+        CropPieces().Any(p => !_crops[p.Id].Withered &&
             _space.Distance(village.Position, p.Position) <= Crop.GatherRange);
 
     private void RestoreCrops(WorldSnapshot s)

@@ -97,6 +97,7 @@ internal sealed partial class Villagers
     {
         foreach (var walker in _walkers.Where(w => ids.Contains(w.Id)))
         {
+            walker.Map = null;
             walker.ExploredGround.UnionWith(map.ExploredGround);
             foreach (var goods in map.Goods)
                 walker.KnownGoods[(goods.Goods.FurnitureId, goods.Goods.Kind, goods.Goods.LeftBehind)] = goods;

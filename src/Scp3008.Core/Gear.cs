@@ -126,11 +126,12 @@ public sealed partial class Simulation
         if (found.Kind == GearKind.ShoppingCart && found.FurnitureId >= 0)
         {
             // The graveyard's visible cart becomes carried Gear, rather than leaving a second cart behind.
-            var piece = _furniture.Pieces.Single(p => p.Id == found.FurnitureId);
+            var piece = Piece(found.FurnitureId);
+            var restocked = _restockOrigins.ContainsKey(piece.Id);
             RemoveFurniture(p => p.Id == found.FurnitureId);
             _missingFurniture.RemoveAll(m => m.Piece.Id == piece.Id);
             var rate = (_config.Restock ?? new RestockConfig()).GoodsPerStoreHour;
-            if (rate > 0) _missingFurniture.Add(new MissingFurniture(piece, [], _restockHours + 1 / rate));
+            if (rate > 0 && restocked) _missingFurniture.Add(new MissingFurniture(piece, [], _restockHours + 1 / rate));
             _nextFurnitureCheck = _missingFurniture.Count == 0 ? double.PositiveInfinity : _missingFurniture.Min(m => m.ReadyHour);
         }
         return true;

@@ -25,23 +25,29 @@ public sealed record KnownVillage(int VillageId, Vector2 Position, StoreClock La
 internal sealed partial class Villagers
 {
     private const float GroundStep = 8;
-    private IReadOnlyList<FurniturePiece>? _indexedFurniture;
-    private ILookup<ChunkCoord, FurniturePiece>? _furnitureByChunk;
+    private FurnitureIndex? _furnitureIndex;
     private float _largestPiece;
+    private readonly SightBlockers _sight = new();
+    private readonly List<FurniturePiece> _blockers = [];
+    private readonly List<FurniturePiece> _nearby = [];
+    private readonly List<(Vector2, (float, int))> _groundOrder = [];
+    private readonly PriorityQueue<Vector2, (float Distance, int Index)> _ground = new(GroundOrder);
+    private IReadOnlyList<StockedGoods>? _indexedStock;
+    private ILookup<int, StockedGoods> _stockByFurniture = Array.Empty<StockedGoods>().ToLookup(g => g.FurnitureId);
+    private Vector2[]? _groundCells;
+    private int _groundPerRow;
+    private bool[] _groundSkipped = [];
+    private static readonly Comparer<(float Distance, int Index)> GroundOrder =
+        Comparer<(float Distance, int Index)>.Create((a, b) => a.Distance != b.Distance ? a.Distance.CompareTo(b.Distance) : a.Index.CompareTo(b.Index));
 
     private void IndexFurniture(IReadOnlyList<FurniturePiece> pieces)
     {
-        if (ReferenceEquals(pieces, _indexedFurniture))
-            return;
-        _indexedFurniture = pieces;
-        _furnitureByChunk = pieces.ToLookup(p => space.ChunkOf(p.Position));
-        _largestPiece = pieces.Select(p => FurnitureCatalog.Spec(p))
-            .Select(s => new Vector3(s.Width, s.Depth, s.Height).Length()).DefaultIfEmpty().Max();
+        _furnitureIndex ??= new FurnitureIndex(space);
+        _furnitureIndex.Update(pieces);
+        _largestPiece = _furnitureIndex.LargestPiece;
     }
 
-    public IEnumerable<FurniturePiece> FurnitureNear(Vector2 position, float range) =>
-        space.ChunkImagesAround(position, range).Select(c => c.Chunk).Distinct()
-            .SelectMany(c => _furnitureByChunk![c]);
+    public IEnumerable<FurniturePiece> FurnitureNear(Vector2 position, float range) => _furnitureIndex!.Near(position, range);
 
     private sealed partial class Walker
     {
@@ -50,6 +56,8 @@ internal sealed partial class Villagers
         public Dictionary<(int, Vector2), KnownWater> KnownWater { get; } = [];
         public Dictionary<int, KnownDanger> KnownDangers { get; } = [];
         public Dictionary<int, KnownVillage> KnownVillages { get; } = [];
+        // The last published view of the above; cleared whenever they change.
+        public KnownMap? Map { get; set; }
     }
 
     private Vector2 GroundAt(Vector2 position) => new(
@@ -58,27 +66,58 @@ internal sealed partial class Villagers
 
     private void Observe(Walker walker, WorldSnapshot world)
     {
+        walker.Map = null;
         walker.ExploredGround.Add(GroundAt(walker.Position));
         var viewer = new Villager(walker.Id, walker.Position, walker.Destination, walker.Heading) { Elevation = walker.Elevation };
-        var blockers = FurnitureNear(walker.Position, viewer.ViewRange + _largestPiece).ToArray();
-        var nearby = blockers.Where(p => space.Distance(walker.Position, p.Position) <= viewer.ViewRange).ToArray();
+        // Reused between Observations: a Villager sees some thousands of pieces.
+        var blockers = _blockers;
+        blockers.Clear();
+        blockers.AddRange(FurnitureNear(walker.Position, viewer.ViewRange + _largestPiece));
+        var nearby = _nearby;
+        nearby.Clear();
+        foreach (var piece in blockers)
+            if (space.Distance(walker.Position, piece.Position) <= viewer.ViewRange)
+                nearby.Add(piece);
+        // Sight lines are bucketed only once one is needed.
+        var sightReady = false;
+        bool CanSee(FurniturePiece piece)
+        {
+            if (!sightReady)
+                _sight.Prepare(space, walker.Position, blockers, viewer.ViewRange + _largestPiece);
+            sightReady = true;
+            return RestockSight.CanSee(space, viewer, piece, _sight, world.Pillars, world.FogBanks);
+        }
         // A source within reach can be inspected even when its own Furniture hides its centre.
-        bool Visible(FurniturePiece piece) => space.Distance(walker.Position, piece.Position) <= viewer.ViewRange &&
-            (space.Distance(walker.Position, navigation.NearestWalkable(piece.Position)) < 0.5f ||
-             RestockSight.CanSee(space, viewer, piece, blockers, world.Pillars, world.FogBanks));
+        var seen = new Dictionary<FurniturePiece, bool>();
+        bool Visible(FurniturePiece piece)
+        {
+            if (space.Distance(walker.Position, piece.Position) > viewer.ViewRange)
+                return false;
+            if (!seen.TryGetValue(piece, out var visible))
+                seen[piece] = visible = space.Distance(walker.Position, navigation.NearestWalkable(piece.Position)) < 0.5f || CanSee(piece);
+            return visible;
+        }
         bool VisibleAt(Vector2 position) => Visible(new FurniturePiece(-1, FurnitureType.CoffeeTable, position, 0, 0, 0));
-        var stock = world.Stock.ToLookup(g => g.FurnitureId);
+        if (!ReferenceEquals(world.Stock, _indexedStock))
+        {
+            _indexedStock = world.Stock;
+            _stockByFurniture = world.Stock.ToLookup(g => g.FurnitureId);
+        }
+        var stock = _stockByFurniture;
+        var knownIds = walker.KnownGoods.Values.Select(g => g.Goods.FurnitureId).ToHashSet();
+        var nearbyAt = nearby.Where(p => knownIds.Contains(p.Id)).Select(p => (p.Id, p.Position)).ToHashSet();
+        var knownKeys = walker.KnownGoods.Keys.ToLookup(k => k.Item1);
         foreach (var (key, goods) in walker.KnownGoods.ToArray())
-            if (!nearby.Any(p => p.Id == goods.Goods.FurnitureId && p.Position == goods.Position) &&
+            if (!nearbyAt.Contains((goods.Goods.FurnitureId, goods.Position)) &&
                 VisibleAt(goods.Position))
                 walker.KnownGoods[key] = goods with { Goods = goods.Goods with { Amount = 0 }, LastSeen = world.Clock, Stale = false };
         foreach (var piece in nearby)
         {
-            if (!stock.Contains(piece.Id) && !walker.KnownGoods.Keys.Any(k => k.Item1 == piece.Id))
+            if (!stock.Contains(piece.Id) && !knownKeys.Contains(piece.Id))
                 continue;
             if (!Visible(piece))
                 continue;
-            foreach (var key in walker.KnownGoods.Keys.Where(k => k.Item1 == piece.Id).ToArray())
+            foreach (var key in knownKeys[piece.Id])
                 walker.KnownGoods[key] = walker.KnownGoods[key] with
                 { Goods = walker.KnownGoods[key].Goods with { Amount = 0 }, LastSeen = world.Clock, Stale = false };
             foreach (var goods in stock[piece.Id])
@@ -119,7 +158,7 @@ internal sealed partial class Villagers
                 walker.KnownVillages[id] = village with { Stale = true };
     }
 
-    private static KnownMap MapOf(Walker walker) => new()
+    private static KnownMap MapOf(Walker walker) => walker.Map ??= new()
     {
         ExploredGround = walker.ExploredGround.ToList().AsReadOnly(),
         Goods = walker.KnownGoods.Values.ToList().AsReadOnly(),
@@ -127,6 +166,17 @@ internal sealed partial class Villagers
         Dangers = walker.KnownDangers.Values.ToList().AsReadOnly(),
         Villages = walker.KnownVillages.Values.ToList().AsReadOnly(),
     };
+
+    private void SkipGround(Vector2 position)
+    {
+        var column = (position.X - GroundStep / 2) / GroundStep;
+        var row = (position.Y - GroundStep / 2) / GroundStep;
+        if (column < 0 || row < 0 || column != MathF.Floor(column) || row != MathF.Floor(row) || column >= _groundPerRow)
+            return;
+        var index = (int)row * _groundPerRow + (int)column;
+        if (index < _groundCells!.Length && _groundCells[index] == position)
+            _groundSkipped[index] = true;
+    }
 
     private void Scout(Walker walker, WorldSnapshot world)
     {
@@ -141,15 +191,32 @@ internal sealed partial class Villagers
                 if (SendClimbing(walker, lookout)) { walker.Action = VillagerAction.Scouting; return; }
             }
         }
-        var ground = new List<Vector2>();
-        for (float y = GroundStep / 2; y < space.Size; y += GroundStep)
-            for (float x = GroundStep / 2; x < space.Size; x += GroundStep)
-            {
-                var position = new Vector2(x, y);
-                if (!walker.ExploredGround.Contains(position) && !walker.Unreachable.Contains(position))
-                    ground.Add(position);
-            }
-        foreach (var position in ground.OrderBy(p => space.Distance(walker.Position, p)))
+        if (_groundCells is null)
+        {
+            var cells = new List<Vector2>();
+            for (float y = GroundStep / 2; y < space.Size; y += GroundStep)
+                for (float x = GroundStep / 2; x < space.Size; x += GroundStep)
+                    cells.Add(new Vector2(x, y));
+            _groundCells = [.. cells];
+            _groundPerRow = cells.Count(c => c.Y == cells[0].Y);
+            _groundSkipped = new bool[cells.Count];
+        }
+        // Explored and unreachable ground, marked on the grid instead of looked up cell by cell.
+        Array.Clear(_groundSkipped);
+        foreach (var position in walker.ExploredGround)
+            SkipGround(position);
+        foreach (var position in walker.Unreachable)
+            SkipGround(position);
+        // Nearest unexplored ground first (ties in grid order), sorted only as far as needed.
+        var order = _groundOrder;
+        order.Clear();
+        for (var i = 0; i < _groundCells.Length; i++)
+            if (!_groundSkipped[i])
+                order.Add((_groundCells[i], (space.Distance(walker.Position, _groundCells[i]), i)));
+        var ground = _ground;
+        ground.Clear();
+        ground.EnqueueRange(order);
+        while (ground.TryDequeue(out var position, out _))
         {
             if (!navigation.IsWalkable(position))
             {

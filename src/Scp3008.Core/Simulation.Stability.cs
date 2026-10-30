@@ -19,7 +19,11 @@ public sealed partial class Simulation
             return;
         var changed = _stabilityChanges.ToArray();
         _stabilityChanges.Clear();
-        var (broken, fallen, origin) = Stability.Settle(_furniture.Pieces, _space, changed, IsHeld);
+        // Only Furniture near the changes can be part of their structures; it is handed over in list order.
+        _piecesIndex.Update(_furniture.Pieces);
+        var near = changed.SelectMany(pose => _piecesIndex.NearIndices(pose.Position, Stability.RegionReach))
+            .Distinct().Order().Select(i => _furniture.Pieces[i]).ToArray();
+        var (broken, fallen, origin) = Stability.Settle(near, _space, changed, IsHeld);
         if (broken.Count == 0 && fallen.Count == 0)
             return;
         var wrecked = broken.ToHashSet();
@@ -29,12 +33,12 @@ public sealed partial class Simulation
             var to = wrecked.Contains(fall.To.Id) ? fall.To with { Damage = 1f } : fall.To;
             if (IsBuiltFurniture(to.Id)) UnbuildFurniture(to.Id);
             CancelFurnitureTasks(t => t.FurnitureId == to.Id);
-            var index = _furniture.Pieces.ToList().FindIndex(p => p.Id == to.Id);
+            var index = PieceIndex(to.Id);
             landed.Add(new FallenPiece(fall.From, SetPose(index, _furniture.Pieces[index], to)));
         }
         foreach (var id in wrecked.Where(id => !fallen.Any(f => f.From.Id == id)))
         {
-            var index = _furniture.Pieces.ToList().FindIndex(p => p.Id == id);
+            var index = PieceIndex(id);
             SetPose(index, _furniture.Pieces[index], _furniture.Pieces[index] with { Damage = 1f });
         }
         Emit(new StructureCollapsed(clock, origin, landed, broken));
@@ -42,7 +46,7 @@ public sealed partial class Simulation
 
     internal void DamageFurniture(int furnitureId, float damage) => Publish(() =>
     {
-        var index = _furniture.Pieces.ToList().FindIndex(p => p.Id == furnitureId);
+        var index = PieceIndex(furnitureId);
         if (index < 0)
             throw new ArgumentException($"No piece {furnitureId}.", nameof(furnitureId));
         var damaged = _furniture.Pieces[index] with { Damage = damage };

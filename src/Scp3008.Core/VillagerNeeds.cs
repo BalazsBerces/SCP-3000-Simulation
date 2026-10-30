@@ -134,6 +134,7 @@ internal sealed partial class Villagers
                     {
                         point = world.WaterPoints.FirstOrDefault(w => w.FurnitureId == point.FurnitureId && w.Position == point.Position);
                         var key = (target.Water.Value.FurnitureId, target.Position);
+                        walker.Map = null;
                         if (walker.KnownWater.TryGetValue(key, out var known))
                             walker.KnownWater[key] = known with { Running = point.Running, LastSeen = world.Clock, Stale = false };
                         if (point.Running && target.Fill)

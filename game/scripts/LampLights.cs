@@ -141,8 +141,14 @@ public partial class LampLights : Node3D
     public override void _Process(double delta)
     {
         var carried = Host.Snapshot.LitAreas.Where(a => a.Id < 0).ToArray();
-        if (!ReferenceEquals(_builtFurniture, Host.Snapshot.Furniture) || !_carriedAreas.SequenceEqual(carried))
+        // Furniture moving about changes no light unless a lamp is among it.
+        var lampsChanged = !ReferenceEquals(_builtFurniture, Host.Snapshot.Furniture) &&
+            (WorldSnapshot.FurnitureChanges(_builtFurniture, Host.Snapshot.Furniture) is not { } changes ||
+             changes.Any(c => FurnitureCatalog.Spec(c.After).IsLamp || c.Before is { } before && FurnitureCatalog.Spec(before).IsLamp));
+        if (lampsChanged || !_carriedAreas.SequenceEqual(carried))
             Rebuild(Host.Snapshot);
+        else
+            _builtFurniture = Host.Snapshot.Furniture;
         // The camera that renders: the Observer camera, or a dev camera such as the eye-level one.
         var camera = GetViewport().GetCamera3D() ?? Rig.Camera;
         _halos.ApplyFog(material =>

@@ -93,7 +93,7 @@ public sealed partial class Simulation : IDisposable
             : FurnitureGenerator.Generate(config.Seed, _space, _departments, _pillars, sites, poiSites);
         var landmarks = LandmarkGenerator.Build(config.Seed, _space, sites, furniture.Pieces.Count);
         var pointsOfInterest = PointOfInterestGenerator.Build(config.Seed, _space, poiSites, furniture.Pieces.Count + landmarks.Pieces.Count);
-        _furniture = furniture with { Pieces = furniture.Pieces.Concat(landmarks.Pieces).Concat(pointsOfInterest.Pieces).ToList().AsReadOnly() };
+        _furniture = furniture with { Pieces = FurnitureList.From(furniture.Pieces.Concat(landmarks.Pieces).Concat(pointsOfInterest.Pieces)) };
         _landmarks = landmarks.Landmarks;
         _campGoods = landmarks.CampGoods;
         _pointsOfInterest = pointsOfInterest.PointsOfInterest;
@@ -298,11 +298,6 @@ public sealed partial class Simulation : IDisposable
             return;
         for (long i = 0; i < ticks; i++)
             Step();
-        if (_stockChanged)
-        {
-            _sectorStocks = StockGenerator.Summarize(_stock, _furniture.Pieces, _space, _config.PillarLayout, StockConfig);
-            _stockChanged = false;
-        }
         _snapshot = BuildSnapshot();
     }
 
@@ -406,7 +401,7 @@ public sealed partial class Simulation : IDisposable
                     if (IsBuiltFurniture(piece.Id)) UnbuildFurniture(piece.Id);
                 }
                 _navigation.Update(_furniture.Pieces.Where(p => !keptIds.Contains(p.Id)), []);
-                _furniture = _furniture with { Pieces = kept.AsReadOnly() };
+                _furniture = _furniture with { Pieces = FurnitureList.From(kept) };
                 _villagers.Replan();
                 _staff.Replan();
                 // Goods go with the Furniture that held them.
@@ -437,7 +432,7 @@ public sealed partial class Simulation : IDisposable
                 throw new ArgumentException($"Piece {id} is not Stock Furniture; Display Furniture holds no stock.", nameof(goods));
             var rest = _stock.Where(g => g.LeftBehind || !set.Contains((g.FurnitureId, g.Kind)));
             _stock = (amount > 0 ? rest.Concat(set.Select(g => new StockedGoods(g.FurnitureId, g.Kind, amount))) : rest).ToList().AsReadOnly();
-            foreach (var key in set)
+            foreach (var key in set.Where(k => _restockOrigins.ContainsKey(k.FurnitureId)))
                 _stockTargets[key] = Math.Max(_stockTargets.GetValueOrDefault(key), amount);
             _sectorStocks = StockGenerator.Summarize(_stock, _furniture.Pieces, _space, _config.PillarLayout, StockConfig);
             _snapshot = BuildSnapshot();
@@ -445,13 +440,14 @@ public sealed partial class Simulation : IDisposable
     }
 
     /// <summary>Puts a new piece of Furniture on the floor or on top of others (the next free id), lets walking Villagers find their way again and publishes a new snapshot.</summary>
-    internal FurniturePiece PlaceFurniture(FurnitureType type, Vector2 position, float rotation, int variant, int tint, float elevation = 0f) =>
+    internal FurniturePiece PlaceFurniture(FurnitureType type, Vector2 position, float rotation, int variant, int tint, float elevation = 0f,
+        bool restocked = false) =>
         Publish(() =>
         {
             var piece = new FurniturePiece(_nextFurnitureId++, type, _space.Wrap(position), elevation,
                 rotation, variant, Tint: tint);
-            _restockOrigins[piece.Id] = piece;
-            _furniture = _furniture with { Pieces = _furniture.Pieces.Append(piece).ToList().AsReadOnly() };
+            if (restocked || Restocked(piece)) _restockOrigins[piece.Id] = piece;
+            _furniture = _furniture with { Pieces = FurnitureList.From(_furniture.Pieces).Add(piece) };
             _stabilityChanges.Add(piece);
             AddCrops([piece]);
             _navigation.Update([], [piece]);
@@ -471,7 +467,7 @@ public sealed partial class Simulation : IDisposable
 
     private FurniturePiece MoveFurnitureCore(int furnitureId, Vector2 position, float rotation, float? elevation = null)
     {
-        var index = _furniture.Pieces.ToList().FindIndex(p => p.Id == furnitureId);
+        var index = PieceIndex(furnitureId);
         if (index < 0)
             throw new ArgumentException($"No piece {furnitureId}.", nameof(furnitureId));
         var before = _furniture.Pieces[index];
@@ -481,6 +477,31 @@ public sealed partial class Simulation : IDisposable
             _stabilityChanges.AddRange(IsHeld(furnitureId) ? [before] : [before, moved]);
         return SetPose(index, before, moved);
     }
+
+    private readonly List<FurnitureChange> _furnitureChanges = [];
+
+    /// <summary>
+    /// Whether the Furniture changed since <paramref name="older"/> without touching any piece that matches
+    /// <paramref name="kind"/> before or after the change, so what was worked out for those pieces still holds.
+    /// </summary>
+    private bool UntouchedSince(IReadOnlyList<FurniturePiece>? older, Func<FurniturePiece, bool> kind) =>
+        older is not null && _furniture.Pieces is FurnitureList list && list.ChangesSince(older, _furnitureChanges) &&
+        _furnitureChanges.All(c => !kind(c.After) && (c.Before is not { } before || !kind(before)));
+
+    /// <summary>Where the piece with this id stands in the Furniture list, or -1.</summary>
+    private int PieceIndex(int furnitureId) => FurnitureList.From(_furniture.Pieces).IndexOf(furnitureId);
+
+    /// <summary>The piece with this id, or null.</summary>
+    private FurniturePiece? PieceById(int? furnitureId) =>
+        furnitureId is { } id && PieceIndex(id) is >= 0 and var index ? _furniture.Pieces[index] : null;
+
+    /// <summary>The piece with this id; throws if there is none.</summary>
+    private FurniturePiece Piece(int? furnitureId) =>
+        PieceById(furnitureId) ?? throw new InvalidOperationException($"No piece {furnitureId}.");
+
+    /// <summary>Whether a piece with this id is in the Store (and, if given, <paramref name="match"/>es).</summary>
+    private bool HasPiece(int? furnitureId, Func<FurniturePiece, bool>? match = null) =>
+        PieceById(furnitureId) is { } piece && (match is null || match(piece));
 
     /// <summary>Puts a piece in a new pose and lets everything that depends on where it stands follow.</summary>
     private FurniturePiece SetPose(int index, FurniturePiece before, FurniturePiece moved)
@@ -496,14 +517,15 @@ public sealed partial class Simulation : IDisposable
             VacateFurniture(furnitureId);
             _waterPoints = _waterPoints.Where(w => w.FurnitureId != furnitureId).ToList().AsReadOnly();
         }
-        _furniture = _furniture with { Pieces = _furniture.Pieces.Select((p, i) => i == index ? moved : p).ToList().AsReadOnly() };
+        _furniture = _furniture with { Pieces = FurnitureList.From(_furniture.Pieces).SetItem(index, moved) };
         for (var i = 0; i < _gear.Count; i++)
             if (_gear[i].FurnitureId == furnitureId) _gear[i] = _gear[i] with { Position = moved.Position };
         if (_stock.Any(g => g.FurnitureId == furnitureId))
-            _sectorStocks = StockGenerator.Summarize(_stock, _furniture.Pieces, _space, _config.PillarLayout, StockConfig);
+            _stockChanged = true;
         _navigation.Update([before], [moved]);
-        _villagers.Replan();
-        _staff.Replan();
+        // A piece moves a little at a time while carried: only the ways that pass by it are found again.
+        _villagers.Replan(nearChange: true);
+        _staff.Replan(nearChange: true);
         return moved;
     }
 
@@ -589,6 +611,12 @@ public sealed partial class Simulation : IDisposable
 
     private WorldSnapshot BuildSnapshot()
     {
+        // Stock per Sector is only shown, so it is summed up once per published snapshot.
+        if (_stockChanged)
+        {
+            _sectorStocks = StockGenerator.Summarize(_stock, _furniture.Pieces, _space, _config.PillarLayout, StockConfig);
+            _stockChanged = false;
+        }
         Lamps();
         var world = SnapshotWithoutLightAreas();
         return world with { LitAreas = LightAreas(world) };

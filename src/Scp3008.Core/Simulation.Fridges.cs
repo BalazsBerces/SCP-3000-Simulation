@@ -17,6 +17,8 @@ public sealed partial class Simulation
 
     private FurniturePiece[] Fridges()
     {
+        if (!ReferenceEquals(_fridgeFurniture, _furniture.Pieces) && UntouchedSince(_fridgeFurniture, p => p.Type == FurnitureType.Fridge))
+            _fridgeFurniture = _furniture.Pieces;
         if (!ReferenceEquals(_fridgeFurniture, _furniture.Pieces))
         {
             _fridgeFurniture = _furniture.Pieces;

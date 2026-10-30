@@ -17,7 +17,12 @@ internal sealed partial class Navigation
     // Rungs on open shelving and the sloping surfaces of mattresses are climbable Furniture.
     private IEnumerable<(Vector3 Bottom, Vector3 Top)> ClimbLinks(Vector2 destination)
     {
-        foreach (var p in _pieces().Where(p => p.Damage < 1 && MathF.Abs(p.Roll) < 0.1f &&
+        // Only Furniture in the chunks around can lie within reach; it is taken in list order.
+        var pieces = _pieces();
+        _climbIndex ??= new FurnitureIndex(_space);
+        _climbIndex.Update(pieces);
+        var near = _climbIndex.NearIndices(destination, 100).Order().Select(i => pieces[i]).ToArray();
+        foreach (var p in near.Where(p => p.Damage < 1 && MathF.Abs(p.Roll) < 0.1f &&
             _space.Distance(p.Position, destination) < 100))
         {
             var spec = FurnitureCatalog.Spec(p);

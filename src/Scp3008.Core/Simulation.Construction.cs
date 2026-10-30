@@ -190,7 +190,7 @@ public sealed partial class Simulation
                     MoveFurnitureCore(task.FurnitureId, slot.Position, slot.Rotation, 0);
                     var swap = slot.FurnitureId is not null;
                     var placed = swap ? SwapIn(village, slot, task.FurnitureId) : slot with { FurnitureId = task.FurnitureId, ReservedFurnitureId = null,
-                        Tier = TierOf(_furniture.Pieces.First(p => p.Id == task.FurnitureId), false, false) };
+                        Tier = TierOf(Piece(task.FurnitureId), false, false) };
                     SetWallSlot(village.Id, r, s, placed);
                     if (swap) Emit(new WallPieceUpgraded(clock, village.Id, r, s, WallUpgrade.Swapped, placed.Tier));
                     foreach (var id in task.VillagerIds) _villagers.PracticeBuilding(id, false);
@@ -250,15 +250,15 @@ public sealed partial class Simulation
             _villages.Any(v => !Enum.IsDefined(v.Personality) || v.Walls.Any(w => !Enum.IsDefined(w.Outline) ||
                 w.Population <= 0 || w.Vertices.Count < 4 || w.Vertices[0] != w.Vertices[^1] ||
                 w.Vertices.Any(p => !Finite(p)) || !Finite(w.GateStart) || !Finite(w.GateEnd) || w.Slots.Count == 0 ||
-                w.IncorporatedFurnitureId is { } f && !_furniture.Pieces.Any(p => p.Id == f) ||
+                w.IncorporatedFurnitureId is { } f && !HasPiece(f) ||
                 w.IncorporatedPillarId is { } pillar && !_pillars.Any(p => p.Id == pillar) ||
                 w.Slots.Any(s => !Finite(s.Position) || !float.IsFinite(s.Rotation) || !Enum.IsDefined(s.Run) ||
                     !float.IsFinite(s.Width) || s.Width <= 0 || !float.IsFinite(s.MinimumHeight) || s.MinimumHeight <= 0 ||
                     !float.IsFinite(s.MinimumWeight) || s.MinimumWeight <= 0 ||
                     s.Tier is < 1 or > 3 ||
-                    s.FurnitureId is { } id && !_furniture.Pieces.Any(p => p.Id == id && s.Fits(p) &&
+                    s.FurnitureId is { } id && !HasPiece(id, p => s.Fits(p) &&
                         p.Position == s.Position && p.Rotation == s.Rotation && p.Elevation == 0) ||
-                    s.ReservedFurnitureId is { } reserved && (!_furniture.Pieces.Any(p => p.Id == reserved && s.Fits(p)) ||
+                    s.ReservedFurnitureId is { } reserved && (!HasPiece(reserved, p => s.Fits(p)) ||
                         !_furnitureTasks.Any(t => t.FurnitureId == reserved && t.Work != FurnitureWork.Disassemble &&
                             t.VillagerIds.All(id => v.VillagerIds.Contains(id))))))))
             throw new InvalidDataException("Invalid world save: inconsistent Blueprints.");

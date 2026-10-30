@@ -68,7 +68,7 @@ public class GearTests
     }
 
     [Fact]
-    public void Found_Gear_has_suitable_sources_and_restocks_after_pickup()
+    public void Found_Gear_has_suitable_sources_and_does_not_come_back_after_pickup()
     {
         using var sim = Simulation.Create(new WorldConfig(3008, StartingBands: false,
             Restock: new RestockConfig { GoodsPerStoreHour = 60, DrySpellIntervalHours = 0 }));
@@ -98,7 +98,7 @@ public class GearTests
         for (var i = 0; i < 500 && sim.Snapshot.Villagers[0].Bag is null; i++) sim.AdvanceTicks(1);
         Assert.NotNull(sim.Snapshot.Villagers[0].Bag);
         sim.Advance(TimeSpan.FromMinutes(2));
-        Assert.Contains(sim.Snapshot.Gear, g => g.Kind == source.Kind && g.FurnitureId == source.FurnitureId);
+        Assert.DoesNotContain(sim.Snapshot.Gear, g => g.Kind == source.Kind && g.FurnitureId == source.FurnitureId);
         using var save = new MemoryStream();
         sim.Save(save);
         save.Position = 0;
@@ -109,7 +109,7 @@ public class GearTests
     }
 
     [Fact]
-    public void A_found_cart_moves_out_of_the_graveyard_and_refills_like_Goods()
+    public void A_found_cart_moves_out_of_the_graveyard_and_does_not_come_back()
     {
         using var sim = Simulation.Create(new WorldConfig(3008, StartingBands: false,
             Restock: new RestockConfig { GoodsPerStoreHour = 1, DrySpellIntervalHours = 0 }));
@@ -123,8 +123,8 @@ public class GearTests
         sim.Advance(TimeSpan.FromHours(2.1));
         Assert.True(sim.Snapshot.Space.Distance(sim.Snapshot.Villagers[0].Position, source.Position) > 30,
             $"Cart carrier stayed at {sim.Snapshot.Villagers[0].Position}, source {source.Position}, destination {sim.Snapshot.Villagers[0].Destination}");
-        Assert.Contains(sim.Snapshot.Furniture, p => p.Type == FurnitureType.ShoppingCart && p.Position == source.Position);
-        Assert.Contains(sim.Snapshot.Gear, g => g.Kind == GearKind.ShoppingCart && g.Position == source.Position);
+        Assert.DoesNotContain(sim.Snapshot.Furniture, p => p.Type == FurnitureType.ShoppingCart && p.Position == source.Position);
+        Assert.DoesNotContain(sim.Snapshot.Gear, g => g.Kind == GearKind.ShoppingCart && g.Position == source.Position);
     }
 
     [Fact]

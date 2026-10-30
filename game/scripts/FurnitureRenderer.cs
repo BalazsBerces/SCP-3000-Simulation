@@ -58,11 +58,18 @@ public partial class FurnitureRenderer : Node3D
         {
             var moving = world.FurnitureTasks.Where(t => t.Started && t.Work != FurnitureWork.Disassemble)
                 .Select(t => t.FurnitureId).Concat(_falls.Keys).ToHashSet();
-            var stationary = world.Furniture.Where(p => !moving.Contains(p.Id)).ToArray();
-            if (!_stationary.SequenceEqual(stationary))
+            // While pieces are carried the Furniture changes every step, but only those pieces: the stationary rest stands.
+            var changes = WorldSnapshot.FurnitureChanges(_builtFurniture, world.Furniture);
+            if (changes is null || !moving.SetEquals(_moving) ||
+                changes.Any(c => !moving.Contains(c.After.Id) || c.Before is { } before && !moving.Contains(before.Id)))
             {
-                Rebuild(world with { Furniture = Array.AsReadOnly(stationary) });
-                _stationary = stationary;
+                var stationary = world.Furniture.Where(p => !moving.Contains(p.Id)).ToArray();
+                if (!_stationary.SequenceEqual(stationary))
+                {
+                    Rebuild(world with { Furniture = Array.AsReadOnly(stationary) });
+                    _stationary = stationary;
+                }
+                _moving = moving;
             }
             _builtFurniture = world.Furniture;
         }
@@ -71,6 +78,7 @@ public partial class FurnitureRenderer : Node3D
     }
 
     private FurniturePiece[] _stationary = [];
+    private HashSet<int> _moving = [];
 
     private void ShowDetail(bool coarse) => Rig.Camera.CullMask = FurnitureDetail.Mask(Rig.Camera.CullMask);
 
@@ -133,25 +141,38 @@ public partial class FurnitureRenderer : Node3D
     internal static void AddFish(Node3D parent, WorldSnapshot snapshot, CameraRig rig, StoreVisibility visibility)
     {
         var tanks = snapshot.Furniture.Where(p => p.Type == FurnitureType.FishTank).ToDictionary(p => p.Id);
+        foreach (var (variant, kind, placements) in FishSchools(snapshot, tanks))
+        {
+            var instances = FishInstances(variant, kind, snapshot, rig, visibility);
+            parent.AddChild(instances);
+            instances.SetInstances(snapshot.Space, placements);
+        }
+    }
+
+    /// <summary>The schools to show, one per tank variant and fish kind, with the stocked tanks they swim in.</summary>
+    internal static IEnumerable<(int Variant, FishKind Kind, (Transform3D, Color)[] Placements)> FishSchools(
+        WorldSnapshot snapshot, IReadOnlyDictionary<int, FurniturePiece> tanks)
+    {
         var stockedTanks = snapshot.Stock.Where(g => g.Kind == GoodsKind.LiveFish && g.Amount > 0).Select(g => g.FurnitureId).ToHashSet();
         foreach (var group in snapshot.TankFish.Where(f => tanks.ContainsKey(f.TankId) && stockedTanks.Contains(f.TankId))
                      .GroupBy(f => (tanks[f.TankId].Variant, f.Kind)))
         {
-            var instances = new WrappedInstances
-            {
-                Name = $"Fish-{group.Key.Kind}-{group.Key.Variant}",
-                Rig = rig,
-                FarDistance = FishDistance,
-                ViewReach = visibility.PlacementReach(rig, snapshot.Space.ChunkSize),
-                Mesh = FurnitureMeshes.FishSchool(group.Key.Variant, group.Key.Kind),
-                CoarseMesh = new ArrayMesh(),
-                CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
-            };
-            parent.AddChild(instances);
             var colour = FurnitureMeshes.FishColour(group.Key.Kind);
-            instances.SetInstances(snapshot.Space, group.Select(f => (Placement(tanks[f.TankId]), colour)));
+            yield return (group.Key.Variant, group.Key.Kind, group.Select(f => (Placement(tanks[f.TankId]), colour)).ToArray());
         }
     }
+
+    /// <summary>An empty instance group for one school (<see cref="FishSchools"/>).</summary>
+    internal static WrappedInstances FishInstances(int variant, FishKind kind, WorldSnapshot snapshot, CameraRig rig, StoreVisibility visibility) => new()
+    {
+        Name = $"Fish-{kind}-{variant}",
+        Rig = rig,
+        FarDistance = FishDistance,
+        ViewReach = visibility.PlacementReach(rig, snapshot.Space.ChunkSize),
+        Mesh = FurnitureMeshes.FishSchool(variant, kind),
+        CoarseMesh = new ArrayMesh(),
+        CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+    };
 
     /// <summary>How far from the camera the fish in the tanks show, in metres; farther they are a few pixels at most.</summary>
     private const float FishDistance = 60f;

@@ -109,8 +109,8 @@ public sealed partial class Simulation
                 var slot = hall.Slots[i];
                 if (slot with { FurnitureId = null, ReservedFurnitureId = null } != MessHall.Slot(i, _space.Wrap(hall.Position + MessHall.Layout[i].Offset)) ||
                     slot.FurnitureId is not null && slot.ReservedFurnitureId is not null ||
-                    slot.FurnitureId is { } f && !_furniture.Pieces.Any(p => p.Id == f && MessHallFits(slot, i, p) && p.Position == slot.Position && p.Rotation == slot.Rotation) ||
-                    slot.ReservedFurnitureId is { } r && (!_furniture.Pieces.Any(p => p.Id == r && MessHallFits(slot, i, p with { Elevation = 0 }) &&
+                    slot.FurnitureId is { } f && !HasPiece(f, p => MessHallFits(slot, i, p) && p.Position == slot.Position && p.Rotation == slot.Rotation) ||
+                    slot.ReservedFurnitureId is { } r && (!HasPiece(r, p => MessHallFits(slot, i, p with { Elevation = 0 }) &&
                         (p.Elevation == 0 || p.Elevation == CarriedElevation && _furnitureTasks.Any(t => t.FurnitureId == r && t.Started))) ||
                         !_furnitureTasks.Any(t => t.FurnitureId == r && t.Work != FurnitureWork.Disassemble && t.VillagerIds.All(village.VillagerIds.Contains))))
                     throw new InvalidDataException("Invalid world save: inconsistent Mess hall Blueprint.");

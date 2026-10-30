@@ -16,7 +16,7 @@ public sealed partial class Simulation
 
     internal void PlaceAssemblyInstructions(int furnitureId, GearKind recipe) => Publish(() =>
     {
-        var piece = _furniture.Pieces.Single(p => p.Id == furnitureId);
+        var piece = Piece(furnitureId);
         if (piece.Type is not (FurnitureType.FlatPackBox or FurnitureType.LabelledBox) ||
             !Recipes.Middle.Any(r => r.Gear == recipe) || _instructions.Any(i => i.FurnitureId == furnitureId))
             throw new ArgumentException("Assembly instructions need a box and a middle Recipe.");

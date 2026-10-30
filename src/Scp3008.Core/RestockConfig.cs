@@ -3,11 +3,11 @@ namespace Scp3008.Core;
 /// <summary>Restock tuning in Store hours. Per-kind rates and balance tuning belong to ticket 85.</summary>
 public sealed record RestockConfig
 {
-    /// <summary>Units added per Stock Furniture Goods kind per Store hour, capped at its stock target; zero disables refill.</summary>
+    /// <summary>Units added per restocked (Cafeteria or Camping ground) Goods kind per Store hour, capped at its stock target; zero disables refill.</summary>
     public double GoodsPerStoreHour { get; init; } = 0.125;
-    /// <summary>Store hours after a spot is vacated before ordinary Furniture can return; zero disables return.</summary>
+    /// <summary>Store hours after a spot is vacated before Cafeteria Furniture can return; zero disables return.</summary>
     public double FurnitureHours { get; init; } = 24;
-    /// <summary>Store hours after a spot is vacated before Landmark Furniture can return; zero disables return.</summary>
+    /// <summary>Store hours after a spot is vacated before Camping ground Furniture can return; zero disables return.</summary>
     public double LandmarkFurnitureHours { get; init; } = 72;
 
     /// <summary>Mean wait between Dry spells in Store hours, varied from half to one-and-a-half times this value; zero disables them.</summary>

@@ -49,10 +49,12 @@ public class PersistenceTests
     public void Full_Store_layout_weather_and_Restock_survive_loading(PillarLayout layout)
     {
         using var original = Simulation.Create(new WorldConfig(3008, RuntimeRngSeed: 42, PillarLayout: layout,
-            StartingBands: false, Restock: new RestockConfig { DrySpellIntervalHours = 1 },
+            StartingBands: false, Restock: new RestockConfig { FurnitureHours = 4, DrySpellIntervalHours = 1, DrySpellDurationHours = 2 },
             // One arrival late in the continuation keeps the saved arrival stream covered without days of Wanderers.
             Arrivals: new ArrivalConfig { IntervalHours = 23 }));
-        var removed = original.Snapshot.Furniture.First(p => p.Type == FurnitureType.Armchair);
+        var world = original.Snapshot;
+        var removed = world.Furniture.First(p => RestockTests.Restocked(world, p) && p.LandmarkId < 0 && !FurnitureCatalog.Spec(p).IsFixed &&
+            !world.Furniture.Any(o => o.Elevation > p.Elevation + 0.05f && System.Numerics.Vector2.Distance(o.Position, p.Position) < 3f));
         original.Scenario.RemoveFurniture(p => p.Id == removed.Id);
         original.Advance(TimeSpan.FromHours(2));
         Assert.NotEmpty(original.Snapshot.DrySpells);
