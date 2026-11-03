@@ -6,7 +6,7 @@ namespace Scp3008.Core;
 
 public sealed partial class Simulation
 {
-    private const int SaveVersion = 20;
+    private const int SaveVersion = 21;
     private static readonly JsonSerializerOptions SaveJson = CreateSaveJson();
 
     private sealed record SaveFile(int Version, SaveState State);
@@ -19,7 +19,7 @@ public sealed partial class Simulation
         MissingFurniture[] MissingFurniture, int NextFurnitureId, double RestockHours,
         double NextFurnitureCheck, StockTarget[] StockTargets, Dictionary<int, double> GoodsRestockCredit,
         ulong RestockRandom, DrySpell? DrySpell, double NextDrySpellHour, Gear[] GearSources, int NextGearId,
-        ulong ArrivalRandom, long NextArrivalTick, SpoilingShelf[] SpoilingShelves);
+        ulong ArrivalRandom, long NextArrivalTick, SpoilingShelf[] SpoilingShelves, FurniturePiece[] DisplacedFurniture);
     private sealed record SpoilingShelf(int FurnitureId, GoodsKind Kind, int Units, float Progress);
 
     /// <summary>Saves the entire world at a tick boundary; leaves the caller's stream open.</summary>
@@ -36,7 +36,7 @@ public sealed partial class Simulation
                 _stockTargets.Select(t => new StockTarget(t.Key.FurnitureId, t.Key.Kind, t.Value)).ToArray(),
                 new(_goodsRestockCredit), _restockRandom.State, _drySpell, _nextDrySpellHour, _gearSources.ToArray(), _nextGearId,
                 _arrivalRandom.State, _nextArrivalTick,
-                _spoilingShelf.Select(s => new SpoilingShelf(s.Key.FurnitureId, s.Key.Kind, s.Value.Units, s.Value.Progress)).ToArray());
+                _spoilingShelf.Select(s => new SpoilingShelf(s.Key.FurnitureId, s.Key.Kind, s.Value.Units, s.Value.Progress)).ToArray(), _displaced.Values.ToArray());
             JsonSerializer.Serialize(destination, new SaveFile(SaveVersion, state), SaveJson);
         }
     }
@@ -172,6 +172,7 @@ public sealed partial class Simulation
         // Saves from before Restock kept to the Cafeterias and the Camping ground lose what it no longer looks after.
         foreach (var piece in state.RestockOrigins.Where(Restocked)) _restockOrigins.Add(piece.Id, piece);
         _missingFurniture.AddRange(state.MissingFurniture.Where(m => Restocked(m.Piece)));
+        foreach (var piece in state.DisplacedFurniture) _displaced.Add(piece.Id, piece);
         _nextFurnitureId = state.NextFurnitureId;
         _restockHours = state.RestockHours;
         _nextFurnitureCheck = state.NextFurnitureCheck;

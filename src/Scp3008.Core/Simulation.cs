@@ -383,6 +383,7 @@ public sealed partial class Simulation : IDisposable
         AdvanceKnowHow(clock);
         AdvanceBands(clock);
         AdvanceStaff(clock);
+        AdvanceTidying(clock);
         AdvanceWounds();
         // Kept up with every tick, it catches up by a few changes instead of starting over once the Furniture list no
         // longer remembers where it was.
@@ -557,6 +558,7 @@ public sealed partial class Simulation : IDisposable
             if (_waterPoints.Any(w => w.FurnitureId == furnitureId))
                 _waterPoints = _waterPoints.Where(w => w.FurnitureId != furnitureId).ToList().AsReadOnly();
         }
+        TrackDisplacement(before, moved);
         _furniture = _furniture with { Pieces = FurnitureList.From(_furniture.Pieces).SetItem(index, moved) };
         for (var i = 0; i < _gear.Count; i++)
             if (_gear[i].FurnitureId == furnitureId) _gear[i] = _gear[i] with { Position = moved.Position };
