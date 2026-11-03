@@ -25,7 +25,24 @@ A gameplay feature typically touches the same set of files; look at an existing 
 6. Tests: `tests/Scp3008.Core.Tests/<Feature>Tests.cs` (scenario -> advance time -> assert on snapshot/events).
 7. Presentation: `game/scripts/VillagerRenderer.<Feature>.cs` or `FurnitureRenderer.*.cs`; an unattended check flag in `game/scripts/DevCapture.<Feature>.cs`.
 
-Runtime random streams: keys are constants at the top of `Simulation.cs` (one stream per subsystem; next free key: check there).
+## Conventions and common APIs
+
+Signatures every ticket ends up needing. Keep them current when you change one.
+
+- **Events in tests:** `var events = new List<DomainEvent>(); using var subscription = sim.Subscribe(events.Add);` then `events.OfType<VillagerDied>()`. A feature's events are records deriving from `DomainEvent`, declared in its feature file.
+- **Time:** `sim.Advance(TimeSpan storeTime)`, `sim.AdvanceTo(TimeSpan timeOfDay)`, `sim.AdvanceTicks(long)`; `sim.Scenario.SetTimeOfDay(TimeSpan)`. Closing time is 22:00-08:00 (`StoreHours`, `DayPhase`).
+- **Saves:** `private const int SaveVersion` in `Simulation.Persistence.cs`. Bumping it means updating the `"Version":N` strings in the `InlineData` of `PersistenceTests.cs` too. Round-trip test pattern: `sim.Save(stream)`, then `Simulation.Load(stream)`; see `WoundTests` or `StaffTests`.
+- **Runtime random streams:** keys 1-4 are constants at the top of `Simulation.cs` (Weather, Restock, StartingBand, Arrival), and 6 is `StaffRouteStream` in `Simulation.Staff.cs`. A new subsystem takes the next free key and adds a comment line next to the others in `Simulation.cs`. The `*Stream` constants in `Generation/` are a separate key space, used only for the seed.
+- **Villagers:** `Villagers.Send(int villagerId, Vector2 destination)` (`Villager.cs`), `Send(int id, Vector3)` and `SendToLookout` (`Villagers.Climbing.cs`). `Needs(Hunger = 0, Thirst = 0, Rest = 1, Safety = 1, Morale = 0.7)` and `enum VillagerAction` are in `Needs.cs`.
+- **Personality** (`Cautious`, `Builders`, `Bold`): `Blueprint.cs`. It is set on Villages and Bands.
+
+**ScenarioBuilder** (`sim.Scenario`), the public setup methods by file:
+- `ScenarioBuilder.cs`: `PlaceVillager(pos, needs?)`, `SendVillager`, `SetTimeOfDay`, `PlaceFurniture(type, pos, rotation, variant, tint, elevation, ...)`, `MoveFurniture`, `RemoveFurniture(match)`, `SetStock`, `PlaceFogBank`, `ClearFogBanks`, `SetFogBankFormation`, `HoldWind`.
+- Bands and Villages: `PlaceBand(positions, needs?, knownMap?, recipes?, personality?, ...)` and `PlaceWaterPoint` (`Simulation.Bands.cs`); `PlaceVillage(pos, villagerIds, personality)`, `CarryFurniture` and `DisassembleFurniture` (`FurnitureWork.cs`); `SetPersonality` and `PlanDwelling` (`Dwelling.cs`); `AssignRole` and `SetNeeds` (`Simulation.Meals.cs`).
+- Building: `PlanBarricade` (`Blueprint.cs`), `CompleteWall` (`Simulation.Tidying.cs`), `StrikeWall` (`Simulation.Tiers.cs`), `BuildKeep` (`Simulation.Sieges.cs`), `PlanStorehouse`, `PlanWorkshop`, `PlanFurnitureYard`, `PlanPillarScaffold`, `DamageFurniture` (`Simulation.Stability.cs`).
+- Goods, Gear and skills: `SetMaterials`, `SetStores`, `SetSkill`, `MakeGear` and `UseBandage` (`Recipes.cs`); `PlaceGear`, `EquipGear` and `SetCarriedLoad` (`Gear.cs`); `PutBack` (`Spoilage.cs`); `WaterCrop` (`Crop.cs`); `PlaceAssemblyInstructions` (`Simulation.KnowHow.cs`).
+- Staff: `PlaceStaff(pos, patrol)` (`SandboxScenario.cs`); `HitStaff` and `MakeNoise(pos, radius)` (`Simulation.Staff.cs`); `StaffHitsVillager` (`Simulation.Wounds.cs`).
+- Sandbox: `ScenarioBuilder.LoadVillagerSandbox(preset)` and `LoadVillagerSandboxJson` (`SandboxScenario.cs`).
 
 ## Core: facade and time
 

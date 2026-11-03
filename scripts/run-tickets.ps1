@@ -7,7 +7,7 @@
   Loop:
     1. Pick the lowest-numbered open ticket whose "blocked by" issues are all closed.
     2. Choose the model:
-         easy, not a stage end      -> $EasyModel (sonnet), -Effort
+         easy, not a stage end      -> $EasyModel (sonnet), -EasyEffort
          hard, unlabelled           -> $HardModel (opus), -Effort
          stage end (any difficulty) -> $HardModel (opus), -StageEffort; it also reviews the whole stage
        -Model overrides the choice for every ticket.
@@ -20,6 +20,8 @@
 
   Uncommitted work already in the tree when a ticket starts is someone else's: it stays out of the ticket's
   commit and its clean-tree check.
+
+  A ticket runs only the test classes its change can affect; the stage-end ticket runs the whole suite.
 
   Build stages are GitHub milestones. A ticket ends its stage when it is the last open issue of an open
   milestone; that ticket reviews the whole stage. A closed milestone is already reviewed, so tickets added
@@ -57,6 +59,8 @@ param(
   # Easy tickets that do not end a stage.
   [string]$EasyModel = 'sonnet',
   [ValidateSet('low', 'medium', 'high', 'xhigh', 'max')] [string]$Effort = 'medium',
+  # Easy tickets that do not end a stage.
+  [ValidateSet('low', 'medium', 'high', 'xhigh', 'max')] [string]$EasyEffort = 'medium',
   # Stage-end tickets, which also review the whole stage.
   [ValidateSet('low', 'medium', 'high', 'xhigh', 'max')] [string]$StageEffort = 'medium',
   # An agent's Godot run is killed after this many seconds (0 = never): the prompt's 5 minutes plus 15 s for the agent to stop it itself.
@@ -66,7 +70,9 @@ param(
   [int]$MaxLimitResumes = 3,
   [double]$MaxLimitWaitHours = 8,
   # Context size (tokens, a plain number) at which a session compacts; it compacts about 35-40k below it.
-  [string]$CompactWindow = '155000'
+  [string]$CompactWindow = '250000',
+  # Where each file of the code is and what it holds; agents read it instead of exploring and keep it current.
+  [string]$CodeMap = 'docs/code-map.md'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -86,6 +92,13 @@ New-Item -ItemType Directory -Force $logDir | Out-Null
 $exclude = Join-Path $root '.git\info\exclude'
 if (-not (Select-String -Path $exclude -Pattern '^\.ticket-logs/' -Quiet)) { Add-Content $exclude '.ticket-logs/' }
 $csvFile = Join-Path $logDir 'runs.csv'
+# Rows written before the turns and tool_calls columns existed get them empty, so -Append still matches the header.
+if ((Test-Path $csvFile) -and -not ((Get-Content $csvFile -TotalCount 1) -match '"turns"')) {
+  $rows = @(Import-Csv $csvFile | Select-Object *, @{ n = 'turns'; e = { '' } }, @{ n = 'tool_calls'; e = { '' } })
+  $rows | Select-Object date, ticket, issue, difficulty, stage_end, model, effort, minutes, claude_usd, claude_tokens, turns, tool_calls,
+    claude_5h_before, claude_5h_after, claude_week_before, claude_week_after, result |
+    Export-Csv -Path $csvFile -NoTypeInformation -Encoding UTF8
+}
 $utf8 = New-Object Text.UTF8Encoding $false
 
 # ---------------------------------------------------------------------------------------------------
@@ -160,7 +173,8 @@ function Get-NextTicket {
 function Get-Choice($t) {
   $isEasy = $t.Difficulty -eq 'easy' -and -not $t.IsStageEnd
   $model = if ($Model) { $Model } elseif ($isEasy) { $EasyModel } else { $HardModel }
-  [pscustomobject]@{ Model = $model; Effort = $(if ($t.IsStageEnd) { $StageEffort } else { $Effort }) }
+  $effort = if ($t.IsStageEnd) { $StageEffort } elseif ($isEasy) { $EasyEffort } else { $Effort }
+  [pscustomobject]@{ Model = $model; Effort = $effort }
 }
 
 function Get-ClaudeName([string]$Model) {
@@ -181,6 +195,25 @@ function Get-ReviewRule($t) {
   "6. This ticket completes the build stage '$($t.Stage.title)' (tickets $first-$($t.Label)). Instead of reviewing only this ticket, run /spec-review on the whole stage: the diff from the parent of ticket $first's commit (find it with git log --grep '^${first}: ') up to and including your uncommitted changes. Then run /code-review medium on the same diff for correctness bugs. Fix the real findings of both, rerun the tests, and include the fixes in this ticket's commit."
 }
 
+# The ticket with its comments, saved for the agent: `gh issue view --comments` prints nothing in its shell, and
+# every ticket spent several turns getting around that.
+function Save-Issue($t) {
+  $issue = gh issue view $t.Issue -R $Repo --json title,body,comments | ConvertFrom-Json
+  $text = "# #$($t.Issue) $($issue.title)`n`n$($issue.body)`n"
+  foreach ($c in @($issue.comments | ForEach-Object { $_ })) {
+    $text += "`n## Comment by $($c.author.login), $($c.createdAt)`n`n$($c.body)`n"
+  }
+  Write-Utf8 (Join-Path $logDir "$($t.Label)-issue.md") ($text -replace "`r`n", "`n")
+}
+
+# Only the end of a build stage runs the whole suite; a ticket inside a stage runs the tests its change can break.
+function Get-TestRule($t) {
+  if ($t.IsStageEnd) {
+    return "Run the whole test suite once, just before you commit: it covers the whole stage, so fix every failure, including ones an earlier ticket of the stage caused."
+  }
+  "Do not run the whole test suite; it runs at the end of the build stage. Just before you commit, run once, in one dotnet test call with a filter, the test classes this ticket can affect: the ticket's own tests, the test class of every core file you changed (see $CodeMap), PersistenceTests if the save state changed, and ArchitectureTests."
+}
+
 function Get-Prompt($t, $choice) {
   $preFile = ".ticket-logs/$($t.Label)-preexisting.txt"
   $stageRule = if ($script:preexisting.Count) { "stage only the files you changed for this ticket, by name (never git add -A or git add .)" }
@@ -199,12 +232,12 @@ function Get-Prompt($t, $choice) {
   } else { '' }
 @"
 /implement ticket $($t.Label) of the ${Project}: GitHub issue #$($t.Issue) in $Repo.
-The spec is issue #$SpecIssue. Read the ticket (gh issue view $($t.Issue) --comments), $GlossaryFile, every ADR in $AdrDir/, and the existing code.
+The spec is issue #$SpecIssue. Read the ticket in .ticket-logs/$($t.Label)-issue.md (issue #$($t.Issue) with its comments, saved by the runner; do not fetch it again), $GlossaryFile, every ADR in $AdrDir/, $CodeMap, and the code this ticket touches.
 
 Rules for this run:
 1. This is an unattended run. Nobody will answer questions, so make reasonable decisions yourself and record them.
 2. Implement ONLY this ticket so that every acceptance criterion is met. Follow the spec's architecture.
-3. Test through the project's public seam. Run the whole test suite once, just before you commit. Also run the project's build. Everything must pass.
+3. Test through the project's public seam. $(Get-TestRule $t) Also run the project's build. Everything must pass.
 4. For criteria that cannot be checked automatically (visuals, audio, fps), verify what you can (for example, run the app or the benchmark and capture a screenshot or fps numbers), and list what still needs human review. A check that fails is a failure to fix, never "could not run".
 5. Use the glossary vocabulary. If a new domain term is settled, add it to $GlossaryFile. Write an ADR in $AdrDir/ only for decisions that are hard to reverse, surprising, and the result of a real trade-off. Keep files UTF-8 and leave existing non-ASCII characters intact.
 $(Get-ReviewRule $t)
@@ -218,6 +251,12 @@ $(Get-ReviewRule $t)
 9. Keep the context small; everything in it is re-read on every later turn:
    - write the full output of test runs, builds, Godot runs and benchmarks to a file under .ticket-logs/ and print only the summary and failures;
    - capture screenshots at most 1280 px wide, look at each one once, and do not reread images you already judged.
+10. Keep the number of turns small; every turn re-reads the whole context, so a turn costs as much as everything read so far:
+   - find code through $CodeMap first. When you still do not know where something is, do not grep for it turn after turn: ask an explorer subagent and have it answer briefly with file:line references;
+   - put independent reads, greps and commands into one Bash call, or into several tool calls in the same message;
+   - make all the changes to one file in one edit or one script;
+   - run tests and builds in the foreground with a long enough timeout; never poll them with sleep;
+   - keep $CodeMap current: one line for every file you add, move or split, or whose entry was missing or wrong (create it if it does not exist).
 ${projectRules}${preRule}If you hit a problem that cost you real time and that another ticket would likely hit too (you worked around a tool, a path, a missing step), write the rule that would have prevented it: at most two sentences, the cause and the fix. Append it to $ProposedRules as a line "- <ticket>: <rule>" and repeat it in your closing comment as a line starting with "Suggested rule:". Do not edit $ProjectRules; a human decides what moves there. Skip this if nothing like that happened.
 Never modify issue #$SpecIssue or other tickets, never force-push, and never rewrite history.
 End your final message with exactly one line: TICKET_DONE or TICKET_BLOCKED: <reason>.
@@ -261,7 +300,11 @@ function Invoke-Claude {
     if ($ev.type -eq 'assistant') {
       foreach ($c in $ev.message.content) {
         if ($c.type -eq 'text' -and $c.text.Trim()) { Write-Host ('  > ' + ($c.text.Trim() -split "`n")[0]) -ForegroundColor Gray }
-        elseif ($c.type -eq 'tool_use') { Write-Host "  - $($c.name)" -ForegroundColor DarkGray }
+        elseif ($c.type -eq 'tool_use') {
+          Write-Host "  - $($c.name)" -ForegroundColor DarkGray
+          # Only the main agent's calls: each one re-reads its whole context.
+          if (-not $ev.parent_tool_use_id) { $stats.ToolCalls++ }
+        }
       }
     } elseif ($ev.type -eq 'rate_limit_event' -and $ev.rate_limit_info.unifiedWindows) {
       $lastLimits = $ev.rate_limit_info.unifiedWindows
@@ -275,7 +318,7 @@ function Invoke-Claude {
   $exit = $LASTEXITCODE
   if ($lastResult) {
     $usage = Get-ClaudeUsage $sessionId $lastResult
-    $stats.ClaudeTokens += $usage.Tokens; $stats.ClaudeCost += $usage.Cost
+    $stats.ClaudeTokens += $usage.Tokens; $stats.ClaudeCost += $usage.Cost; $stats.Turns += $turns
     # On a subscription, the cost is only an estimate at API list prices; nothing is billed.
     Write-Host ('  turns: {0}, {1:N0} min, API-price equivalent: ${2:N2}' -f $turns, $minutes, $usage.Cost) -ForegroundColor DarkCyan
     if ($lastLimits) {
@@ -319,6 +362,7 @@ function Add-CsvRow($t, $choice, $stats, [double]$Minutes, [string]$Result) {
     difficulty = $(if ($t.Difficulty) { $t.Difficulty } else { 'unlabelled' }); stage_end = $t.IsStageEnd
     model = $choice.Model; effort = $choice.Effort; minutes = [Math]::Round($Minutes, 1)
     claude_usd = [Math]::Round($stats.ClaudeCost, 2); claude_tokens = [long]$stats.ClaudeTokens
+    turns = $stats.Turns; tool_calls = $stats.ToolCalls
     claude_5h_before = $(if ($lb) { $lb.five_hour.utilization }); claude_5h_after = $(if ($la) { $la.five_hour.utilization })
     claude_week_before = $(if ($lb) { $lb.seven_day.utilization }); claude_week_after = $(if ($la) { $la.seven_day.utilization })
     result = $Result
@@ -326,7 +370,7 @@ function Add-CsvRow($t, $choice, $stats, [double]$Minutes, [string]$Result) {
 }
 
 function New-Stats {
-  @{ ClaudeTokens = 0.0; ClaudeCost = 0.0; LimitsBefore = $null; LimitsAfter = $null }
+  @{ ClaudeTokens = 0.0; ClaudeCost = 0.0; Turns = 0; ToolCalls = 0; LimitsBefore = $null; LimitsAfter = $null }
 }
 
 # ---------------------------------------------------------------------------------------------------
@@ -402,6 +446,7 @@ while ($true) {
     Write-Host "  $($script:preexisting.Count) uncommitted path(s) already in the tree; the ticket leaves them alone." -ForegroundColor DarkCyan
   }
 
+  Save-Issue $t
   $stats = New-Stats
   $started = Get-Date
   $log = Join-Path $logDir ('ticket-{0}-{1:yyyyMMdd-HHmmss}.jsonl' -f $t.Label, (Get-Date))
