@@ -15,7 +15,8 @@ global uniform sampler2D lamp_bulbs;
 // Per Lamp (RF): energy of its pool, the Lamp energy minus the share its real light gives.
 global uniform sampler2D lamp_pool_energy;
 global uniform float lamp_cell_size;
-// Experiment: at most this many Lamps per pixel, and no pools beyond this view distance.
+// Benchmark experiments (--bench-pool-cap/far): at most this many Lamps per pixel, and no pools beyond this view
+// distance. Both are off by default: a cutoff shows as a band of unlit Lamps sliding down the overview.
 global uniform float lamp_pool_cap;
 global uniform float lamp_pool_far;
 // The Store size; 0 while there are no Lamps.

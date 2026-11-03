@@ -66,9 +66,11 @@ public sealed partial class Simulation
 {
     private const float CarriedElevation = 0.7f;
     private readonly List<FurnitureTask> _furnitureTasks = [];
-    // Carrying routes found wanting, with why, while the free cells stay as they were at _noRouteVersion.
-    private readonly Dictionary<(FurniturePiece, Vector2, bool), string> _noRoute = [];
-    private int _noRouteVersion = -1;
+    // Carrying routes found wanting, with why, while the free cells the search went by stay as they were.
+    private readonly Dictionary<(FurniturePiece, Vector2, bool), (string Failure, Navigation.ReadStamp Stamp)> _noRoute = [];
+    // Likewise a worker who cannot get to a piece from the cell they stand in.
+    private readonly Dictionary<(FurniturePiece, Vector2), Navigation.ReadStamp> _noReach = [];
+    private const int MaxNoRoutes = 4096;
 
     private void RestoreFurnitureTasks(IReadOnlyList<FurnitureTask> tasks, IReadOnlyList<Village> villages)
     {
@@ -88,7 +90,28 @@ public sealed partial class Simulation
         _furnitureTasks.AddRange(tasks);
     }
 
-    internal void StartFurnitureTask(int furnitureId, IReadOnlyList<int> ids, Vector2 destination, bool disassemble, bool construction = false) => Publish(() =>
+    internal void StartFurnitureTask(int furnitureId, IReadOnlyList<int> ids, Vector2 destination, bool disassemble, bool construction = false)
+    {
+        if (TryStartFurnitureTask(furnitureId, ids, destination, disassemble, construction) is { } failure)
+            throw new InvalidOperationException(failure);
+    }
+
+    /// <summary>
+    /// As <see cref="StartFurnitureTask"/>, but a task that cannot start (fixed or reserved Furniture, busy workers, no way)
+    /// is answered with why instead of an exception, for callers trying one piece after another; null once started.
+    /// </summary>
+    private string? TryStartFurnitureTask(int furnitureId, IReadOnlyList<int> ids, Vector2 destination, bool disassemble, bool construction = false)
+    {
+        lock (_stepLock)
+        {
+            var failure = StartFurnitureTaskCore(furnitureId, ids, destination, disassemble, construction);
+            if (failure is null && !_stepping)
+                _snapshot = BuildSnapshot();
+            return failure;
+        }
+    }
+
+    private string? StartFurnitureTaskCore(int furnitureId, IReadOnlyList<int> ids, Vector2 destination, bool disassemble, bool construction)
     {
         ArgumentNullException.ThrowIfNull(ids);
         if (ids.Count is < 1 or > 4 || ids.Distinct().Count() != ids.Count ||
@@ -97,56 +120,74 @@ public sealed partial class Simulation
         var piece = PieceById(furnitureId)
             ?? throw new ArgumentException("No such Furniture.");
         if (FurnitureCatalog.Spec(piece).IsFixed || IsSlotFurniture(furnitureId) || construction && IsHomeFridge(furnitureId) || _furnitureTasks.Any(t => t.FurnitureId == furnitureId))
-            throw new InvalidOperationException("Furniture is fixed or already reserved.");
-        var people = _villagers.Snapshot();
-        var workers = ids.Select(id => people.SingleOrDefault(v => v.Id == id)
+            return "Furniture is fixed or already reserved.";
+        var workers = ids.Select(id => _villagers.ViewOf(id)
             ?? throw new ArgumentException("No such Villager.")).ToArray();
         if (workers.Any(v => v.Crafting || v.FurnitureTaskId is not null || v.CarriedAmount + v.CarriedMaterials > 0))
-            throw new InvalidOperationException("A worker is already carrying a load or working on Furniture.");
+            return "A worker is already carrying a load or working on Furniture.";
         if (disassemble && (workers.Length != 1 || workers[0].VillageId is null || workers[0].Hand?.Kind is GearKind.ShoppingCart or GearKind.PlatformCart))
-            throw new InvalidOperationException("Disassembly needs one Village member with hands available.");
+            return "Disassembly needs one Village member with hands available.";
         var weight = FurnitureResources.Weight(piece);
         var cart = workers.Length == 1 && workers[0].Hand?.Kind is GearKind.ShoppingCart or GearKind.PlatformCart;
         if (!disassemble && !cart && weight > 100)
-            throw new InvalidOperationException("This piece needs a cart or disassembly.");
+            return "This piece needs a cart or disassembly.";
         var work = disassemble ? FurnitureWork.Disassemble : cart ? FurnitureWork.CartHaul :
             workers.Length > 1 && weight <= 25 * workers.Length ? FurnitureWork.TeamCarry :
             workers.Length == 1 && weight <= 25 ? FurnitureWork.Carry : FurnitureWork.Drag;
         if (!disassemble && workers.Any(v => v.Hand is not null) && !cart)
-            throw new InvalidOperationException("Carrying Furniture needs free hands.");
+            return "Carrying Furniture needs free hands.";
+        // A worker known not to get to the piece from where they stand fails it before any search.
+        var reachKeys = workers.Select(v => (piece, new Vector2(MathF.Floor(v.Position.X / Navigation.CellSize), MathF.Floor(v.Position.Y / Navigation.CellSize)))).ToArray();
+        foreach (var reachKey in reachKeys)
+            if (_noReach.TryGetValue(reachKey, out var unreachable))
+            {
+                if (_navigation.StillHolds(unreachable))
+                    return "A worker cannot reach the Furniture.";
+                _noReach.Remove(reachKey);
+            }
         // The carrying route first: when it fails it mostly fails fast, before the long way of each worker to the piece.
         List<Vector2> route = [];
         if (!disassemble)
         {
-            // The same piece fails the same way to the same place until the free cells change.
-            if (_noRouteVersion != _navigation.Version)
-            {
-                _noRoute.Clear();
-                _noRouteVersion = _navigation.Version;
-            }
+            // The same piece fails the same way to the same place until the free cells on the way change.
             var key = (piece, destination, construction);
             if (_noRoute.TryGetValue(key, out var known))
-                throw new InvalidOperationException(known);
-            var (found, to, failure) = _navigation.Without(piece, () =>
+            {
+                if (_navigation.StillHolds(known.Stamp))
+                    return known.Failure;
+                _noRoute.Remove(key);
+            }
+            var ((found, to, failure), stamp) = _navigation.Recorded(() => _navigation.Without(piece, () =>
             {
                 var to = construction ? _navigation.NearestWalkable(destination) : destination;
                 if (!_navigation.IsWalkable(to)) return (null, to, "Destination is blocked.");
                 // shortcut: hauling uses pedestrian clearance; widen routes when narrow-aisle load clearance is added.
                 return (_navigation.FindPath(piece.Position, _space.Wrap(to)), to, "No carrying route.");
-            });
+            }));
             if (found is null)
             {
-                _noRoute[key] = failure;
-                throw new InvalidOperationException(failure);
+                if (_noRoute.Count >= MaxNoRoutes)
+                    _noRoute.Clear();
+                _noRoute[key] = (failure, stamp);
+                return failure;
             }
             (route, destination) = (found, to);
         }
-        if (workers.Any(v => _navigation.FindPath(v.Position, _navigation.NearestWalkable(piece.Position)) is null))
-            throw new InvalidOperationException("A worker cannot reach the Furniture.");
+        for (var i = 0; i < workers.Length; i++)
+        {
+            var worker = workers[i];
+            var (way, stamp) = _navigation.Recorded(() => _navigation.FindPath(worker.Position, _navigation.NearestWalkable(piece.Position)));
+            if (way is not null)
+                continue;
+            if (_noReach.Count >= MaxNoRoutes)
+                _noReach.Clear();
+            _noReach[reachKeys[i]] = stamp;
+            return "A worker cannot reach the Furniture.";
+        }
         _furnitureTasks.Add(new(furnitureId, Array.AsReadOnly(ids.ToArray()), work, _space.Wrap(destination), route.AsReadOnly()));
         foreach (var id in ids) _villagers.ReserveFurniture(id, furnitureId, piece.Position);
-        return true;
-    });
+        return null;
+    }
 
     private void AdvanceFurnitureTasks(StoreClock clock)
     {

@@ -27,6 +27,8 @@
 
   Logs: .ticket-logs/ (git-excluded locally). One CSV row per ticket: .ticket-logs/runs.csv.
 
+  Exit codes: 0 done, 1 failed or blocked, 2 stopped by the usage limit.
+
 .EXAMPLE
   .\scripts\run-tickets.ps1 -DryRun          # show the next ticket and its model, run nothing
   .\scripts\run-tickets.ps1 -Max 1           # run exactly one ticket
@@ -303,7 +305,8 @@ function Invoke-ClaudeTicket($choice, $stats, [string]$Log, [string]$Prompt) {
     if ($wait.TotalSeconds -gt 0) { Start-Sleep -Seconds ([int]$wait.TotalSeconds) }
     $run = Invoke-Claude $stats $choice $Log 'The usage limit interrupted you. Continue this ticket from where you stopped, following the same rules.' $run.SessionId
   }
-  $run.Final
+  # ResetsAt is still set when the usage limit stopped the ticket for good.
+  $run
 }
 
 # ---------------------------------------------------------------------------------------------------
@@ -402,7 +405,8 @@ while ($true) {
   $stats = New-Stats
   $started = Get-Date
   $log = Join-Path $logDir ('ticket-{0}-{1:yyyyMMdd-HHmmss}.jsonl' -f $t.Label, (Get-Date))
-  $final = Invoke-ClaudeTicket $choice $stats $log (Get-Prompt $t $choice)
+  $run = Invoke-ClaudeTicket $choice $stats $log (Get-Prompt $t $choice)
+  $final = $run.Final
 
   $state = gh issue view $t.Issue -R $Repo --json state --jq '.state'
   Show-WatchdogNotes
@@ -418,6 +422,8 @@ while ($true) {
     Write-Host "Ticket $($t.Label) did not finish cleanly (issue: $state, uncommitted changes: $($dirty.Count -gt 0), unpushed commits: $unpushed)." -ForegroundColor Red
     Write-Host "Agent's last message:`n$final" -ForegroundColor Red
     Write-Host "Log: $log"
+    # Exit code 2: stopped by the usage limit (run-tickets-fallback.ps1 then switches to Codex).
+    if ($run.ResetsAt) { Write-Host 'Stopped by the Claude usage limit.' -ForegroundColor Yellow; exit 2 }
     exit 1
   }
 

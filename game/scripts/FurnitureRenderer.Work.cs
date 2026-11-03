@@ -11,7 +11,7 @@ public partial class FurnitureRenderer
     {
         foreach (var task in world.FurnitureTasks)
         {
-            var piece = world.Furniture.FirstOrDefault(p => p.Id == task.FurnitureId);
+            var piece = world.FurniturePieceById(task.FurnitureId) ?? default;
             if (!_work.TryGetValue(piece.Id, out var node))
             {
                 node = new Node3D { Name = $"FurnitureWork{piece.Id}" };
@@ -23,14 +23,16 @@ public partial class FurnitureRenderer
                     Billboard = BaseMaterial3D.BillboardModeEnum.Enabled });
                 _work.Add(piece.Id, node);
             }
-            var near = world.Space.Delta(Rig.Focus.ToStore(), piece.Position);
-            node.Position = new Vector3(Rig.Focus.X + near.X, piece.Elevation, Rig.Focus.Z + near.Y);
+            // Where it is shown, in step with the Villagers moving it.
+            var shown = Host.InterpolatedPiece(piece.Id) ?? piece;
+            var near = world.Space.Delta(Rig.Focus.ToStore(), shown.Position);
+            node.Position = new Vector3(Rig.Focus.X + near.X, shown.Elevation, Rig.Focus.Z + near.Y);
             var mesh = node.GetNode<MultiMeshInstance3D>("Furniture");
             mesh.Visible = task.Started && task.Work != FurnitureWork.Disassemble;
             if (mesh.Visible)
             {
                 mesh.Multimesh.Mesh = FurnitureMeshes.For(piece.Type, piece.Variant, piece.LandmarkId >= 0);
-                mesh.Multimesh.SetInstanceTransform(0, Placement(piece with { Position = System.Numerics.Vector2.Zero, Elevation = 0 }));
+                mesh.Multimesh.SetInstanceTransform(0, Placement(shown with { Position = System.Numerics.Vector2.Zero, Elevation = 0 }));
                 mesh.Multimesh.SetInstanceColor(0, Colour(world, piece));
             }
             var label = node.GetNode<Label3D>("Work");

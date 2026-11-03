@@ -64,6 +64,7 @@ public partial class WrappedInstances : Node3D
     private static ulong _creationFrame;
 
     private readonly Dictionary<ChunkCoord, ChunkImages> _chunks = new();
+    private bool _useColors;
     // Images in use per chunk during a placement; kept, so placing allocates nothing for the collector.
     private readonly Dictionary<ChunkCoord, int> _used = new();
     private StoreSpace _space = StoreSpace.Standard;
@@ -88,36 +89,56 @@ public partial class WrappedInstances : Node3D
         FreeImages();
         _chunks.Clear();
         _space = space;
+        _useColors = useColors;
         _placedAroundCell = null;
         _placedOverview = false;
         _pending.Clear();
 
-        var byChunk = instances
-            .Select(i => i with { Transform = i.Transform with { Origin = space.Wrap(i.Transform.Origin.ToStore()).ToWorld(i.Transform.Origin.Y) } })
-            .GroupBy(i => space.ChunkOf(i.Transform.Origin.ToStore()));
-        var stride = useColors ? 16 : 12;
-        foreach (var group in byChunk)
+        foreach (var group in instances.Select(i => Wrapped(space, i)).GroupBy(i => space.ChunkOf(i.Transform.Origin.ToStore())))
+            _chunks[group.Key] = NewChunk(group.ToArray());
+    }
+
+    /// <summary>
+    /// Replaces the instances of one chunk only, with colours if the last <see cref="SetInstances(StoreSpace, IEnumerable{ValueTuple{Transform3D, Color}})"/>
+    /// had them; none take the chunk away. Every other chunk stands as it is, so a few pieces changing among hundreds of
+    /// thousands cost one chunk. Origins are Store positions in that chunk once wrapped.
+    /// </summary>
+    public void SetChunkInstances(ChunkCoord chunk, IReadOnlyCollection<(Transform3D Transform, Color Color)> instances)
+    {
+        if (_chunks.Remove(chunk, out var old))
+            foreach (var image in old.Images)
+                image.Free();
+        if (instances.Count > 0)
+            _chunks[chunk] = NewChunk(instances.Select(i => Wrapped(_space, i)).ToArray());
+        // Placed afresh: the chunk's images are made again, the others only stay where they are.
+        _placedAroundCell = null;
+        _placedOverview = false;
+    }
+
+    private static (Transform3D Transform, Color Color) Wrapped(StoreSpace space, (Transform3D Transform, Color Color) instance) =>
+        instance with { Transform = instance.Transform with { Origin = space.Wrap(instance.Transform.Origin.ToStore()).ToWorld(instance.Transform.Origin.Y) } };
+
+    private ChunkImages NewChunk((Transform3D Transform, Color Color)[] chunkInstances)
+    {
+        var stride = _useColors ? 16 : 12;
+        // Filled in one go: per-instance setters are far slower for hundreds of thousands of pieces.
+        var buffer = new float[chunkInstances.Length * stride];
+        for (var i = 0; i < chunkInstances.Length; i++)
         {
-            var chunkInstances = group.ToArray();
-            // Filled in one go: per-instance setters are far slower for hundreds of thousands of pieces.
-            var buffer = new float[chunkInstances.Length * stride];
-            for (var i = 0; i < chunkInstances.Length; i++)
+            var (t, color) = chunkInstances[i];
+            var o = i * stride;
+            buffer[o + 0] = t.Basis.X.X; buffer[o + 1] = t.Basis.Y.X; buffer[o + 2] = t.Basis.Z.X; buffer[o + 3] = t.Origin.X;
+            buffer[o + 4] = t.Basis.X.Y; buffer[o + 5] = t.Basis.Y.Y; buffer[o + 6] = t.Basis.Z.Y; buffer[o + 7] = t.Origin.Y;
+            buffer[o + 8] = t.Basis.X.Z; buffer[o + 9] = t.Basis.Y.Z; buffer[o + 10] = t.Basis.Z.Z; buffer[o + 11] = t.Origin.Z;
+            if (_useColors)
             {
-                var (t, color) = chunkInstances[i];
-                var o = i * stride;
-                buffer[o + 0] = t.Basis.X.X; buffer[o + 1] = t.Basis.Y.X; buffer[o + 2] = t.Basis.Z.X; buffer[o + 3] = t.Origin.X;
-                buffer[o + 4] = t.Basis.X.Y; buffer[o + 5] = t.Basis.Y.Y; buffer[o + 6] = t.Basis.Z.Y; buffer[o + 7] = t.Origin.Y;
-                buffer[o + 8] = t.Basis.X.Z; buffer[o + 9] = t.Basis.Y.Z; buffer[o + 10] = t.Basis.Z.Z; buffer[o + 11] = t.Origin.Z;
-                if (useColors)
-                {
-                    buffer[o + 12] = color.R; buffer[o + 13] = color.G; buffer[o + 14] = color.B; buffer[o + 15] = color.A;
-                }
+                buffer[o + 12] = color.R; buffer[o + 13] = color.G; buffer[o + 14] = color.B; buffer[o + 15] = color.A;
             }
-            _chunks[group.Key] = new ChunkImages(
-                NewMultiMesh(Mesh, buffer, chunkInstances.Length, useColors),
-                CoarseMesh is null ? null : NewMultiMesh(CoarseMesh, buffer, chunkInstances.Length, useColors),
-                OccluderQuads.Length == 0 ? null : NewOccluder(chunkInstances.Select(i => i.Transform)));
         }
+        return new ChunkImages(
+            NewMultiMesh(Mesh, buffer, chunkInstances.Length, _useColors),
+            CoarseMesh is null ? null : NewMultiMesh(CoarseMesh, buffer, chunkInstances.Length, _useColors),
+            OccluderQuads.Length == 0 ? null : NewOccluder(chunkInstances.Select(i => i.Transform)));
     }
 
     private static MultiMesh NewMultiMesh(Mesh? mesh, float[] buffer, int count, bool useColors)

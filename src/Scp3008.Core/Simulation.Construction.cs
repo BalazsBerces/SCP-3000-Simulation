@@ -6,9 +6,33 @@ public sealed partial class Simulation
 {
     private bool IsBuiltFurniture(int id) => IsHomeFridge(id) || IsSlotFurniture(id);
 
-    private bool IsSlotFurniture(int id) => _villages.Any(v => v.PillarScaffold?.Slots.Any(s => s.FurnitureId == id) == true ||
-        v.Dwellings.Any(d => d.Slots.Any(s => s.FurnitureId == id)) || v.MessHall?.Slots.Any(s => s.FurnitureId == id) == true || v.Storehouse?.Slots.Any(s => s.FurnitureId == id) == true || v.Workshops.Any(w => w.Slot.FurnitureId == id) || v.Walls.Any(w =>
-        w.IncorporatedFurnitureId == id || w.Slots.Any(s => s.FurnitureId == id)) || v.Castle.Any(c => c.Slots.Any(s => s.FurnitureId == id)));
+    private bool IsSlotFurniture(int id) => SlotFurniture().Contains(id);
+
+    // The Villages the slot Furniture was gathered from: they are records, so any change to them replaces one.
+    private Village[] _slotFurnitureOf = [];
+    private readonly HashSet<int> _slotFurniture = [];
+
+    /// <summary>The ids of the Furniture built into any Village's slots; candidate searches ask this of every piece nearby.</summary>
+    private HashSet<int> SlotFurniture()
+    {
+        if (_slotFurnitureOf.Length == _villages.Count && _villages.Select((v, i) => ReferenceEquals(v, _slotFurnitureOf[i])).All(same => same))
+            return _slotFurniture;
+        _slotFurniture.Clear();
+        foreach (var v in _villages)
+        {
+            var slots = (v.PillarScaffold?.Slots ?? []).Concat(v.Dwellings.SelectMany(d => d.Slots)).Concat(v.MessHall?.Slots ?? [])
+                .Concat(v.Storehouse?.Slots ?? []).Concat(v.Workshops.Select(w => w.Slot)).Concat(v.Walls.SelectMany(w => w.Slots))
+                .Concat(v.Castle.SelectMany(c => c.Slots));
+            foreach (var slot in slots)
+                if (slot.FurnitureId is { } id)
+                    _slotFurniture.Add(id);
+            foreach (var wall in v.Walls)
+                if (wall.IncorporatedFurnitureId is { } id)
+                    _slotFurniture.Add(id);
+        }
+        _slotFurnitureOf = _villages.ToArray();
+        return _slotFurniture;
+    }
 
     internal Blueprint PlanBarricade(int villageId) => Publish(() =>
     {
@@ -165,14 +189,11 @@ public sealed partial class Simulation
                 _space.Distance(site, p.Position) <= 48 &&
                 !_furnitureTasks.Any(t => t.FurnitureId == p.Id)).OrderBy(p => InYard(current, p) ? 0 : 1).ThenBy(p => _space.Distance(workers[0].Position, p.Position)))
             {
-                try
-                {
-                    StartFurnitureTask(piece.Id, [workers[0].Id], slot.Position, false, construction: true);
-                    SetWallSlot(village.Id, ring, index, slot with { ReservedFurnitureId = piece.Id });
-                    started = true;
-                    break;
-                }
-                catch (InvalidOperationException) { /* Try the next reachable, haulable piece. */ }
+                if (TryStartFurnitureTask(piece.Id, [workers[0].Id], slot.Position, false, construction: true) is not null)
+                    continue; // Try the next reachable, haulable piece.
+                SetWallSlot(village.Id, ring, index, slot with { ReservedFurnitureId = piece.Id });
+                started = true;
+                break;
             }
             if (!started) GatherToYard(_villages[village.Id], workers[0]);
         }

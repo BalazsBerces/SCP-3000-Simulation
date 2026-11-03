@@ -46,8 +46,17 @@ public sealed partial class Simulation
 
     // Power is only spent while there is food to keep cold.
     private bool FridgeHasLoad(FurniturePiece fridge, Village? home) =>
-        _stock.Any(g => g.FurnitureId == fridge.Id && !g.LeftBehind && g.Amount > 0) ||
+        StoreGoodsOn(fridge.Id) > 0 ||
         home is not null && home.Stores.Any(g => g.Value > 0 && GoodsCatalog.ClassOf(g.Key) == GoodsClass.Food);
+
+    private int StoreGoodsOn(int furnitureId)
+    {
+        var units = 0;
+        foreach (var i in _stock.On(furnitureId))
+            if (!_stock[i].LeftBehind)
+                units += _stock[i].Amount;
+        return units;
+    }
 
     private void AdvanceFridges(StoreClock clock)
     {
@@ -87,12 +96,9 @@ public sealed partial class Simulation
             _space.Distance(village.Position, p.Position) <= 48 && FridgeHome(p) is null && !IsBuiltFurniture(p.Id) &&
             !_furnitureTasks.Any(t => t.FurnitureId == p.Id)).OrderBy(p => _space.Distance(worker.Position, p.Position)))
         {
-            try
-            {
-                StartFurnitureTask(fridge.Id, [worker.Id], _space.Wrap(village.Position + new Vector2(-2, 2)), false, construction: true);
-                return true;
-            }
-            catch (InvalidOperationException) { /* Try the next reachable Fridge. */ }
+            if (TryStartFurnitureTask(fridge.Id, [worker.Id], _space.Wrap(village.Position + new Vector2(-2, 2)), false, construction: true) is not null)
+                continue; // Try the next reachable Fridge.
+            return true;
         }
         return false;
     }

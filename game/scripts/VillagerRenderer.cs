@@ -31,6 +31,9 @@ public partial class VillagerRenderer : Node3D
     public override void _Ready()
     {
         _mesh = FurnitureModels.Product("villager", ModelYaw, Height, TriangleBudget);
+        // Every Gear model is loaded while the Store loads: loading one when a Villager first picks it up stalls a frame.
+        foreach (var kind in Enum.GetValues<GearKind>())
+            GearMesh(kind);
         var layer = new CanvasLayer();
         AddChild(layer);
         CreateVillagePanel(layer);

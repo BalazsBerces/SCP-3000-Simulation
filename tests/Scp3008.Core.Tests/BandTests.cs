@@ -121,18 +121,38 @@ public class BandTests
         Assert.All(sim.Snapshot.Villagers, v => Assert.Equal(VillagerAction.Resting, v.Action));
     }
 
-    [Theory]
-    [InlineData(0.1, 0)]
-    [InlineData(1, 0.9)]
-    public void Exhaustion_or_hunger_forces_settlement_at_a_weaker_site(double rest, double hunger)
+    [Fact]
+    public void Exhaustion_forces_settlement_at_a_weaker_site()
     {
         using var sim = ScenarioBuilder.LoadVillagerSandbox("empty");
-        sim.Scenario.PlaceBand([new(20, 104), new(22, 104)], new Needs(Rest: rest, Hunger: hunger));
+        sim.Scenario.PlaceBand([new(20, 104), new(22, 104)], new Needs(Rest: 0.1));
         var events = new List<DomainEvent>();
         using var subscription = sim.Subscribe(events.Add);
         sim.Advance(TimeSpan.FromMinutes(10));
         Assert.Single(sim.Snapshot.Villages);
         Assert.True(Assert.Single(events.OfType<VillageFounded>()).Forced);
+    }
+
+    [Fact]
+    public void A_hungry_Band_keeps_searching_rather_than_settling_without_food()
+    {
+        using var sim = ScenarioBuilder.LoadVillagerSandbox("empty");
+        sim.Scenario.PlaceWaterPoint(new(22, 108));
+        sim.Scenario.PlaceBand([new(20, 104), new(22, 104)], new Needs(Hunger: 0.9));
+        sim.Advance(TimeSpan.FromMinutes(10));
+        Assert.Empty(sim.Snapshot.Villages);
+    }
+
+    [Fact]
+    public void A_Band_does_not_settle_beside_a_few_tins()
+    {
+        using var sim = ScenarioBuilder.LoadVillagerSandbox("empty");
+        var shelf = sim.Scenario.PlaceFurniture(FurnitureType.GroceryShelf, new(20, 108));
+        sim.Scenario.SetStock(shelf.Id, GoodsKind.TinnedFood, 2);
+        sim.Scenario.PlaceWaterPoint(new(22, 108));
+        sim.Scenario.PlaceBand([new(20, 104), new(22, 104), new(24, 104)]);
+        sim.Advance(TimeSpan.FromMinutes(30));
+        Assert.Empty(sim.Snapshot.Villages);
     }
 
     [Fact]

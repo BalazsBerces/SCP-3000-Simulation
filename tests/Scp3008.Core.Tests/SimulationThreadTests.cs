@@ -61,6 +61,36 @@ public class SimulationThreadTests
     }
 
     [Fact]
+    public void Fast_forwarding_runs_on_the_simulation_thread_and_lands_exactly_even_while_paused()
+    {
+        using var sim = NewWorld();
+        var tickingThreads = new System.Collections.Concurrent.ConcurrentBag<int>();
+        using var _ = sim.Subscribe(_ => tickingThreads.Add(Environment.CurrentManagedThreadId));
+        sim.Speed = SimulationSpeed.Paused;
+        sim.Start();
+
+        // From 08:00 through Closing time (22:00) and midnight to 02:00.
+        sim.FastForwardTo(TimeSpan.FromHours(2));
+
+        Assert.True(SpinWait.SpinUntil(() => sim.Snapshot.Clock is { Day: 2, TimeOfDay.Hours: >= 2 }, Timeout));
+        Thread.Sleep(Simulation.RealTimeStep * 4); // it stops there
+        Assert.Equal(TimeSpan.FromHours(2), sim.Snapshot.Clock.TimeOfDay);
+        Assert.Equal(2, sim.Snapshot.Clock.Day);
+        Assert.NotEmpty(tickingThreads);
+        Assert.DoesNotContain(Environment.CurrentManagedThreadId, tickingThreads);
+    }
+
+    [Fact]
+    public void Fast_forwarding_without_the_simulation_thread_advances_at_once()
+    {
+        using var sim = NewWorld();
+
+        sim.FastForwardTo(TimeSpan.FromHours(23));
+
+        Assert.Equal(TimeSpan.FromHours(23), sim.Snapshot.Clock.TimeOfDay);
+    }
+
+    [Fact]
     public void Normal_speed_runs_about_twenty_ticks_per_real_second()
     {
         using var sim = NewWorld();

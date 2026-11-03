@@ -57,13 +57,10 @@ public sealed partial class Simulation
             !_furnitureTasks.Any(t => t.FurnitureId == p.Id)).OrderBy(p => InYard(village, p) ? 0 : 1)
             .ThenBy(p => _space.Distance(worker.Position, p.Position)))
         {
-            try
-            {
-                StartFurnitureTask(piece.Id, [worker.Id], slot.Position, false, construction: true);
-                SetStorehouseSlot(village.Id, index, slot with { ReservedFurnitureId = piece.Id });
-                return true;
-            }
-            catch (InvalidOperationException) { /* Try the next reachable, haulable piece. */ }
+            if (TryStartFurnitureTask(piece.Id, [worker.Id], slot.Position, false, construction: true) is not null)
+                continue; // Try the next reachable, haulable piece.
+            SetStorehouseSlot(village.Id, index, slot with { ReservedFurnitureId = piece.Id });
+            return true;
         }
         return false;
     }

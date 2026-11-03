@@ -59,66 +59,194 @@ public partial class FurnitureRenderer : Node3D
             var moving = world.FurnitureTasks.Where(t => t.Started && t.Work != FurnitureWork.Disassemble)
                 .Select(t => t.FurnitureId).Concat(_falls.Keys).ToHashSet();
             // While pieces are carried the Furniture changes every step, but only those pieces: the stationary rest stands.
+            // The pieces that changed, or started or stopped moving, are shown anew in their chunks; when the changes are
+            // not known, every piece is compared with what is shown.
             var changes = WorldSnapshot.FurnitureChanges(_builtFurniture, world.Furniture);
-            if (changes is null || !moving.SetEquals(_moving) ||
-                changes.Any(c => !moving.Contains(c.After.Id) || c.Before is { } before && !moving.Contains(before.Id)))
-            {
-                var stationary = world.Furniture.Where(p => !moving.Contains(p.Id)).ToArray();
-                if (!_stationary.SequenceEqual(stationary))
-                {
-                    Rebuild(world with { Furniture = Array.AsReadOnly(stationary) });
-                    _stationary = stationary;
-                }
-                _moving = moving;
-            }
+            var touched = changes is null
+                ? Differences(world, moving)
+                : changes.SelectMany(c => c.Before is { } before ? [before.Id, c.After.Id] : new[] { c.After.Id });
+            Follow(world, touched.Concat(moving.Except(_moving)).Concat(_moving.Except(moving)), moving);
+            _moving = moving;
             _builtFurniture = world.Furniture;
         }
         ShowFurnitureWork(world);
         ShowFalls(world);
     }
 
-    private FurniturePiece[] _stationary = [];
     private HashSet<int> _moving = [];
+    // The stationary pieces shown, by id and by instance group and chunk, and the groups' nodes.
+    private readonly Dictionary<int, FurniturePiece> _shown = [];
+    private readonly Dictionary<(GroupKey Group, ChunkCoord Chunk), Dictionary<int, FurniturePiece>> _shownByChunk = [];
+    private readonly Dictionary<GroupKey, WrappedInstances> _groups = [];
+    // The shown pieces the rack decks and the lettering are made from (LetteringFollows), a small part of the Store.
+    private readonly Dictionary<int, FurniturePiece> _lettered = [];
+    private PointOfInterestDetails? _details;
+
+    private readonly record struct GroupKey(FurnitureType Type, int Variant, bool Landmark)
+    {
+        public static GroupKey Of(FurniturePiece piece) => new(piece.Type, piece.Variant, piece.LandmarkId >= 0);
+    }
+
+    /// <summary>Every piece shown otherwise than it is now: changed, added, taken away, or now moving or standing.</summary>
+    private List<int> Differences(WorldSnapshot world, HashSet<int> moving)
+    {
+        var differences = new List<int>();
+        var ids = new HashSet<int>();
+        foreach (var piece in world.Furniture)
+        {
+            ids.Add(piece.Id);
+            var shown = _shown.TryGetValue(piece.Id, out var found) ? found : (FurniturePiece?)null;
+            if (moving.Contains(piece.Id) ? shown is not null : shown != piece)
+                differences.Add(piece.Id);
+        }
+        differences.AddRange(_shown.Keys.Where(id => !ids.Contains(id)));
+        return differences;
+    }
+
+    /// <summary>Shows the pieces with these ids as they stand now (moving ones not at all), re-placing only their chunks.</summary>
+    private void Follow(WorldSnapshot world, IEnumerable<int> ids, HashSet<int> moving)
+    {
+        var dirty = new HashSet<(GroupKey, ChunkCoord)>();
+        var (decks, lettering) = (false, false);
+        foreach (var id in ids.Distinct())
+        {
+            var now = moving.Contains(id) ? null : world.FurniturePieceById(id);
+            var was = _shown.TryGetValue(id, out var shown) ? shown : (FurniturePiece?)null;
+            if (now == was)
+                continue;
+            if (was is { } before)
+            {
+                var key = (GroupKey.Of(before), ChunkOf(world.Space, before));
+                _shownByChunk[key].Remove(id);
+                dirty.Add(key);
+                _shown.Remove(id);
+                _lettered.Remove(id);
+                decks |= DecksFollow(before);
+                lettering |= LetteringFollows(before);
+            }
+            if (now is { } after)
+            {
+                var key = (GroupKey.Of(after), ChunkOf(world.Space, after));
+                if (!_shownByChunk.TryGetValue(key, out var inChunk))
+                    _shownByChunk[key] = inChunk = [];
+                inChunk[id] = after;
+                dirty.Add(key);
+                _shown[id] = after;
+                if (LetteringFollows(after))
+                    _lettered[id] = after;
+                decks |= DecksFollow(after);
+                lettering |= LetteringFollows(after);
+            }
+        }
+        foreach (var (group, chunk) in dirty)
+        {
+            if (!_groups.TryGetValue(group, out var node))
+            {
+                node = NewGroup(group, world.Space);
+                AddChild(node);
+                node.SetInstances(world.Space, Array.Empty<(Transform3D, Color)>());
+                _groups[group] = node;
+            }
+            var pieces = _shownByChunk[(group, chunk)];
+            node.SetChunkInstances(chunk, pieces.Values.Select(p => (Placement(p), Colour(world, p))).ToArray());
+            if (pieces.Count == 0)
+                _shownByChunk.Remove((group, chunk));
+        }
+        if (decks || lettering)
+        {
+            var shownWorld = world with { Furniture = Array.AsReadOnly(_lettered.Values.ToArray()) };
+            if (decks)
+            {
+                _decks?.QueueFree();
+                _decks = AddRackDecks(shownWorld);
+            }
+            if (lettering)
+                BuildLettering(shownWorld);
+        }
+    }
+
+    // The chunk WrappedInstances files a piece under.
+    private static ChunkCoord ChunkOf(StoreSpace space, FurniturePiece piece) => space.ChunkOf(space.Wrap(Placement(piece).Origin.ToStore()));
+
+    // The Landmark rack decks stand on the Rack canyon's racks under its boxes.
+    private static bool DecksFollow(FurniturePiece piece) =>
+        piece.LandmarkId >= 0 && piece.Type is FurnitureType.PalletRack or FurnitureType.FlatPackBox;
+
+    // The lettering (PointOfInterestDetails) is on these pieces, and the price tags name the Landmark's products.
+    private static bool LetteringFollows(FurniturePiece piece) => piece.LandmarkId >= 0 || piece.PointOfInterestId >= 0 ||
+        piece.Type is FurnitureType.TrailSign or FurnitureType.CampBanner or FurnitureType.PriceTag;
 
     private void ShowDetail(bool coarse) => Rig.Camera.CullMask = FurnitureDetail.Mask(Rig.Camera.CullMask);
 
     private void Rebuild(WorldSnapshot snapshot)
     {
         _builtFurniture = snapshot.Furniture;
+        _moving = [];
         var started = Time.GetTicksMsec();
         foreach (var child in GetChildren())
             child.QueueFree();
-        foreach (var group in snapshot.Furniture.GroupBy(p => (p.Type, p.Variant, Landmark: p.LandmarkId >= 0)))
+        _shown.Clear();
+        _lettered.Clear();
+        _shownByChunk.Clear();
+        _groups.Clear();
+        _decks = null;
+        _details = null;
+        foreach (var piece in snapshot.Furniture)
         {
-            var name = group.Key.Variant == 0 ? group.Key.Type.ToString() : $"{group.Key.Type}-{group.Key.Variant}";
-            var instances = new WrappedInstances
-            {
-                Name = group.Key.Landmark ? $"Landmark-{name}" : name,
-                Rig = Rig,
-                FarDistance = group.Key.Landmark ? Visibility.LandmarkDistance : Visibility.FurnitureDistance,
-                ViewReach = group.Key.Landmark
-                    ? Visibility.LandmarkPlacementReach(Rig, snapshot.Space.ChunkSize)
-                    : Visibility.PlacementReach(Rig, snapshot.Space.ChunkSize),
-                Mesh = FurnitureMeshes.For(group.Key.Type, group.Key.Variant, group.Key.Landmark),
-                CoarseMesh = FurnitureMeshes.CoarseFor(group.Key.Type, group.Key.Variant, group.Key.Landmark),
-                // Landmark Furniture hides nothing: the panels of thousands of stacked, tilted and touching
-                // pieces stalled the first render with occlusion culling on, as the crossing pantry panels did.
-                OccluderQuads = group.Key.Landmark ? [] : FurnitureMeshes.OccluderQuads(group.Key.Type, group.Key.Variant),
-            };
+            _shown[piece.Id] = piece;
+            if (LetteringFollows(piece))
+                _lettered[piece.Id] = piece;
+            var key = (GroupKey.Of(piece), ChunkOf(snapshot.Space, piece));
+            if (!_shownByChunk.TryGetValue(key, out var inChunk))
+                _shownByChunk[key] = inChunk = [];
+            inChunk[piece.Id] = piece;
+        }
+        foreach (var group in snapshot.Furniture.GroupBy(GroupKey.Of))
+        {
+            var instances = NewGroup(group.Key, snapshot.Space);
             AddChild(instances);
             instances.SetInstances(snapshot.Space, group.Select(p => (Placement(p), Colour(snapshot, p))));
+            _groups[group.Key] = instances;
         }
-        AddRackDecks(snapshot);
         var goods = new ShelfGoods { Name = "ShelfGoods", Host = Host, Rig = Rig, Visibility = Visibility };
         AddChild(goods);
         goods.Build(snapshot);
-        var details = new PointOfInterestDetails { Rig = Rig };
-        AddChild(details);
-        details.Build(snapshot);
+        _decks = AddRackDecks(snapshot);
+        BuildLettering(snapshot);
         FurnitureDetail.DrawBoth(3);
         GD.Print($"Furniture: {snapshot.Furniture.Count} pieces placed in {Time.GetTicksMsec() - started} ms; " +
                  $"Landmarks: {string.Join(", ", snapshot.Landmarks.Select(l => $"{l.Type} in {snapshot.Sectors[l.SectorId].Name} at {l.Centre.X:0},{l.Centre.Y:0}, {l.Height:0} m"))}.");
     }
+
+    private WrappedInstances NewGroup(GroupKey group, StoreSpace space)
+    {
+        var name = group.Variant == 0 ? group.Type.ToString() : $"{group.Type}-{group.Variant}";
+        return new WrappedInstances
+        {
+            Name = group.Landmark ? $"Landmark-{name}" : name,
+            Rig = Rig,
+            FarDistance = group.Landmark ? Visibility.LandmarkDistance : Visibility.FurnitureDistance,
+            ViewReach = group.Landmark
+                ? Visibility.LandmarkPlacementReach(Rig, space.ChunkSize)
+                : Visibility.PlacementReach(Rig, space.ChunkSize),
+            Mesh = FurnitureMeshes.For(group.Type, group.Variant, group.Landmark),
+            CoarseMesh = FurnitureMeshes.CoarseFor(group.Type, group.Variant, group.Landmark),
+            // Landmark Furniture hides nothing: the panels of thousands of stacked, tilted and touching
+            // pieces stalled the first render with occlusion culling on, as the crossing pantry panels did.
+            OccluderQuads = group.Landmark ? [] : FurnitureMeshes.OccluderQuads(group.Type, group.Variant),
+        };
+    }
+
+    /// <summary>The Point of interest lettering, made anew for the shown pieces.</summary>
+    private void BuildLettering(WorldSnapshot snapshot)
+    {
+        _details?.QueueFree();
+        _details = new PointOfInterestDetails { Rig = Rig };
+        AddChild(_details);
+        _details.Build(snapshot);
+    }
+
+    private WrappedInstances? _decks;
 
     /// <summary>
     /// A piece's instance colour: its tint, and for a clock of the clock wall its offset from the time to Closing time,
@@ -181,7 +309,7 @@ public partial class FurnitureRenderer : Node3D
     /// The steel decks of the Rack canyon's racks, whose meshes are bare beams: on each beam level, half a deck under each box
     /// standing on it, so a level with one box is half decked, one with two fully, and an empty one not at all.
     /// </summary>
-    private void AddRackDecks(WorldSnapshot snapshot)
+    private WrappedInstances AddRackDecks(WorldSnapshot snapshot)
     {
         var spec = FurnitureCatalog.Spec(FurnitureType.PalletRack);
         var racks = snapshot.Furniture.Where(p => p.LandmarkId >= 0 && p.Type == FurnitureType.PalletRack)
@@ -218,6 +346,7 @@ public partial class FurnitureRenderer : Node3D
         };
         AddChild(instances);
         instances.SetInstances(snapshot.Space, decks.Select(d => (d, Colors.White)));
+        return instances;
     }
 
     /// <summary>

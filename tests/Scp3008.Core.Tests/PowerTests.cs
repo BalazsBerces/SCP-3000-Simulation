@@ -138,6 +138,26 @@ public class PowerTests
     }
 
     [Fact]
+    public void Many_lights_are_as_bright_everywhere_as_the_brightest_reaching_each_spot()
+    {
+        using var sim = ScenarioBuilder.LoadVillagerSandbox("empty");
+        sim.Scenario.SetTimeOfDay(TimeSpan.FromHours(23));
+        var space = sim.Snapshot.Space;
+        var random = new Random(3008);
+        // Enough lights to be looked up on a grid, some of them reaching across the Seam.
+        var areas = Enumerable.Range(0, 60).Select(i => new LitArea(i,
+            new Vector2(random.NextSingle() * space.Size, random.NextSingle() * space.Size), 1, 2 + random.NextSingle() * 20, 0.1f + random.NextSingle())).ToArray();
+        var world = sim.Snapshot with { LitAreas = areas };
+
+        for (var i = 0; i < 2000; i++)
+        {
+            var spot = new Vector2(random.NextSingle() * space.Size * 1.2f - space.Size * 0.1f, random.NextSingle() * space.Size * 1.2f - space.Size * 0.1f);
+            var expected = areas.Where(a => space.Distance(spot, a.Position) <= a.Radius).Select(a => a.Brightness).DefaultIfEmpty().Max();
+            Assert.Equal(Math.Max((float)world.StoreLightLevelAt(spot), expected), world.LightBrightnessAt(spot));
+        }
+    }
+
+    [Fact]
     public void A_display_Lamp_lights_a_Wanderer_across_a_Seam_away_from_any_Village()
     {
         using var sim = ScenarioBuilder.LoadVillagerSandbox("empty");

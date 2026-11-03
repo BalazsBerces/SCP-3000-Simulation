@@ -48,13 +48,10 @@ public sealed partial class Simulation
             WorkshopFits(pending.Slot, p) && !IsBuiltFurniture(p.Id) &&
             !_furnitureTasks.Any(t => t.FurnitureId == p.Id)).OrderBy(p => InYard(village, p) ? 0 : 1).ThenBy(p => _space.Distance(worker.Position, p.Position)))
         {
-            try
-            {
-                StartFurnitureTask(piece.Id, [worker.Id], pending.Slot.Position, false, construction: true);
-                SetWorkshopSlot(village.Id, pending.Kind, pending.Slot with { ReservedFurnitureId = piece.Id });
-                return true;
-            }
-            catch (InvalidOperationException) { /* Try the next reachable working surface. */ }
+            if (TryStartFurnitureTask(piece.Id, [worker.Id], pending.Slot.Position, false, construction: true) is not null)
+                continue; // Try the next reachable working surface.
+            SetWorkshopSlot(village.Id, pending.Kind, pending.Slot with { ReservedFurnitureId = piece.Id });
+            return true;
         }
         return false;
     }

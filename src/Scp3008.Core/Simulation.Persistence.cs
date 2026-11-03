@@ -96,7 +96,7 @@ public sealed partial class Simulation
         _tankFish = s.TankFish;
         _counterMeals = s.CounterMeals;
         _campGoods = s.CampGoods;
-        _stock = s.Stock;
+        _stock = new(s.Stock);
         _sectorStocks = s.SectorStocks;
         _waterPoints = s.WaterPoints;
         _tick = s.Clock.Tick;

@@ -21,16 +21,10 @@ public sealed partial class Simulation
 
     private bool CollectGoods(StockedGoods goods)
     {
-        var stock = _stock.ToList();
-        var index = stock.FindIndex(g => g.FurnitureId == goods.FurnitureId && g.Kind == goods.Kind && g.LeftBehind == goods.LeftBehind);
+        var index = _stock.IndexOf(goods.FurnitureId, goods.Kind, goods.LeftBehind);
         if (index < 0)
             return false;
-        var current = stock[index];
-        if (current.Amount == 1)
-            stock.RemoveAt(index);
-        else
-            stock[index] = current with { Amount = current.Amount - 1 };
-        _stock = stock.AsReadOnly();
+        _stock = _stock.WithAmount(index, _stock[index].Amount - 1);
         _stockChanged = true;
         return true;
     }

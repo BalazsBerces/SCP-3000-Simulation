@@ -36,11 +36,8 @@ public sealed partial class Simulation
         if (GoodsCatalog.ClassOf(kind) != GoodsClass.Food) throw new ArgumentException("Only food spoils.", nameof(kind));
         if (!HasPiece(furnitureId, p => (_snapshot.IsStockFurniture(p) || p.Type == FurnitureType.Fridge)))
             throw new ArgumentException($"Piece {furnitureId} is not Stock Furniture or a Fridge.", nameof(furnitureId));
-        var stock = _stock.ToList();
-        var index = stock.FindIndex(g => g.FurnitureId == furnitureId && g.Kind == kind && !g.LeftBehind);
-        if (index < 0) stock.Add(new StockedGoods(furnitureId, kind, amount));
-        else stock[index] = stock[index] with { Amount = stock[index].Amount + amount };
-        _stock = stock.AsReadOnly();
+        var index = _stock.IndexOf(furnitureId, kind, false);
+        _stock = index < 0 ? _stock.With(new StockedGoods(furnitureId, kind, amount)) : _stock.WithAmount(index, _stock[index].Amount + amount);
         var spoiling = _spoilingShelf.GetValueOrDefault((furnitureId, kind));
         _spoilingShelf[(furnitureId, kind)] = (spoiling.Units + amount, spoiling.Progress);
         _stockChanged = true;
@@ -55,7 +52,7 @@ public sealed partial class Simulation
         {
             var progress = village.SpoilProgress.ToDictionary();
             var coldRoom = Fridges().Where(p => _fridgePower.GetValueOrDefault(p.Id)?.Home == village.Id && FridgePowered(p))
-                .Sum(p => Math.Max(0, FridgeCapacity - _stock.Where(g => g.FurnitureId == p.Id && !g.LeftBehind).Sum(g => g.Amount)));
+                .Sum(p => Math.Max(0, FridgeCapacity - StoreGoodsOn(p.Id)));
             foreach (var (kind, count) in village.Stores.Where(g => g.Value > 0 && GoodsCatalog.ClassOf(g.Key) == GoodsClass.Food)
                 .OrderByDescending(g => GoodsCatalog.SpoilsFast(g.Key)).ThenBy(g => g.Key).ToArray())
             {
@@ -77,7 +74,7 @@ public sealed partial class Simulation
         }
         foreach (var key in _spoilingShelf.Keys.ToArray())
         {
-            var index = _stock.ToList().FindIndex(g => g.FurnitureId == key.FurnitureId && g.Kind == key.Kind && !g.LeftBehind);
+            var index = _stock.IndexOf(key.FurnitureId, key.Kind, false);
             if (index < 0) { _spoilingShelf.Remove(key); continue; }
             if (Fridges().Any(p => p.Id == key.FurnitureId && FridgePowered(p))) continue;
             var (units, fraction) = _spoilingShelf[key];
@@ -87,9 +84,7 @@ public sealed partial class Simulation
             fraction -= (int)fraction;
             if (lost > 0)
             {
-                var stock = _stock.ToList();
-                if (stock[index].Amount == lost) stock.RemoveAt(index); else stock[index] = stock[index] with { Amount = stock[index].Amount - lost };
-                _stock = stock.AsReadOnly();
+                _stock = _stock.WithAmount(index, _stock[index].Amount - lost);
                 _stockChanged = true;
             }
             if (units - lost <= 0) _spoilingShelf.Remove(key); else _spoilingShelf[key] = (units - lost, fraction);

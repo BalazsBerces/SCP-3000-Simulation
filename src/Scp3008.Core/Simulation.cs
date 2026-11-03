@@ -19,6 +19,9 @@ public sealed partial class Simulation : IDisposable
     // real time instead of spiralling; the rest is dropped.
     private static readonly TimeSpan MaxCatchUp = RealTimeStep * 5;
 
+    // How much of each step a fast-forward spends on ticks; the rest leaves the lock free for the presentation.
+    private static readonly TimeSpan FastForwardBudget = RealTimeStep * 0.7;
+
     // A new world opens with weather already under way, as if it had been running this long.
     private const double WeatherWarmUpHours = 12;
 
@@ -29,6 +32,8 @@ public sealed partial class Simulation : IDisposable
     private const int ArrivalStream = 4;
 
     private readonly object _stepLock = new();
+    // While a Step runs: changes made from inside it are published with the snapshot at the end of the step, not one by one.
+    private bool _stepping;
     private readonly WorldConfig _config;
     private readonly StoreSpace _space;
     private readonly DepartmentMap _departments;
@@ -41,7 +46,7 @@ public sealed partial class Simulation : IDisposable
     private IReadOnlyList<TankFish> _tankFish;
     private IReadOnlyList<CounterMeal> _counterMeals;
     private IReadOnlyList<CampGoods> _campGoods;
-    private IReadOnlyList<StockedGoods> _stock;
+    private StockList _stock;
     private IReadOnlyList<WaterPoint> _waterPoints;
     private IReadOnlyList<SectorStock> _sectorStocks;
     private readonly Weather _weather;
@@ -54,6 +59,8 @@ public sealed partial class Simulation : IDisposable
     private long _tick;
     private SimulationSpeed _speed = SimulationSpeed.Normal;
     private TimeSpan _unspentRealTime;
+    // The tick a fast-forward (FastForwardTo) is running the clock to on the simulation thread; behind _tick when none is.
+    private long _fastForwardTo;
     private volatile WorldSnapshot _snapshot;
     private volatile Action<DomainEvent>[] _subscribers = [];
     private readonly CancellationTokenSource _stop = new();
@@ -100,8 +107,8 @@ public sealed partial class Simulation : IDisposable
         _ballPitNetwork = pointsOfInterest.BallPitNetwork;
         _tankFish = pointsOfInterest.TankFish;
         _counterMeals = pointsOfInterest.CounterMeals;
-        _stock = sandbox ? [] : StockGenerator.Generate(config.Seed, config.Stock ?? new StockConfig(), _furniture.Pieces, _furniture.Displays, _departments,
-            _pointsOfInterest, _tankFish, _counterMeals, _campGoods, _landmarks, _space, config.PillarLayout);
+        _stock = sandbox ? StockList.Empty : new(StockGenerator.Generate(config.Seed, config.Stock ?? new StockConfig(), _furniture.Pieces, _furniture.Displays, _departments,
+            _pointsOfInterest, _tankFish, _counterMeals, _campGoods, _landmarks, _space, config.PillarLayout));
         _sectorStocks = StockGenerator.Summarize(_stock, _furniture.Pieces, _space, config.PillarLayout, config.Stock ?? new StockConfig());
         _waterPoints = WaterGenerator.Generate(config.Seed, config.Water ?? new WaterConfig(), _furniture.Pieces, _furniture.Displays,
             _pointsOfInterest, _landmarks);
@@ -198,6 +205,17 @@ public sealed partial class Simulation : IDisposable
             throw new ArgumentOutOfRangeException(nameof(realElapsed), "Time only runs forward.");
         lock (_stepLock)
         {
+            if (_fastForwardTo > _tick)
+            {
+                // The clock races on for most of the step, at whatever speed, and publishes each stretch.
+                _unspentRealTime = TimeSpan.Zero;
+                var started = System.Diagnostics.Stopwatch.GetTimestamp();
+                do
+                    Step();
+                while (_tick < _fastForwardTo && System.Diagnostics.Stopwatch.GetElapsedTime(started) < FastForwardBudget);
+                _snapshot = BuildSnapshot();
+                return;
+            }
             if (_speed == SimulationSpeed.Paused)
             {
                 _unspentRealTime = TimeSpan.Zero;
@@ -232,6 +250,29 @@ public sealed partial class Simulation : IDisposable
         {
             var now = StoreClock.TicksFor(new StoreClock(_tick).TimeOfDay);
             RunTicks((target - now + StoreClock.TicksPerStoreDay) % StoreClock.TicksPerStoreDay);
+        }
+    }
+
+    /// <summary>
+    /// Runs the Store clock to the next moment it shows <paramref name="timeOfDay"/>, like <see cref="AdvanceTo"/>, but
+    /// on the simulation thread while it is running: each real-time step spends most of its time on ticks towards it, even
+    /// while paused, and publishes a snapshot, so the presentation keeps drawing while Store time races on. Returns at
+    /// once; without the simulation thread it advances synchronously.
+    /// </summary>
+    public void FastForwardTo(TimeSpan timeOfDay)
+    {
+        if (!IsRunning)
+        {
+            AdvanceTo(timeOfDay);
+            return;
+        }
+        if (timeOfDay < TimeSpan.Zero || timeOfDay >= TimeSpan.FromDays(1))
+            throw new ArgumentOutOfRangeException(nameof(timeOfDay), "A time of day lies from 00:00 up to 24:00.");
+        var target = StoreClock.TicksFor(timeOfDay) % StoreClock.TicksPerStoreDay;
+        lock (_stepLock)
+        {
+            var now = StoreClock.TicksFor(new StoreClock(_tick).TimeOfDay);
+            _fastForwardTo = _tick + (target - now + StoreClock.TicksPerStoreDay) % StoreClock.TicksPerStoreDay;
         }
     }
 
@@ -303,6 +344,13 @@ public sealed partial class Simulation : IDisposable
 
     private void Step()
     {
+        _stepping = true;
+        try { StepCore(); }
+        finally { _stepping = false; }
+    }
+
+    private void StepCore()
+    {
         _tick++;
         var clock = new StoreClock(_tick);
         _weather.Advance(StoreClock.TickDuration.TotalHours, clock, Emit);
@@ -349,6 +397,9 @@ public sealed partial class Simulation : IDisposable
             }
             _staff.Advance(StoreClock.TickDuration.TotalHours);
         }
+        // Kept up with every tick, it catches up by a few changes instead of starting over once the Furniture list no
+        // longer remembers where it was.
+        _piecesIndex.Update(_furniture.Pieces);
         var timeOfDay = clock.TimeOfDay;
         if (timeOfDay == TimeSpan.Zero)
             Emit(new StoreDayBegan(clock, clock.Day));
@@ -406,7 +457,7 @@ public sealed partial class Simulation : IDisposable
                 _staff.Replan();
                 // Goods go with the Furniture that held them.
                 var ids = kept.Select(p => p.Id).ToHashSet();
-                _stock = _stock.Where(g => ids.Contains(g.FurnitureId)).ToList().AsReadOnly();
+                _stock = new(_stock.Where(g => ids.Contains(g.FurnitureId)));
                 _sectorStocks = StockGenerator.Summarize(_stock, _furniture.Pieces, _space, _config.PillarLayout, StockConfig);
                 _waterPoints = _waterPoints.Where(w => w.FurnitureId < 0 || ids.Contains(w.FurnitureId)).ToList().AsReadOnly();
                 _gear.RemoveAll(g => g.FurnitureId >= 0 && !ids.Contains(g.FurnitureId));
@@ -431,7 +482,7 @@ public sealed partial class Simulation : IDisposable
             foreach (var id in ids.Where(id => !stockIds.Contains(id)).Take(1))
                 throw new ArgumentException($"Piece {id} is not Stock Furniture; Display Furniture holds no stock.", nameof(goods));
             var rest = _stock.Where(g => g.LeftBehind || !set.Contains((g.FurnitureId, g.Kind)));
-            _stock = (amount > 0 ? rest.Concat(set.Select(g => new StockedGoods(g.FurnitureId, g.Kind, amount))) : rest).ToList().AsReadOnly();
+            _stock = new(amount > 0 ? rest.Concat(set.Select(g => new StockedGoods(g.FurnitureId, g.Kind, amount))) : rest);
             foreach (var key in set.Where(k => _restockOrigins.ContainsKey(k.FurnitureId)))
                 _stockTargets[key] = Math.Max(_stockTargets.GetValueOrDefault(key), amount);
             _sectorStocks = StockGenerator.Summarize(_stock, _furniture.Pieces, _space, _config.PillarLayout, StockConfig);
@@ -515,12 +566,13 @@ public sealed partial class Simulation : IDisposable
             if (before.Type == FurnitureType.Fridge && (moved.Position != before.Position || moved.Elevation != before.Elevation))
                 _fridgePower.TryAdd(furnitureId, new(furnitureId));
             VacateFurniture(furnitureId);
-            _waterPoints = _waterPoints.Where(w => w.FurnitureId != furnitureId).ToList().AsReadOnly();
+            if (_waterPoints.Any(w => w.FurnitureId == furnitureId))
+                _waterPoints = _waterPoints.Where(w => w.FurnitureId != furnitureId).ToList().AsReadOnly();
         }
         _furniture = _furniture with { Pieces = FurnitureList.From(_furniture.Pieces).SetItem(index, moved) };
         for (var i = 0; i < _gear.Count; i++)
             if (_gear[i].FurnitureId == furnitureId) _gear[i] = _gear[i] with { Position = moved.Position };
-        if (_stock.Any(g => g.FurnitureId == furnitureId))
+        if (!_stock.On(furnitureId).IsEmpty)
             _stockChanged = true;
         _navigation.Update([before], [moved]);
         // A piece moves a little at a time while carried: only the ways that pass by it are found again.
@@ -592,7 +644,8 @@ public sealed partial class Simulation : IDisposable
         lock (_stepLock)
         {
             var result = change();
-            _snapshot = BuildSnapshot();
+            if (!_stepping)
+                _snapshot = BuildSnapshot();
             return result;
         }
     }

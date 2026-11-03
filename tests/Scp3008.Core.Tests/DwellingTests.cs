@@ -228,7 +228,9 @@ public class DwellingTests
             Assert.Throws<InvalidDataException>(() => Simulation.Load(bad));
         }
         var invalidPlace = System.Text.Json.Nodes.JsonNode.Parse(save.ToArray())!;
-        invalidPlace["State"]!["Villagers"]!["Walkers"]![0]!["Villager"]!["SleepingPlace"]!["DwellingId"] = 999999;
+        // Two places for three people: whoever decided first sleeps in the house.
+        var sleeper = sim.Snapshot.Villagers.ToList().FindIndex(v => v.SleepingPlace is not null);
+        invalidPlace["State"]!["Villagers"]!["Walkers"]![sleeper]!["Villager"]!["SleepingPlace"]!["DwellingId"] = 999999;
         using var invalidSleep = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(invalidPlace.ToJsonString()));
         Assert.Throws<InvalidDataException>(() => Simulation.Load(invalidSleep));
         var wall = loaded.Snapshot.Villages[0].Dwellings[0].Slots[0].FurnitureId;

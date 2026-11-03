@@ -4,6 +4,8 @@ public sealed partial class Simulation
 {
     /// <summary>The poses that changed since the last tick (where pieces left and arrived); the structures touching them are checked.</summary>
     private readonly List<FurniturePiece> _stabilityChanges = [];
+    private readonly HashSet<int> _heldPieces = [];
+    private readonly HashSet<int> _nearPieces = [];
 
     /// <summary>How many pieces must fall for a collapse to enter the Chronicle.</summary>
     private const int NotableCollapse = 3;
@@ -19,11 +21,23 @@ public sealed partial class Simulation
             return;
         var changed = _stabilityChanges.ToArray();
         _stabilityChanges.Clear();
+        var held = _heldPieces;
+        held.Clear();
+        foreach (var task in _furnitureTasks)
+            if (task.Started && task.Work != FurnitureWork.Disassemble)
+                held.Add(task.FurnitureId);
         // Only Furniture near the changes can be part of their structures; it is handed over in list order.
         _piecesIndex.Update(_furniture.Pieces);
-        var near = changed.SelectMany(pose => _piecesIndex.NearIndices(pose.Position, Stability.RegionReach))
-            .Distinct().Order().Select(i => _furniture.Pieces[i]).ToArray();
-        var (broken, fallen, origin) = Stability.Settle(near, _space, changed, IsHeld);
+        var indices = _nearPieces;
+        indices.Clear();
+        foreach (var pose in changed)
+            foreach (var i in _piecesIndex.NearIndices(pose.Position, Stability.RegionReach))
+                indices.Add(i);
+        var pieces = _furniture.Pieces;
+        if (!Stability.Touches(indices.Select(i => pieces[i]), _space, changed, held.Contains))
+            return;
+        var near = indices.Order().Select(i => pieces[i]).ToArray();
+        var (broken, fallen, origin) = Stability.Settle(near, _space, changed, held.Contains);
         if (broken.Count == 0 && fallen.Count == 0)
             return;
         var wrecked = broken.ToHashSet();

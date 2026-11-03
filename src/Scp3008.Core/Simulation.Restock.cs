@@ -12,6 +12,7 @@ public sealed partial class Simulation
     private double _restockHours;
     private double _nextFurnitureCheck = double.PositiveInfinity;
     private readonly Dictionary<(int FurnitureId, GoodsKind Kind), int> _stockTargets = [];
+    private readonly List<(int Index, StockedGoods Goods)> _restockChanges = [];
     private readonly Dictionary<int, double> _goodsRestockCredit = [];
     private readonly SeededRandom _restockRandom;
     private DrySpell? _drySpell;
@@ -123,8 +124,8 @@ public sealed partial class Simulation
             return;
         bool present(int id) => PieceIndex(id) >= 0;
         RestockGear(refill, present);
-        var stock = _stock.ToDictionary(g => (g.FurnitureId, g.Kind, g.LeftBehind));
-        var changed = false;
+        var changes = _restockChanges;
+        changes.Clear();
         foreach (var (key, capacity) in _stockTargets)
         {
             if (!present(key.FurnitureId) || !_restockOrigins.ContainsKey(key.FurnitureId))
@@ -132,16 +133,15 @@ public sealed partial class Simulation
             var units = refill.GetValueOrDefault(_departments.At(_restockOrigins[key.FurnitureId].Position).Id);
             if (units == 0)
                 continue;
-            var lookup = (key.FurnitureId, key.Kind, false);
-            var amount = stock.GetValueOrDefault(lookup).Amount;
+            var index = _stock.IndexOf(key.FurnitureId, key.Kind, false);
+            var amount = index < 0 ? 0 : _stock[index].Amount;
             if (amount >= capacity)
                 continue;
-            stock[lookup] = new StockedGoods(key.FurnitureId, key.Kind, (int)Math.Min(capacity, amount + units));
-            changed = true;
+            changes.Add((index, new StockedGoods(key.FurnitureId, key.Kind, (int)Math.Min(capacity, amount + units))));
         }
-        if (changed)
+        if (changes.Count > 0)
         {
-            _stock = stock.Values.ToList().AsReadOnly();
+            _stock = _stock.With(changes);
             _stockChanged = true;
         }
     }
@@ -177,7 +177,7 @@ public sealed partial class Simulation
         var sight = known.Sight ?? new SightBlockers();
         _restockBlockers.Clear();
         _restockBlockers.AddRange(_piecesIndex.Near(villager.Position, extent));
-        sight.Prepare(_space, villager.Position, _restockBlockers, extent);
+        sight.Prepare(_space, villager.Position, _restockBlockers, extent, villager.ViewRange);
         _restockSight[villager.Id] = (sight, _furniture.Pieces, villager.Position, extent);
         return sight;
     }

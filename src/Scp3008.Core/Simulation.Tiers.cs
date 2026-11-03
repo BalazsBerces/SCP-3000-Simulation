@@ -80,13 +80,10 @@ public sealed partial class Simulation
             p.Roll == 0 && p.Damage == 0 && !IsBuiltFurniture(p.Id) && !_furnitureTasks.Any(t => t.FurnitureId == p.Id) &&
             TierOf(p, false, slot.Backfilled) > slot.Tier).OrderBy(p => _space.Distance(worker.Position, p.Position)))
         {
-            try
-            {
-                StartFurnitureTask(piece.Id, [worker.Id], slot.Position, false, construction: true);
-                SetWallSlot(village.Id, ring, index, slot with { ReservedFurnitureId = piece.Id });
-                return true;
-            }
-            catch (InvalidOperationException) { /* Try the next reachable, haulable piece. */ }
+            if (TryStartFurnitureTask(piece.Id, [worker.Id], slot.Position, false, construction: true) is not null)
+                continue; // Try the next reachable, haulable piece.
+            SetWallSlot(village.Id, ring, index, slot with { ReservedFurnitureId = piece.Id });
+            return true;
         }
         return false;
     }

@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using Godot;
 using Scp3008.Core;
 
@@ -63,7 +64,7 @@ public partial class ShelfGoods : Node3D
     private Dictionary<int, FurniturePiece> _pieces = [];
     private Dictionary<int, FurniturePiece> _tanks = [];
     // The pieces holding the built stock.
-    private HashSet<int> _stocked = [];
+    private readonly HashSet<int> _stocked = [];
     // The instance groups shown, by name, with what they show: a group whose instances stay the same is kept as it is.
     private readonly Dictionary<string, (WrappedInstances Node, Array Instances)> _groups = [];
 
@@ -114,14 +115,15 @@ public partial class ShelfGoods : Node3D
     {
         _built = snapshot.Stock;
         _builtFurniture = snapshot.Furniture;
-        _stocked = snapshot.Stock.Select(g => g.FurnitureId).ToHashSet();
+        _stocked.Clear();
+        foreach (var goods in snapshot.Stock)
+            _stocked.Add(goods.FurnitureId);
         var wanted = new HashSet<string>();
         foreach (var (variant, kind, placements) in FurnitureRenderer.FishSchools(snapshot, _tanks))
             Group(wanted, $"Fish-{kind}-{variant}", placements,
                 () => FurnitureRenderer.FishInstances(variant, kind, snapshot, Rig, Visibility),
                 (node, instances) => node.SetInstances(snapshot.Space, instances));
-        if (System.Environment.GetEnvironmentVariable("NOGOODS") == null)
-            ShowGoods(snapshot, wanted);
+        ShowGoods(snapshot);
         foreach (var name in _groups.Keys.Where(name => !wanted.Contains(name)).ToArray())
         {
             _groups[name].Node.QueueFree();
@@ -147,31 +149,106 @@ public partial class ShelfGoods : Node3D
         _groups[name] = (shown.Node, instances);
     }
 
-    private void ShowGoods(WorldSnapshot snapshot, HashSet<string> wanted)
+    /// <summary>One instance group of Goods: a Furniture type holding a Goods kind at a fill step.</summary>
+    private readonly record struct GoodsGroup(FurnitureType Type, int Variant, GoodsKind Kind, int Step);
+
+    // What each stock entry shows, and the shown Goods by group and chunk: a stock change re-places only the chunks it touches,
+    // as consumption and Restock change a few shelves among tens of thousands.
+    private readonly Dictionary<(int FurnitureId, GoodsKind Kind, bool LeftBehind), ShownGoods> _goodsShown = [];
+    private readonly Dictionary<(GoodsGroup Group, ChunkCoord Chunk), Dictionary<(int, GoodsKind, bool), Transform3D>> _goodsByChunk = [];
+    private readonly Dictionary<GoodsGroup, WrappedInstances> _goodsGroups = [];
+    // Which showing last met each stock entry, so entries gone from the stock are found without a set of the seen ones.
+    private int _goodsShowing;
+    private readonly HashSet<(GoodsGroup, ChunkCoord)> _goodsDirty = [];
+    private static readonly Dictionary<(FurnitureType, int), bool> ShowsGoods = [];
+
+    // A stock entry as last shown: the Goods and piece it was worked out from, so an unchanged entry is passed over at once.
+    private record struct ShownGoods(StockedGoods Goods, FurniturePiece Piece, GoodsGroup Group, ChunkCoord Chunk, Transform3D Placement, int Showing);
+
+    private void ShowGoods(WorldSnapshot snapshot)
     {
-        var pieces = _pieces;
-        var shown = snapshot.Stock
-            .Where(g => (!g.LeftBehind || GoodsCatalog.FoodTables.Contains(pieces[g.FurnitureId].Type)) && Products.ContainsKey(g.Kind))
-            .Select(g => (Goods: g, Piece: pieces[g.FurnitureId]))
-            .Where(s => Runs(s.Piece.Type, s.Piece.Variant).Any());
+        var space = snapshot.Space;
+        var showing = ++_goodsShowing;
+        var seen = 0;
+        _goodsDirty.Clear();
         // shortcut: a second kind on one piece (only SetStock makes one) is drawn over the first; give each kind its share of the runs if pieces ever stock two kinds.
-        foreach (var group in shown.GroupBy(s => (s.Piece.Type, s.Piece.Variant, s.Goods.Kind, Step: snapshot.FillStep(s.Goods))))
+        foreach (var goods in snapshot.Stock)
         {
-            var key = group.Key;
-            Group(wanted, $"Goods-{key.Type}-{key.Variant}-{key.Kind}-{key.Step}",
-                group.Select(s => FurnitureRenderer.Placement(s.Piece)).ToArray(),
-                () => new WrappedInstances
+            // Goods on a piece not followed (one being carried while the Furniture view was built) wait for the next showing.
+            if (!_pieces.TryGetValue(goods.FurnitureId, out var piece))
+                continue;
+            var key = (goods.FurnitureId, goods.Kind, goods.LeftBehind);
+            if (_goodsShown.TryGetValue(key, out var was) && was.Goods == goods && was.Piece == piece)
+            {
+                // As shown before; only a repeated entry is passed over without counting.
+                if (was.Showing != showing)
                 {
-                    Name = $"Goods-{key.Type}-{key.Variant}-{key.Kind}-{key.Step}",
+                    CollectionsMarshal.GetValueRefOrNullRef(_goodsShown, key).Showing = showing;
+                    seen++;
+                }
+                continue;
+            }
+            if (!Products.ContainsKey(goods.Kind) || goods.LeftBehind && !GoodsCatalog.FoodTables.Contains(piece.Type))
+                continue;
+            if (!ShowsGoods.TryGetValue((piece.Type, piece.Variant), out var shows))
+                ShowsGoods[(piece.Type, piece.Variant)] = shows = Runs(piece.Type, piece.Variant).Any();
+            if (!shows)
+                continue;
+            var known = _goodsShown.ContainsKey(key);
+            if (known && was.Showing == showing)
+                continue;
+            seen++;
+            var group = new GoodsGroup(piece.Type, piece.Variant, goods.Kind, snapshot.FillStep(goods));
+            var placement = FurnitureRenderer.Placement(piece);
+            var chunk = space.ChunkOf(space.Wrap(placement.Origin.ToStore()));
+            _goodsShown[key] = new(goods, piece, group, chunk, placement, showing);
+            if (known)
+            {
+                if (was.Group == group && was.Chunk == chunk && was.Placement == placement)
+                    continue;
+                Unshow(key, was.Group, was.Chunk);
+            }
+            if (!_goodsByChunk.TryGetValue((group, chunk), out var inChunk))
+                _goodsByChunk[(group, chunk)] = inChunk = [];
+            inChunk[key] = placement;
+            _goodsDirty.Add((group, chunk));
+        }
+        if (_goodsShown.Count > seen)
+            foreach (var (key, was) in _goodsShown.Where(s => s.Value.Showing != showing).ToArray())
+            {
+                Unshow(key, was.Group, was.Chunk);
+                _goodsShown.Remove(key);
+            }
+        foreach (var (group, chunk) in _goodsDirty)
+        {
+            if (!_goodsGroups.TryGetValue(group, out var node))
+            {
+                node = new WrappedInstances
+                {
+                    Name = $"Goods-{group.Type}-{group.Variant}-{group.Kind}-{group.Step}",
                     Rig = Rig,
                     FarDistance = Distance,
-                    ViewReach = Visibility.PlacementReach(Rig, snapshot.Space.ChunkSize),
-                    Mesh = Load(key.Type, key.Variant, key.Kind, key.Step),
+                    ViewReach = Visibility.PlacementReach(Rig, space.ChunkSize),
+                    Mesh = Load(group.Type, group.Variant, group.Kind, group.Step),
                     CoarseMesh = new ArrayMesh(),
                     CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
-                },
-                (node, instances) => node.SetInstances(snapshot.Space, instances));
+                };
+                AddChild(node);
+                node.SetInstances(space, Array.Empty<Transform3D>());
+                _goodsGroups[group] = node;
+            }
+            var placements = _goodsByChunk.TryGetValue((group, chunk), out var inChunk) ? inChunk : null;
+            node.SetChunkInstances(chunk, placements is null ? [] : placements.Values.Select(t => (t, Colors.White)).ToArray());
+            if (placements is { Count: 0 })
+                _goodsByChunk.Remove((group, chunk));
         }
+    }
+
+    // Takes a stock entry's Goods out of the chunk they were shown in.
+    private void Unshow((int, GoodsKind, bool) key, GoodsGroup group, ChunkCoord chunk)
+    {
+        _goodsByChunk[(group, chunk)].Remove(key);
+        _goodsDirty.Add((group, chunk));
     }
 
     /// <summary>The runs of Goods on a Furniture type, or none if it shows no Goods.</summary>

@@ -146,7 +146,7 @@ public partial class LampLights : Node3D
             (WorldSnapshot.FurnitureChanges(_builtFurniture, Host.Snapshot.Furniture) is not { } changes ||
              changes.Any(c => FurnitureCatalog.Spec(c.After).IsLamp || c.Before is { } before && FurnitureCatalog.Spec(before).IsLamp));
         if (lampsChanged || !_carriedAreas.SequenceEqual(carried))
-            Rebuild(Host.Snapshot);
+            Rebuild(Host.Snapshot, lampsChanged);
         else
             _builtFurniture = Host.Snapshot.Furniture;
         // The camera that renders: the Observer camera, or a dev camera such as the eye-level one.
@@ -396,21 +396,34 @@ public partial class LampLights : Node3D
         return true;
     }
 
-    private void Rebuild(WorldSnapshot snapshot)
+    private void Rebuild(WorldSnapshot snapshot) => Rebuild(snapshot, lampsChanged: true);
+
+    // The Lamps among the Furniture, as the last full Rebuild found them, with their pieces.
+    private List<Lamp> _furnitureLamps = [];
+
+    /// <summary>
+    /// Builds the light pools of the Lamps and the carried lights. Only when <paramref name=lampsChanged/> are the Lamps
+    /// looked for among all the Furniture again; carried lights alone move many times a second.
+    /// </summary>
+    private void Rebuild(WorldSnapshot snapshot, bool lampsChanged)
     {
         _builtFurniture = snapshot.Furniture;
         _space = snapshot.Space;
         _lastView = null;
         _levelStamp = -1;
         _lampsByChunk.Clear();
-        _lampPieces.Clear();
         Array.Fill(_shadowSlots, -1);
         Array.Fill(_shadowOpacity, 0f);
         Array.Fill(_lightPositions, null);
-        // Lamps on dark ground (the dead zone) are never lit, so they cast no light.
-        var lamps = snapshot.Furniture.Where(p => FurnitureCatalog.Spec(p).IsLamp && !snapshot.GroundAt(p.Position).HasFlag(GroundProperty.Darkness))
-            .Select(ToLamp).ToList();
-        foreach (var piece in snapshot.Furniture.Where(p => FurnitureCatalog.Spec(p).IsLamp)) _lampPieces.Add(piece.Id, piece);
+        if (lampsChanged)
+        {
+            // Lamps on dark ground (the dead zone) are never lit, so they cast no light.
+            _furnitureLamps = snapshot.Furniture.Where(p => FurnitureCatalog.Spec(p).IsLamp && !snapshot.GroundAt(p.Position).HasFlag(GroundProperty.Darkness))
+                .Select(ToLamp).ToList();
+            _lampPieces.Clear();
+            foreach (var piece in snapshot.Furniture.Where(p => FurnitureCatalog.Spec(p).IsLamp)) _lampPieces.Add(piece.Id, piece);
+        }
+        var lamps = new List<Lamp>(_furnitureLamps);
         // shortcut: moving carried lights rebuild the pool grid; update its cells incrementally if large crowds carry lights.
         _carriedAreas = snapshot.LitAreas.Where(a => a.Id < 0).ToArray();
         foreach (var area in _carriedAreas)

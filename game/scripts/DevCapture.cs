@@ -64,6 +64,10 @@ namespace Scp3008.Game;
 ///   --zoom-in-test         zoom in fast with the mouse wheel, from the farthest zoom in the normal
 ///                          view and then in the <see cref="StoreOverview"/>, and report every frame
 ///                          that took over twice the median, with the zoom and level of detail then.
+///   --load=path            load a saved world at start (the capture timer restarts once it is shown);
+///   --speed=N              run the Store clock at this speed (1, 2, 4, 8, 16 or 60), also after --load;
+///   --motion-report        print how evenly the shown Store time (and so walking Villagers) moved frame to frame,
+///                          and how unevenly the core's snapshots came (see DevCapture.Motion.cs).
 /// Does nothing in normal runs.
 /// Dry spell check: --pause --dry-spell-check=directory checks the live overview Sector panel.
 /// Mess hall check: --villager-sandbox --sandbox-preset=empty --pause --meal-check=directory verifies and captures shared meals.
@@ -88,6 +92,8 @@ public partial class DevCapture : Node
     private ulong _lastFrameUsec;
     private (long X, long Y) _lastChunk;
     private int[] _lastCollections = [0, 0, 0];
+    private double _lastPauseMs;
+    private long _lastAllocated;
     private Vector3 _panVelocity;
     private float _rotateDegreesPerSecond;
     private float? _yawDegrees;
@@ -369,7 +375,10 @@ public partial class DevCapture : Node
                 GetTree().CreateTimer(1.0).Timeout += Seeds.ShowCredits;
             else if (arg.StartsWith("--choose-pillars="))
                 _layoutToChoose = PillarLayouts.Parse(arg["--choose-pillars=".Length..]);
+            else
+                ConfigureMotion(arg);
         }
+        StartMotion();
         if (_yawDegrees is { } yaw)
         {
             Rig.JumpToYaw(Mathf.DegToRad(yaw));
@@ -404,7 +413,7 @@ public partial class DevCapture : Node
         };
         if (_zoomSweepSeconds > 0)
             _captureAfter = Math.Max(_captureAfter, _zoomSweepSeconds);
-        SetProcess(_overviewDistance is not null || _zoomSweepSeconds > 0 || _capturePath is not null || _fpsReport || _panVelocity != Vector3.Zero || _seedToEnter is not null || _layoutToChoose is not null);
+        SetProcess(_overviewDistance is not null || _zoomSweepSeconds > 0 || _capturePath is not null || _fpsReport || _motionReport || _panVelocity != Vector3.Zero || _seedToEnter is not null || _layoutToChoose is not null);
     }
 
     private void Advance(double delta)
@@ -442,6 +451,7 @@ public partial class DevCapture : Node
 
         _elapsed += delta;
         _frames++;
+        TrackMotion(delta);
         if (_hitchReport)
             LogFrame(crossed);
         if (_seedToEnter is not null && _elapsed >= 1.0)
@@ -482,13 +492,14 @@ public partial class DevCapture : Node
         }
         if (_seedToEnter is not null || _layoutToChoose is not null || Host.IsGenerating)
             return;
-        if (_elapsed < _captureAfter || (_capturePath is null && !_fpsReport && _zoomSweepSeconds == 0))
+        if (_elapsed < _captureAfter || (_capturePath is null && !_fpsReport && !_motionReport && _zoomSweepSeconds == 0))
             return;
 
         if (_fpsReport)
             GD.Print($"FPS average over {_elapsed:0.0}s: {_frames / _elapsed:0.0}");
         if (_hitchReport)
             ReportHitches();
+        ReportMotion();
         if (_zoomSweepSeconds > 0)
             GD.Print($"Zoom sweep: {_frames} frames across the level-of-detail switch at {FurnitureDetail.SwitchZoom:0} m, " +
                      $"{_detailSwitches} switches, now {(FurnitureDetail.Coarse ? "coarse" : "full")} at zoom {Rig.Distance:0.0} m");
@@ -534,6 +545,14 @@ public partial class DevCapture : Node
                 events.Add($"GC{generation}");
             _lastCollections[generation] = count;
         }
+        var allocated = GC.GetAllocatedBytesForCurrentThread();
+        if (allocated - _lastAllocated > 1_000_000)
+            events.Add($"main thread allocated {(allocated - _lastAllocated) / 1e6:0} MB");
+        _lastAllocated = allocated;
+        var paused = GC.GetTotalPauseDuration().TotalMilliseconds;
+        if (paused - _lastPauseMs > 0.5)
+            events.Add($"paused {paused - _lastPauseMs:0} ms");
+        _lastPauseMs = paused;
         // Skip the first seconds: start-up, shader compilation and the first placements.
         if (_lastFrameUsec != 0 && _elapsed > 3.0)
             _frameLog.Add(((now - _lastFrameUsec) / 1000.0, string.Join(" ", events)));

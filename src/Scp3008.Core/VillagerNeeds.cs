@@ -20,6 +20,8 @@ internal sealed partial class Villagers
         public HashSet<Vector2> Unreachable { get; } = [];
     }
 
+    private const long DecisionTicks = 50;
+
     public void AdvanceNeeds(double hours, WorldSnapshot world, NeedsConfig config,
         Func<int, StockedGoods, StoreClock, bool> take, Action<DomainEvent> emit,
         Func<StockedGoods, bool> collect, Action<int, int, GoodsKind> deliver, Func<int, Gear, bool> equip,
@@ -29,29 +31,31 @@ internal sealed partial class Villagers
         foreach (var walker in _walkers.ToArray())
         {
             // Personality changes and lost cover can make a usual place unavailable.
-            if (walker.SleepingPlace is not null && !SleepingPlaces(walker, world).Any(p => p.Place == walker.SleepingPlace))
+            if (walker.SleepingPlace is not null && OwnSleepingPlace(walker, world) is null)
             {
                 walker.SleepingPlace = null;
                 if (walker.Target?.Rest == true) { walker.Target = null; walker.Waypoints.Clear(); walker.Destination = null; }
             }
             var n = walker.Needs;
-            var henge = world.PointsOfInterest.Any(p => p.Type == PointOfInterestType.ArmchairHenge &&
+            // The henge, the light and the sleeping place are looked up only when they count: this runs every tick.
+            var resting = walker.Action == VillagerAction.Resting;
+            var henge = resting && world.PointsOfInterest.Any(p => p.Type == PointOfInterestType.ArmchairHenge &&
                 MathF.Abs(space.Delta(p.Centre, walker.Position).X) <= p.Size.X / 2 &&
                 MathF.Abs(space.Delta(p.Centre, walker.Position).Y) <= p.Size.Y / 2);
             var danger = world.Phase == DayPhase.ClosingTime
                 ? world.Staff.OrderBy(s => space.Distance(walker.Position, s.Position)).FirstOrDefault() : null;
             var threatened = danger is not null && space.Distance(walker.Position, danger.Position) < 12;
             var safety = threatened ? 0 : world.Phase == DayPhase.ClosingTime ? 0.35 : 1;
-            var lit = world.LightBrightnessAt(walker.Position) >= 0.2f;
-            var sleepQuality = SleepQuality(walker, world);
+            var dark = safety < 0.5 && !(world.LightBrightnessAt(walker.Position) >= 0.2f);
+            var sleepQuality = resting ? SleepQuality(walker, world) : 0;
             walker.Needs = n with
             {
                 Hunger = Math.Min(1, n.Hunger + hours / 24),
                 Thirst = Math.Min(1, n.Thirst + hours / 12),
-                Rest = Math.Clamp(n.Rest + hours * (walker.Action == VillagerAction.Resting ? (henge ? 0.25 : sleepQuality switch { 3 => 0.25, 2 => 0.18, 1 => 0.125, _ => 0.08 }) : -1.0 / 24), 0, 1),
+                Rest = Math.Clamp(n.Rest + hours * (resting ? (henge ? 0.25 : sleepQuality switch { 3 => 0.25, 2 => 0.18, 1 => 0.125, _ => 0.08 }) : -1.0 / 24), 0, 1),
                 Safety = safety,
-                Morale = Math.Clamp(n.Morale - hours * (safety < 0.5 && !lit ? 1.0 / 48 : 1.0 / 240) +
-                    (walker.Action == VillagerAction.Resting ? hours * (sleepQuality switch { 3 => 0.02, 2 => 0.005, 1 => -0.01, _ => -0.04 }) : 0), 0, 1),
+                Morale = Math.Clamp(n.Morale - hours * (dark ? 1.0 / 48 : 1.0 / 240) +
+                    (resting ? hours * (sleepQuality switch { 3 => 0.02, 2 => 0.005, 1 => -0.01, _ => -0.04 }) : 0), 0, 1),
             };
             walker.StarvingHours = n.Hunger >= 1 ? walker.StarvingHours + hours : 0;
             walker.ThirstyHours = n.Thirst >= 1 ? walker.ThirstyHours + hours : 0;
@@ -68,7 +72,9 @@ internal sealed partial class Villagers
             walker.NextDecision -= hours;
             if (walker.NextDecision > 0)
                 continue;
-            walker.NextDecision = 0.1;
+            // Every 0.1 Store hours, each Villager in their own tick of it: deciding all at once stalls that one tick.
+            var wait = DecisionTicks - (world.Clock.Tick + walker.Id) % DecisionTicks;
+            walker.NextDecision = (wait - 0.5) * hours;
             Observe(walker, world);
             if (walker.ClimbWaypoints.Count > 0) continue;
             n = walker.Needs;
@@ -105,7 +111,7 @@ internal sealed partial class Villagers
                         equip(walker.Id, gear);
                     if (target.Haul && target.Goods is { } cargo)
                     {
-                        if (world.Furniture.Any(p => p.Id == cargo.FurnitureId && p.Position == target.Position))
+                        if (world.FurniturePieceById(cargo.FurnitureId)?.Position == target.Position)
                         {
                             while (walker.CarriedAmount + walker.CarriedMaterials < Capacity(walker) && collect(cargo))
                             {
@@ -115,7 +121,7 @@ internal sealed partial class Villagers
                         }
                     }
                     else if (target.Goods is { } meal &&
-                        (meal.FurnitureId == -1 || world.Furniture.Any(p => p.Id == meal.FurnitureId && p.Position == target.Position)) &&
+                        (meal.FurnitureId == -1 || world.FurniturePieceById(meal.FurnitureId)?.Position == target.Position) &&
                         take(walker.Id, meal, world.Clock))
                     {
                         var kind = GoodsCatalog.ClassOf(meal.Kind);
@@ -152,7 +158,7 @@ internal sealed partial class Villagers
                         }
                     }
                     if (target.Crop is { } crop && walker.VillageId is { } home &&
-                        world.Furniture.Any(p => p.Id == crop && p.Position == target.Position))
+                        world.FurniturePieceById(crop)?.Position == target.Position)
                     {
                         var (picked, watered) = tend(walker.Id, home, crop, walker.CarriedWater > 0);
                         if (watered) walker.CarriedWater--;
@@ -179,7 +185,7 @@ internal sealed partial class Villagers
             foreach (var (kind, _) in priorities)
             {
                 var candidates = walker.KnownGoods.Values
-                    .Where(g => GoodsCatalog.ClassOf(g.Goods.Kind) == kind && (g.Goods.Amount > 0 || g.Stale))
+                    .Where(g => GoodsCatalog.ClassOf(g.Goods.Kind) == kind && WorthVisiting(g, world))
                     .Select(g => new NeedTarget(g.Position, g.Goods)).ToList();
                 var home = world.Villages.FirstOrDefault(v => v.Id == walker.VillageId);
                 if (home is not null)
@@ -227,6 +233,7 @@ internal sealed partial class Villagers
             }
         }
     }
+
 
     private bool TryPlan(Walker walker, NeedTarget target)
     {

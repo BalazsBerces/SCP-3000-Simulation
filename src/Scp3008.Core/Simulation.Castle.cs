@@ -136,13 +136,10 @@ public sealed partial class Simulation
                 supports.All(s => FurnitureResources.Weight(p) / supports.Length <= Stability.LoadCapacity(s) * (1 - s.Damage)))
                 .OrderBy(p => InYard(village, p) ? 0 : 1).ThenBy(p => _space.Distance(worker.Position, p.Position)))
             {
-                try
-                {
-                    StartFurnitureTask(piece.Id, [worker.Id], slot.Position, false, construction: true);
-                    SetCastleSlot(village.Id, c, index, slot with { ReservedFurnitureId = piece.Id });
-                    return true;
-                }
-                catch (InvalidOperationException) { /* Try the next reachable, haulable piece. */ }
+                if (TryStartFurnitureTask(piece.Id, [worker.Id], slot.Position, false, construction: true) is not null)
+                    continue; // Try the next reachable, haulable piece.
+                SetCastleSlot(village.Id, c, index, slot with { ReservedFurnitureId = piece.Id });
+                return true;
             }
         }
         return false;

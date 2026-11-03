@@ -59,11 +59,11 @@ public partial class SimulationHost : Node
     /// <summary>True while a new world is being generated.</summary>
     public bool IsGenerating => _nextWorld is not null;
 
-    /// <summary>Store time interpolated between the last two snapshots, for smooth display.</summary>
-    public TimeSpan InterpolatedStoreTime => _interpolator.StoreTime(NowSeconds);
+    /// <summary>Store time as shown, played back smoothly a little behind the latest snapshot (<see cref="SnapshotInterpolator"/>).</summary>
+    public TimeSpan InterpolatedStoreTime => _interpolator.StoreTime();
 
-    /// <summary>The Fog banks interpolated between the last two snapshots, for smooth drifting.</summary>
-    public IEnumerable<FogBank> InterpolatedFogBanks => _interpolator.FogBanks(NowSeconds);
+    /// <summary>The Fog banks as shown, for smooth drifting.</summary>
+    public IEnumerable<FogBank> InterpolatedFogBanks => _interpolator.FogBanks();
 
     /// <summary>Time control: the speed the Store clock runs at.</summary>
     public SimulationSpeed Speed
@@ -116,6 +116,9 @@ public partial class SimulationHost : Node
 
     public override void _Ready()
     {
+        // Moves playback on before the camera rig (CameraRig.ProcessPriority) follows a Villager, so the rig and the
+        // figures show the same moment.
+        ProcessPriority = -150;
         _simulation.Start();
         // Load time, for performance passes: engine start to the first drawn frame of the Store.
         RenderingServer.Singleton.Connect(RenderingServer.SignalName.FramePostDraw,
@@ -125,8 +128,20 @@ public partial class SimulationHost : Node
     /// <summary>Fast-forwards the Store clock to the next <paramref name="timeOfDay"/> (dev tool, e.g. for the benchmark).</summary>
     public void AdvanceTo(TimeSpan timeOfDay) => _simulation.AdvanceTo(timeOfDay);
 
-    /// <summary>The Villagers, blended between the last two snapshots for smooth walking.</summary>
-    public IEnumerable<Villager> InterpolatedVillagers => _interpolator.Villagers(NowSeconds);
+    /// <summary>Races the Store clock to the next <paramref name="timeOfDay"/> on the simulation thread, drawing on meanwhile.</summary>
+    public void FastForwardTo(TimeSpan timeOfDay) => _simulation.FastForwardTo(timeOfDay);
+
+    /// <summary>The Villagers as shown, for smooth walking.</summary>
+    public IEnumerable<Villager> InterpolatedVillagers => _interpolator.Villagers();
+
+    /// <summary>A piece of Furniture as shown with the Villagers (so carried pieces keep pace with them); null if not shown.</summary>
+    public FurniturePiece? InterpolatedPiece(int furnitureId)
+    {
+        var (earlier, later) = _interpolator.Shown;
+        return later?.FurniturePieceById(furnitureId) is { } piece
+            ? _interpolator.Piece(piece, earlier?.FurniturePieceById(furnitureId))
+            : null;
+    }
 
     /// <summary>Dev tool (debug panel): places a standing Villager through the scenario builder.</summary>
     public Villager PlaceVillager(System.Numerics.Vector2 position) => _simulation.Scenario.PlaceVillager(position);

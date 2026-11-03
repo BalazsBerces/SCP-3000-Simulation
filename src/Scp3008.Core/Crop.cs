@@ -133,12 +133,9 @@ public sealed partial class Simulation
                     !_furnitureTasks.Any(t => t.FurnitureId == p.Id))
                 .OrderBy(p => _space.Distance(farmer.Position, p.Position)))
             {
-                try
-                {
-                    StartFurnitureTask(piece.Id, [farmer.Id], spot, false);
-                    break;
-                }
-                catch (InvalidOperationException) { /* Try the next reachable Crop. */ }
+                if (TryStartFurnitureTask(piece.Id, [farmer.Id], spot, false) is not null)
+                    continue; // Try the next reachable Crop.
+                break;
             }
         }
     }

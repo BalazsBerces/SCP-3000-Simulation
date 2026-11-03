@@ -81,7 +81,8 @@ public class CastleTests
         Supply(sim, new(36, 120), FurnitureType.ShelfUnit, 8);
         Supply(sim, new(36, 128), FurnitureType.TableLamp, 4);
         Supply(sim, new(36, 132), FurnitureType.Wardrobe, 1, variant: 1);
-        Supply(sim, new(36, 136), FurnitureType.Dresser, 12);
+        // Short wall units and the Keep both take Dressers: enough for either to go first.
+        Supply(sim, new(36, 136), FurnitureType.Dresser, 16);
         var placed = new List<CastlePiecePlaced>();
         using var sub = sim.Subscribe(e => { if (e is CastlePiecePlaced p) placed.Add(p); });
         // Carts wear out over a hundred hauls; whoever is left empty-handed fetches a fresh one (the double-door wardrobe needs it).

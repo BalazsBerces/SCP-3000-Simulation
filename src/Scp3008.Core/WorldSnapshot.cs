@@ -77,7 +77,12 @@ public sealed record WorldSnapshot(
     public IReadOnlyList<LitArea> LitAreas { get; init; } = [];
 
     public float LightBrightnessAt(Vector2 position) => Math.Max((float)StoreLightLevelAt(position),
-        LitAreas.Where(a => Space.Distance(position, a.Position) <= a.Radius).Select(a => a.Brightness).DefaultIfEmpty().Max());
+        LitAreas.Count <= SmallLitAreas
+            ? LitAreas.Where(a => Space.Distance(position, a.Position) <= a.Radius).Select(a => a.Brightness).DefaultIfEmpty().Max()
+            : LitAreaGrid.Of(Space, LitAreas).BrightnessAt(position));
+
+    // Up to this many lights are gone over one by one; more are looked up on a grid made once for them.
+    private const int SmallLitAreas = 16;
 
     /// <summary>The Villagers in the Store.</summary>
     public IReadOnlyList<Villager> Villagers { get; init; } = [];
@@ -166,6 +171,13 @@ public sealed record WorldSnapshot(
     /// A Lamp on ground with <see cref="GroundProperty.Darkness"/> is never lit.
     /// </summary>
     public float LampLevel(FurniturePiece lamp) => LampLevel(lamp, Clock.TimeOfDay);
+
+    /// <summary>The piece of <see cref="Furniture"/> with this id, or null if there is none.</summary>
+    public FurniturePiece? FurniturePieceById(int id)
+    {
+        var index = Furniture is FurnitureList list ? list.IndexOf(id) : Furniture.ToList().FindIndex(p => p.Id == id);
+        return index < 0 ? null : Furniture[index];
+    }
 
     /// <summary>
     /// The pieces that changed from an earlier snapshot's <see cref="Furniture"/> to <paramref name="later"/>, oldest change

@@ -26,14 +26,23 @@ internal static class RestockSight
         if (fog.Count > 0 && FogBank.CombinedDensityAt(space, fog, villager.Position) >= 0.6f)
             return false;
         var eye = new Vector3(villager.Position, EyeHeight + villager.Elevation);
-        foreach (var corner in FurnitureCatalog.Corners(spot))
+        Span<Vector3> corners = stackalloc Vector3[8];
+        FurnitureCatalog.Corners(spot, corners);
+        // Only a Pillar that reaches the ground around the spot can stand in a sight line to its corners.
+        var lineReach = space.Distance(villager.Position, spot.Position) + BoxReach(FurnitureCatalog.Spec(spot));
+        Span<int> near = stackalloc int[pillars.Count];
+        var nearCount = 0;
+        for (var i = 0; i < pillars.Count; i++)
+            if (space.Distance(villager.Position, pillars[i].Position) <= lineReach + pillars[i].Width * 0.7072f)
+                near[nearCount++] = i;
+        foreach (var corner in corners)
         {
             var delta = space.Delta(villager.Position, new Vector2(corner.X, corner.Y));
             var target = new Vector3(villager.Position + delta, corner.Z);
             var pillared = false;
-            for (var i = 0; i < pillars.Count && !pillared; i++)
+            for (var n = 0; n < nearCount && !pillared; n++)
             {
-                var p = pillars[i];
+                var p = pillars[near[n]];
                 pillared = Intersects(eye, target, new Vector3(villager.Position + space.Delta(villager.Position, p.Position), 0),
                     new Vector3(-p.Width / 2, -p.Width / 2, 0), new Vector3(p.Width / 2, p.Width / 2, p.Height));
             }
@@ -41,6 +50,8 @@ internal static class RestockSight
                 continue;
             if (blocked(eye, target))
                 continue;
+            if (fog.Count == 0)
+                return true;
             // Banks that end short of the sight line add nothing to it.
             var (banks, thickest) = Reaching(space, fog, villager.Position, delta);
             if (thickest < 0.599f)
@@ -187,9 +198,16 @@ internal sealed class SightBlockers
     private int[] _entries = [];
     private int[] _seen = [];
     private int _query;
+    // The piece that blocked the last blocked line: neighbouring lines (the corners of one target) mostly end behind it too.
+    private int _lastBlocker = -1;
 
-    /// <summary>Buckets <paramref name="furniture"/> on a grid <paramref name="extent"/> metres each way around <paramref name="origin"/>.</summary>
-    public void Prepare(StoreSpace space, Vector2 origin, IReadOnlyList<FurniturePiece> furniture, float extent)
+    /// <summary>
+    /// Buckets <paramref name="furniture"/> on a grid <paramref name="extent"/> metres each way around <paramref name="origin"/>,
+    /// for sight lines from an eye standing there that sees <paramref name="viewRange"/> metres (<see cref="Villager.ViewRange"/>).
+    /// Pieces too far off to block such a line (<see cref="RestockSight.Blocks(FurniturePiece, FurnitureSpec, Vector2, float, float, Vector3, Vector3)"/>)
+    /// are left out.
+    /// </summary>
+    public void Prepare(StoreSpace space, Vector2 origin, IReadOnlyList<FurniturePiece> furniture, float extent, float viewRange)
     {
         _space = space;
         _origin = origin;
@@ -220,9 +238,13 @@ internal sealed class SightBlockers
             var spec = FurnitureCatalog.Spec(piece);
             if (spec.IsFloorCovering)
                 continue;
+            var offset = space.Delta(origin, piece.Position);
+            var distance = offset.Length();
+            // A little wider than Blocks' own cutoff, for rounding of the eye height.
+            if (distance > viewRange + Math.Max(spec.Width, Math.Max(spec.Depth, spec.Height)) + Margin)
+                continue;
             // However the piece is turned, its box stays within this reach of its base centre.
             var reach = new Vector3(spec.Width / 2, spec.Depth / 2, spec.Height).Length() + Margin;
-            var offset = space.Delta(origin, piece.Position);
             var b = count * 4;
             _bounds[b] = CellOf(offset.X - reach);
             _bounds[b + 1] = CellOf(offset.X + reach);
@@ -235,12 +257,13 @@ internal sealed class SightBlockers
             _pieces[count] = piece;
             _specs[count] = spec;
             _offsets[count] = offset;
-            _distances[count] = offset.Length();
+            _distances[count] = distance;
             _reaches[count] = RestockSight.BoxReach(spec);
             _seen[count] = 0;
             count++;
         }
         _query = 0;
+        _lastBlocker = -1;
         for (var i = 0; i < cells; i++)
             _cellStart[i + 1] += _cellStart[i];
         if (_entries.Length < total)
@@ -259,6 +282,12 @@ internal sealed class SightBlockers
     public bool AnyBlocks(Vector3 eye, Vector3 target)
     {
         _query++;
+        if (_lastBlocker >= 0)
+        {
+            _seen[_lastBlocker] = _query;
+            if (PieceBlocks(_lastBlocker, eye, target))
+                return true;
+        }
         // Walk every grid cell the sight line passes through; cells beyond the grid clamp to its border, as pieces do.
         var from = _space.Delta(_origin, new Vector2(eye.X, eye.Y));
         var to = from + new Vector2(target.X - eye.X, target.Y - eye.Y);
@@ -299,14 +328,20 @@ internal sealed class SightBlockers
             if (_seen[piece] == _query)
                 continue;
             _seen[piece] = _query;
-            // Seen from the origin, as every Villager sees from where they stand, the offsets worked out hold.
-            if (eye.X == _origin.X && eye.Y == _origin.Y
-                    ? RestockSight.Blocks(_pieces[piece], _specs[piece], _offsets[piece], _distances[piece], _reaches[piece], eye, target)
-                    : RestockSight.Blocks(_space, _pieces[piece], eye, target))
+            if (PieceBlocks(piece, eye, target))
+            {
+                _lastBlocker = piece;
                 return true;
+            }
         }
         return false;
     }
+
+    // Seen from the origin, as every Villager sees from where they stand, the offsets worked out hold.
+    private bool PieceBlocks(int piece, Vector3 eye, Vector3 target) =>
+        eye.X == _origin.X && eye.Y == _origin.Y
+            ? RestockSight.Blocks(_pieces[piece], _specs[piece], _offsets[piece], _distances[piece], _reaches[piece], eye, target)
+            : RestockSight.Blocks(_space, _pieces[piece], eye, target);
 
     private int CellOf(float offset) => Math.Clamp((int)MathF.Floor((offset + _half) / Cell), 0, _side - 1);
 }

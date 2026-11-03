@@ -181,9 +181,42 @@ internal static class Stability
     /// <summary>A piece's box: its footprint around its position, and the heights of its bottom and top.</summary>
     private static Bounds Measure(FurniturePiece piece)
     {
-        var corners = FurnitureCatalog.Corners(piece with { Position = Vector2.Zero });
-        return new(new(corners.Min(c => c.X), corners.Min(c => c.Y)), new(corners.Max(c => c.X), corners.Max(c => c.Y)),
-            corners.Min(c => c.Z), corners.Max(c => c.Z));
+        Span<Vector3> corners = stackalloc Vector3[8];
+        FurnitureCatalog.Corners(piece with { Position = Vector2.Zero }, corners);
+        var (min, max) = (corners[0], corners[0]);
+        foreach (var c in corners)
+            (min, max) = (Vector3.Min(min, c), Vector3.Max(max, c));
+        return new(new(min.X, min.Y), new(max.X, max.Y), min.Z, max.Z);
+    }
+
+    /// <summary>
+    /// Whether any piece not <paramref name="held"/> overlaps a changed pose from above: with none, <see cref="Settle"/> finds no
+    /// structure and changes nothing, so a carried piece passing through empty aisles costs no more than this.
+    /// </summary>
+    public static bool Touches(IEnumerable<FurniturePiece> furniture, StoreSpace space, FurniturePiece[] changed, Func<int, bool> held)
+    {
+        foreach (var piece in furniture)
+        {
+            if (held(piece.Id))
+                continue;
+            foreach (var pose in changed)
+            {
+                // No corner lies further from its piece's position than half its width and depth plus its height.
+                if (space.Distance(pose.Position, piece.Position) > Reach(pose) + Reach(piece))
+                    continue;
+                var (a, b) = (Measure(pose), Measure(piece));
+                var d = space.Delta(pose.Position, piece.Position);
+                if (a.Min.X < d.X + b.Max.X && d.X + b.Min.X < a.Max.X && a.Min.Y < d.Y + b.Max.Y && d.Y + b.Min.Y < a.Max.Y)
+                    return true;
+            }
+        }
+        return false;
+
+        static float Reach(FurniturePiece piece)
+        {
+            var spec = FurnitureCatalog.Spec(piece);
+            return (spec.Width + spec.Depth) / 2f + spec.Height + Contact;
+        }
     }
 
     private static IEnumerable<(int, int)> Cells(Vector2 position, Bounds box, int cells)

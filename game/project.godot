@@ -64,7 +64,7 @@ lamp_pool_cap={
 }
 lamp_pool_far={
 "type": "float",
-"value": 150.0
+"value": 100000.0
 }
 lamp_cells={
 "type": "sampler2D",

@@ -227,6 +227,27 @@ public class VillagerNavigationTests
     }
 
     [Fact]
+    public void A_walking_Villager_turns_aside_when_Furniture_is_moved_across_their_way()
+    {
+        using var sim = BareStore();
+        var space = sim.Snapshot.Space;
+        var wall = PlaceWall(sim, OpenFloor + new Vector2(0f, 300f), wardrobes: 12);
+        var villager = sim.Scenario.PlaceVillager(OpenFloor);
+        var target = OpenFloor + new Vector2(40f, 0f);
+        sim.Scenario.SendVillager(villager.Id, target);
+        sim.Advance(TimeSpan.FromHours(10 / Villager.WalkingSpeed));
+
+        // Moved, not put down: only the ways the move blocks are found again.
+        var width = FurnitureCatalog.Spec(FurnitureType.Wardrobe).Width;
+        var moved = wall.Select((piece, i) => sim.Scenario.MoveFurniture(piece.Id,
+            OpenFloor + new Vector2(25f, (i - 5.5f) * width), MathF.PI / 2f)).ToList();
+        var walked = WalkUntilArrived(sim, villager.Id, TimeSpan.FromHours(2));
+
+        Assert.True(space.Distance(target, VillagerIn(sim.Snapshot, villager.Id).Position) < 0.01f);
+        Assert.DoesNotContain(walked, p => moved.Any(piece => Inside(space, piece, p)));
+    }
+
+    [Fact]
     public void A_Villager_sent_into_Furniture_stops_beside_it()
     {
         using var sim = BareStore();

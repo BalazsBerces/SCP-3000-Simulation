@@ -11,31 +11,29 @@ public readonly record struct FurnitureChange(int Index, FurniturePiece? Before,
 
 /// <summary>
 /// The Store's Furniture as an immutable list kept in blocks, so changing or adding one piece copies a single block
-/// instead of every piece in the Store. Each list remembers the one it was made from and what changed, so indexes
-/// over the Furniture can catch up instead of starting over (<see cref="ChangesSince"/>).
+/// instead of every piece in the Store. Lists made one from another share a journal of what changed, so indexes over
+/// the Furniture can catch up instead of starting over (<see cref="ChangesSince"/>); the journal holds the changes
+/// themselves, not the lists, so old lists are collected as soon as nothing else holds them.
 /// </summary>
 internal sealed class FurnitureList : IReadOnlyList<FurniturePiece>
 {
     private const int BlockSize = 1024;
-    // How many changes back a list remembers; an index further behind starts over.
-    private const int MaxHistory = 64;
 
     private readonly FurniturePiece[][] _blocks;
-    private readonly FurnitureList? _parent;
-    private readonly FurnitureChange _change;
-    private readonly int _history;
+    private readonly Journal _journal;
+    // How many of the journal's changes lead to this list.
+    private readonly long _position;
     // Id → first index, shared along lists that keep every id in place; added ids are entered as they come.
     private Dictionary<int, int>? _indexById;
 
-    public static FurnitureList Empty { get; } = new([], 0, null, default, 0, null);
+    public static FurnitureList Empty { get; } = new([], 0, new Journal(), 0, null);
 
-    private FurnitureList(FurniturePiece[][] blocks, int count, FurnitureList? parent, FurnitureChange change, int history, Dictionary<int, int>? indexById)
+    private FurnitureList(FurniturePiece[][] blocks, int count, Journal journal, long position, Dictionary<int, int>? indexById)
     {
         _blocks = blocks;
         Count = count;
-        _parent = history > MaxHistory ? null : parent;
-        _change = change;
-        _history = history > MaxHistory ? 0 : history;
+        _journal = journal;
+        _position = position;
         _indexById = indexById;
     }
 
@@ -47,7 +45,7 @@ internal sealed class FurnitureList : IReadOnlyList<FurniturePiece>
         var blocks = new FurniturePiece[(all.Length + BlockSize - 1) / BlockSize][];
         for (var b = 0; b < blocks.Length; b++)
             blocks[b] = all.AsSpan(b * BlockSize, Math.Min(BlockSize, all.Length - b * BlockSize)).ToArray();
-        return new(blocks, all.Length, null, default, 0, null);
+        return new(blocks, all.Length, new Journal(), 0, null);
     }
 
     public int Count { get; }
@@ -63,7 +61,8 @@ internal sealed class FurnitureList : IReadOnlyList<FurniturePiece>
         var blocks = (FurniturePiece[][])_blocks.Clone();
         var block = blocks[index / BlockSize] = (FurniturePiece[])blocks[index / BlockSize].Clone();
         block[index % BlockSize] = piece;
-        return new(blocks, Count, this, new FurnitureChange(index, before, piece), _history + 1, before.Id == piece.Id ? _indexById : null);
+        var (journal, position) = Record(new FurnitureChange(index, before, piece));
+        return new(blocks, Count, journal, position, before.Id == piece.Id ? _indexById : null);
     }
 
     /// <summary>A list with <paramref name="piece"/> added at the end.</summary>
@@ -77,21 +76,43 @@ internal sealed class FurnitureList : IReadOnlyList<FurniturePiece>
             blocks = (FurniturePiece[][])_blocks.Clone();
             blocks[^1] = [.. blocks[^1], piece];
         }
-        _indexById?.TryAdd(piece.Id, Count);
-        return new(blocks, Count + 1, this, new FurnitureChange(Count, null, piece), _history + 1, _indexById);
+        if (_indexById is { } map)
+            lock (map)
+                map.TryAdd(piece.Id, Count);
+        var (journal, position) = Record(new FurnitureChange(Count, null, piece));
+        return new(blocks, Count + 1, journal, position, _indexById);
+    }
+
+    // Notes a change made to this list in the journal. A list changed again after a later one was made from it (which the
+    // Simulation never does) starts a journal of its own, and indexes behind it start over.
+    private (Journal Journal, long Position) Record(FurnitureChange change)
+    {
+        if (_journal.TryAppend(_position, change))
+            return (_journal, _position + 1);
+        var fork = new Journal();
+        fork.TryAppend(0, change);
+        return (fork, 1);
     }
 
     /// <summary>The index of the first piece with this id, or -1.</summary>
     public int IndexOf(int id)
     {
-        if (_indexById is null)
+        var map = _indexById;
+        if (map is null)
         {
-            _indexById = new Dictionary<int, int>(Count);
+            // Filled before it is shared: readers on other threads never see half a map.
+            map = new Dictionary<int, int>(Count);
             for (var i = 0; i < Count; i++)
-                _indexById.TryAdd(this[i].Id, i);
+                map.TryAdd(this[i].Id, i);
+            _indexById = map;
         }
+        int index;
+        bool found;
+        // A later list may be adding to a shared map on the simulation thread.
+        lock (map)
+            found = map.TryGetValue(id, out index);
         // A shared map may hold ids added to a later list; then look the slow way.
-        if (_indexById.TryGetValue(id, out var index) && index < Count && this[index].Id == id)
+        if (found && index < Count && this[index].Id == id)
             return index;
         for (var i = 0; i < Count; i++)
             if (this[i].Id == id)
@@ -101,23 +122,13 @@ internal sealed class FurnitureList : IReadOnlyList<FurniturePiece>
 
     /// <summary>
     /// The changes, oldest first, that lead from <paramref name="older"/> to this list; false when this list does not
-    /// remember coming from it.
+    /// remember coming from it (another line of lists, or more changes ago than the journal keeps).
     /// </summary>
     public bool ChangesSince(IReadOnlyList<FurniturePiece>? older, List<FurnitureChange> changes)
     {
         changes.Clear();
-        for (var list = this; list is not null; list = list._parent)
-        {
-            if (ReferenceEquals(list, older))
-            {
-                changes.Reverse();
-                return true;
-            }
-            if (list._parent is not null)
-                changes.Add(list._change);
-        }
-        changes.Clear();
-        return false;
+        return older is FurnitureList list && ReferenceEquals(list._journal, _journal) && list._position <= _position &&
+            _journal.CopyTo(list._position, _position, changes);
     }
 
     public IEnumerator<FurniturePiece> GetEnumerator()
@@ -128,6 +139,51 @@ internal sealed class FurnitureList : IReadOnlyList<FurniturePiece>
     }
 
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+    /// <summary>
+    /// The changes along one line of lists, the latest <see cref="Capacity"/> of them kept in a ring: appended on the
+    /// simulation thread, read on any (the presentation follows the Furniture from snapshot to snapshot).
+    /// </summary>
+    private sealed class Journal
+    {
+        // How many changes back a list remembers; an index further behind starts over.
+        private const int Capacity = 1 << 16;
+        private FurnitureChange[] _ring = [];
+        private long _count;
+
+        /// <summary>Appends a change made to the list at <paramref name="position"/>, if that is the latest list.</summary>
+        public bool TryAppend(long position, FurnitureChange change)
+        {
+            lock (this)
+            {
+                if (position != _count)
+                    return false;
+                if (_count == _ring.Length && _ring.Length < Capacity)
+                {
+                    // Grows while young, so the many short-lived worlds of tests stay small.
+                    var grown = new FurnitureChange[Math.Max(64, _ring.Length * 2)];
+                    Array.Copy(_ring, grown, _ring.Length);
+                    _ring = grown;
+                }
+                _ring[_count % _ring.Length] = change;
+                _count++;
+                return true;
+            }
+        }
+
+        /// <summary>Adds the changes from <paramref name="from"/> up to <paramref name="to"/>, if they are still kept.</summary>
+        public bool CopyTo(long from, long to, List<FurnitureChange> changes)
+        {
+            lock (this)
+            {
+                if (from < _count - _ring.Length)
+                    return false;
+                for (var i = from; i < to; i++)
+                    changes.Add(_ring[i % _ring.Length]);
+                return true;
+            }
+        }
+    }
 }
 
 /// <summary>Furniture by chunk, kept up to date with a <see cref="FurnitureList"/> as it changes.</summary>

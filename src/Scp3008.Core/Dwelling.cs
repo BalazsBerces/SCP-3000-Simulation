@@ -183,13 +183,10 @@ public sealed partial class Simulation
                 .OrderBy(p => index < 3 && dwelling.Kind == DwellingKind.House && p.Type == FurnitureType.Wardrobe ? 1 : 0)
                 .ThenBy(p => _space.Distance(worker.Position, p.Position)))
             {
-                try
-                {
-                    StartFurnitureTask(piece.Id, [worker.Id], slot.Position, false, construction: true);
-                    SetDwellingSlot(village.Id, dwelling.Id, index, slot with { ReservedFurnitureId = piece.Id });
-                    return true;
-                }
-                catch (InvalidOperationException) { /* Try the next reachable, haulable piece. */ }
+                if (TryStartFurnitureTask(piece.Id, [worker.Id], slot.Position, false, construction: true) is not null)
+                    continue; // Try the next reachable, haulable piece.
+                SetDwellingSlot(village.Id, dwelling.Id, index, slot with { ReservedFurnitureId = piece.Id });
+                return true;
             }
         }
         return false;

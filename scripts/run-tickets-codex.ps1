@@ -14,6 +14,8 @@
 
   Logs: .ticket-logs/ (git-excluded locally). One CSV row per ticket: .ticket-logs/codex-runs.csv.
 
+  Exit codes: 0 done, 1 failed or blocked, 2 out of quota.
+
 .EXAMPLE
   .\scripts\run-tickets-codex.ps1 -DryRun          # show the next ticket, run nothing
   .\scripts\run-tickets-codex.ps1 -Max 1           # run exactly one ticket
@@ -387,6 +389,7 @@ while ($true) {
     Write-Host "Ticket $($t.Label) did not finish cleanly (issue: $state, uncommitted changes: $($dirty.Count -gt 0), unpushed commits: $unpushed)." -ForegroundColor Red
     Write-Host "Agent's last message:`n$final" -ForegroundColor Red
     Write-Host "Logs: $logDir"
+    if ($run.Exhausted) { exit 2 }
     exit 1
   }
 

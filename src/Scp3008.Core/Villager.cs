@@ -63,6 +63,25 @@ internal sealed partial class Villagers(StoreSpace space, Navigation navigation)
         public int? VillageId { get; set; }
         public Role Role { get; set; } = Role.Scavenger;
         public Dictionary<Role, double> Skills { get; } = [];
+        private IReadOnlyDictionary<Role, double>? _skillsView;
+
+        // A read-only copy of the Skills, made again only once they change: the Villagers are viewed many times a tick.
+        public IReadOnlyDictionary<Role, double> SkillsView()
+        {
+            if (_skillsView is { } view && view.Count == Skills.Count)
+            {
+                var same = true;
+                foreach (var (role, skill) in Skills)
+                    if (!view.TryGetValue(role, out var shown) || shown != skill)
+                    {
+                        same = false;
+                        break;
+                    }
+                if (same)
+                    return view;
+            }
+            return _skillsView = new System.Collections.ObjectModel.ReadOnlyDictionary<Role, double>(new Dictionary<Role, double>(Skills));
+        }
         public GoodsKind? CarriedGoods { get; set; }
         public int CarriedAmount { get; set; }
         public int CarriedMaterials { get; set; }
@@ -104,7 +123,7 @@ internal sealed partial class Villagers(StoreSpace space, Navigation navigation)
 
     /// <summary>
     /// Finds every walking Villager's way again, after the Furniture changed; <paramref name="nearChange"/> keeps the
-    /// ways that do not pass by the change (<see cref="Navigation.Crosses"/>).
+    /// ways the change does not block (<see cref="Navigation.Blocks"/>), as a piece carried along moves every tick.
     /// </summary>
     public void Replan(bool nearChange = false)
     {
@@ -119,8 +138,14 @@ internal sealed partial class Villagers(StoreSpace space, Navigation navigation)
                 walker.ClimbWaypoints.Clear();
                 walker.Destination = null;
             }
-            if (walker.ClimbDestination is { } climb) { SendClimbing(walker, climb); continue; }
-            if (walker.Destination is { } destination && (!nearChange || navigation.Crosses(walker.Position, walker.Waypoints)))
+            if (walker.ClimbDestination is { } climb)
+            {
+                // A climb is found again only when the change is by the way up, like a walk.
+                if (!nearChange || navigation.Crosses(walker.Position, walker.ClimbWaypoints.Select(p => new Vector2(p.X, p.Y)).ToList()))
+                    SendClimbing(walker, climb);
+                continue;
+            }
+            if (walker.Destination is { } destination && (!nearChange || navigation.Blocks(walker.Position, walker.Waypoints)))
                 Plan(walker, navigation.NearestWalkable(destination));
         }
     }
@@ -161,6 +186,9 @@ internal sealed partial class Villagers(StoreSpace space, Navigation navigation)
 
     public Villager[] Snapshot() => _walkers.Select(View).ToArray();
 
+    /// <summary>One Villager as <see cref="Snapshot"/> shows them, or null if there is no such Villager.</summary>
+    public Villager? ViewOf(int id) => _walkers.Find(w => w.Id == id) is { } walker ? View(walker) : null;
+
     private void Plan(Walker walker, Vector2 destination)
     {
         if (TryRoute(walker, destination)) return;
@@ -183,5 +211,5 @@ internal sealed partial class Villagers(StoreSpace space, Navigation navigation)
         VillageId = walker.VillageId, Role = walker.Role, CarriedGoods = walker.CarriedGoods,
         CarriedAmount = walker.CarriedAmount, CarriedMaterials = walker.CarriedMaterials, CarriedWater = walker.CarriedWater,
         Crafting = walker.Crafting, FurnitureTaskId = walker.FurnitureTaskId, Hand = walker.Hand, Bag = walker.Bag, Armour = walker.Armour,
-        Skills = new System.Collections.ObjectModel.ReadOnlyDictionary<Role, double>(new Dictionary<Role, double>(walker.Skills)) };
+        Skills = walker.SkillsView() };
 }

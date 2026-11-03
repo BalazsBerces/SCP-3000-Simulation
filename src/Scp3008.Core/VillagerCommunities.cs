@@ -48,7 +48,7 @@ internal sealed partial class Villagers
         if (walker.Destination is not null)
             return true;
         var foodNeeded = village.Stores.Where(g => GoodsCatalog.ClassOf(g.Key) == GoodsClass.Food).Sum(g => g.Value) < village.VillagerIds.Count * 2;
-        var sources = walker.KnownGoods.Values.Where(g => (g.Goods.Amount > 0 || g.Stale) &&
+        var sources = walker.KnownGoods.Values.Where(g => WorthVisiting(g, world) &&
             (outpost is null || space.Distance(outpost.Position, g.Position) <= 24) &&
             (!foodNeeded || GoodsCatalog.ClassOf(g.Goods.Kind) == GoodsClass.Food) && !walker.Unreachable.Contains(g.Position));
         var chosen = sources.OrderBy(g => space.Distance(walker.Position, g.Position))

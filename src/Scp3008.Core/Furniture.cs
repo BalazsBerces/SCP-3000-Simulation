@@ -383,17 +383,27 @@ public static class FurnitureCatalog
     /// </summary>
     public static Vector3[] Corners(FurniturePiece piece)
     {
+        var corners = new Vector3[8];
+        Corners(piece, corners);
+        return corners;
+    }
+
+    /// <summary>As above, written into <paramref name="corners"/> (eight long) instead of a new array.</summary>
+    public static void Corners(FurniturePiece piece, Span<Vector3> corners)
+    {
         var spec = Spec(piece);
         var across = new Vector2(MathF.Cos(piece.Rotation), MathF.Sin(piece.Rotation));
         var front = new Vector2(-MathF.Sin(piece.Rotation), MathF.Cos(piece.Rotation));
         var (sin, cos) = MathF.SinCos(piece.Tilt);
         var (rollSin, rollCos) = MathF.SinCos(piece.Roll);
-        var corners = new Vector3[8];
         var i = 0;
-        foreach (var localX in new[] { -spec.Width / 2f, spec.Width / 2f })
-            foreach (var z in new[] { -spec.Depth / 2f, spec.Depth / 2f })
-                foreach (var localY in new[] { 0f, spec.Height })
+        for (var a = 0; a < 2; a++)
+            for (var b = 0; b < 2; b++)
+                for (var c = 0; c < 2; c++)
                 {
+                    var localX = a == 0 ? -spec.Width / 2f : spec.Width / 2f;
+                    var z = b == 0 ? -spec.Depth / 2f : spec.Depth / 2f;
+                    var localY = c == 0 ? 0f : spec.Height;
                     var x = localX * rollCos - localY * rollSin;
                     var y = localX * rollSin + localY * rollCos;
                     var forward = z * cos + y * sin;
@@ -401,7 +411,6 @@ public static class FurnitureCatalog
                     var floor = piece.Position + x * across + forward * front;
                     corners[i++] = new Vector3(floor.X, floor.Y, piece.Elevation + up);
                 }
-        return corners;
     }
 
     private static FurnitureSpec[][] BuildSpecs()

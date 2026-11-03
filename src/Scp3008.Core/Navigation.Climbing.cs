@@ -4,7 +4,13 @@ namespace Scp3008.Core;
 
 internal sealed partial class Navigation
 {
-    internal bool SupportsClimber(Vector3 point) => ClimbLinks(new(point.X, point.Y)).Any(link =>
+    // The farthest a climbable piece's links reach from its base centre: a rack's front, a tilted mattress's edges.
+    private static readonly float ClimbReach = new[] { FurnitureType.PalletRack, FurnitureType.ShelfUnit, FurnitureType.Bookcase, FurnitureType.Mattress }
+        .SelectMany(type => Enumerable.Range(0, FurnitureCatalog.VariantCount(type)).Select(variant => FurnitureCatalog.Spec(type, variant)))
+        .Max(spec => spec.Depth / 2 + spec.Height);
+
+    // A climber is held within 1.8 m of a link, so only the pieces that close (and their links' reach) are looked at.
+    internal bool SupportsClimber(Vector3 point) => ClimbLinks(new(point.X, point.Y), 1.8f + ClimbReach).Any(link =>
     {
         var span = new Vector3(_space.Delta(new(link.Bottom.X, link.Bottom.Y), new(link.Top.X, link.Top.Y)), link.Top.Z - link.Bottom.Z);
         var offset = new Vector3(_space.Delta(new(link.Bottom.X, link.Bottom.Y), new(point.X, point.Y)), point.Z - link.Bottom.Z);
@@ -15,15 +21,15 @@ internal sealed partial class Navigation
 
     // shortcut: vertical routes stay within 100 m of their Lookout; use a coarse graph for journeys spanning several structures.
     // Rungs on open shelving and the sloping surfaces of mattresses are climbable Furniture.
-    private IEnumerable<(Vector3 Bottom, Vector3 Top)> ClimbLinks(Vector2 destination)
+    private IEnumerable<(Vector3 Bottom, Vector3 Top)> ClimbLinks(Vector2 destination, float range = 100)
     {
         // Only Furniture in the chunks around can lie within reach; it is taken in list order.
         var pieces = _pieces();
         _climbIndex ??= new FurnitureIndex(_space);
         _climbIndex.Update(pieces);
-        var near = _climbIndex.NearIndices(destination, 100).Order().Select(i => pieces[i]).ToArray();
+        var near = _climbIndex.NearIndices(destination, range).Order().Select(i => pieces[i]).ToArray();
         foreach (var p in near.Where(p => p.Damage < 1 && MathF.Abs(p.Roll) < 0.1f &&
-            _space.Distance(p.Position, destination) < 100))
+            _space.Distance(p.Position, destination) < range))
         {
             var spec = FurnitureCatalog.Spec(p);
             var front = new Vector2(-MathF.Sin(p.Rotation), MathF.Cos(p.Rotation));

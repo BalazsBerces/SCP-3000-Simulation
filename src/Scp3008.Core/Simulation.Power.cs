@@ -18,6 +18,11 @@ public sealed partial class Simulation
     private FurniturePiece[] _villageLamps = [];
     private int _powerVillageCount = -1;
     private readonly Dictionary<System.Numerics.Vector2, GroundProperty> _groundUnder = [];
+    private readonly Dictionary<int, LitArea> _litAreas = [];
+    private readonly List<LitArea> _areaBuffer = [];
+    private readonly HashSet<ChunkCoord> _areaChunks = [];
+    private LitArea[] _lastAreas = [];
+    private LitArea[] _lastLocalAreas = [];
 
     private FurniturePiece[] Lamps()
     {
@@ -51,8 +56,15 @@ public sealed partial class Simulation
         {
             if (lamp.Damage >= 1 || _snapshot.GroundAt(lamp.Position).HasFlag(GroundProperty.Darkness)) continue;
             _lampPower.TryGetValue(lamp.Id, out var power);
-            var home = _villages.Where(v => _space.Distance(v.Position, lamp.Position) <= 24)
-                .OrderBy(v => _space.Distance(v.Position, lamp.Position)).FirstOrDefault();
+            // The nearest Village within 24 m, the first of equals.
+            Village? home = null;
+            var homeDistance = float.MaxValue;
+            foreach (var v in _villages)
+            {
+                var d = _space.Distance(v.Position, lamp.Position);
+                if (d <= 24 && d < homeDistance)
+                    (home, homeDistance) = (v, d);
+            }
             if (power?.TakenFromDisplay != true)
             {
                 var on = clock.Phase == DayPhase.Open && home is not null && people.Any(v =>
@@ -77,22 +89,24 @@ public sealed partial class Simulation
 
     private IReadOnlyList<LitArea> LightAreas(WorldSnapshot world, bool local = false)
     {
-        var areas = new List<LitArea>();
+        // Run every tick and for every snapshot, so the areas are gathered in a reused list from reused records, and an
+        // unchanged result is the previous array again.
+        var areas = _areaBuffer;
+        areas.Clear();
         var lamps = Lamps();
-        var nearby = local ? world.Villagers.SelectMany(v => _space.ChunkImagesAround(v.Position, 16))
-            .Select(c => c.Chunk).Distinct().SelectMany(c => _lampsByChunk![c]) : lamps.AsEnumerable();
-        var power = new Dictionary<int, LampPower>();
-        foreach (var p in world.LampPower)
-            power.TryAdd(p.FurnitureId, p);
         var timeOfDay = world.Clock.TimeOfDay;
-        foreach (var lamp in nearby)
+        if (local)
         {
-            // The ground belongs to the Store, so what lies under a lamp's spot is worked out once.
-            if (!_groundUnder.TryGetValue(lamp.Position, out var ground))
-                _groundUnder[lamp.Position] = ground = world.GroundAt(lamp.Position);
-            var brightness = world.LampLevel(lamp, timeOfDay, power.GetValueOrDefault(lamp.Id), ground);
-            if (brightness > 0) areas.Add(new(lamp.Id, lamp.Position, lamp.Elevation + 1, FurnitureCatalog.Spec(lamp).LightRadius, brightness));
+            _areaChunks.Clear();
+            foreach (var v in world.Villagers)
+                foreach (var image in _space.ChunkImagesAround(v.Position, 16))
+                    if (_areaChunks.Add(image.Chunk))
+                        foreach (var lamp in _lampsByChunk![image.Chunk])
+                            AddLamp(lamp);
         }
+        else
+            foreach (var lamp in lamps)
+                AddLamp(lamp);
         if (world.Phase == DayPhase.ClosingTime)
             foreach (var person in world.Villagers)
             {
@@ -103,10 +117,38 @@ public sealed partial class Simulation
                     // Put the bulb beside the hand, outside the figure's shadow-casting torso.
                     var offset = new Vector2(MathF.Sin(person.Heading), -MathF.Cos(person.Heading)) * 0.5f +
                         new Vector2(MathF.Cos(person.Heading), MathF.Sin(person.Heading)) * 0.1f;
-                    areas.Add(new(-person.Id - 1, _space.Wrap(person.Position + offset), person.Elevation + 1, candle ? 4 : 10, candle ? 0.3f : 1));
+                    areas.Add(Area(-person.Id - 1, _space.Wrap(person.Position + offset), person.Elevation + 1, candle ? 4 : 10, candle ? 0.3f : 1));
                 }
             }
-        return areas.AsReadOnly();
+        ref var last = ref local ? ref _lastLocalAreas : ref _lastAreas;
+        if (last.Length == areas.Count)
+        {
+            var same = true;
+            for (var i = 0; i < areas.Count && same; i++)
+                same = ReferenceEquals(last[i], areas[i]);
+            if (same)
+                return last;
+        }
+        return last = areas.ToArray();
+
+        void AddLamp(FurniturePiece lamp)
+        {
+            // The ground belongs to the Store, so what lies under a lamp's spot is worked out once.
+            if (!_groundUnder.TryGetValue(lamp.Position, out var ground))
+                _groundUnder[lamp.Position] = ground = world.GroundAt(lamp.Position);
+            // Both callers' worlds carry the live Lamp power.
+            var brightness = world.LampLevel(lamp, timeOfDay, _lampPower.GetValueOrDefault(lamp.Id), ground);
+            if (brightness > 0) areas.Add(Area(lamp.Id, lamp.Position, lamp.Elevation + 1, FurnitureCatalog.Spec(lamp).LightRadius, brightness));
+        }
+    }
+
+    // The area last made for this light if nothing about it changed, else a new one.
+    private LitArea Area(int id, Vector2 position, float elevation, float radius, float brightness)
+    {
+        if (_litAreas.TryGetValue(id, out var area) && area.Position == position && area.Elevation == elevation &&
+            area.Radius == radius && area.Brightness == brightness)
+            return area;
+        return _litAreas[id] = new(id, position, elevation, radius, brightness);
     }
 }
 

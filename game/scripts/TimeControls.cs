@@ -134,7 +134,7 @@ public partial class TimeControls : CanvasLayer
     private void ToggleNight()
     {
         var timeOfDay = TimeSpan.FromTicks(Host.InterpolatedStoreTime.Ticks % TimeSpan.TicksPerDay);
-        Host.AdvanceTo(StoreHours.PhaseAt(timeOfDay) == DayPhase.Open ? Night : Day);
+        Host.FastForwardTo(StoreHours.PhaseAt(timeOfDay) == DayPhase.Open ? Night : Day);
     }
 
     private void Step()

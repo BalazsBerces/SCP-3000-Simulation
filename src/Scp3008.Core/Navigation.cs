@@ -33,6 +33,12 @@ internal sealed partial class Navigation
     private readonly IReadOnlyList<Pillar> _pillars;
     private readonly int _cellsPerSide;
     private readonly int _cellsPerChunk;
+    // By cell column (or row): the chunk column it lies in, and its column within that chunk. Rows hold the same,
+    // already multiplied out, so a cell's chunk and place in it are two lookups and an add each, not divisions.
+    private readonly int[] _columnChunk;
+    private readonly int[] _columnInChunk;
+    private readonly int[] _rowChunk;
+    private readonly int[] _rowInChunk;
     // Chunk index → its cells, true where blocked; null until worked out.
     private readonly bool[]?[] _blocked;
     // A goal whose free region is smaller than this is checked for a way in before the search starts.
@@ -45,6 +51,13 @@ internal sealed partial class Navigation
     private readonly Queue<int> _pocket = new();
     // The cells reachable from the last start, when they are fewer than PocketCells (else null), while nothing changed.
     private int _version;
+    // Per chunk, a number that changes whenever its free cells may have changed.
+    private readonly int[] _chunkVersions;
+    // While a query is recorded (Recorded): its stamp, and the chunks it read so far, each marked with the stamp.
+    private int _recording;
+    private int _lastRecording;
+    private readonly int[] _readMarks;
+    private readonly List<int> _readChunks = [];
     private int _pocketStart = -1;
     private int _pocketVersion;
     private HashSet<int>? _startPocket;
@@ -67,6 +80,19 @@ internal sealed partial class Navigation
         _cellsPerChunk = (int)MathF.Round(space.ChunkSize / CellSize);
         _blocked = new bool[space.ChunkCount][];
         _pages = new SearchPage[space.ChunkCount];
+        _chunkVersions = new int[space.ChunkCount];
+        _columnChunk = new int[_cellsPerSide];
+        _columnInChunk = new int[_cellsPerSide];
+        _rowChunk = new int[_cellsPerSide];
+        _rowInChunk = new int[_cellsPerSide];
+        for (var i = 0; i < _cellsPerSide; i++)
+        {
+            _columnChunk[i] = i / _cellsPerChunk;
+            _columnInChunk[i] = i % _cellsPerChunk;
+            _rowChunk[i] = i / _cellsPerChunk * space.ChunksPerSide;
+            _rowInChunk[i] = i % _cellsPerChunk * _cellsPerChunk;
+        }
+        _readMarks = new int[space.ChunkCount];
     }
 
     /// <summary>Takes Furniture changes into account: the chunks the removed and added pieces reach are worked out again.</summary>
@@ -90,6 +116,7 @@ internal sealed partial class Navigation
                     else
                         _blocked[chunk] = null;
                     _version++;
+                    _chunkVersions[chunk]++;
                 }
             }
         foreach (var piece in added)
@@ -105,6 +132,36 @@ internal sealed partial class Navigation
     public int Version => _version;
 
     /// <summary>
+    /// Answers <paramref name="query"/> and notes which free cells it went by: the answer holds as long as
+    /// <see cref="StillHolds"/> says so, however much changes elsewhere. Not nested.
+    /// </summary>
+    public (T Result, ReadStamp Stamp) Recorded<T>(Func<T> query)
+    {
+        if (_recording != 0)
+            throw new InvalidOperationException("Recorded queries do not nest.");
+        _readChunks.Clear();
+        _recording = ++_lastRecording;
+        try
+        {
+            var result = query();
+            return (result, new ReadStamp(_readChunks.Select(chunk => (chunk, _chunkVersions[chunk])).ToArray()));
+        }
+        finally { _recording = 0; }
+    }
+
+    /// <summary>Whether the free cells a <see cref="Recorded"/> query went by are still as they were.</summary>
+    public bool StillHolds(ReadStamp stamp)
+    {
+        foreach (var (chunk, version) in stamp.Chunks)
+            if (_chunkVersions[chunk] != version)
+                return false;
+        return true;
+    }
+
+    /// <summary>The chunks a recorded query read, each with its version then.</summary>
+    public sealed record ReadStamp((int Chunk, int Version)[] Chunks);
+
+    /// <summary>
     /// Answers <paramref name="query"/> as if <paramref name="piece"/> were taken away, then leaves everything as it was,
     /// <see cref="Version"/> included, so nothing worked out before has to be worked out again.
     /// </summary>
@@ -117,8 +174,8 @@ internal sealed partial class Navigation
             finally { Update([], [piece]); }
         }
         var chunks = ChunksOf(footprint);
-        var blocked = chunks.Select(chunk => (chunk, _blocked[chunk])).ToArray();
-        foreach (var (chunk, cells) in blocked)
+        var blocked = chunks.Select(chunk => (chunk, _blocked[chunk], _chunkVersions[chunk])).ToArray();
+        foreach (var (chunk, cells, _) in blocked)
             _blocked[chunk] = (bool[]?)cells?.Clone();
         var (version, changedAreas) = (_version, _changedAreas);
         var (pocketStart, pocketVersion, startPocket) = (_pocketStart, _pocketVersion, _startPocket);
@@ -127,13 +184,44 @@ internal sealed partial class Navigation
         finally
         {
             Add(piece.Id, footprint);
-            foreach (var (chunk, cells) in blocked)
-                _blocked[chunk] = cells;
+            foreach (var (chunk, cells, chunkVersion) in blocked)
+                (_blocked[chunk], _chunkVersions[chunk]) = (cells, chunkVersion);
             // Versions passed while the piece was away are never seen again: whatever was worked out with them is dropped.
             (_version, _changedAreas) = (version, changedAreas);
             (_pocketStart, _pocketVersion, _startPocket) = (pocketStart, pocketVersion, startPocket);
         }
     }
+
+    /// <summary>
+    /// Whether a route from <paramref name="from"/> through <paramref name="waypoints"/> runs into Furniture the last
+    /// <see cref="Update"/> put down, so it has to be found again; a route that only passes by a change still holds.
+    /// </summary>
+    public bool Blocks(Vector2 from, IReadOnlyList<Vector2> waypoints)
+    {
+        if (_changedAreas is null)
+            return true;
+        var start = from;
+        for (var i = 0; i <= waypoints.Count; i++)
+        {
+            var end = i < waypoints.Count ? start + _space.Delta(start, waypoints[i]) : start;
+            foreach (var (min, max) in _changedAreas)
+                if (SegmentNear(start, end, min, max))
+                {
+                    if (!InSight(start, end))
+                        return true;
+                    break;
+                }
+            start = end;
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// The centres of the free cells reachable from <paramref name="from"/> when it is shut in a small pocket of
+    /// them; null when the way out is open.
+    /// </summary>
+    public IEnumerable<Vector2>? Pocket(Vector2 from) =>
+        StartPocket(CellIndex(from))?.Select(cell => Centre(cell % _cellsPerSide, cell / _cellsPerSide));
 
     /// <summary>
     /// Whether a route from <paramref name="from"/> through <paramref name="waypoints"/> passes by Furniture the last
@@ -199,9 +287,10 @@ internal sealed partial class Navigation
             Vector2? best = null;
             var bestDistance = float.MaxValue;
             for (var dy = -ring; dy <= ring; dy++)
-                for (var dx = -ring; dx <= ring; dx++)
+                // Only the ring's own cells, row by row: all of its first and last row, the two ends of the others.
+                for (var dx = -ring; dx <= ring; dx += Math.Abs(dy) == ring ? 1 : 2 * ring)
                 {
-                    if (Math.Max(Math.Abs(dx), Math.Abs(dy)) != ring || IsBlocked(Wrap(x + dx), Wrap(y + dy)))
+                    if (IsBlocked(Wrap(x + dx), Wrap(y + dy)))
                         continue;
                     var centre = Centre(Wrap(x + dx), Wrap(y + dy));
                     var distance = _space.Delta(position, centre).LengthSquared();
@@ -263,25 +352,25 @@ internal sealed partial class Navigation
                 cells.Reverse();
                 return cells;
             }
-            var (cellPage, cellIndex) = PageOf(cell);
+            int x = cell % _cellsPerSide, y = cell / _cellsPerSide;
+            var (cellPage, cellIndex) = PageOf(x, y);
             if (cellPage.Stamp[cellIndex] == 2 * search + 1)
                 continue;
             cellPage.Stamp[cellIndex] = 2 * search + 1;
             if (++closed > MaxExpansions)
                 return null;
             var cellCost = cellPage.Cost[cellIndex];
-            int x = cell % _cellsPerSide, y = cell / _cellsPerSide;
             for (var dy = -1; dy <= 1; dy++)
                 for (var dx = -1; dx <= 1; dx++)
                 {
                     if (dx == 0 && dy == 0)
                         continue;
-                    int nx = Wrap(x + dx), ny = Wrap(y + dy);
+                    int nx = Step(x, dx), ny = Step(y, dy);
                     // No cutting a corner: a diagonal step needs both cells beside it free.
                     if (IsBlocked(nx, ny) || (dx != 0 && dy != 0 && (IsBlocked(nx, y) || IsBlocked(x, ny))))
                         continue;
                     var next = ny * _cellsPerSide + nx;
-                    var (nextPage, nextIndex) = PageOf(next);
+                    var (nextPage, nextIndex) = PageOf(nx, ny);
                     var stamp = nextPage.Stamp[nextIndex];
                     if (stamp == 2 * search + 1)
                         continue;
@@ -321,14 +410,14 @@ internal sealed partial class Navigation
                 {
                     if (dx == 0 && dy == 0)
                         continue;
-                    int nx = Wrap(x + dx), ny = Wrap(y + dy);
+                    int nx = Step(x, dx), ny = Step(y, dy);
                     var next = ny * _cellsPerSide + nx;
                     // The start may stand in a blocked cell; it still steps out to a free one beside it.
                     if (next == start && (dx == 0 || dy == 0 || (!IsBlocked(nx, y) && !IsBlocked(x, ny))))
                         return false;
                     if (IsBlocked(nx, ny) || (dx != 0 && dy != 0 && (IsBlocked(nx, y) || IsBlocked(x, ny))))
                         continue;
-                    var (nextPage, nextIndex) = PageOf(next);
+                    var (nextPage, nextIndex) = PageOf(nx, ny);
                     if (nextPage.Stamp[nextIndex] == 2 * search)
                         continue;
                     nextPage.Stamp[nextIndex] = 2 * search;
@@ -343,7 +432,8 @@ internal sealed partial class Navigation
     /// <summary>Every cell reachable from <paramref name="start"/> when they are fewer than <see cref="PocketCells"/>; else null.</summary>
     private HashSet<int>? StartPocket(int start)
     {
-        if (start == _pocketStart && _version == _pocketVersion)
+        // A recorded query reads the cells itself, so the chunks it depends on are all known.
+        if (start == _pocketStart && _version == _pocketVersion && _recording == 0)
             return _startPocket;
         _pocketStart = start;
         _pocketVersion = _version;
@@ -363,11 +453,11 @@ internal sealed partial class Navigation
                 {
                     if (dx == 0 && dy == 0)
                         continue;
-                    int nx = Wrap(x + dx), ny = Wrap(y + dy);
+                    int nx = Step(x, dx), ny = Step(y, dy);
                     if (IsBlocked(nx, ny) || (dx != 0 && dy != 0 && (IsBlocked(nx, y) || IsBlocked(x, ny))))
                         continue;
                     var next = ny * _cellsPerSide + nx;
-                    var (nextPage, nextIndex) = PageOf(next);
+                    var (nextPage, nextIndex) = PageOf(nx, ny);
                     if (nextPage.Stamp[nextIndex] == 2 * search)
                         continue;
                     nextPage.Stamp[nextIndex] = 2 * search;
@@ -390,13 +480,14 @@ internal sealed partial class Navigation
         return _search;
     }
 
-    private (SearchPage Page, int Index) PageOf(int cell)
+    private (SearchPage Page, int Index) PageOf(int cell) => PageOf(cell % _cellsPerSide, cell / _cellsPerSide);
+
+    private (SearchPage Page, int Index) PageOf(int x, int y)
     {
-        int x = cell % _cellsPerSide, y = cell / _cellsPerSide;
-        var chunk = y / _cellsPerChunk * _space.ChunksPerSide + x / _cellsPerChunk;
+        var chunk = _rowChunk[y] + _columnChunk[x];
         var size = _cellsPerChunk * _cellsPerChunk;
         var page = _pages[chunk] ??= new SearchPage(new int[size], new float[size], new int[size]);
-        return (page, y % _cellsPerChunk * _cellsPerChunk + x % _cellsPerChunk);
+        return (page, _rowInChunk[y] + _columnInChunk[x]);
     }
 
     /// <summary>Drops every corner the line from the last kept one can see past, leaving the corners of a taut path.</summary>
@@ -439,9 +530,14 @@ internal sealed partial class Navigation
 
     private bool IsBlocked(int x, int y)
     {
-        var chunk = y / _cellsPerChunk * _space.ChunksPerSide + x / _cellsPerChunk;
+        var chunk = _rowChunk[y] + _columnChunk[x];
+        if (_recording != 0 && _readMarks[chunk] != _recording)
+        {
+            _readMarks[chunk] = _recording;
+            _readChunks.Add(chunk);
+        }
         var cells = _blocked[chunk] ??= BuildChunk(chunk);
-        return cells[y % _cellsPerChunk * _cellsPerChunk + x % _cellsPerChunk];
+        return cells[_rowInChunk[y] + _columnInChunk[x]];
     }
 
     private bool[] BuildChunk(int chunk)
@@ -525,6 +621,7 @@ internal sealed partial class Navigation
             else
                 _blocked[chunk] = null;
             _version++;
+            _chunkVersions[chunk]++;
         }
     }
 
@@ -593,5 +690,12 @@ internal sealed partial class Navigation
     private static Vector2 Centre(int x, int y) => new((x + 0.5f) * CellSize, (y + 0.5f) * CellSize);
 
     private int Wrap(int cell) => (cell % _cellsPerSide + _cellsPerSide) % _cellsPerSide;
+
+    // The wrapped neighbour of a cell column or row, <paramref name="step"/> being -1, 0 or 1.
+    private int Step(int cell, int step)
+    {
+        cell += step;
+        return cell < 0 ? cell + _cellsPerSide : cell >= _cellsPerSide ? cell - _cellsPerSide : cell;
+    }
 }
 

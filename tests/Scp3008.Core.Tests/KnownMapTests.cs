@@ -80,6 +80,25 @@ public class KnownMapTests
         Assert.False(Assert.Single(before.Goods).Stale);
     }
 
+    [Fact]
+    public void A_hungry_Villager_scouts_rather_than_revisit_a_shelf_seen_empty_that_is_never_restocked()
+    {
+        using var sim = Simulation.Create(new WorldConfig(3008, PillarLayout: PillarLayout.VillagerSandbox));
+        var shelf = sim.Scenario.PlaceFurniture(FurnitureType.GroceryShelf, new Vector2(20, 108));
+        sim.Scenario.SetStock(shelf.Id, GoodsKind.TinnedFood, 3);
+        var villager = sim.Scenario.PlaceVillager(new Vector2(20, 104));
+        sim.AdvanceTicks(1);
+        sim.Scenario.SetStock(shelf.Id, GoodsKind.TinnedFood, 0);
+        sim.AdvanceTicks(51);
+        Assert.Equal(0, Assert.Single(Assert.Single(sim.Snapshot.Villagers).KnownMap.Goods).Goods.Amount);
+        sim.Scenario.SendVillager(villager.Id, new Vector2(75, 30));
+        sim.Advance(TimeSpan.FromHours(2));
+        Assert.True(Assert.Single(Assert.Single(sim.Snapshot.Villagers).KnownMap.Goods).Stale);
+        sim.Scenario.SetNeeds(villager.Id, new Needs(Hunger: 0.8));
+        sim.AdvanceTicks(51);
+        Assert.Equal(VillagerAction.Scouting, Assert.Single(sim.Snapshot.Villagers).Action);
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

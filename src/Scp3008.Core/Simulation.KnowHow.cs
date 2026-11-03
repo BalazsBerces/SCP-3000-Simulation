@@ -61,8 +61,14 @@ public sealed partial class Simulation
         if (_tick % 50 != 1) return;
         var people = _villagers.Snapshot();
         if (people.Length == 0) return;
-        var nearby = _instructions.Count == 0 ? new Dictionary<int, FurniturePiece>() : people
-            .SelectMany(v => _villagers.FurnitureNear(v.Position, 3)).DistinctBy(p => p.Id).ToDictionary(p => p.Id);
+        // Only the instructions' pieces near someone, not every piece around every Villager.
+        var wanted = _instructions.Select(i => i.FurnitureId).ToHashSet();
+        var nearby = new Dictionary<int, FurniturePiece>();
+        if (wanted.Count > 0)
+            foreach (var v in people)
+                foreach (var piece in _villagers.FurnitureNear(v.Position, 3))
+                    if (wanted.Contains(piece.Id))
+                        nearby.TryAdd(piece.Id, piece);
         foreach (var instructions in _instructions.ToArray())
         {
             if (!nearby.TryGetValue(instructions.FurnitureId, out var piece)) continue;

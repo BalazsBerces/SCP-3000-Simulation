@@ -63,12 +63,9 @@ public sealed partial class Simulation
             _space.Distance(village.Position, p.Position) <= 48 && !_furnitureTasks.Any(t => t.FurnitureId == p.Id))
             .OrderBy(p => _space.Distance(worker.Position, p.Position)))
         {
-            try
-            {
-                StartFurnitureTask(piece.Id, [worker.Id], _space.Wrap(spot), false);
-                return true;
-            }
-            catch (InvalidOperationException) { /* Try the next reachable, haulable piece. */ }
+            if (TryStartFurnitureTask(piece.Id, [worker.Id], _space.Wrap(spot), false) is not null)
+                continue; // Try the next reachable, haulable piece.
+            return true;
         }
         return false;
     }

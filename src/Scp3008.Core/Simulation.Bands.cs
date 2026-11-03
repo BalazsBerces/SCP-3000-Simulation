@@ -12,6 +12,8 @@ public sealed partial class Simulation
     internal const float ArrivalRadius = 2;
     // A site with both food and water nearby; a Band founds unforced only on one of these.
     private const int GoodSiteScore = 100;
+    // Known food within reach of a site that makes it a good one; a few tins run out within days.
+    private const int LargeFoodSource = 15;
     // A Band this large may found its own Village rather than join one it knows.
     private const int FoundingGroup = 3;
 
@@ -108,8 +110,8 @@ public sealed partial class Simulation
             _villagers.ShareKnowledge(updated.VillagerIds, known);
             if (clock.Phase == DayPhase.ClosingTime)
                 continue;
-            var forced = members.Any(v => v.Needs.Rest < 0.2 || v.Needs.Hunger >= 0.85) ||
-                members.Length < band.FoundingPopulation;
+            // Hunger never forces a founding: settling where there is no food feeds no one, so a hungry Band keeps searching.
+            var forced = members.Any(v => v.Needs.Rest < 0.2) || members.Length < band.FoundingPopulation;
             // Only the Band's own Known map says where Villages are; whether one still lives is learned on arrival.
             var destination = known.Villages.Where(v => !v.Abandoned)
                 .OrderBy(v => _space.Distance(updated.Position, v.Position))
@@ -171,10 +173,10 @@ public sealed partial class Simulation
 
     private int SiteScore(Vector2 position, KnownMap known)
     {
-        var food = known.Goods.Any(g => g.Goods.Amount > 0 && GoodsCatalog.ClassOf(g.Goods.Kind) == GoodsClass.Food &&
-            _space.Distance(position, g.Position) <= 48);
+        var food = known.Goods.Where(g => g.Goods.Amount > 0 && GoodsCatalog.ClassOf(g.Goods.Kind) == GoodsClass.Food &&
+            _space.Distance(position, g.Position) <= 48).Sum(g => g.Goods.Amount);
         var water = known.Water.Any(w => w.Running == true && _space.Distance(position, w.Position) <= 48);
-        return (food && water ? GoodSiteScore : food || water ? 30 : 0) +
+        return (food >= LargeFoodSource && water ? GoodSiteScore : food > 0 || water ? 30 : 0) +
             _villagers.FurnitureNear(position, 24).Where(p => _space.Distance(position, p.Position) <= 24).Take(10).Count() +
             (_pillars.Any(p => _space.Distance(position, p.Position) <= 48) ? 20 : 0);
     }
@@ -184,16 +186,39 @@ public sealed partial class Simulation
         var all = maps.ToArray();
         return new KnownMap
         {
-            ExploredGround = Array.AsReadOnly(all.SelectMany(m => m.ExploredGround).Distinct().ToArray()),
-            Goods = Array.AsReadOnly(all.SelectMany(m => m.Goods).GroupBy(g => (g.Goods.FurnitureId, g.Goods.Kind, g.Goods.LeftBehind))
-                .Select(g => g.MaxBy(x => x.LastSeen.Tick)!).ToArray()),
-            Water = Array.AsReadOnly(all.SelectMany(m => m.Water).GroupBy(w => (w.FurnitureId, w.Position))
-                .Select(g => g.OrderByDescending(w => w.Running.HasValue).ThenByDescending(w => w.LastSeen.Tick).First()).ToArray()),
-            Dangers = Array.AsReadOnly(all.SelectMany(m => m.Dangers).GroupBy(d => d.StaffId)
-                .Select(g => g.MaxBy(x => x.LastSeen.Tick)!).ToArray()),
-            Villages = Array.AsReadOnly(all.SelectMany(m => m.Villages).GroupBy(v => v.VillageId)
-                .Select(g => g.MaxBy(x => x.LastSeen.Tick)!).ToArray()),
+            ExploredGround = Array.AsReadOnly(Latest(all, m => m.ExploredGround, g => g, (_, _) => false)),
+            Goods = Array.AsReadOnly(Latest(all, m => m.Goods, g => (g.Goods.FurnitureId, g.Goods.Kind, g.Goods.LeftBehind),
+                (g, kept) => g.LastSeen.Tick > kept.LastSeen.Tick)),
+            Water = Array.AsReadOnly(Latest(all, m => m.Water, w => (w.FurnitureId, w.Position),
+                (w, kept) => w.Running.HasValue != kept.Running.HasValue ? w.Running.HasValue : w.LastSeen.Tick > kept.LastSeen.Tick)),
+            Dangers = Array.AsReadOnly(Latest(all, m => m.Dangers, d => d.StaffId, (d, kept) => d.LastSeen.Tick > kept.LastSeen.Tick)),
+            Villages = Array.AsReadOnly(Latest(all, m => m.Villages, v => v.VillageId, (v, kept) => v.LastSeen.Tick > kept.LastSeen.Tick)),
         };
+    }
+
+    // One entry per key, in the order keys first appear across the maps: the first entry, replaced by any later one
+    // that is newer.
+    private static T[] Latest<TKey, T>(KnownMap[] maps, Func<KnownMap, IReadOnlyList<T>> entries, Func<T, TKey> key, Func<T, T, bool> newer)
+        where TKey : notnull
+    {
+        var count = 0;
+        foreach (var map in maps)
+            count += entries(map).Count;
+        var index = new Dictionary<TKey, int>(count);
+        var result = new List<T>(count);
+        foreach (var map in maps)
+            foreach (var entry in entries(map))
+            {
+                if (!index.TryAdd(key(entry), result.Count))
+                {
+                    var i = index[key(entry)];
+                    if (newer(entry, result[i]))
+                        result[i] = entry;
+                    continue;
+                }
+                result.Add(entry);
+            }
+        return result.ToArray();
     }
 }
 
