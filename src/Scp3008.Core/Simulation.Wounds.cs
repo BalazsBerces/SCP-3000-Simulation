@@ -31,7 +31,9 @@ public sealed partial class Simulation
     {
         var villager = _villagers.ViewOf(villagerId) ?? throw new ArgumentException($"No Villager {villagerId}.", nameof(villagerId));
         var clock = new StoreClock(_tick);
-        if (!_wounds.Remove(villagerId))
+        var taken = _wounds.Remove(villagerId);
+        BandHarmed(villagerId, taken);
+        if (!taken)
         {
             _wounds[villagerId] = new(villagerId);
             Emit(new VillagerWounded(clock, villagerId));

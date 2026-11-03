@@ -92,6 +92,24 @@ public sealed partial class Simulation
                     _ => $"{lost} vanished from {takenPlace} in the Staff's grip, and the aisles gave nothing back.",
                 };
                 break;
+            // Every Band's first Closing time is told; later nights only when the Band changes its way.
+            case BandNightBegan { First: true } night when _bands.FirstOrDefault(b => b.Id == night.BandId) is { } sheltering:
+                var nightPlace = ChroniclePlace(sheltering.Position);
+                var how = night.Strategy switch
+                {
+                    BandStrategy.Hide => "hid in silence behind a wall of Furniture",
+                    BandStrategy.MoveOn => "kept moving quietly through the dark",
+                    _ => "threw up a quick barricade where they stood",
+                };
+                story = (_chronicle.Count % 2) switch
+                {
+                    0 => $"On their first Closing time in {nightPlace}, Band {night.BandId} {how}.",
+                    _ => $"When the lights went out over {nightPlace}, Band {night.BandId} {how}.",
+                };
+                break;
+            case BandStrategyChanged changed:
+                story = $"After a bad night, Band {changed.BandId} gave up {StrategyName(changed.From)} and turned to {StrategyName(changed.To)}.";
+                break;
             // A box sliding off a shelf is not history; a structure coming down is.
             case StructureCollapsed collapse when collapse.Fallen.Count >= NotableCollapse:
                 var fell = collapse.Fallen.Count;
@@ -113,6 +131,13 @@ public sealed partial class Simulation
         }
         _chronicle.Add($"Store day {domainEvent.At.Day}, {domainEvent.At.TimeOfDay:hh\\:mm}: {story}");
     }
+
+    private static string StrategyName(BandStrategy strategy) => strategy switch
+    {
+        BandStrategy.Hide => "hiding",
+        BandStrategy.MoveOn => "moving on",
+        _ => "barricading",
+    };
 
     private string ChroniclePlace(Vector2 position) =>
         $"Sector {_sectors[Generation.PillarGenerator.SectorIndexAt(_space, _config.PillarLayout, position)].Name}";

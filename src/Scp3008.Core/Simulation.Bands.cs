@@ -108,8 +108,9 @@ public sealed partial class Simulation
                 VillagerIds = Array.AsReadOnly(members.Select(v => v.Id).ToArray()) };
             _bands[_bands.IndexOf(band)] = updated;
             _villagers.ShareKnowledge(updated.VillagerIds, known);
-            if (clock.Phase == DayPhase.ClosingTime)
+            if (AdvanceBandNight(clock, updated, members))
                 continue;
+            updated = _bands.Single(b => b.Id == updated.Id);
             // Hunger never forces a founding: settling where there is no food feeds no one, so a hungry Band keeps searching.
             var forced = members.Any(v => v.Needs.Rest < 0.2) || members.Length < band.FoundingPopulation;
             // Only the Band's own Known map says where Villages are; whether one still lives is learned on arrival.

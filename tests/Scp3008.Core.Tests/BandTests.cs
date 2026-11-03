@@ -108,7 +108,7 @@ public class BandTests
     public void A_healthy_Band_scouts_shares_knowledge_and_rests_through_Closing_time()
     {
         using var sim = ScenarioBuilder.LoadVillagerSandbox("empty");
-        sim.Scenario.PlaceBand([new(20, 104), new(24, 104)]);
+        sim.Scenario.PlaceBand([new(20, 104), new(24, 104)], personality: Personality.Builders); // a barricading Band; others hide with a watch or move on
         sim.Advance(TimeSpan.FromMinutes(20));
         Assert.Empty(sim.Snapshot.Villages);
         Assert.Contains(sim.Snapshot.Villagers, v => v.Action == VillagerAction.Scouting);

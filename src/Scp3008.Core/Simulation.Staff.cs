@@ -131,6 +131,12 @@ public sealed partial class Simulation
                     continue;
                 }
                 for (var n = 0; n < acting.Count; n++) SendStaff(acting[n].Id, _space.Wrap(source + HordeOffset(n)), clock);
+                // Shut in behind Furniture (a hiding Band): search round it from the near side instead.
+                if (acting.All(s => _staff.ViewOf(s.Id)!.Destination is null))
+                {
+                    var side = source + Vector2.Normalize(_space.Delta(source, acting[0].Position) + new Vector2(0.001f)) * (SearchRadius - 1);
+                    for (var n = 0; n < acting.Count; n++) SendStaff(acting[n].Id, _space.Wrap(side + HordeOffset(n)), clock);
+                }
                 // No way there: give up and return to the route.
                 if (acting.All(s => _staff.ViewOf(s.Id)!.Destination is null)) _hordes[i] = horde with { Source = null };
                 continue;

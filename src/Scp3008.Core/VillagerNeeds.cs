@@ -78,12 +78,18 @@ internal sealed partial class Villagers
             Observe(walker, world);
             if (walker.ClimbWaypoints.Count > 0) continue;
             n = walker.Needs;
-            if (world.Phase == DayPhase.ClosingTime && world.Bands.Any(b => b.VillagerIds.Contains(walker.Id)))
+            if (world.Phase == DayPhase.ClosingTime && world.Bands.FirstOrDefault(b => b.VillagerIds.Contains(walker.Id)) is { } band)
             {
+                // A Band moving on walks where it is led; the others stay still and silent, one of a hiding Band on watch.
+                if (band.Strategy == BandStrategy.MoveOn)
+                {
+                    if (walker.Action == VillagerAction.Resting) walker.Action = VillagerAction.Idle;
+                    continue;
+                }
                 walker.Target = null;
                 walker.Waypoints.Clear();
                 walker.Destination = null;
-                walker.Action = VillagerAction.Resting;
+                walker.Action = band.Strategy == BandStrategy.Hide && band.VillagerIds[0] == walker.Id ? VillagerAction.Idle : VillagerAction.Resting;
                 continue;
             }
             if (threatened && n.Hunger < 0.9 && n.Thirst < 0.9)

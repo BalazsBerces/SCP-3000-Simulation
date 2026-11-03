@@ -30,7 +30,7 @@ Runtime random streams: keys are constants at the top of `Simulation.cs` (one st
 ## Core: facade and time
 
 - `Simulation.cs`: the facade. `Create(WorldConfig)`, `Snapshot`, `Scenario`, `AdvanceRealTime`, `Advance`, `AdvanceTo`, `AdvanceTicks`; the tick loop (`RunTicks` / `Step` / `StepCore`); random stream keys.
-- `Simulation.*.cs` partials, one per subsystem: `Arrivals` (new Wanderers), `Bands`, `Castle` (heraldry, castle building), `Chronicle`, `Construction` (Blueprint building), `Fridges`, `Gear`, `KnowHow` (assembly instructions, experiments, recipes learned), `Meals` (shared meals), `Needs`, `Outposts`, `Persistence` (save/load JSON, `SaveVersion`), `Power` (lamps, batteries, generators, lit areas), `Restock`, `Stability`, `Staff` (Staff, Hordes, patrols at Closing time), `Tiers` (wall upgrades, repairs, blows), `Wounds` (Wounded, Taken, healing; `Wound`).
+- `Simulation.*.cs` partials, one per subsystem: `Arrivals` (new Wanderers), `Bands`, `BandNights` (Band strategies at Closing time: hide, move on, barricade; quiet and noisy work), `Castle` (heraldry, castle building), `Chronicle`, `Construction` (Blueprint building), `Fridges`, `Gear`, `KnowHow` (assembly instructions, experiments, recipes learned), `Meals` (shared meals), `Needs`, `Outposts`, `Persistence` (save/load JSON, `SaveVersion`), `Power` (lamps, batteries, generators, lit areas), `Restock`, `Stability`, `Staff` (Staff, Hordes, patrols at Closing time), `Tiers` (wall upgrades, repairs, blows), `Wounds` (Wounded, Taken, healing; `Wound`).
 - `WorldConfig.cs`: settings for a new world (seed, runtime seed, Pillar layout, showcases, Starting Bands).
 - `WorldSnapshot.cs`: immutable read-only view of the world; everything the presentation and tests read.
 - `ScenarioBuilder.cs`: set up situations in a running world (tests, dev debug panel); feature partials extend it.
@@ -97,7 +97,7 @@ Runtime random streams: keys are constants at the top of `Simulation.cs` (one st
 - Villagers: `VillagerRenderer.cs` plus feature partials (`Castle`, `Crops`, `Dwellings`, `Gear`, `Meals`, `Storage`, `VillagePanel`, `Walls`, `Workshops`).
 - World and light: `StoreFloor.cs`, `CampTurf.cs`, `GroundRenderer.cs`, `PillarRenderer.cs`, `LandmarkMarkers.cs`, `StoreAtmosphere.cs`, `LampLights.cs`, `LampPools.cs`, `LampHalos.cs`, `FogBankRenderer.cs`, `AmbientAudio.cs` (synthesised sound).
 - Views: `StoreOverview.cs` (F4 whole-Store view), `StoreVisibility.cs`, `WrapDebugOverlay.cs` (F3).
-- Checks and tools: `DevCapture.cs` (command-line flags after `--`: `--capture=`, `--fps-report`, `--sandbox-check`, `--save-load-check`, `--model-check`, ...; one `DevCapture.<Feature>.cs` per feature check), `Benchmark.cs`, `ModelCheck.cs`, `SilhouetteCheck.cs`, `CoarseColourCheck.cs`.
+- Checks and tools: `DevCapture.cs` (command-line flags after `--`: `--capture=`, `--fps-report`, `--sandbox-check`, `--save-load-check`, `--model-check`, `--band-night-check`, ...; one `DevCapture.<Feature>.cs` per feature check), `Benchmark.cs`, `ModelCheck.cs`, `SilhouetteCheck.cs`, `CoarseColourCheck.cs`.
 
 ## Tests (`tests/Scp3008.Core.Tests/`)
 

@@ -125,6 +125,9 @@ public sealed partial class Simulation
             ?? throw new ArgumentException("No such Villager.")).ToArray();
         if (workers.Any(v => v.Crafting || v.FurnitureTaskId is not null || v.CarriedAmount + v.CarriedMaterials > 0))
             return "A worker is already carrying a load or working on Furniture.";
+        // Building is noisy work (planning is not): at Closing time only bold or desperate Villages risk it.
+        if (construction && new StoreClock(_tick).Phase == DayPhase.ClosingTime && workers[0].VillageId is { } home && !RisksNoisyWork(_villages[home]))
+            return "Noisy work waits for the Store to open.";
         if (disassemble && (workers.Length != 1 || workers[0].VillageId is null || workers[0].Hand?.Kind is GearKind.ShoppingCart or GearKind.PlatformCart))
             return "Disassembly needs one Village member with hands available.";
         var weight = FurnitureResources.Weight(piece);
@@ -239,7 +242,8 @@ public sealed partial class Simulation
             for (var i = 0; i < workers.Length; i++)
                 _villagers.FurniturePose(workers[i].Id, position + new Vector2(
                     (i % 2 == 0 ? -1 : 1) * (FurnitureCatalog.Spec(piece).Width / 2 + 0.6f), i / 2 * 1.5f), action);
-            if (task.Work == FurnitureWork.Drag && _tick % 20 == 0)
+            // Dragging is always heard; at Closing time any Furniture moved (building) is.
+            if ((task.Work == FurnitureWork.Drag || clock.Phase == DayPhase.ClosingTime) && _tick % 20 == 0)
                 Emit(new NoiseEmitted(clock, position, 30, piece.Id));
             if (route.Count == 0)
             {

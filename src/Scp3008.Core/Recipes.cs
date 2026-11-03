@@ -131,6 +131,8 @@ public sealed partial class Simulation
         worker.Hand?.Kind is not (GearKind.ShoppingCart or GearKind.PlatformCart) && (recipe.Tool is null || worker.Hand?.Kind == recipe.Tool) &&
         _space.Distance(worker.Position, village.Position) <= 2 &&
         worker.Needs.Hunger < 0.9 && worker.Needs.Thirst < 0.9 &&
+        // Crafting is quiet work: it goes on at Closing time, but only in light.
+        (new StoreClock(_tick).Phase != DayPhase.ClosingTime || _snapshot.LightBrightnessAt(worker.Position) >= 0.2f) &&
         (recipe.Workshop is null || village.Workshops.Any(w => w.Kind == recipe.Workshop && w.Complete)) &&
         (recipe.ExtraMaterial is not { } extra || village.Materials.GetValueOrDefault(extra) >= recipe.ExtraAmount) &&
         (recipe.Material is not { } material || village.Materials.GetValueOrDefault(material) >= recipe.Amount) &&

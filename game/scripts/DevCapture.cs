@@ -248,6 +248,12 @@ public partial class DevCapture : Node
                 CheckSaveLoad(arg["--save-load-check=".Length..]);
                 return;
             }
+            if (arg.StartsWith("--band-night-check="))
+            {
+                SetProcess(false);
+                CheckBandNights(arg["--band-night-check=".Length..]);
+                return;
+            }
             if (arg.StartsWith("--band-check="))
             {
                 SetProcess(false);

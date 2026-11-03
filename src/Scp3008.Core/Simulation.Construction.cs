@@ -140,7 +140,7 @@ public sealed partial class Simulation
 
     private void AdvanceConstruction(StoreClock clock)
     {
-        if (_tick % 50 != 1 || clock.Phase == DayPhase.ClosingTime) return;
+        if (_tick % 50 != 1) return;
         foreach (var village in _villages.ToArray())
         {
             var workers = _villagers.Snapshot().Where(v => v.VillageId == village.Id && v.Role == Role.Builder &&
@@ -267,7 +267,8 @@ public sealed partial class Simulation
         static bool Finite(Vector2 p) => float.IsFinite(p.X) && float.IsFinite(p.Y);
         var slots = _villages.SelectMany(v => v.Walls).SelectMany(w => w.Slots).ToArray();
         var ids = slots.SelectMany(s => new[] { s.FurnitureId, s.ReservedFurnitureId }).OfType<int>().ToArray();
-        if (ids.Distinct().Count() != ids.Length || _bands.Any(b => !Enum.IsDefined(b.Personality)) ||
+        if (ids.Distinct().Count() != ids.Length || _bands.Any(b => !Enum.IsDefined(b.Personality) || !Enum.IsDefined(b.Strategy) ||
+                b.NextStrategy is { } next && !Enum.IsDefined(next) || b.Barricade.Any(id => !HasPiece(id))) ||
             _villages.Any(v => !Enum.IsDefined(v.Personality) || v.Walls.Any(w => !Enum.IsDefined(w.Outline) ||
                 w.Population <= 0 || w.Vertices.Count < 4 || w.Vertices[0] != w.Vertices[^1] ||
                 w.Vertices.Any(p => !Finite(p)) || !Finite(w.GateStart) || !Finite(w.GateEnd) || w.Slots.Count == 0 ||

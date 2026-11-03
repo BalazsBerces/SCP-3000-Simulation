@@ -578,6 +578,7 @@ public sealed partial class Simulation : IDisposable
                 Personality = personality ?? (Personality)_arrivalRandom.Next(3),
                 KnownMap = MergeMaps([knownMap ?? new KnownMap()]),
                 Recipes = Array.AsReadOnly((recipes ?? Recipes.Basic.Select(r => r.Gear).ToArray()).Distinct().ToArray()) };
+        band = band with { Strategy = StrategyFor(band.Personality) };
         _bands.Add(band);
         _villagers.ShareKnowledge(band.VillagerIds, band.KnownMap);
         return band;

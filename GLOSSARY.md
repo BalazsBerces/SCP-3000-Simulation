@@ -178,6 +178,9 @@ The tool a piece of Furniture needs for efficient disassembly: bare hands for ca
 **Noise**:
 A sound-producing action at a Store position, with an audible radius: dragging Furniture and forcing disassembly emit it. The Staff's response belongs to the Staff rules: it draws a Horde from afar (farther in some regions, see **Noise sensitivity**), muffled by Fog banks and the mattress mountain; the Horde searches round the source, then returns to its Patrol route.
 
+**Quiet work** / **Noisy work**:
+Village work by how it carries at Closing time. Quiet work (sewing and other crafting, cooking, planning, sorting stores) goes on at night where there is light. Noisy work (building, hauling and dragging Furniture, disassembling, sawing) is left for open hours by cautious Villages and risked by bold or **desperate** ones (a Village the Staff have already struck, with a member Wounded); Furniture moved at Closing time is heard.
+
 **Noise sensitivity**:
 How far noise carries to the Staff of a Sector, fixed by the Store seed and hidden from Villagers; it differs by region.
 
@@ -268,6 +271,10 @@ What a Villager leaves at their position when they die of starvation or thirst. 
 **Band**:
 A small group of Wanderers travelling together, scavenging and looking for a site, before they found a Village. A run starts with 4–5 Bands of 2–6 people in different Departments, never in the dead zone. They share a Known map, prefer food and running water with Furniture nearby and a Pillar as a bonus, and accept a weaker site when hunger, exhaustion or losses force them to settle.
 _Avoid_: Party, group, tribe
+
+**Band strategy**:
+How a Band without walls survives Closing time, picked by its Personality: cautious Bands **hide** (withdraw into a room-set Display or stay put, close a ring of loose Furniture round themselves, keep one watch and stay silent), bold ones **move on** (keep walking quietly, away from the Staff they hear or see), builders **barricade** (a quick ring of Furniture where they stand). After a bad night (a member Wounded, surely after one Taken) a Band takes up another strategy when the Store reopens. A Wounded, starving or parched member groans and is heard by the Staff, endangering the whole Band.
+_Avoid_: Night plan, tactic
 
 **Refugee**:
 A Wanderer whose Village has fallen.

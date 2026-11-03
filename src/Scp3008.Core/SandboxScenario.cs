@@ -13,6 +13,16 @@ public sealed record Band(int Id, IReadOnlyList<int> VillagerIds)
     public KnownMap KnownMap { get; init; } = new();
     public Vector2? Site { get; init; }
     public int FoundingPopulation { get; init; }
+    /// <summary>How it survives Closing time; its Personality picks the first.</summary>
+    public BandStrategy Strategy { get; init; }
+    /// <summary>The strategy it takes up when the Store reopens after a bad night, if it changes.</summary>
+    public BandStrategy? NextStrategy { get; init; }
+    /// <summary>Where it hides or barricades itself for the coming or current Closing time.</summary>
+    public Vector2? Shelter { get; init; }
+    /// <summary>The Furniture of its quick barricade (or the pieces blocking its hiding place) this Closing time.</summary>
+    public IReadOnlyList<int> Barricade { get; init; } = [];
+    /// <summary>The last Closing night (numbered by the Store day it began on) the Band went through; 0 before its first.</summary>
+    public int LastNight { get; init; }
 }
 
 /// <summary>A Staff and its current patrol movement; dormant while the Store is open.</summary>

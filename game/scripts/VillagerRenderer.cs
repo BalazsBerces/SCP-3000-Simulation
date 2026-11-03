@@ -130,7 +130,7 @@ public partial class VillagerRenderer : Node3D
     private void ShowCommunities(StoreSpace space, Vector3 focus)
     {
         var world = Host.Snapshot;
-        var lines = world.Bands.Select(b => $"Band {b.Id}: {b.VillagerIds.Count} Wanderers")
+        var lines = world.Bands.Select(b => $"Band {b.Id}: {b.VillagerIds.Count} Wanderers, {NightWay(b)}")
             .Concat(world.Villages.Select(v => $"Village {v.Id}: {v.VillagerIds.Count} Villagers | " +
                 $"Stores: {string.Join(", ", v.Stores.Select(g => $"{g.Key} {g.Value}"))} | " +
                 $"Materials: {string.Join(", ", v.Materials.Select(m => $"{m.Key} {m.Value}"))}"));
@@ -148,6 +148,7 @@ public partial class VillagerRenderer : Node3D
                 AddChild(marker);
                 _markers[name] = marker;
             }
+            if (world.Bands.FirstOrDefault(b => $"Band {b.Id}" == name) is { } band) marker.Text = $"{name}: {NightWay(band)}";
             var near = space.Delta(focus.ToStore(), position);
             marker.Position = new Vector3(focus.X + near.X, 3, focus.Z + near.Y);
         }
@@ -157,6 +158,17 @@ public partial class VillagerRenderer : Node3D
             _markers.Remove(gone);
         }
     }
+
+    // How a Band survives Closing time, and the change a bad night brings in the morning.
+    private static string NightWay(Band band) => StrategyText(band.Strategy) +
+        (band.NextStrategy is { } next ? $" (will turn to {StrategyText(next)})" : "");
+
+    private static string StrategyText(BandStrategy strategy) => strategy switch
+    {
+        BandStrategy.Hide => "hides",
+        BandStrategy.MoveOn => "moves on",
+        _ => "barricades",
+    };
 
     private void OnWorldCreated(WorldSnapshot snapshot)
     {
