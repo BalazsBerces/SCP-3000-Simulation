@@ -14,6 +14,9 @@ public sealed partial class ScenarioBuilder
     /// and stands again where it was, still dormant.
     /// </summary>
     public void HitStaff(int staffId) => _simulation.HitStaff(staffId);
+
+    /// <summary>A noise of the given audible radius at a position (as dragging Furniture or fighting makes), heard by the Staff on the next step.</summary>
+    public void MakeNoise(Vector2 position, float radius) => _simulation.MakeNoise(position, radius);
 }
 
 public sealed partial class Simulation
@@ -31,13 +34,30 @@ public sealed partial class Simulation
     private const float StaffLeg = 80f;
     private static readonly TimeSpan FallenFor = TimeSpan.FromMinutes(10);
 
-    private sealed record HordeState(int Id, int? SectorId, Vector2[] Route, int Start, int Next, List<int> StaffIds, long WaitUntil = 0);
+    // Hearing and sight (tuning). Noise radii are what a Villager nearby would hear; the Staff hear it much farther.
+    private const float NoiseCarry = 3f;
+    private const float MattressMuffle = 0.4f;
+    private const float FogMuffle = 0.7f;
+    private const float StaffSight = 6f;
+    private const float FogBlinding = 0.7f;
+    private const float ChaseGivesUpAt = 25f;
+    private const float SearchRadius = 5f;
+    private static readonly TimeSpan SearchFor = TimeSpan.FromMinutes(20);
+
+    /// <param name="Source">Where a heard noise drew the Horde; it searches there, then returns to its route.</param>
+    /// <param name="ChaseId">The Villager the Horde chases, or -1.</param>
+    private sealed record HordeState(int Id, int? SectorId, Vector2[] Route, int Start, int Next, List<int> StaffIds, long WaitUntil = 0,
+        Vector2? Source = null, long SearchUntil = 0, int ChaseId = -1);
     private sealed record StaffState(int HordeId, float Health, long FallenUntil);
 
     private readonly List<HordeState> _hordes = [];
     private readonly Dictionary<int, StaffState> _staffStates = [];
     // The last Closing night (numbered by the Store day it began on) whose Staff have come out.
     private int _staffNight;
+    private readonly List<NoiseEmitted> _noises = [];
+
+    /// <summary>How strongly the Staff of a Sector react to noise, 0.6 to 1.6; fixed by the Store seed, hidden from the Villagers.</summary>
+    public float StaffNoiseSensitivity(int sectorId) => 0.6f + SeededRandom.For(_config.Seed, StaffRouteStream, sectorId, 1).Range(0f, 1f);
 
     /// <summary>A Staff placed by hand walks its own route as a Horde of one, from night to night where it left off.</summary>
     internal Staff PlaceStaff(Vector2 position, Vector2[] route) => Publish(() =>
@@ -47,6 +67,12 @@ public sealed partial class Simulation
         _hordes.Add(horde);
         _staffStates[staff.Id] = new(horde.Id, 1f, 0);
         return StaffView(_staff.ViewOf(staff.Id)!, new StoreClock(_tick));
+    });
+
+    internal void MakeNoise(Vector2 position, float radius) => Publish(() =>
+    {
+        Emit(new NoiseEmitted(new StoreClock(_tick), _space.Wrap(position), radius, -1));
+        return true;
     });
 
     internal void HitStaff(int staffId) => Publish(() =>
@@ -70,7 +96,7 @@ public sealed partial class Simulation
                 if (_hordes[i].SectorId is not null) _hordes[i] = _hordes[i] with { Next = _hordes[i].Start };
             GrowStaff(night);
         }
-        if (_hordes.Count == 0) return;
+        if (_hordes.Count == 0) { _noises.Clear(); return; }
         for (var i = 0; i < _hordes.Count; i++)
         {
             var horde = _hordes[i];
@@ -81,7 +107,34 @@ public sealed partial class Simulation
                 if (Acting(staff, clock)) acting.Add(staff);
                 else if (staff.Destination is not null) _staff.Stop(id);
             }
-            if (acting.Count == 0 || acting.Any(s => s.Destination is not null) || clock.Tick < horde.WaitUntil) continue;
+            if (acting.Count == 0) continue;
+            horde = _hordes[i] = Hear(horde, acting);
+            horde = _hordes[i] = Notice(horde, acting);
+            if (horde.ChaseId >= 0)
+            {
+                // Retarget the Villager as they run.
+                if (clock.Tick % 5 == 0 && _villagers.ViewOf(horde.ChaseId) is { } chased)
+                    for (var n = 0; n < acting.Count; n++) _staff.Send(acting[n].Id, _space.Wrap(chased.Position + HordeOffset(n)));
+                continue;
+            }
+            if (acting.Any(s => s.Destination is not null) || clock.Tick < horde.WaitUntil) continue;
+            if (horde.Source is { } source)
+            {
+                if (_space.Distance(acting[0].Position, source) <= SearchRadius)
+                {
+                    var until = horde.SearchUntil == 0 ? clock.Tick + StoreClock.TicksFor(SearchFor) : horde.SearchUntil;
+                    if (clock.Tick >= until) { _hordes[i] = horde with { Source = null, SearchUntil = 0 }; continue; }
+                    _hordes[i] = horde with { SearchUntil = until };
+                    // shortcut: it searches by wandering a few metres round the source; no line-of-sight search yet.
+                    var wander = new Vector2(MathF.Cos(clock.Tick * 0.37f), MathF.Sin(clock.Tick * 0.37f)) * 6f;
+                    for (var n = 0; n < acting.Count; n++) _staff.Send(acting[n].Id, _space.Wrap(source + wander + HordeOffset(n)));
+                    continue;
+                }
+                for (var n = 0; n < acting.Count; n++) SendStaff(acting[n].Id, _space.Wrap(source + HordeOffset(n)), clock);
+                // No way there: give up and return to the route.
+                if (acting.All(s => _staff.ViewOf(s.Id)!.Destination is null)) _hordes[i] = horde with { Source = null };
+                continue;
+            }
             var target = horde.Route[horde.Next];
             var arriving = true;
             for (var n = 0; n < acting.Count; n++)
@@ -92,7 +145,55 @@ public sealed partial class Simulation
             else if (arriving)
                 _hordes[i] = horde with { Next = (horde.Next + 1) % horde.Route.Length };
         }
+        _noises.Clear();
         _staff.Advance(StoreClock.TickDuration.TotalHours);
+    }
+
+    /// <summary>A noise draws the Horde if it carries as far as the Horde: farther in some regions, muffled by Fog banks and the mattress mountain.</summary>
+    private HordeState Hear(HordeState horde, List<Villager> acting)
+    {
+        if (_noises.Count == 0 || horde.ChaseId >= 0) return horde;
+        var lead = acting[0].Position;
+        var sensitivity = StaffNoiseSensitivity(_snapshot.SectorAt(lead).Id);
+        foreach (var noise in _noises)
+        {
+            var muffle = Math.Max(_snapshot.FogDensityAt(noise.Position), _snapshot.FogDensityAt(lead)) * FogMuffle;
+            var reach = noise.Radius * NoiseCarry * sensitivity * (1 - muffle) *
+                (_landmarks.Any(l => l.Type == LandmarkType.MattressMountain && l.Covers(_space, noise.Position)) ? MattressMuffle : 1f);
+            if (_space.Distance(lead, noise.Position) > reach) continue;
+            horde = horde with { Source = noise.Position, SearchUntil = 0 };
+            foreach (var s in acting) _staff.Stop(s.Id);
+        }
+        return horde;
+    }
+
+    /// <summary>A Staff notices a Villager up close, in the dark too, unless they stand still behind Furniture; fog shortens the sight.</summary>
+    private HordeState Notice(HordeState horde, List<Villager> acting)
+    {
+        if (horde.ChaseId >= 0)
+        {
+            if (_villagers.ViewOf(horde.ChaseId) is { } v && acting.Any(s => _space.Distance(s.Position, v.Position) <= ChaseGivesUpAt)) return horde;
+            return horde with { ChaseId = -1, Source = null, SearchUntil = 0 };
+        }
+        foreach (var staff in acting)
+        {
+            var reach = StaffSight * (1 - FogBlinding * _snapshot.FogDensityAt(staff.Position));
+            foreach (var v in _villagers.Snapshot())
+            {
+                if (_space.Distance(staff.Position, v.Position) > reach) continue;
+                if (v.Destination is null && Hidden(staff, v)) continue;
+                foreach (var s in acting) _staff.Stop(s.Id);
+                return horde with { ChaseId = v.Id, Source = null, SearchUntil = 0 };
+            }
+        }
+        return horde;
+    }
+
+    private bool Hidden(Villager staff, Villager villager)
+    {
+        var eye = new Vector3(staff.Position, 1.6f);
+        var target = new Vector3(staff.Position + _space.Delta(staff.Position, villager.Position), 1f);
+        return _piecesIndex.Near(villager.Position, 8f).Any(p => RestockSight.Blocks(_space, p, eye, target));
     }
 
     /// <summary>Whether a Staff acts now: at Closing time, or in the dead zone at any hour, unless it lies fallen.</summary>
@@ -203,7 +304,7 @@ public sealed partial class Simulation
         var state = _staffStates[staff.Id];
         return new(staff.Id, staff.Position, staff.Destination, staff.Heading)
         {
-            HordeId = state.HordeId, Health = state.Health, Fallen = state.FallenUntil > clock.Tick,
+            HordeId = state.HordeId, ChasingVillagerId = _hordes.FirstOrDefault(h => h.Id == state.HordeId) is { ChaseId: >= 0 } h ? h.ChaseId : null, Health = state.Health, Fallen = state.FallenUntil > clock.Tick,
             Hostile = state.FallenUntil <= clock.Tick && (clock.Phase == DayPhase.ClosingTime || InDeadZone(staff.Position)),
         };
     }
