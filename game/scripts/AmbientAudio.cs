@@ -7,7 +7,8 @@ namespace Scp3008.Game;
 /// The Store's ambient sound, synthesised in code (no audio assets): the hum of the fluorescent
 /// lights while the Store is open, a low drone in the dark of Closing time, and distant footsteps
 /// that echo through the shelving: rare and light while the lights are on, heavy and frequent at
-/// Closing time. A relay clunk marks the lights going out and coming back on.
+/// Closing time. A relay clunk marks the lights going out and coming back on. The Staff make no sound but
+/// their footsteps: a hostile Staff walking near the camera is heard where it walks, heavy and steady.
 /// </summary>
 public partial class AmbientAudio : Node
 {
@@ -17,6 +18,7 @@ public partial class AmbientAudio : Node
 
     private const int SampleRate = 22050;
     private const string DistantBus = "Distant";
+    private const float StaffHeardWithin = 45f;
 
     private readonly RandomNumberGenerator _random = new();
     private AudioStreamPlayer _hum = null!;
@@ -98,11 +100,34 @@ public partial class AmbientAudio : Node
         _stepsLeft--;
         _untilNextStep = Mathf.Lerp(0.5f, 0.8f, _walkHeaviness) * _random.RandfRange(0.92f, 1.08f);
         if (_stepsLeft == 0)
-            _untilNextWalk = Mathf.Lerp(_random.RandfRange(6f, 16f), _random.RandfRange(1.5f, 5f), Darkness);
+            _untilNextWalk = NearestWalkingStaff() is not null ? 0.3
+                : Mathf.Lerp(_random.RandfRange(6f, 16f), _random.RandfRange(1.5f, 5f), Darkness);
+    }
+
+    /// <summary>The nearest hostile Staff walking within hearing, and where it is from the camera.</summary>
+    private (Staff Staff, Vector3 Offset)? NearestWalkingStaff()
+    {
+        var camera = Rig.Camera.GlobalPosition;
+        var snapshot = Host.Snapshot;
+        return snapshot.Staff.Where(s => s.Hostile && s.Destination is not null)
+            .Select(s => (Staff: s, Near: snapshot.Space.Delta(camera.ToStore(), s.Position)))
+            .Where(s => s.Near.Length() <= StaffHeardWithin)
+            .OrderBy(s => s.Near.Length())
+            .Select(s => ((Staff, Vector3)?)(s.Staff, new Vector3(s.Near.X, 0.2f - camera.Y, s.Near.Y)))
+            .FirstOrDefault();
     }
 
     private void StartWalk()
     {
+        if (NearestWalkingStaff() is var (staff, offset))
+        {
+            _walkHeaviness = 1f;
+            _walker = offset;
+            _walkDirection = new Vector3(Mathf.Cos(staff.Heading), 0f, Mathf.Sin(staff.Heading));
+            _stepsLeft = 4;
+            _untilNextStep = 0;
+            return;
+        }
         _walkHeaviness = Darkness;
         var angle = _random.RandfRange(0f, Mathf.Tau);
         var distance = _random.RandfRange(15f, 40f);

@@ -16,7 +16,17 @@ public sealed record Band(int Id, IReadOnlyList<int> VillagerIds)
 }
 
 /// <summary>A Staff and its current patrol movement; dormant while the Store is open.</summary>
-public sealed record Staff(int Id, Vector2 Position, Vector2? Destination, float Heading);
+public sealed record Staff(int Id, Vector2 Position, Vector2? Destination, float Heading)
+{
+    /// <summary>The Horde it moves with.</summary>
+    public int HordeId { get; init; }
+    /// <summary>Whether it acts now: at Closing time, and in the dead zone at any hour.</summary>
+    public bool Hostile { get; init; }
+    /// <summary>Whether it lies where a blow felled it, before it gets up again.</summary>
+    public bool Fallen { get; init; }
+    /// <summary>From 1 (unharmed) down; a blow while the Store is open leaves it unchanged.</summary>
+    public float Health { get; init; } = 1f;
+}
 
 public sealed partial class ScenarioBuilder
 {

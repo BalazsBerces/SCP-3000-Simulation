@@ -402,8 +402,12 @@ Staff carrying displaced Furniture back to its original place at Closing time. F
 _Avoid_: Cleanup, reset
 
 **Horde**:
-A group of Staff moving together at Closing time.
+A group of Staff moving together at Closing time. A Sector's Hordes walk its **Patrol route**.
 _Avoid_: Pack, swarm, wave
+
+**Patrol route**:
+The loop of waypoints round the middle of a Sector, fixed by the Store seed, that the Sector's Hordes walk every Closing time, starting each night from the same waypoint. Far from it, Staff travel there in legs, through the Ball pits where that is shorter.
+_Avoid_: Path, beat, region route
 
 **Siege**:
 A Horde assaulting a Village's fortification at Closing time.

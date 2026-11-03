@@ -30,6 +30,7 @@ public sealed partial class Simulation : IDisposable
     private const int RestockStream = 2;
     private const int StartingBandStream = 3;
     private const int ArrivalStream = 4;
+    // Stream 6 is the Staff's Patrol routes (Simulation.Staff.cs).
 
     private readonly object _stepLock = new();
     // While a Step runs: changes made from inside it are published with the snapshot at the end of the step, not one by one.
@@ -55,7 +56,6 @@ public sealed partial class Simulation : IDisposable
     private readonly Villagers _staff;
     private readonly List<Band> _bands = [];
     private readonly List<Gear> _gear = [];
-    private readonly List<(int Id, Vector2[] Route, int Next)> _patrols = [];
     private long _tick;
     private SimulationSpeed _speed = SimulationSpeed.Normal;
     private TimeSpan _unspentRealTime;
@@ -370,7 +370,7 @@ public sealed partial class Simulation : IDisposable
                 { Clock = clock, Stock = _stock, Furniture = _furniture.Pieces, WaterPoints = _waterPoints,
                     LampPower = lightWorld.LampPower, LitAreas = workingLights,
                     Bands = _bands.ToArray(), Villages = _villages.ToArray(), Gear = _gear.ToArray(), Crops = _crops.Values.ToArray(),
-                    FogBanks = _weather.Snapshot(), Staff = _staff.Snapshot().Select(s => new Staff(s.Id, s.Position, s.Destination, s.Heading)).ToArray() },
+                    FogBanks = _weather.Snapshot(), Staff = StaffSnapshot() },
                 _config.Needs ?? new NeedsConfig(), TakeGoods, Emit, CollectGoods, DeliverGoods, TakeGear, TendCrop);
         }
         AdvanceMeals(clock);
@@ -382,21 +382,7 @@ public sealed partial class Simulation : IDisposable
         AdvanceCrafting(clock);
         AdvanceKnowHow(clock);
         AdvanceBands(clock);
-        // Sandbox patrols use the same footprint navigation; daytime Staff remain dormant.
-        if (clock.Phase == DayPhase.ClosingTime && _patrols.Count > 0)
-        {
-            var staff = _staff.Snapshot();
-            for (var i = 0; i < _patrols.Count; i++)
-            {
-                var patrol = _patrols[i];
-                if (staff.Single(s => s.Id == patrol.Id).Destination is null)
-                {
-                    _staff.Send(patrol.Id, patrol.Route[patrol.Next]);
-                    _patrols[i] = (patrol.Id, patrol.Route, (patrol.Next + 1) % patrol.Route.Length);
-                }
-            }
-            _staff.Advance(StoreClock.TickDuration.TotalHours);
-        }
+        AdvanceStaff(clock);
         // Kept up with every tick, it catches up by a few changes instead of starting over once the Furniture list no
         // longer remembers where it was.
         _piecesIndex.Update(_furniture.Pieces);
@@ -609,13 +595,6 @@ public sealed partial class Simulation : IDisposable
         return gear;
     });
 
-    internal Staff PlaceStaff(Vector2 position, Vector2[] route) => Publish(() =>
-    {
-        var staff = _staff.Place(position);
-        _patrols.Add((staff.Id, route.Select(_space.Wrap).ToArray(), 0));
-        return new Staff(staff.Id, staff.Position, staff.Destination, staff.Heading);
-    });
-
     internal Villager PlaceVillager(Vector2 position, Needs? needs = null) => Publish(() => _villagers.Place(position, needs));
 
     internal void SendVillager(int villagerId, Vector2 destination) => Publish(() =>
@@ -701,7 +680,8 @@ public sealed partial class Simulation : IDisposable
             CraftingTasks = _craftingTasks.ToList().AsReadOnly(),
             Experiments = _experiments.ToList().AsReadOnly(),
             AssemblyInstructions = _instructions.ToList().AsReadOnly(),
-            Staff = Array.AsReadOnly(_staff.Snapshot().Select(s => new Staff(s.Id, s.Position, s.Destination, s.Heading)).ToArray()),
+            Staff = StaffSnapshot(),
+            Hordes = HordeSnapshot(),
         };
 
     private sealed class Subscription(Simulation owner, Action<DomainEvent> handler) : IDisposable

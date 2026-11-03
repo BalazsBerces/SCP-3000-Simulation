@@ -72,6 +72,7 @@ public sealed record WorldSnapshot(
     public IReadOnlyList<string> Chronicle { get; init; } = [];
     public IReadOnlyList<Gear> Gear { get; init; } = [];
     public IReadOnlyList<Staff> Staff { get; init; } = [];
+    public IReadOnlyList<Horde> Hordes { get; init; } = [];
     public IReadOnlyList<LampPower> LampPower { get; init; } = [];
     public IReadOnlyList<FridgePower> FridgePower { get; init; } = [];
     public IReadOnlyList<LitArea> LitAreas { get; init; } = [];

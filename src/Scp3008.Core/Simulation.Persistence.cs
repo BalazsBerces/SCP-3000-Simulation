@@ -6,15 +6,15 @@ namespace Scp3008.Core;
 
 public sealed partial class Simulation
 {
-    private const int SaveVersion = 16;
+    private const int SaveVersion = 17;
     private static readonly JsonSerializerOptions SaveJson = CreateSaveJson();
 
     private sealed record SaveFile(int Version, SaveState State);
     private sealed record StockTarget(int FurnitureId, GoodsKind Kind, int Amount);
-    private sealed record PatrolState(int Id, System.Numerics.Vector2[] Route, int Next);
     // Extend this state and the subsystem states whenever a ticket adds mutable world state.
     private sealed record SaveState(WorldConfig Config, WorldSnapshot Snapshot, Weather.State Weather,
-        Villagers.State Villagers, Villagers.State Staff, PatrolState[] Patrols,
+        Villagers.State Villagers, Villagers.State Staff, HordeState[] Hordes, Dictionary<int, StaffState> StaffStates,
+        int StaffNight,
         TimeSpan UnspentRealTime, int NextBandId, FurniturePiece[] RestockOrigins,
         MissingFurniture[] MissingFurniture, int NextFurnitureId, double RestockHours,
         double NextFurnitureCheck, StockTarget[] StockTargets, Dictionary<int, double> GoodsRestockCredit,
@@ -30,7 +30,7 @@ public sealed partial class Simulation
         {
             ObjectDisposedException.ThrowIf(_stop.IsCancellationRequested, this);
             var state = new SaveState(_config, BuildSnapshot(), _weather.Save(), _villagers.Save(), _staff.Save(),
-                _patrols.Select(p => new PatrolState(p.Id, p.Route, p.Next)).ToArray(), _unspentRealTime,
+                _hordes.ToArray(), new(_staffStates), _staffNight, _unspentRealTime,
                 _nextBandId, _restockOrigins.Values.ToArray(), _missingFurniture.ToArray(), _nextFurnitureId,
                 _restockHours, _nextFurnitureCheck,
                 _stockTargets.Select(t => new StockTarget(t.Key.FurnitureId, t.Key.Kind, t.Value)).ToArray(),
@@ -113,8 +113,13 @@ public sealed partial class Simulation
         if (!MembershipConsistent(people, s.Villages, s.Bands, state.NextBandId))
             throw new InvalidDataException("Invalid world save: inconsistent community membership.");
         var staffIds = _staff.Snapshot().Select(v => v.Id).ToHashSet();
-        if (state.Patrols.Any(p => !staffIds.Contains(p.Id) || p.Route.Length == 0 || p.Next < 0 ||
-                p.Next >= p.Route.Length || p.Route.Any(v => !float.IsFinite(v.X) || !float.IsFinite(v.Y))))
+        if (state.Hordes.Any(h => h.Route.Length == 0 || h.Next < 0 || h.Next >= h.Route.Length || h.Start < 0 || h.Start >= h.Route.Length ||
+                h.Route.Any(v => !float.IsFinite(v.X) || !float.IsFinite(v.Y)) || h.SectorId is { } sector && !s.Sectors.Any(x => x.Id == sector)) ||
+            state.Hordes.Select(h => h.Id).Distinct().Count() != state.Hordes.Length ||
+            !state.Hordes.SelectMany(h => h.StaffIds).Order().SequenceEqual(staffIds.Order()) ||
+            !state.StaffStates.Keys.Order().SequenceEqual(staffIds.Order()) ||
+            state.StaffStates.Any(p => !state.Hordes.Any(h => h.Id == p.Value.HordeId && h.StaffIds.Contains(p.Key)) ||
+                !(p.Value.Health is > 0f and <= 1f)))
             throw new InvalidDataException("Invalid world save: inconsistent Staff patrol.");
         RestoreFurnitureTasks(s.FurnitureTasks, s.Villages);
         _bands.AddRange(s.Bands);
@@ -156,7 +161,9 @@ public sealed partial class Simulation
         _gear.AddRange(s.Gear);
         _gearSources.AddRange(state.GearSources);
         _nextGearId = state.NextGearId;
-        _patrols.AddRange(state.Patrols.Select(p => (p.Id, p.Route, p.Next)));
+        _hordes.AddRange(state.Hordes);
+        foreach (var (id, staffState) in state.StaffStates) _staffStates.Add(id, staffState);
+        _staffNight = state.StaffNight;
         _nextBandId = state.NextBandId;
         // Saves from before Restock kept to the Cafeterias and the Camping ground lose what it no longer looks after.
         foreach (var piece in state.RestockOrigins.Where(Restocked)) _restockOrigins.Add(piece.Id, piece);

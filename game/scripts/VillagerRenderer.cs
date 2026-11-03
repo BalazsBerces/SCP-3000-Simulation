@@ -86,6 +86,7 @@ public partial class VillagerRenderer : Node3D
         ShowVillagePanel(Host.Snapshot, delta);
         var seen = new HashSet<int>();
         var bodies = Host.Snapshot.Bodies.ToDictionary(b => b.VillagerId);
+        var fallenStaff = Host.Snapshot.Staff.Where(s => s.Fallen).Select(s => -s.Id - 1).ToHashSet();
         var figures = Host.InterpolatedVillagers.Concat(bodies.Values.Select(b =>
             new Villager(b.VillagerId, b.Position, null, b.Heading))).Concat(Host.Snapshot.Staff.Select(s =>
             new Villager(-s.Id - 1, s.Position, s.Destination, s.Heading)));
@@ -94,7 +95,7 @@ public partial class VillagerRenderer : Node3D
             seen.Add(villager.Id);
             if (!_figures.TryGetValue(villager.Id, out var figure))
             {
-                // Reuse the existing faceless mannequin in the sandbox until the Staff presentation ticket.
+                // Staff are the faceless, silent mannequin figure (ADR 0006: reused); AmbientAudio gives their footsteps.
                 figure = new MeshInstance3D
                 {
                     Mesh = villager.Id < 0 ? FurnitureMeshes.For(FurnitureType.Mannequin) : _mesh,
@@ -104,9 +105,10 @@ public partial class VillagerRenderer : Node3D
                 _figures[villager.Id] = figure;
             }
             var near = space.Delta(focus.ToStore(), villager.Position);
-            figure.Position = new Vector3(focus.X + near.X, bodies.ContainsKey(villager.Id) ? 0.25f : villager.Elevation, focus.Z + near.Y);
+            figure.Position = new Vector3(focus.X + near.X,
+                bodies.ContainsKey(villager.Id) || fallenStaff.Contains(villager.Id) ? 0.25f : villager.Elevation, focus.Z + near.Y);
             // Heading runs from east towards south (+X towards +Z): face (cos, sin) in world X and Z.
-            figure.Rotation = new Vector3(bodies.ContainsKey(villager.Id) ? MathF.PI / 2 : 0f,
+            figure.Rotation = new Vector3(bodies.ContainsKey(villager.Id) || fallenStaff.Contains(villager.Id) ? MathF.PI / 2 : 0f,
                 Mathf.Atan2(MathF.Cos(villager.Heading), MathF.Sin(villager.Heading)), 0f);
             if (villager.Action is VillagerAction.Disassembling or VillagerAction.Cranking)
                 figure.Rotation = new Vector3(-0.3f + 0.08f * MathF.Sin((float)Time.GetTicksMsec() / 140), figure.Rotation.Y, 0);

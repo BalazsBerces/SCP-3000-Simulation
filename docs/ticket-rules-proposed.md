@@ -45,3 +45,4 @@ Agents append here, one line each (`- <ticket>: <cause and fix>`), when a proble
 
 - 22: Cache presentation Furniture lookups by the snapshot's Furniture reference and rebuild them only when it changes. Scanning all 415,000 pieces every render frame made the full Store benchmark fail even without the new lights.
 - 22a: Two tick throttles with different moduli (an inner `_tick % A == x` inside a system already gated on `_tick % B == y`) can never coincide, so the inner code silently never runs. Gate inner work on the outer system's cadence, or assert in a test that the behaviour actually happened (not just its side effect).
+- 23: Navigation.FindPath gives up beyond a few hundred metres and from closed pockets (e.g. the snapped centre of a Ball pit), so walkers sent across the Store need legs, and spawn points need checking with Navigation.Pocket.
