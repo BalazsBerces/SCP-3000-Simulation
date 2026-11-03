@@ -28,7 +28,8 @@ namespace Scp3008.Core;
 /// <param name="Restock">Goods refill rate and Furniture return delays; the defaults if null.</param>
 /// <param name="StartingBands">Populates a normal Store with Bands; false for isolated scenarios. Sandboxes and showcases stay hand-placed.</param>
 /// <param name="Arrivals">Hidden Wanderer arrival tuning. Defaults to every twelve Store hours; off in sandboxes and showcases.</param>
+/// <param name="HordeNights">Hidden Horde night tuning (period, calm stretch, ceiling). On by default; off in sandboxes and showcases.</param>
 public sealed record WorldConfig(int Seed, int? RuntimeRngSeed = null, PillarLayout PillarLayout = PillarLayout.ThreeByThree,
     bool LandmarkShowcase = false, bool PointOfInterestShowcase = false, StockConfig? Stock = null,
     WaterConfig? Water = null, NeedsConfig? Needs = null, RestockConfig? Restock = null,
-    bool StartingBands = true, ArrivalConfig? Arrivals = null);
+    bool StartingBands = true, ArrivalConfig? Arrivals = null, HordeNightConfig? HordeNights = null);

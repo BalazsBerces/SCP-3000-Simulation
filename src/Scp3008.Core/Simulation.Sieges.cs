@@ -74,6 +74,7 @@ public sealed partial class Simulation
     private bool Besiege(int i, List<Villager> acting, StoreClock clock)
     {
         var horde = _hordes[i];
+        if (Calm) return false;
         if (horde.SiegeVillageId < 0)
         {
             var lead = acting[0].Position;

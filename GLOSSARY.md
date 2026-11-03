@@ -428,7 +428,7 @@ A Horde assaulting a Village's fortification at Closing time. It strikes the wea
 _Avoid_: Raid (reserved for Village-on-Village attacks), attack
 
 **Horde night**:
-A periodic, escalating Closing time on which large Hordes besiege several Villages at once. It is followed by a **calm stretch** of a few Store days with fewer, smaller Hordes and no Sieges.
+A periodic, escalating Closing time on which large Hordes besiege several Villages at once. Its size (the Staff it brings) grows with the world's people and its Villages' walls and Castle parts, up to a ceiling; its Hordes come out of the dark at each fortified Village and are gone again when the Store opens. It is followed by a **calm stretch** of a few Store days with fewer, smaller Hordes (every other Horde stays in, the rest come out with half their Staff) and no Sieges.
 _Avoid_: Blood moon, wave night
 
 **Wounded**:

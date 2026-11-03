@@ -121,6 +121,11 @@ public sealed partial class Simulation
             case KeepBreached keepBreach:
                 story = $"The Keep of Village {keepBreach.VillageId} was breached; its people had nowhere left to hide.";
                 break;
+            case HordeNightBegan hordeNight:
+                story = hordeNight.VillageIds.Count == 0
+                    ? $"A Horde night fell on the Store: {hordeNight.Size} Staff came out of the dark, but found no walls to besiege."
+                    : $"A Horde night fell on the Store: {hordeNight.Size} Staff came out of the dark against {(hordeNight.VillageIds.Count == 1 ? "Village" : "Villages")} {string.Join(", ", hordeNight.VillageIds)}.";
+                break;
             case VillageFell villageFell:
                 var fallen = ChroniclePlace(_villages[villageFell.VillageId].Position);
                 story = villageFell.RefugeeIds.Count == 0

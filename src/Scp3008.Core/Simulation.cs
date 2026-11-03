@@ -71,6 +71,7 @@ public sealed partial class Simulation : IDisposable
         config.Needs?.Validate();
         config.Restock?.Validate();
         config.Arrivals?.Validate();
+        config.HordeNights?.Validate();
         _config = config;
         _space = config.PillarLayout.Space();
         var sandbox = config.PillarLayout == PillarLayout.VillagerSandbox;

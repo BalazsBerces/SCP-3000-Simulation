@@ -47,7 +47,7 @@ public sealed partial class Simulation
     /// <param name="Source">Where a heard noise drew the Horde; it searches there, then returns to its route.</param>
     /// <param name="ChaseId">The Villager the Horde chases, or -1.</param>
     private sealed record HordeState(int Id, int? SectorId, Vector2[] Route, int Start, int Next, List<int> StaffIds, long WaitUntil = 0,
-        Vector2? Source = null, long SearchUntil = 0, int ChaseId = -1, int SiegeVillageId = -1, long NextBlow = 0, int Blows = 0);
+        Vector2? Source = null, long SearchUntil = 0, int ChaseId = -1, int SiegeVillageId = -1, long NextBlow = 0, int Blows = 0, bool HordeNight = false);
     private sealed record StaffState(int HordeId, float Health, long FallenUntil);
 
     private readonly List<HordeState> _hordes = [];
@@ -98,7 +98,9 @@ public sealed partial class Simulation
                 _hordes[i] = _hordes[i] with { SiegeVillageId = -1 };
             }
             GrowStaff(night);
+            StartHordeNight(night, clock);
         }
+        if (!closing) WithdrawHordeNight();
         if (_hordes.Count == 0) { _noises.Clear(); return; }
         for (var i = 0; i < _hordes.Count; i++)
         {
@@ -211,7 +213,7 @@ public sealed partial class Simulation
 
     /// <summary>Whether a Staff acts now: at Closing time, or in the dead zone at any hour, unless it lies fallen or is in a fight.</summary>
     private bool Acting(Villager staff, StoreClock clock) =>
-        _staffStates[staff.Id].FallenUntil <= clock.Tick && !Fighting(staff.Id) && (clock.Phase == DayPhase.ClosingTime || InDeadZone(staff.Position));
+        _staffStates[staff.Id].FallenUntil <= clock.Tick && !Fighting(staff.Id) && !HeldBack(staff.Id) && (clock.Phase == DayPhase.ClosingTime || InDeadZone(staff.Position));
 
     private bool InDeadZone(Vector2 position) => _landmarks.Any(l => l.Type == LandmarkType.DeadZone && l.Covers(_space, position));
 
@@ -318,7 +320,7 @@ public sealed partial class Simulation
         return new(staff.Id, staff.Position, staff.Destination, staff.Heading)
         {
             HordeId = state.HordeId, ChasingVillagerId = _hordes.FirstOrDefault(h => h.Id == state.HordeId) is { ChaseId: >= 0 } h ? h.ChaseId : null, Health = state.Health, Fallen = state.FallenUntil > clock.Tick,
-            Hostile = state.FallenUntil <= clock.Tick && (clock.Phase == DayPhase.ClosingTime || InDeadZone(staff.Position)),
+            Hostile = state.FallenUntil <= clock.Tick && !HeldBack(staff.Id) && (clock.Phase == DayPhase.ClosingTime || InDeadZone(staff.Position)),
         };
     }
 

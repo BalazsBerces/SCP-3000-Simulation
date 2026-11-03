@@ -6,7 +6,7 @@ namespace Scp3008.Core;
 
 public sealed partial class Simulation
 {
-    private const int SaveVersion = 23;
+    private const int SaveVersion = 24;
     private static readonly JsonSerializerOptions SaveJson = CreateSaveJson();
 
     private sealed record SaveFile(int Version, SaveState State);
@@ -14,7 +14,7 @@ public sealed partial class Simulation
     // Extend this state and the subsystem states whenever a ticket adds mutable world state.
     private sealed record SaveState(WorldConfig Config, WorldSnapshot Snapshot, Weather.State Weather,
         Villagers.State Villagers, Villagers.State Staff, HordeState[] Hordes, Dictionary<int, StaffState> StaffStates,
-        int StaffNight,
+        int StaffNight, int LastHordeNight,
         TimeSpan UnspentRealTime, int NextBandId, FurniturePiece[] RestockOrigins,
         MissingFurniture[] MissingFurniture, int NextFurnitureId, double RestockHours,
         double NextFurnitureCheck, StockTarget[] StockTargets, Dictionary<int, double> GoodsRestockCredit,
@@ -30,7 +30,7 @@ public sealed partial class Simulation
         {
             ObjectDisposedException.ThrowIf(_stop.IsCancellationRequested, this);
             var state = new SaveState(_config, BuildSnapshot(), _weather.Save(), _villagers.Save(), _staff.Save(),
-                _hordes.ToArray(), new(_staffStates), _staffNight, _unspentRealTime,
+                _hordes.ToArray(), new(_staffStates), _staffNight, _lastHordeNight, _unspentRealTime,
                 _nextBandId, _restockOrigins.Values.ToArray(), _missingFurniture.ToArray(), _nextFurnitureId,
                 _restockHours, _nextFurnitureCheck,
                 _stockTargets.Select(t => new StockTarget(t.Key.FurnitureId, t.Key.Kind, t.Value)).ToArray(),
@@ -168,6 +168,7 @@ public sealed partial class Simulation
         _hordes.AddRange(state.Hordes);
         foreach (var (id, staffState) in state.StaffStates) _staffStates.Add(id, staffState);
         _staffNight = state.StaffNight;
+        _lastHordeNight = state.LastHordeNight;
         RestoreStaffKills(s);
         _nextBandId = state.NextBandId;
         // Saves from before Restock kept to the Cafeterias and the Camping ground lose what it no longer looks after.
