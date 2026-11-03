@@ -204,6 +204,10 @@ _Avoid_: Biome resource, specialty
 A known way to make a piece of Gear or a reinforcement from Materials, needing certain tools and sometimes a Workshop. Basic Recipes are known by everyone; others are discovered by experimenting, learned from assembly instructions found in the Store, brought by people who join, or traded and shared between Villages. A Village's know-how is the set of its Recipes.
 _Avoid_: Technology, tech, blueprint (that is a structure plan)
 
+**Late Gear**:
+The Gear a group needs to kill a Staff at Closing time: **metal armour**, which takes a Staff's blows until it wears through, and the **halberd**, the Staff-killing weapon; both are workbench Recipes. Any other weapon only drives a Staff back for a moment.
+_Avoid_: Endgame gear, tier-3 gear
+
 **Assembly instructions**:
 A sheet found in a flat-pack box or a Lost and found box that teaches one Recipe to the finding Band or Village. Once read, the Recipe stays in that community's know-how and travels with people who join another Village.
 

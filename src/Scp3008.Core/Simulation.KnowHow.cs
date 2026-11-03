@@ -18,8 +18,8 @@ public sealed partial class Simulation
     {
         var piece = Piece(furnitureId);
         if (piece.Type is not (FurnitureType.FlatPackBox or FurnitureType.LabelledBox) ||
-            !Recipes.Middle.Any(r => r.Gear == recipe) || _instructions.Any(i => i.FurnitureId == furnitureId))
-            throw new ArgumentException("Assembly instructions need a box and a middle Recipe.");
+            !Recipes.Workshop.Any(r => r.Gear == recipe) || _instructions.Any(i => i.FurnitureId == furnitureId))
+            throw new ArgumentException("Assembly instructions need a box and a Workshop Recipe.");
         _instructions.Add(new(furnitureId, recipe));
         return true;
     });
@@ -38,7 +38,7 @@ public sealed partial class Simulation
         {
             var worker = _villagers.Snapshot().SingleOrDefault(v => v.Id == experiment.VillagerId);
             var village = _villages[experiment.VillageId];
-            var recipe = Recipes.Middle.Single(r => r.Gear == experiment.Gear);
+            var recipe = Recipes.Workshop.Single(r => r.Gear == experiment.Gear);
             if (worker is null || worker.VillageId != village.Id || worker.Hand?.Kind != recipe.Tool ||
                 !village.Workshops.Any(w => w.Kind == recipe.Workshop && w.Complete) ||
                 worker.Needs.Hunger >= 0.9 || worker.Needs.Thirst >= 0.9)
@@ -87,7 +87,7 @@ public sealed partial class Simulation
         foreach (var worker in people.Where(v => v.Role == Role.Builder && v.VillageId is not null))
         {
             var village = _villages[worker.VillageId!.Value];
-            var recipe = Recipes.Middle.FirstOrDefault(r => !village.Recipes.Contains(r.Gear) &&
+            var recipe = Recipes.Workshop.FirstOrDefault(r => !village.Recipes.Contains(r.Gear) &&
                 !_experiments.Any(e => e.VillageId == village.Id && e.Gear == r.Gear) && CanMake(worker, village, r));
             if (recipe is null) continue;
             SetMaterialsCore(village.Id, recipe.Material!.Value, village.Materials[recipe.Material.Value] - recipe.Amount);
@@ -116,10 +116,10 @@ public sealed partial class Simulation
                     !world.FurnitureTasks.Any(t => t.FurnitureId == r && t.Work != FurnitureWork.Disassemble && t.VillagerIds.All(v.VillagerIds.Contains))))))
             throw new InvalidDataException("Invalid world save: inconsistent Workshops.");
         if (world.AssemblyInstructions.Select(i => i.FurnitureId).Distinct().Count() != world.AssemblyInstructions.Count ||
-            world.AssemblyInstructions.Any(i => !Recipes.Middle.Any(r => r.Gear == i.Recipe) ||
+            world.AssemblyInstructions.Any(i => !Recipes.Workshop.Any(r => r.Gear == i.Recipe) ||
                 !world.Furniture.Any(p => p.Id == i.FurnitureId && p.Type is FurnitureType.FlatPackBox or FurnitureType.LabelledBox)) ||
             world.Experiments.Any(e => !double.IsFinite(e.Progress) || e.Progress < 0 || e.Progress >= 1 ||
-                !Recipes.Middle.Any(r => r.Gear == e.Gear) ||
+                !Recipes.Workshop.Any(r => r.Gear == e.Gear) ||
                 !world.Villages.Any(v => v.Id == e.VillageId) ||
                 !world.Villagers.Any(v => v.Id == e.VillagerId && v.VillageId == e.VillageId && v.Crafting && v.FurnitureTaskId is null)))
             throw new InvalidDataException("Invalid world save: inconsistent know-how.");

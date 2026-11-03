@@ -6,7 +6,7 @@ namespace Scp3008.Core;
 
 public sealed partial class Simulation
 {
-    private const int SaveVersion = 22;
+    private const int SaveVersion = 23;
     private static readonly JsonSerializerOptions SaveJson = CreateSaveJson();
 
     private sealed record SaveFile(int Version, SaveState State);
@@ -168,6 +168,7 @@ public sealed partial class Simulation
         _hordes.AddRange(state.Hordes);
         foreach (var (id, staffState) in state.StaffStates) _staffStates.Add(id, staffState);
         _staffNight = state.StaffNight;
+        RestoreStaffKills(s);
         _nextBandId = state.NextBandId;
         // Saves from before Restock kept to the Cafeterias and the Camping ground lose what it no longer looks after.
         foreach (var piece in state.RestockOrigins.Where(Restocked)) _restockOrigins.Add(piece.Id, piece);

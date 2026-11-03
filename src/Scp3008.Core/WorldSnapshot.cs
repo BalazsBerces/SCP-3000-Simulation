@@ -75,6 +75,10 @@ public sealed record WorldSnapshot(
     /// <summary>The Wounded Villagers and how far each has healed.</summary>
     public IReadOnlyList<Wound> Wounds { get; init; } = [];
     public IReadOnlyList<Horde> Hordes { get; init; } = [];
+    /// <summary>The Staff remains in the Store (ADR 0007) and how far each draws Staff now.</summary>
+    public IReadOnlyList<StaffRemains> StaffRemains { get; init; } = [];
+    /// <summary>The fights going on between Villagers and a Staff.</summary>
+    public IReadOnlyList<StaffFight> StaffFights { get; init; } = [];
     public IReadOnlyList<LampPower> LampPower { get; init; } = [];
     public IReadOnlyList<FridgePower> FridgePower { get; init; } = [];
     public IReadOnlyList<LitArea> LitAreas { get; init; } = [];

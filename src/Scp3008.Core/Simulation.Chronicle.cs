@@ -127,6 +127,21 @@ public sealed partial class Simulation
                     ? $"Village {villageFell.VillageId} in {fallen} fell to the Staff, and no one was left to flee."
                     : $"Village {villageFell.VillageId} in {fallen} fell to the Staff. {string.Join(", ", villageFell.RefugeeIds.Select(Villager.NameOf))} fled as Refugees.";
                 break;
+            case StaffKilled killed:
+                var killers = string.Join(", ", killed.VillagerIds.Select(Villager.NameOf));
+                var killPlace = ChroniclePlace(killed.Remains.Position);
+                story = (_chronicle.Count % 2) switch
+                {
+                    0 => $"In the dark of {killPlace}, {killers} killed a Staff. Its remains lay where it fell.",
+                    _ => $"A Staff fell for good in {killPlace}, struck down by {killers}; its remains lay on the floor.",
+                };
+                break;
+            case StaffRemainsHauled hauledAway:
+                story = $"{Villager.NameOf(hauledAway.VillagerId)} of Village {hauledAway.VillageId} hauled the Staff remains away to {ChroniclePlace(hauledAway.Position)}, to draw the Staff elsewhere.";
+                break;
+            case StaffRemainsCarriedOff carriedOff:
+                story = $"The Staff came for the remains in {ChroniclePlace(carriedOff.Position)} and carried them off into the dark.";
+                break;
             case BandStrategyChanged changed:
                 story = $"After a bad night, Band {changed.BandId} gave up {StrategyName(changed.From)} and turned to {StrategyName(changed.To)}.";
                 break;

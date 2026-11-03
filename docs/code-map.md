@@ -41,13 +41,14 @@ Signatures every ticket ends up needing. Keep them current when you change one.
 - Bands and Villages: `PlaceBand(positions, needs?, knownMap?, recipes?, personality?, ...)` and `PlaceWaterPoint` (`Simulation.Bands.cs`); `PlaceVillage(pos, villagerIds, personality)`, `CarryFurniture` and `DisassembleFurniture` (`FurnitureWork.cs`); `SetPersonality` and `PlanDwelling` (`Dwelling.cs`); `AssignRole` and `SetNeeds` (`Simulation.Meals.cs`).
 - Building: `PlanBarricade` (`Blueprint.cs`), `CompleteWall` (`Simulation.Tidying.cs`), `StrikeWall` (`Simulation.Tiers.cs`), `BuildKeep` (`Simulation.Sieges.cs`), `PlanStorehouse`, `PlanWorkshop`, `PlanFurnitureYard`, `PlanPillarScaffold`, `DamageFurniture` (`Simulation.Stability.cs`).
 - Goods, Gear and skills: `SetMaterials`, `SetStores`, `SetSkill`, `MakeGear` and `UseBandage` (`Recipes.cs`); `PlaceGear`, `EquipGear` and `SetCarriedLoad` (`Gear.cs`); `PutBack` (`Spoilage.cs`); `WaterCrop` (`Crop.cs`); `PlaceAssemblyInstructions` (`Simulation.KnowHow.cs`).
-- Staff: `PlaceStaff(pos, patrol)` (`SandboxScenario.cs`); `HitStaff` and `MakeNoise(pos, radius)` (`Simulation.Staff.cs`); `StaffHitsVillager` (`Simulation.Wounds.cs`).
+- Staff: `PlaceStaff(pos, patrol)` (`SandboxScenario.cs`); `HitStaff` and `MakeNoise(pos, radius)` (`Simulation.Staff.cs`); `FightStaff(staffId, villagerIds)` and `PlaceStaffRemains(pos, age)` (`Simulation.StaffKills.cs`); `StaffHitsVillager` (`Simulation.Wounds.cs`).
 - Sandbox: `ScenarioBuilder.LoadVillagerSandbox(preset)` and `LoadVillagerSandboxJson` (`SandboxScenario.cs`).
 
 ## Core: facade and time
 
 - `Simulation.cs`: the facade. `Create(WorldConfig)`, `Snapshot`, `Scenario`, `AdvanceRealTime`, `Advance`, `AdvanceTo`, `AdvanceTicks`; the tick loop (`RunTicks` / `Step` / `StepCore`); random stream keys.
 - `Simulation.*.cs` partials, one per subsystem: `Arrivals` (new Wanderers), `Bands`, `BandNights` (Band strategies at Closing time: hide, move on, barricade; quiet and noisy work), `Castle` (heraldry, castle building), `Chronicle`, `Construction` (Blueprint building), `Fridges`, `Gear`, `KnowHow` (assembly instructions, experiments, recipes learned), `Meals` (shared meals), `Needs`, `Outposts`, `Persistence` (save/load JSON, `SaveVersion`), `Power` (lamps, batteries, generators, lit areas), `Restock`, `Sieges` (Hordes besiege fortified Villages: weakest wall piece, then the Keep, Guards; falls and Refugees; `ScenarioBuilder.BuildKeep`), `Stability`, `Staff` (Staff, Hordes, patrols at Closing time), `Tidying` (displaced Furniture carried back at Closing time; `ScenarioBuilder.CompleteWall`), `Tiers` (wall upgrades, repairs, blows), `Wounds` (Wounded, Taken, healing; `Wound`).
+- `Simulation.StaffKills.cs`: fights with a Staff (Halberd harms, other weapons drive back, metal armour takes blows), killing, Staff remains (pull, carried off at Closing time, hauled away by Villages); `StaffKillTests`.
 - `WorldConfig.cs`: settings for a new world (seed, runtime seed, Pillar layout, showcases, Starting Bands).
 - `WorldSnapshot.cs`: immutable read-only view of the world; everything the presentation and tests read.
 - `ScenarioBuilder.cs`: set up situations in a running world (tests, dev debug panel); feature partials extend it.
@@ -114,6 +115,7 @@ Signatures every ticket ends up needing. Keep them current when you change one.
 - Villagers: `VillagerRenderer.cs` plus feature partials (`Castle`, `Crops`, `Dwellings`, `Gear`, `Meals`, `Storage`, `VillagePanel`, `Walls`, `Workshops`).
 - World and light: `StoreFloor.cs`, `CampTurf.cs`, `GroundRenderer.cs`, `PillarRenderer.cs`, `LandmarkMarkers.cs`, `StoreAtmosphere.cs`, `LampLights.cs`, `LampPools.cs`, `LampHalos.cs`, `FogBankRenderer.cs`, `AmbientAudio.cs` (synthesised sound).
 - Views: `StoreOverview.cs` (F4 whole-Store view), `StoreVisibility.cs`, `WrapDebugOverlay.cs` (F3).
+- `VillagerRenderer.StaffRemains.cs`: Staff remains (the Staff mannequin lying, darkened). `DevCapture.StaffKills.cs`: `--staff-kill-check=` (fight, kill, remains captures).
 - Checks and tools: `DevCapture.cs` (command-line flags after `--`: `--capture=`, `--fps-report`, `--sandbox-check`, `--save-load-check`, `--model-check`, `--band-night-check`, ...; one `DevCapture.<Feature>.cs` per feature check), `Benchmark.cs`, `ModelCheck.cs`, `SilhouetteCheck.cs`, `CoarseColourCheck.cs`.
 
 ## Tests (`tests/Scp3008.Core.Tests/`)

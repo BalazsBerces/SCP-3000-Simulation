@@ -24,6 +24,11 @@ public partial class VillagerRenderer
         if (kind == GearKind.Spear) return _spear ??= Combine(
             (GearMesh(GearKind.TableLegClub), new Transform3D(Basis.Identity.Scaled(new Vector3(0.65f, 2.5f, 0.65f)), Vector3.Zero)),
             (GearMesh(GearKind.KitchenKnife), new Transform3D(Basis.Identity, new Vector3(0, 1.5f, 0))));
+        // Late Gear, reused (ADR 0006): tin-can plates over the chest, and the hatchet head on a long table-leg shaft.
+        if (kind == GearKind.MetalArmour) return FurnitureModels.Product("goods_tinned_food", 0, 0.65f, 500);
+        if (kind == GearKind.Halberd) return _halberd ??= Combine(
+            (GearMesh(GearKind.TableLegClub), new Transform3D(Basis.Identity.Scaled(new Vector3(0.65f, 3f, 0.65f)), Vector3.Zero)),
+            (FurnitureMeshes.For(FurnitureType.Axe), new Transform3D(Basis.Identity.Scaled(Vector3.One * 0.6f), new Vector3(0, 1.5f, 0))));
         if (kind == GearKind.HandCrankedGenerator) return _generator ??= Combine(
             (GearMesh(GearKind.Flashlight), new Transform3D(Basis.Identity.Scaled(new Vector3(2, 2, 2)), Vector3.Zero)),
             (GearMesh(GearKind.HexKey), new Transform3D(Basis.Identity.Rotated(Vector3.Forward, Mathf.Pi / 2).Scaled(Vector3.One * 2), new Vector3(0.2f, 0.35f, 0))));
@@ -31,7 +36,7 @@ public partial class VillagerRenderer
         return FurnitureModels.Product(model.Folder, 0, model.Size, model.Budget);
     }
 
-    private static ArrayMesh? _tableLeg, _tabletop, _spear, _generator, _backpack, _platformCart;
+    private static ArrayMesh? _tableLeg, _tabletop, _spear, _halberd, _generator, _backpack, _platformCart;
 
     // Assemble existing downloaded triangles, keeping their UVs and PBR materials.
     private static ArrayMesh Combine(params (Mesh Mesh, Transform3D Transform)[] parts)

@@ -78,7 +78,7 @@ public sealed partial class Simulation
     internal void HitStaff(int staffId) => Publish(() =>
     {
         var state = _staffStates.GetValueOrDefault(staffId) ?? throw new ArgumentException($"No Staff {staffId}.", nameof(staffId));
-        // shortcut: a blow at Closing time does nothing yet; harming and killing Staff is ticket #77.
+        // A single blow at Closing time does nothing; harming a hostile Staff takes a fight (FightStaff).
         if (new StoreClock(_tick).Phase == DayPhase.ClosingTime) return false;
         _staffStates[staffId] = state with { FallenUntil = _tick + StoreClock.TicksFor(FallenFor) };
         _staff.Stop(staffId);
@@ -111,9 +111,11 @@ public sealed partial class Simulation
                 else if (staff.Destination is not null) _staff.Stop(id);
             }
             if (acting.Count == 0) continue;
+            if (closing && CarryOffRemains(i, acting, clock)) continue;
             if (Besiege(i, acting, clock)) continue;
             horde = _hordes[i];
             horde = _hordes[i] = Hear(horde, acting);
+            horde = _hordes[i] = DrawToRemains(horde, acting);
             horde = _hordes[i] = Notice(horde, acting);
             if (horde.ChaseId >= 0)
             {
@@ -207,9 +209,9 @@ public sealed partial class Simulation
         return _piecesIndex.Near(villager.Position, 8f).Any(p => RestockSight.Blocks(_space, p, eye, target));
     }
 
-    /// <summary>Whether a Staff acts now: at Closing time, or in the dead zone at any hour, unless it lies fallen.</summary>
+    /// <summary>Whether a Staff acts now: at Closing time, or in the dead zone at any hour, unless it lies fallen or is in a fight.</summary>
     private bool Acting(Villager staff, StoreClock clock) =>
-        _staffStates[staff.Id].FallenUntil <= clock.Tick && (clock.Phase == DayPhase.ClosingTime || InDeadZone(staff.Position));
+        _staffStates[staff.Id].FallenUntil <= clock.Tick && !Fighting(staff.Id) && (clock.Phase == DayPhase.ClosingTime || InDeadZone(staff.Position));
 
     private bool InDeadZone(Vector2 position) => _landmarks.Any(l => l.Type == LandmarkType.DeadZone && l.Covers(_space, position));
 

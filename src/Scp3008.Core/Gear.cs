@@ -2,7 +2,7 @@ using System.Numerics;
 
 namespace Scp3008.Core;
 
-public enum GearKind { HexKey, Screwdriver, KitchenKnife, Scissors, CanvasBag, ShoppingCart, Flashlight, QuiltedArmour, Crowbar, TableLegClub, Candle, CardboardArmour, Bandage, LeatherBackpack, Saw, Spear, TabletopShield, PlatformCart, Lantern, HandCrankedGenerator }
+public enum GearKind { HexKey, Screwdriver, KitchenKnife, Scissors, CanvasBag, ShoppingCart, Flashlight, QuiltedArmour, Crowbar, TableLegClub, Candle, CardboardArmour, Bandage, LeatherBackpack, Saw, Spear, TabletopShield, PlatformCart, Lantern, HandCrankedGenerator, MetalArmour, Halberd }
 public enum GearSlot { Hand, Bag, Armour }
 
 /// <summary>Found or carried Gear. Unclaimed Gear stays at its source Furniture until taken.</summary>
@@ -11,7 +11,7 @@ public sealed record Gear(int Id, GearKind Kind, Vector2 Position)
     public double Durability { get; init; } = 100;
     public double BatteryHours { get; init; }
     public int FurnitureId { get; init; } = -1;
-    public GearSlot Slot => Kind is GearKind.CanvasBag or GearKind.LeatherBackpack ? GearSlot.Bag : Kind is GearKind.QuiltedArmour or GearKind.CardboardArmour ? GearSlot.Armour : GearSlot.Hand;
+    public GearSlot Slot => Kind is GearKind.CanvasBag or GearKind.LeatherBackpack ? GearSlot.Bag : Kind is GearKind.QuiltedArmour or GearKind.CardboardArmour or GearKind.MetalArmour ? GearSlot.Armour : GearSlot.Hand;
 
     internal void Validate()
     {

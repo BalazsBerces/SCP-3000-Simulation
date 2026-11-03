@@ -27,7 +27,16 @@ public static class Recipes
         new(GearKind.CardboardArmour, "Cardboard armour", MaterialKind.WoodPanel, 2),
         new(GearKind.Bandage, "Bandage", MaterialKind.Fabric, 1, Hours: 0.1),
     });
-    public static IReadOnlyList<Recipe> All { get; } = Array.AsReadOnly(Basic.Concat(Middle).ToArray());
+    /// <summary>The late Recipes: the late Gear a group needs to kill a Staff at Closing time (ADR 0007).</summary>
+    public static IReadOnlyList<Recipe> Late { get; } = Array.AsReadOnly(new Recipe[]
+    {
+        new(GearKind.MetalArmour, "Metal armour", MaterialKind.Metal, 6, GearKind.HexKey, Hours: 2, Workshop: WorkshopKind.Workbench, ExtraMaterial: MaterialKind.Fabric, ExtraAmount: 2),
+        new(GearKind.Halberd, "Halberd", MaterialKind.Metal, 4, GearKind.Saw, Hours: 1.5, Workshop: WorkshopKind.Workbench, ExtraMaterial: MaterialKind.WoodPanel, ExtraAmount: 2),
+    });
+
+    /// <summary>The Recipes learned at a Workshop (by experiment or from assembly instructions): the middle and the late ones.</summary>
+    public static IReadOnlyList<Recipe> Workshop { get; } = Array.AsReadOnly(Middle.Concat(Late).ToArray());
+    public static IReadOnlyList<Recipe> All { get; } = Array.AsReadOnly(Basic.Concat(Workshop).ToArray());
 }
 
 public sealed record CraftingTask(int VillagerId, int VillageId, GearKind Gear, double Progress = 0);

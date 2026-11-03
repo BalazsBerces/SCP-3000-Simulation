@@ -84,6 +84,7 @@ public partial class VillagerRenderer : Node3D
         ShowCastles();
         ShowWallUpgrades();
         ShowVillagePanel(Host.Snapshot, delta);
+        ShowStaffRemains(space, focus);
         var seen = new HashSet<int>();
         var bodies = Host.Snapshot.Bodies.ToDictionary(b => b.VillagerId);
         var fallenStaff = Host.Snapshot.Staff.Where(s => s.Fallen).Select(s => -s.Id - 1).ToHashSet();
@@ -110,9 +111,9 @@ public partial class VillagerRenderer : Node3D
             // Heading runs from east towards south (+X towards +Z): face (cos, sin) in world X and Z.
             figure.Rotation = new Vector3(bodies.ContainsKey(villager.Id) || fallenStaff.Contains(villager.Id) ? MathF.PI / 2 : 0f,
                 Mathf.Atan2(MathF.Cos(villager.Heading), MathF.Sin(villager.Heading)), 0f);
-            if (villager.Action is VillagerAction.Disassembling or VillagerAction.Cranking)
+            if (villager.Action is VillagerAction.Disassembling or VillagerAction.Cranking or VillagerAction.Fighting)
                 figure.Rotation = new Vector3(-0.3f + 0.08f * MathF.Sin((float)Time.GetTicksMsec() / 140), figure.Rotation.Y, 0);
-            else if (villager.Action == VillagerAction.DraggingFurniture)
+            else if (villager.Action is VillagerAction.DraggingFurniture or VillagerAction.HaulingRemains)
                 figure.Rotation = new Vector3(-0.2f, figure.Rotation.Y, 0);
             else if (villager.Action == VillagerAction.SharedMeal)
                 figure.Rotation = new Vector3(-0.1f + 0.025f * MathF.Sin((float)Time.GetTicksMsec() / 350), figure.Rotation.Y, 0);

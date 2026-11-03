@@ -109,6 +109,10 @@ public sealed partial class Simulation
             if (inReach.Count == 0 && acting.All(s => _staff.ViewOf(s.Id)!.Destination is null))
                 horde = _hordes[i] = horde with { WaitUntil = clock.Tick + StoreClock.TicksFor(TimeSpan.FromMinutes(1)) };
         }
+        // Enough Guards with Halberds take on a Staff in reach together (ADR 0007).
+        var armed = guards.Where(id => _villagers.ViewOf(id)!.Hand?.Kind == GearKind.Halberd).ToList();
+        if (armed.Count >= FightingGroup && inReach.Count > 0 && !_fights.Any(f => f.VillagerIds.Any(armed.Contains)))
+            StartFight(inReach[0].Id, armed);
         if (clock.Tick < horde.NextBlow || inReach.Count == 0) return true;
         var blows = horde.Blows + 1;
         _hordes[i] = horde with { NextBlow = clock.Tick + StoreClock.TicksFor(BlowEvery), Blows = blows };
