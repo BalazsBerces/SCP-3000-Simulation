@@ -8,6 +8,8 @@ namespace Scp3008.Core;
 public sealed record Band(int Id, IReadOnlyList<int> VillagerIds)
 {
     public Personality Personality { get; init; } = Personality.Cautious;
+    /// <summary>The fallen Village these Refugees fled, or null for newly lost shoppers.</summary>
+    public int? FallenVillageId { get; init; }
     public IReadOnlyList<GearKind> Recipes { get; init; } = Array.AsReadOnly(Core.Recipes.Basic.Select(r => r.Gear).ToArray());
     public Vector2 Position { get; init; }
     public KnownMap KnownMap { get; init; } = new();

@@ -420,7 +420,7 @@ The loop of waypoints round the middle of a Sector, fixed by the Store seed, tha
 _Avoid_: Path, beat, region route
 
 **Siege**:
-A Horde assaulting a Village's fortification at Closing time.
+A Horde assaulting a Village's fortification at Closing time. It strikes the weakest piece of a complete wall ring (lowest Tier, then most damaged), and once every ring is **breached** (a piece broken out of it), the Keep, where the people withdraw; each unwounded Guard holds off one Staff and takes its blows. A Village with no defender left and its Keep breached (or none) **falls**: its survivors leave as a Band of Refugees.
 _Avoid_: Raid (reserved for Village-on-Village attacks), attack
 
 **Horde night**:

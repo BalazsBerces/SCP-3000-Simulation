@@ -105,17 +105,23 @@ public sealed partial class Simulation
             village.Walls[ring].Slots[slot].FurnitureId is not { } id)
             throw new ArgumentException("No built wall piece there.");
         var s = village.Walls[ring].Slots[slot];
+        return StrikePiece(id, s.Strapped, s.Backfilled);
+    });
+
+    /// <summary>A Staff blow on a built piece: it takes Damage (less when Strapped or Backfilled), makes noise and breaks at 1.</summary>
+    private WallBlow StrikePiece(int id, bool strapped, bool backfilled)
+    {
         var index = PieceIndex(id);
         var piece = _furniture.Pieces[index];
-        var damage = MathF.Min(1f, piece.Damage + BlowDamage * (s.Strapped ? 0.5f : 1f) * (s.Backfilled ? 0.6f : 1f));
-        var noise = BlowNoise * (s.Backfilled ? 0.4f : 1f);
+        var damage = MathF.Min(1f, piece.Damage + BlowDamage * (strapped ? 0.5f : 1f) * (backfilled ? 0.6f : 1f));
+        var noise = BlowNoise * (backfilled ? 0.4f : 1f);
         var damaged = piece with { Damage = damage };
         _stabilityChanges.Add(damaged);
         SetPose(index, piece, damaged);
         Emit(new NoiseEmitted(new StoreClock(_tick), piece.Position, noise, id));
         if (damage >= 1f) UnbuildFurniture(id);
         return new WallBlow(damage, noise, damage >= 1f);
-    });
+    }
 }
 
 public sealed partial class ScenarioBuilder

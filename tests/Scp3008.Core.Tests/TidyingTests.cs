@@ -86,6 +86,8 @@ public class TidyingTests
         RunUntil(sim, () => sim.Snapshot.Villages[village.Id].Walls[0].Complete);
         var wall = sim.Snapshot.Villages[village.Id].Walls[0];
         var built = wall.Slots.Select(s => s.FurnitureId!.Value).ToDictionary(id => id, id => PositionOf(sim, id));
+        // Guards hold off the Staff, who would otherwise besiege the wall and break pieces out of it.
+        foreach (var member in sim.Snapshot.Villages[village.Id].VillagerIds) sim.Scenario.AssignRole(member, Role.Guard);
         // The pieces were gathered from where they lay, so each has a place to go back to.
         var inside = sim.Scenario.PlaceFurniture(FurnitureType.Chair, at + new Vector2(2, 2));
         sim.Scenario.MoveFurniture(inside.Id, at + new Vector2(3, 2), 0);

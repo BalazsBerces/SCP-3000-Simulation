@@ -107,6 +107,26 @@ public sealed partial class Simulation
                     _ => $"When the lights went out over {nightPlace}, Band {night.BandId} {how}.",
                 };
                 break;
+            case SiegeBegan siege:
+                var besieged = ChroniclePlace(_villages[siege.VillageId].Position);
+                story = (_chronicle.Count % 2) switch
+                {
+                    0 => $"In the dark of {besieged}, a Horde of the Staff fell upon the walls of Village {siege.VillageId}.",
+                    _ => $"The Staff besieged Village {siege.VillageId} in {besieged}; its people listened to the blows on their walls.",
+                };
+                break;
+            case WallBreached breach:
+                story = $"The Staff broke through the wall of Village {breach.VillageId} at its weakest piece.";
+                break;
+            case KeepBreached keepBreach:
+                story = $"The Keep of Village {keepBreach.VillageId} was breached; its people had nowhere left to hide.";
+                break;
+            case VillageFell villageFell:
+                var fallen = ChroniclePlace(_villages[villageFell.VillageId].Position);
+                story = villageFell.RefugeeIds.Count == 0
+                    ? $"Village {villageFell.VillageId} in {fallen} fell to the Staff, and no one was left to flee."
+                    : $"Village {villageFell.VillageId} in {fallen} fell to the Staff. {string.Join(", ", villageFell.RefugeeIds.Select(Villager.NameOf))} fled as Refugees.";
+                break;
             case BandStrategyChanged changed:
                 story = $"After a bad night, Band {changed.BandId} gave up {StrategyName(changed.From)} and turned to {StrategyName(changed.To)}.";
                 break;

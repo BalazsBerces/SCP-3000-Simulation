@@ -47,7 +47,7 @@ public sealed partial class Simulation
     /// <param name="Source">Where a heard noise drew the Horde; it searches there, then returns to its route.</param>
     /// <param name="ChaseId">The Villager the Horde chases, or -1.</param>
     private sealed record HordeState(int Id, int? SectorId, Vector2[] Route, int Start, int Next, List<int> StaffIds, long WaitUntil = 0,
-        Vector2? Source = null, long SearchUntil = 0, int ChaseId = -1);
+        Vector2? Source = null, long SearchUntil = 0, int ChaseId = -1, int SiegeVillageId = -1, long NextBlow = 0, int Blows = 0);
     private sealed record StaffState(int HordeId, float Health, long FallenUntil);
 
     private readonly List<HordeState> _hordes = [];
@@ -93,7 +93,10 @@ public sealed partial class Simulation
         {
             _staffNight = night;
             for (var i = 0; i < _hordes.Count; i++)
+            {
                 if (_hordes[i].SectorId is not null) _hordes[i] = _hordes[i] with { Next = _hordes[i].Start };
+                _hordes[i] = _hordes[i] with { SiegeVillageId = -1 };
+            }
             GrowStaff(night);
         }
         if (_hordes.Count == 0) { _noises.Clear(); return; }
@@ -108,6 +111,8 @@ public sealed partial class Simulation
                 else if (staff.Destination is not null) _staff.Stop(id);
             }
             if (acting.Count == 0) continue;
+            if (Besiege(i, acting, clock)) continue;
+            horde = _hordes[i];
             horde = _hordes[i] = Hear(horde, acting);
             horde = _hordes[i] = Notice(horde, acting);
             if (horde.ChaseId >= 0)

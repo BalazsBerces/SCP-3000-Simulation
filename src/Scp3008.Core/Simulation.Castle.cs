@@ -49,9 +49,7 @@ public sealed partial class Simulation
 
         if (!village.Castle.Any(c => c.Part == CastlePart.Keep))
         {
-            var keep = village.Position + Castle.KeepOffset;
-            BlueprintSlot Base(float x) => new(_space.Wrap(keep + new Vector2(x, 0)), 0, 0.8f, WallRun.Straight, 0.5f);
-            structures.Add(new(CastlePart.Keep, ring, [Base(-0.85f), Base(0.85f), Base(-0.85f), Base(0.85f)]));
+            structures.Add(KeepPlan(village, ring));
         }
 
         // The Moat follows the ring's edges outside it (not along a freeform ring's anchor face), with a causeway before the gate.
@@ -102,6 +100,13 @@ public sealed partial class Simulation
         var division = Enumerable.Range(0, 6).Select(i => (HeraldryDivision)((village.Id + i) % 6))
             .FirstOrDefault(d => !_villages.Any(v => v.Id != village.Id && v.Heraldry == new Heraldry(field, charge, d)), (HeraldryDivision)(village.Id % 6));
         return new(field, charge, division);
+    }
+
+    private CastleStructure KeepPlan(Village village, int ring)
+    {
+        var keep = village.Position + Castle.KeepOffset;
+        BlueprintSlot Base(float x) => new(_space.Wrap(keep + new Vector2(x, 0)), 0, 0.8f, WallRun.Straight, 0.5f);
+        return new(CastlePart.Keep, ring, [Base(-0.85f), Base(0.85f), Base(-0.85f), Base(0.85f)]);
     }
 
     private void SetCastleSlot(int villageId, int structure, int index, BlueprintSlot slot)
@@ -200,7 +205,7 @@ public sealed partial class Simulation
                 v.Heraldry is { } arms && (arms.Field is < 0 or >= FurniturePalettes.TintCount || arms.Charge is < 0 or >= FurniturePalettes.TintCount ||
                     !Enum.IsDefined(arms.Division)) ||
                 v.Moats.Any(m => m.Ring < 0 || m.Ring >= v.Walls.Count || m.Runs.Count == 0 || m.Runs.Any(r => !Finite(r.Start) || !Finite(r.End))) ||
-                v.Castle.Any(c => !Enum.IsDefined(c.Part) || c.Ring < 0 || c.Ring >= v.Walls.Count || !v.Walls[c.Ring].Battlements ||
+                v.Castle.Any(c => !Enum.IsDefined(c.Part) || c.Ring < 0 || c.Ring >= v.Walls.Count || c.Part != CastlePart.Keep && !v.Walls[c.Ring].Battlements ||
                     c.Slots.Count != (c.Part == CastlePart.Keep ? 4 : 3) ||
                     c.Slots.Select((s, i) => (s, i)).Any(x => !Finite(x.s.Position) || !float.IsFinite(x.s.Rotation) || !float.IsFinite(x.s.Elevation) ||
                         x.s.FurnitureId is not null && x.s.ReservedFurnitureId is not null ||

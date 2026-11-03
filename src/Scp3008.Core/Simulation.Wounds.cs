@@ -26,10 +26,16 @@ public sealed partial class Simulation
 
     private readonly Dictionary<int, Wound> _wounds = [];
 
-    // shortcut: nothing makes the Staff hit Villagers by themselves yet (Sieges and patrol contact come later); only this seam does.
+    // shortcut: besides Sieges (Guards), nothing makes the Staff hit Villagers by themselves yet (patrol contact comes later).
     internal bool StaffHitsVillager(int villagerId) => Publish(() =>
     {
-        var villager = _villagers.ViewOf(villagerId) ?? throw new ArgumentException($"No Villager {villagerId}.", nameof(villagerId));
+        _ = _villagers.ViewOf(villagerId) ?? throw new ArgumentException($"No Villager {villagerId}.", nameof(villagerId));
+        return HitVillager(villagerId);
+    });
+
+    private bool HitVillager(int villagerId)
+    {
+        var villager = _villagers.ViewOf(villagerId)!;
         var clock = new StoreClock(_tick);
         var taken = _wounds.Remove(villagerId);
         BandHarmed(villagerId, taken);
@@ -54,7 +60,7 @@ public sealed partial class Simulation
                 _bands[i] = _bands[i] with { VillagerIds = Array.AsReadOnly(_bands[i].VillagerIds.Where(id => id != villagerId).ToArray()) };
         Emit(new VillagerTaken(clock, villagerId, villager.Position));
         return true;
-    });
+    }
 
     private void AdvanceWounds()
     {
