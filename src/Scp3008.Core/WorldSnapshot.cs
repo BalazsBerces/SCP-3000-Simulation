@@ -72,6 +72,8 @@ public sealed record WorldSnapshot(
     public IReadOnlyList<string> Chronicle { get; init; } = [];
     public IReadOnlyList<Gear> Gear { get; init; } = [];
     public IReadOnlyList<Staff> Staff { get; init; } = [];
+    /// <summary>The Wounded Villagers and how far each has healed.</summary>
+    public IReadOnlyList<Wound> Wounds { get; init; } = [];
     public IReadOnlyList<Horde> Hordes { get; init; } = [];
     public IReadOnlyList<LampPower> LampPower { get; init; } = [];
     public IReadOnlyList<FridgePower> FridgePower { get; init; } = [];

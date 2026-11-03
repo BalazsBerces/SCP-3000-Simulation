@@ -418,7 +418,7 @@ A periodic, escalating Closing time on which large Hordes besiege several Villag
 _Avoid_: Blood moon, wave night
 
 **Wounded**:
-The state of a Villager after a first Staff hit; a further hit while Wounded means being Taken.
+The state of a Villager after a first Staff hit; a further hit while Wounded means being Taken. A wound heals over about four Store days, fastest resting, with a used Bandage, with food and water at hand, and when sleeping on a mattress.
 _Avoid_: Injured, hurt
 
 **Taken**:

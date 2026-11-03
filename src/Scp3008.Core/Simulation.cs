@@ -383,6 +383,7 @@ public sealed partial class Simulation : IDisposable
         AdvanceKnowHow(clock);
         AdvanceBands(clock);
         AdvanceStaff(clock);
+        AdvanceWounds();
         // Kept up with every tick, it catches up by a few changes instead of starting over once the Furniture list no
         // longer remembers where it was.
         _piecesIndex.Update(_furniture.Pieces);
@@ -681,6 +682,7 @@ public sealed partial class Simulation : IDisposable
             Experiments = _experiments.ToList().AsReadOnly(),
             AssemblyInstructions = _instructions.ToList().AsReadOnly(),
             Staff = StaffSnapshot(),
+            Wounds = _wounds.Values.ToList().AsReadOnly(),
             Hordes = HordeSnapshot(),
         };
 

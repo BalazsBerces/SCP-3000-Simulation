@@ -82,6 +82,16 @@ public sealed partial class Simulation
                     _ => $"There was no relief for {person}{community} in {location}; {cause} took its toll.",
                 };
                 break;
+            case VillagerTaken taken:
+                var lost = Villager.NameOf(taken.VillagerId);
+                var takenPlace = ChroniclePlace(taken.Position);
+                story = (_chronicle.Count % 3) switch
+                {
+                    0 => $"{lost} was Taken by the Staff in {takenPlace}. Nothing was left behind.",
+                    1 => $"In {takenPlace}, the Staff took {lost}; no one found a trace.",
+                    _ => $"{lost} vanished from {takenPlace} in the Staff's grip, and the aisles gave nothing back.",
+                };
+                break;
             // A box sliding off a shelf is not history; a structure coming down is.
             case StructureCollapsed collapse when collapse.Fallen.Count >= NotableCollapse:
                 var fell = collapse.Fallen.Count;

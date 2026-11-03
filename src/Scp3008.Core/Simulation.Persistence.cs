@@ -6,7 +6,7 @@ namespace Scp3008.Core;
 
 public sealed partial class Simulation
 {
-    private const int SaveVersion = 17;
+    private const int SaveVersion = 18;
     private static readonly JsonSerializerOptions SaveJson = CreateSaveJson();
 
     private sealed record SaveFile(int Version, SaveState State);
@@ -161,6 +161,10 @@ public sealed partial class Simulation
         _gear.AddRange(s.Gear);
         _gearSources.AddRange(state.GearSources);
         _nextGearId = state.NextGearId;
+        if (s.Wounds.Any(w => !s.Villagers.Any(v => v.Id == w.VillagerId) || !double.IsFinite(w.Healed) || w.Healed is < 0 or >= 1) ||
+            s.Wounds.Select(w => w.VillagerId).Distinct().Count() != s.Wounds.Count)
+            throw new InvalidDataException("Invalid world save: inconsistent wounds.");
+        foreach (var wound in s.Wounds) _wounds.Add(wound.VillagerId, wound);
         _hordes.AddRange(state.Hordes);
         foreach (var (id, staffState) in state.StaffStates) _staffStates.Add(id, staffState);
         _staffNight = state.StaffNight;

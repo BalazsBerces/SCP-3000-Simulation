@@ -212,6 +212,7 @@ public sealed partial class Simulation
             if (village is null || gear is null) return false;
             _villages[village.Id] = village with { Gear = Array.AsReadOnly(village.Gear.Where(g => g.Id != gear.Id).ToArray()) };
         }
+        if (_wounds.TryGetValue(id, out var wound)) _wounds[id] = wound with { Bandaged = true };
         Emit(new BandageUsed(new StoreClock(_tick), id, gear.Id));
         return true;
     });
