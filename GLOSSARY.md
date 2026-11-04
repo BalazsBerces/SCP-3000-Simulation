@@ -469,6 +469,10 @@ _Avoid_: Player, god, ruler
 A pulley or winch (late workbench Gear) kept by a Village: with a pulley its workers carry and lift twice what they could, with a winch four times, so fewer Villagers lift a heavy piece onto a Tower or Pillar scaffold.
 _Avoid_: Crane, lift
 
+**Currency**:
+A Goods kind a Village takes in trade beyond its own need, because the Villages it knows want it: barter stays barter, but a kind that keeps well, is held somewhere in the region and is lacking in most known Villages becomes a medium of exchange of its own accord. It is worth what those Villages would give for it, so a flood of it (a large find, a Restock surge) lowers what it buys, and it can lose its place; regions may settle on different kinds, or none.
+_Avoid_: Money, coin, price
+
 **Cart train**:
 Linked platform carts (up to four) behind a Caravan: it carries ten units per cart, but walks slower and is heard from further away.
 _Avoid_: Convoy

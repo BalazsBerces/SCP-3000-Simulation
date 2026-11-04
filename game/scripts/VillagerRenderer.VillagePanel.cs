@@ -90,6 +90,8 @@ public partial class VillagerRenderer
                 _villageLayer.AddChild(button);
                 _villageButtons.Add(id, button);
             }
+            // The marker doubles as the strategic map's label: it names the Village's currency, if it has one.
+            button.Text = village.Currency is { } currency ? $"Village {village.Id} | takes {currency}" : $"Village {village.Id}";
             var near = world.Space.Delta(Rig.Focus.ToStore(), village.Position);
             var position = new Vector3(Rig.Focus.X + near.X, 3, Rig.Focus.Z + near.Y);
             button.Visible = !Rig.Camera.IsPositionBehind(position);
@@ -126,7 +128,8 @@ public partial class VillagerRenderer
             $"{w.Outline}: {w.Slots.Count(s => s.FurnitureId is not null)}/{w.Slots.Count} pieces"));
         // shortcut: history identifies Villages by their numbered names; use event references when names become editable.
         var history = world.Chronicle.Where(line => System.Text.RegularExpressions.Regex.IsMatch(line, $@"\bVillage {selected}\b"));
-        _villageInfo.Text = $"Village {selected} | Sector {world.SectorAt(current.Position).Name}\nPersonality: {current.Personality} | {current.Department}\n\n" +
+        _villageInfo.Text = $"Village {selected} | Sector {world.SectorAt(current.Position).Name}\nPersonality: {current.Personality} | {current.Department}\n" +
+            $"Currency: {(current.Currency is { } money ? $"{money} (taken beyond need)" : "none, pure barter")}\n\n" +
             $"Dwellings\n{DwellingText(current)}\n\nMess hall\n{messHall}\n\nPopulation: {members.Length}\n\nOutposts\n{outposts}\n\n" + string.Join("\n", members.Select(v => $"{v.Name} — {v.Role}")) +
             $"\n\nStores\n{stores}\n\nStorage\n{StorageText(current)}\n\nMaterials\n{materials}\n\nWorkshops\n{workshops}\n\nRecipes\n{recipes}\n\nSkills\n{skills}\n\nGear\n{gear}\n\nWall condition: {wall}\n\nCastle\n{CastleText(current)}\n\nBeliefs: —\nRelations: —\n\nHistory\n" +
             string.Join("\n\n", history);

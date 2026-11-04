@@ -6,7 +6,7 @@ namespace Scp3008.Core;
 
 public sealed partial class Simulation
 {
-    private const int SaveVersion = 29;
+    private const int SaveVersion = 30;
     private static readonly JsonSerializerOptions SaveJson = CreateSaveJson();
 
     private sealed record SaveFile(int Version, SaveState State);
@@ -80,7 +80,7 @@ public sealed partial class Simulation
             !double.IsFinite(state.RestockHours) || state.RestockHours < 0 ||
             furnitureIds.Count != s.Furniture.Count ||
             s.Villages.Where((v, i) => v.Id != i).Any() ||
-            s.Villages.Any(v => v.Materials.Any(m => !Enum.IsDefined(m.Key) || m.Value < 0)) ||
+            s.Villages.Any(v => v.Materials.Any(m => !Enum.IsDefined(m.Key) || m.Value < 0) || v.Currency is { } c && !Enum.IsDefined(c)) ||
             s.Furniture.Any(p => p.Id < 0 || !float.IsFinite(p.Position.X) || !float.IsFinite(p.Position.Y) ||
                 !float.IsFinite(p.Elevation) || !float.IsFinite(p.Rotation) || !(p.Damage is >= 0f and <= 1f)) ||
             s.Stock.Any(g => g.Amount < 0 || !furnitureIds.Contains(g.FurnitureId)))

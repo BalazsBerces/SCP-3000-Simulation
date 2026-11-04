@@ -129,6 +129,14 @@ public sealed partial class Simulation
                     _ => $"When the lights went out over {nightPlace}, Band {night.BandId} {how}.",
                 };
                 break;
+            case CurrencyChanged money:
+                var market = ChroniclePlace(_villages[money.VillageId].Position);
+                story = money.To is not { } kind
+                    ? $"In {market}, {GoodsName(money.From!.Value)} lost their worth as currency for Village {money.VillageId}; it went back to pure barter."
+                    : money.From is { } old
+                        ? $"In {market}, Village {money.VillageId} gave up {GoodsName(old)} as currency and took {GoodsName(kind)} instead."
+                        : $"In {market}, Village {money.VillageId} began to take {GoodsName(kind)} as currency, beyond its own need: the Villages it knew all wanted them.";
+                break;
             case PersonalityChanged shifted:
                 story = $"Hunger changed Village {shifted.VillageId} in {ChroniclePlace(_villages[shifted.VillageId].Position)}: once {shifted.From.ToString().ToLowerInvariant()}, its people now turned to {shifted.To.ToString().ToLowerInvariant()}.";
                 break;
@@ -213,6 +221,9 @@ public sealed partial class Simulation
         BandStrategy.MoveOn => "moving on",
         _ => "barricading",
     };
+
+    private static string GoodsName(GoodsKind kind) =>
+        System.Text.RegularExpressions.Regex.Replace(kind.ToString(), "(?<=.)([A-Z])", " $1").ToLowerInvariant();
 
     private string ChroniclePlace(Vector2 position) =>
         $"Sector {_sectors[Generation.PillarGenerator.SectorIndexAt(_space, _config.PillarLayout, position)].Name}";

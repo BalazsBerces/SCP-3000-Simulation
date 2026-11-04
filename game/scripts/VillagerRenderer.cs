@@ -32,7 +32,8 @@ public partial class VillagerRenderer : Node3D
     {
         _mesh = FurnitureModels.Product("villager", ModelYaw, Height, TriangleBudget);
         // Every Gear model is loaded while the Store loads: loading one when a Villager first picks it up stalls a frame.
-        foreach (var kind in Enum.GetValues<GearKind>())
+        // Pulleys and winches are Village Gear, drawn as hoist rigs (VillagerRenderer.Hauling.cs), never in a Villager's hand.
+        foreach (var kind in Enum.GetValues<GearKind>().Where(k => k is not (GearKind.Pulley or GearKind.Winch)))
             GearMesh(kind);
         var layer = new CanvasLayer();
         AddChild(layer);

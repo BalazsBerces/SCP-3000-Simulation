@@ -209,10 +209,14 @@ public sealed partial class Simulation
         var back = cargo;
         if (reached && !to.Fallen)
         {
-            var value = cargo.Goods.Sum(g => g.Value * Price(to, g.Key)) + cargo.Materials.Values.Sum() + cargo.Gear.Count * GearValue +
+            // Barter takes Goods only up to the Village's need; its currency it takes whatever the amount. The rest goes home.
+            var accepted = cargo.Goods.ToDictionary(g => g.Key, g => to.Currency == g.Key ? g.Value
+                : Math.Clamp(Need(to, g.Key) - to.Stores.GetValueOrDefault(g.Key), 0, g.Value));
+            var value = accepted.Sum(g => g.Value * TradeValue(to, g.Key)) + cargo.Materials.Values.Sum() + cargo.Gear.Count * GearValue +
                 cargo.Recipes.Count(r => !to.Recipes.Contains(r)) * RecipeValue +
                 (cargo.Map is { } m ? m.Goods.Count + m.Water.Count + m.Dangers.Count + m.Villages.Count : 0) * MapEntryValue;
-            foreach (var (kind, amount) in cargo.Goods) ChangeStores(to.Id, kind, amount);
+            foreach (var (kind, amount) in accepted.Where(g => g.Value > 0)) ChangeStores(to.Id, kind, amount);
+            var refused = cargo.Goods.Where(g => g.Value > accepted[g.Key]).ToDictionary(g => g.Key, g => g.Value - accepted[g.Key]);
             to = _villages[to.Id] with
             {
                 Materials = cargo.Materials.Aggregate(_villages[to.Id].Materials, (mats, p) => Plus(mats, p.Key, p.Value)),
@@ -229,7 +233,8 @@ public sealed partial class Simulation
                 ? Math.Min(to.Stores[kindPaid] - Need(to, kindPaid), (int)Math.Floor(value / Price(to, kindPaid))) : 0;
             if (paidAmount > 0) ChangeStores(to.Id, paid!.Value, -paidAmount);
             else paid = null;
-            back = new CaravanCargo { Goods = paid is { } p ? new ReadOnlyDictionary<GoodsKind, int>(new Dictionary<GoodsKind, int> { [p] = paidAmount }) : new CaravanCargo().Goods };
+            if (paid is { } p) refused[p] = paidAmount;
+            back = new CaravanCargo { Goods = new ReadOnlyDictionary<GoodsKind, int>(refused) };
             Emit(new CaravanTraded(clock, caravan.Id, caravan.FromVillageId, to.Id, value, paid, paidAmount));
         }
         var route = CaravanRoute(to.Position, _villages[caravan.FromVillageId].Position);

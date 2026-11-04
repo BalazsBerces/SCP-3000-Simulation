@@ -34,7 +34,8 @@ public class CaravanTests
         Assert.Equal(20, sim.Snapshot.Villages[a.Id].Stores[GoodsKind.TinnedFood]);
         Assert.Equal(caravan.Id, Assert.Single(sim.Snapshot.Caravans).Id);
         RunUntil(sim, () => events.OfType<CaravanTraded>().Any());
-        Assert.True(sim.Snapshot.Villages[b.Id].Stores[GoodsKind.TinnedFood] >= 10);
+        // Barter takes only what B needs (6 for three Villagers); the rest goes home.
+        Assert.True(sim.Snapshot.Villages[b.Id].Stores[GoodsKind.TinnedFood] >= 6);
         RunUntil(sim, () => events.OfType<CaravanReturned>().Any());
         Assert.Empty(sim.Snapshot.Caravans);
         Assert.True(sim.Snapshot.Villages[a.Id].Stores.GetValueOrDefault(GoodsKind.BottledWater) > 0);
