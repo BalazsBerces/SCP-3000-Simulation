@@ -122,6 +122,8 @@ Signatures every ticket ends up needing. Keep them current when you change one.
 - Views: `StoreOverview.cs` (F4 whole-Store view), `StoreVisibility.cs`, `WrapDebugOverlay.cs` (F3).
 - `DevCapture.BandNights.cs`: `--band-night-check=` (Bands hiding, barricading at Closing time).
 - `VillagerRenderer.Signals.cs`: Envoy flags, lamp-signal beams and Pillar marks (primitive glyphs).
+- `Simulation.Hauling.cs`: pulleys and winches (Village Gear; `HoistFactor` x2/x4 on what workers carry, `LiftersNeeded`), `Villagers.SetPace`; cart trains are `Caravan.Carts` (`Simulation.Caravans.cs`: load, pace, noise); `ScenarioBuilder.GiveVillageGear`; `HaulingTests`.
+- `VillagerRenderer.Hauling.cs`: hoist rigs at Villages and linked platform carts behind Caravans.
 - `VillagerRenderer.Devices.cs`: noise lures (boombox, music box models), alarms (tin cans on a string), pits. `DevCapture.Devices.cs`: `--device-check=`.
 - `VillagerRenderer.StaffRemains.cs`: Staff remains (the Staff mannequin lying, darkened). `DevCapture.StaffKills.cs`: `--staff-kill-check=` (fight, kill, remains captures).
 - Checks and tools: `DevCapture.cs` (command-line flags after `--`: `--capture=`, `--fps-report`, `--sandbox-check`, `--save-load-check`, `--model-check`, `--band-night-check`, ...; one `DevCapture.<Feature>.cs` per feature check), `Benchmark.cs`, `ModelCheck.cs`, `SilhouetteCheck.cs`, `CoarseColourCheck.cs`.

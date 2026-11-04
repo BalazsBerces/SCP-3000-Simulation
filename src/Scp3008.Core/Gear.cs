@@ -2,7 +2,7 @@ using System.Numerics;
 
 namespace Scp3008.Core;
 
-public enum GearKind { HexKey, Screwdriver, KitchenKnife, Scissors, CanvasBag, ShoppingCart, Flashlight, QuiltedArmour, Crowbar, TableLegClub, Candle, CardboardArmour, Bandage, LeatherBackpack, Saw, Spear, TabletopShield, PlatformCart, Lantern, HandCrankedGenerator, MetalArmour, Halberd }
+public enum GearKind { HexKey, Screwdriver, KitchenKnife, Scissors, CanvasBag, ShoppingCart, Flashlight, QuiltedArmour, Crowbar, TableLegClub, Candle, CardboardArmour, Bandage, LeatherBackpack, Saw, Spear, TabletopShield, PlatformCart, Lantern, HandCrankedGenerator, MetalArmour, Halberd, Pulley, Winch }
 public enum GearSlot { Hand, Bag, Armour }
 
 /// <summary>Found or carried Gear. Unclaimed Gear stays at its source Furniture until taken.</summary>

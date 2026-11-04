@@ -87,6 +87,7 @@ public partial class VillagerRenderer : Node3D
         ShowStaffRemains(space, focus);
         ShowDevices(space, focus);
         ShowSignals(space, focus);
+        ShowHauling(space, focus);
         var seen = new HashSet<int>();
         var bodies = Host.Snapshot.Bodies.ToDictionary(b => b.VillagerId);
         var fallenStaff = Host.Snapshot.Staff.Where(s => s.Fallen).Select(s => -s.Id - 1).ToHashSet();

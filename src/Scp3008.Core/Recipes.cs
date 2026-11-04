@@ -32,6 +32,8 @@ public static class Recipes
     {
         new(GearKind.MetalArmour, "Metal armour", MaterialKind.Metal, 6, GearKind.HexKey, Hours: 2, Workshop: WorkshopKind.Workbench, ExtraMaterial: MaterialKind.Fabric, ExtraAmount: 2),
         new(GearKind.Halberd, "Halberd", MaterialKind.Metal, 4, GearKind.Saw, Hours: 1.5, Workshop: WorkshopKind.Workbench, ExtraMaterial: MaterialKind.WoodPanel, ExtraAmount: 2),
+        new(GearKind.Pulley, "Pulley", MaterialKind.Metal, 3, GearKind.HexKey, Hours: 1, Workshop: WorkshopKind.Workbench, ExtraMaterial: MaterialKind.Fabric, ExtraAmount: 2),
+        new(GearKind.Winch, "Winch", MaterialKind.Metal, 5, GearKind.HexKey, Hours: 1.5, Workshop: WorkshopKind.Workbench, ExtraMaterial: MaterialKind.Fabric, ExtraAmount: 3),
     });
 
     /// <summary>The Recipes learned at a Workshop (by experiment or from assembly instructions): the middle and the late ones.</summary>

@@ -464,3 +464,11 @@ The saved, chronological account of major domain events, told in short stories f
 **Observer**:
 The person watching the simulation; they cannot intervene in the world.
 _Avoid_: Player, god, ruler
+
+**Hoist**:
+A pulley or winch (late workbench Gear) kept by a Village: with a pulley its workers carry and lift twice what they could, with a winch four times, so fewer Villagers lift a heavy piece onto a Tower or Pillar scaffold.
+_Avoid_: Crane, lift
+
+**Cart train**:
+Linked platform carts (up to four) behind a Caravan: it carries ten units per cart, but walks slower and is heard from further away.
+_Avoid_: Convoy

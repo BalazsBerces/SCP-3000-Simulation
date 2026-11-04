@@ -155,7 +155,7 @@ internal sealed partial class Villagers(StoreSpace space, Navigation navigation)
         var stride = (float)(Villager.WalkingSpeed * storeHours);
         foreach (var walker in _walkers)
         {
-            var left = stride * (walker.Hand?.Kind == GearKind.ShoppingCart ? 1.5f : 1) * (1 - Math.Clamp((float)(walker.CarriedAmount + walker.CarriedMaterials) / Capacity(walker), 0, 1) * 0.5f);
+            var left = stride * _pace.GetValueOrDefault(walker.Id, 1f) * (walker.Hand?.Kind == GearKind.ShoppingCart ? 1.5f : 1) * (1 - Math.Clamp((float)(walker.CarriedAmount + walker.CarriedMaterials) / Capacity(walker), 0, 1) * 0.5f);
             if (walker.ClimbWaypoints.Count > 0)
             {
                 AdvanceClimbing(walker, left * 0.5f);

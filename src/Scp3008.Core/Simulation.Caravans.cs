@@ -18,7 +18,14 @@ public sealed record CaravanCargo
 /// <param name="Returning">Whether it has traded and is carrying the payment home.</param>
 /// <param name="Position">Where its leader stands.</param>
 public sealed record Caravan(int Id, int FromVillageId, int ToVillageId, IReadOnlyList<int> VillagerIds, CaravanCargo Cargo,
-    IReadOnlyList<Vector2> Route, int Next, bool Returning, Vector2 Position);
+    IReadOnlyList<Vector2> Route, int Next, bool Returning, Vector2 Position)
+{
+    /// <summary>Platform carts linked in a train (1 is a single cart): it carries more, but walks slower and is heard from further.</summary>
+    public int Carts { get; init; } = 1;
+    [System.Text.Json.Serialization.JsonIgnore] public int LoadLimit => Simulation.CaravanLoadPerCart * Carts;
+    [System.Text.Json.Serialization.JsonIgnore] public float Pace => 1 / (1 + 0.35f * (Carts - 1));
+    [System.Text.Json.Serialization.JsonIgnore] public float NoiseRadius => Carts > 1 ? 12 * (Carts - 1) : 0;
+}
 
 public sealed record CaravanDeparted(StoreClock At, int CaravanId, int FromVillageId, int ToVillageId) : DomainEvent(At);
 /// <summary>A Caravan bartered at its destination; <see cref="Value"/> is what the cargo was worth there, paid in <see cref="Paid"/>.</summary>
@@ -32,8 +39,8 @@ public sealed partial class ScenarioBuilder
     /// <summary>Sends a Caravan of the Village's own Villagers with the cargo to another Village; the cargo leaves the stores at once.</summary>
     public Caravan SendCaravan(int fromVillageId, int toVillageId, IReadOnlyDictionary<GoodsKind, int>? goods = null,
         IReadOnlyDictionary<MaterialKind, int>? materials = null, IReadOnlyList<GearKind>? gear = null,
-        IReadOnlyList<GearKind>? recipes = null, float? shareMapWithin = null) =>
-        _simulation.SendCaravan(fromVillageId, toVillageId, goods, materials, gear, recipes, shareMapWithin);
+        IReadOnlyList<GearKind>? recipes = null, float? shareMapWithin = null, int carts = 1) =>
+        _simulation.SendCaravan(fromVillageId, toVillageId, goods, materials, gear, recipes, shareMapWithin, carts);
 }
 
 public sealed partial class Simulation
@@ -42,6 +49,7 @@ public sealed partial class Simulation
     private const int CaravanDispatchEvery = 500;
     private const float WaypointReach = 3, DestinationReach = 6, AmbushRange = 5, DeadZoneMargin = 4;
     private const int CaravanMembers = 2, CaravanLoadLimit = 10;
+    internal const int CaravanLoadPerCart = CaravanLoadLimit;
     private const double GearValue = 5, RecipeValue = 10, MapEntryValue = 0.5;
     private readonly List<Caravan> _caravans = [];
     private int _nextCaravanId;
@@ -64,7 +72,7 @@ public sealed partial class Simulation
     }
 
     internal Caravan SendCaravan(int fromId, int toId, IReadOnlyDictionary<GoodsKind, int>? goods, IReadOnlyDictionary<MaterialKind, int>? materials,
-        IReadOnlyList<GearKind>? gear, IReadOnlyList<GearKind>? recipes, float? shareMapWithin) => Publish(() =>
+        IReadOnlyList<GearKind>? gear, IReadOnlyList<GearKind>? recipes, float? shareMapWithin, int carts = 1) => Publish(() =>
     {
         if (fromId == toId || fromId < 0 || toId < 0 || fromId >= _villages.Count || toId >= _villages.Count)
             throw new ArgumentException("A Caravan goes between two different Villages.");
@@ -78,6 +86,8 @@ public sealed partial class Simulation
         materials ??= new Dictionary<MaterialKind, int>();
         gear ??= [];
         recipes ??= [];
+        if (carts is < 1 or > 4 || goods.Values.Sum() + materials.Values.Sum() > CaravanLoadPerCart * carts)
+            throw new ArgumentException("A Caravan carries at most 10 units per linked cart, in a train of one to four.");
         var carried = gear.Select(kind => from.Gear.FirstOrDefault(g => g.Kind == kind)).ToArray();
         if (goods.Any(g => g.Value <= 0 || from.Stores.GetValueOrDefault(g.Key) < g.Value) ||
             materials.Any(m => m.Value <= 0 || from.Materials.GetValueOrDefault(m.Key) < m.Value) ||
@@ -108,7 +118,7 @@ public sealed partial class Simulation
         };
         var route = CaravanRoute(from.Position, _villages[toId].Position);
         var caravan = new Caravan(_nextCaravanId++, fromId, toId, Array.AsReadOnly(members.Select(m => m.Id).ToArray()), cargo,
-            route, 0, false, members[0].Position);
+            route, 0, false, members[0].Position) { Carts = carts };
         _caravans.Add(caravan);
         foreach (var member in members) _villagers.Engage(member.Id, VillagerAction.Trading, route[0]);
         Emit(new CaravanDeparted(new StoreClock(_tick), caravan.Id, fromId, toId));
@@ -154,6 +164,9 @@ public sealed partial class Simulation
         {
             var members = caravan.VillagerIds.Where(id => _villagers.ViewOf(id) is not null).ToArray();
             if (members.Length == 0) { _caravans.Remove(caravan); continue; }
+            foreach (var id in members) _villagers.SetPace(id, caravan.Pace);
+            if (caravan.Carts > 1 && _tick % 20 == 2)
+                Emit(new NoiseEmitted(clock, _villagers.ViewOf(members[0])!.Position, caravan.NoiseRadius, -1));
             var leader = _villagers.ViewOf(members[0])!;
             var here = caravan with { VillagerIds = Array.AsReadOnly(members), Position = leader.Position };
             if (members.Any(id => hostile.Any(s => _space.Distance(s.Position, _villagers.ViewOf(id)!.Position) <= AmbushRange)))
@@ -162,6 +175,7 @@ public sealed partial class Simulation
                 Emit(new CaravanAmbushed(clock, caravan.Id, caravan.FromVillageId, caravan.ToVillageId, leader.Position));
                 foreach (var id in members)
                 {
+                    _villagers.SetPace(id, 1);
                     HitVillager(id);
                     if (_villagers.ViewOf(id) is null) continue;
                     _villagers.Release(id, VillagerAction.Trading);
@@ -235,7 +249,7 @@ public sealed partial class Simulation
             Materials = cargo.Materials.Aggregate(home.Materials, (m, p) => Plus(m, p.Key, p.Value)),
             Gear = Array.AsReadOnly(home.Gear.Concat(cargo.Gear).ToArray()),
         };
-        foreach (var id in caravan.VillagerIds) _villagers.Release(id, VillagerAction.Trading);
+        foreach (var id in caravan.VillagerIds) { _villagers.SetPace(id, 1); _villagers.Release(id, VillagerAction.Trading); }
         Emit(new CaravanReturned(clock, caravan.Id, home.Id));
     }
 
