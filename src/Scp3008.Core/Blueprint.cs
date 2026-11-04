@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 
 namespace Scp3008.Core;
 
-public enum Personality { Cautious, Builders, Bold }
+public enum Personality { Cautious, Builders, Bold, Traders, Isolationists, Raiders }
 public enum WallOutline { Round, Square, Freeform }
 public enum WallRun { Straight, Corner, Curved }
 

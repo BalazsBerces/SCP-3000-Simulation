@@ -22,6 +22,10 @@ public sealed record Village(int Id, Vector2 Position, IReadOnlyList<int> Villag
     public IReadOnlyList<Outpost> Outposts { get; init; } = [];
     public IReadOnlyList<Workshop> Workshops { get; init; } = [];
     public Personality Personality { get; init; } = Personality.Cautious;
+    /// <summary>The type of Department it stands in; it gives the Village its flavour.</summary>
+    public DepartmentType Department { get; init; }
+    /// <summary>Ticks of unbroken famine; a long one turns the Personality toward raiding.</summary>
+    public int FamineTicks { get; init; }
     /// <summary>Home wall rings and Outpost barricades; Outposts identify their own WallIndex.</summary>
     public IReadOnlyList<Blueprint> Walls { get; init; } = [];
     /// <summary>Towers, Gatehouses and the Keep, planned with the curtain walls.</summary>

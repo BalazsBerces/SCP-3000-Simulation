@@ -31,7 +31,7 @@ public sealed partial class Simulation
 
     internal static BandStrategy StrategyFor(Personality personality) => personality switch
     {
-        Personality.Bold => BandStrategy.MoveOn,
+        Personality.Bold or Personality.Raiders => BandStrategy.MoveOn,
         Personality.Builders => BandStrategy.Barricade,
         _ => BandStrategy.Hide,
     };
@@ -174,5 +174,5 @@ public sealed partial class Simulation
     /// ones risk it, and so do desperate ones, which the Staff have already struck (a member lies Wounded).
     /// </summary>
     private bool RisksNoisyWork(Village village) =>
-        village.Personality == Personality.Bold || village.VillagerIds.Any(_wounds.ContainsKey);
+        village.Personality is Personality.Bold or Personality.Raiders || village.VillagerIds.Any(_wounds.ContainsKey);
 }

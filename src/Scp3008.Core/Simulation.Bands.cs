@@ -37,7 +37,7 @@ public sealed partial class Simulation
                 !village.Outposts.Any(o => !o.Abandoned && o.VillagerIds.Contains(v.Id))).ToArray();
             // Farmers with Crops to tend grow food, so a shortage leaves them farming (ticket 17f).
             var crops = HasCrops(village);
-            if (crops && members.Length >= 2 && !members.Any(v => v.Role == Role.Farmer) &&
+            if (crops && members.Length >= 2 && members.Count(v => v.Role == Role.Farmer) < WantedFarmers(village, members.Length) &&
                 homeScavengers.LastOrDefault(v => v.FurnitureTaskId is null && !v.Crafting &&
                     v.CarriedAmount + v.CarriedMaterials == 0 && v.Hand is null) is { } farmer)
             {
@@ -142,7 +142,7 @@ public sealed partial class Simulation
                 continue;
             }
             var village = new Village(_villages.Count, position, updated.VillagerIds)
-                { KnownMap = known, Recipes = updated.Recipes, Personality = updated.Personality };
+                { KnownMap = known, Recipes = updated.Recipes, Personality = updated.Personality, Department = _departments.At(position).Type };
             _villages.Add(village);
             _bands.Remove(updated);
             _villagers.JoinVillage(village);

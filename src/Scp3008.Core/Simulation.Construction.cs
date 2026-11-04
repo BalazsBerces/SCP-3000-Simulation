@@ -269,7 +269,7 @@ public sealed partial class Simulation
         var ids = slots.SelectMany(s => new[] { s.FurnitureId, s.ReservedFurnitureId }).OfType<int>().ToArray();
         if (ids.Distinct().Count() != ids.Length || _bands.Any(b => !Enum.IsDefined(b.Personality) || !Enum.IsDefined(b.Strategy) ||
                 b.NextStrategy is { } next && !Enum.IsDefined(next) || b.Barricade.Any(id => !HasPiece(id))) ||
-            _villages.Any(v => !Enum.IsDefined(v.Personality) || v.Walls.Any(w => !Enum.IsDefined(w.Outline) ||
+            _villages.Any(v => !Enum.IsDefined(v.Personality) || !Enum.IsDefined(v.Department) || v.FamineTicks < 0 || v.Walls.Any(w => !Enum.IsDefined(w.Outline) ||
                 w.Population <= 0 || w.Vertices.Count < 4 || w.Vertices[0] != w.Vertices[^1] ||
                 w.Vertices.Any(p => !Finite(p)) || !Finite(w.GateStart) || !Finite(w.GateEnd) || w.Slots.Count == 0 ||
                 w.IncorporatedFurnitureId is { } f && !HasPiece(f) ||

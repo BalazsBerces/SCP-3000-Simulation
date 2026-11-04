@@ -117,7 +117,7 @@ public sealed partial class Simulation
                     // Put the bulb beside the hand, outside the figure's shadow-casting torso.
                     var offset = new Vector2(MathF.Sin(person.Heading), -MathF.Cos(person.Heading)) * 0.5f +
                         new Vector2(MathF.Cos(person.Heading), MathF.Sin(person.Heading)) * 0.1f;
-                    areas.Add(Area(-person.Id - 1, _space.Wrap(person.Position + offset), person.Elevation + 1, candle ? 4 : 10, candle ? 0.3f : 1));
+                    areas.Add(Area(-person.Id - 1, _space.Wrap(person.Position + offset), person.Elevation + 1, (candle ? 4 : 10) * Glow(person.Position), candle ? 0.3f : 1));
                 }
             }
         ref var last = ref local ? ref _lastLocalAreas : ref _lastAreas;
@@ -138,7 +138,7 @@ public sealed partial class Simulation
                 _groundUnder[lamp.Position] = ground = world.GroundAt(lamp.Position);
             // Both callers' worlds carry the live Lamp power.
             var brightness = world.LampLevel(lamp, timeOfDay, _lampPower.GetValueOrDefault(lamp.Id), ground);
-            if (brightness > 0) areas.Add(Area(lamp.Id, lamp.Position, lamp.Elevation + 1, FurnitureCatalog.Spec(lamp).LightRadius, brightness));
+            if (brightness > 0) areas.Add(Area(lamp.Id, lamp.Position, lamp.Elevation + 1, FurnitureCatalog.Spec(lamp).LightRadius * Glow(lamp.Position), brightness));
         }
     }
 

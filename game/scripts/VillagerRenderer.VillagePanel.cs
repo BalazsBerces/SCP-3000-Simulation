@@ -126,7 +126,7 @@ public partial class VillagerRenderer
             $"{w.Outline}: {w.Slots.Count(s => s.FurnitureId is not null)}/{w.Slots.Count} pieces"));
         // shortcut: history identifies Villages by their numbered names; use event references when names become editable.
         var history = world.Chronicle.Where(line => System.Text.RegularExpressions.Regex.IsMatch(line, $@"\bVillage {selected}\b"));
-        _villageInfo.Text = $"Village {selected} | Sector {world.SectorAt(current.Position).Name}\n\n" +
+        _villageInfo.Text = $"Village {selected} | Sector {world.SectorAt(current.Position).Name}\nPersonality: {current.Personality} | {current.Department}\n\n" +
             $"Dwellings\n{DwellingText(current)}\n\nMess hall\n{messHall}\n\nPopulation: {members.Length}\n\nOutposts\n{outposts}\n\n" + string.Join("\n", members.Select(v => $"{v.Name} — {v.Role}")) +
             $"\n\nStores\n{stores}\n\nStorage\n{StorageText(current)}\n\nMaterials\n{materials}\n\nWorkshops\n{workshops}\n\nRecipes\n{recipes}\n\nSkills\n{skills}\n\nGear\n{gear}\n\nWall condition: {wall}\n\nCastle\n{CastleText(current)}\n\nBeliefs: —\nRelations: —\n\nHistory\n" +
             string.Join("\n\n", history);

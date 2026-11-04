@@ -28,6 +28,8 @@ public sealed partial class Simulation
     private static readonly TimeSpan BlowEvery = TimeSpan.FromMinutes(3);
     // A Staff a Guard holds off strikes the Guard instead of the wall, one cycle in this many.
     private const int GuardHitEvery = 4;
+    // Bedroom Villages (Showrooms) hold the line badly: their Guards are struck this often.
+    private const int WeakGuardHitEvery = 2;
 
     /// <summary>The piece a Siege strikes next; Ring is -1 for a Keep piece.</summary>
     private readonly record struct SiegeTarget(int FurnitureId, int Ring, int Slot, bool Strapped, bool Backfilled);
@@ -126,7 +128,7 @@ public sealed partial class Simulation
             return true;
         }
         var held = Math.Min(guards.Count, inReach.Count);
-        if (blows % GuardHitEvery == 0)
+        if (blows % (village.Department == DepartmentType.Showrooms ? WeakGuardHitEvery : GuardHitEvery) == 0)
             foreach (var guard in guards.Take(held)) HitVillager(guard);
         for (var n = held; n < inReach.Count; n++)
         {

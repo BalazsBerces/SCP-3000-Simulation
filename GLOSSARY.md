@@ -309,7 +309,7 @@ A message a Village gives without sending anyone: lamp signals from a tower at C
 _Avoid_: Beacon, sign
 
 **Personality**:
-The collective temperament of a Band or Village (cautious, bold, builders; peaceful traders, isolationists, raiders…). A Band's comes from its members and shapes how it survives Closing time (hiding, moving on or barricading); a Village inherits its founding Band's, shaped by its Department, and it drifts with events.
+The collective temperament of a Band or Village (cautious, bold, builders; peaceful traders, isolationists, raiders…). A Band's comes from its members and shapes how it survives Closing time (hiding, moving on or barricading); a Village inherits its founding Band's, shaped by its Department, and it drifts with events: a prolonged famine turns it toward raiding (the Personalities are cautious, builders, bold, traders, isolationists and raiders). A Village also has **Department flavour**, from the Department it stands in: Bathrooms & kitchens cook better (a cook stretches food further), Lighting & electrical glow (lamps and held lights reach further), Showrooms (the bedrooms) have high morale but weak defence, the Self-serve warehouse is Material-rich, the Plant section puts half its people to farming Crops and the Restaurant is a trade hub that gains food while other Villages stand.
 _Avoid_: Culture, alignment, faction type
 
 **Raid**:

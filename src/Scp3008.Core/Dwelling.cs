@@ -15,7 +15,7 @@ public sealed record Dwelling(int Id, DwellingKind Kind, Vector2 Position, IRead
     [JsonIgnore] public int SleepingPlaces => Complete ? 2 : 0;
     public static DwellingSharing Sharing(Personality personality) => personality switch
     {
-        Personality.Bold => DwellingSharing.Personal,
+        Personality.Bold or Personality.Raiders => DwellingSharing.Personal,
         Personality.Builders => DwellingSharing.Family,
         _ => DwellingSharing.Communal,
     };

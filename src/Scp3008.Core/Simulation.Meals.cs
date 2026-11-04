@@ -41,8 +41,9 @@ public sealed partial class Simulation
             var cooked = diners.Any(v => v.Role == Role.Cook);
             var food = village.Stores.Where(g => GoodsCatalog.ClassOf(g.Key) == GoodsClass.Food && g.Value > 0).ToArray();
             var available = food.Sum(g => g.Value);
-            var fed = diners.Take(Math.Min(diners.Length, available * (cooked ? 2 : 1))).ToArray();
-            var used = (fed.Length + (cooked ? 1 : 0)) / (cooked ? 2 : 1);
+            var stretch = !cooked ? 1 : village.Department == DepartmentType.BathroomsAndKitchens ? 3 : 2;
+            var fed = diners.Take(Math.Min(diners.Length, available * stretch)).ToArray();
+            var used = (fed.Length + stretch - 1) / stretch;
             var remaining = used;
             foreach (var goods in food)
             {

@@ -264,6 +264,7 @@ public sealed partial class Simulation
             _bands.Any(b => b.VillagerIds.Intersect(ids).Any()))
             throw new ArgumentException("A Village needs distinct, unclaimed Villagers and a finite position.");
         var village = new Village(_villages.Count, _space.Wrap(position), Array.AsReadOnly(ids.ToArray())) { Personality = personality };
+        village = village with { Department = _departments.At(village.Position).Type };
         _villages.Add(village);
         _villagers.JoinVillage(village);
         return village;

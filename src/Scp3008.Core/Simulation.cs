@@ -358,6 +358,7 @@ public sealed partial class Simulation : IDisposable
         AdvanceRestock();
         AdvanceArrivals(clock);
         AdvanceVillages(clock);
+        AdvanceFlavour(clock);
         AdvanceOutposts(clock);
         _villagers.AdvanceGear(StoreClock.TickDuration.TotalHours, clock, ReloadFlashlight);
         AdvancePower(clock);

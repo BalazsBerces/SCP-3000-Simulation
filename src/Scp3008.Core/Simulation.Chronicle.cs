@@ -107,6 +107,9 @@ public sealed partial class Simulation
                     _ => $"When the lights went out over {nightPlace}, Band {night.BandId} {how}.",
                 };
                 break;
+            case PersonalityChanged shifted:
+                story = $"Hunger changed Village {shifted.VillageId} in {ChroniclePlace(_villages[shifted.VillageId].Position)}: once {shifted.From.ToString().ToLowerInvariant()}, its people now turned to {shifted.To.ToString().ToLowerInvariant()}.";
+                break;
             case SiegeBegan siege:
                 var besieged = ChroniclePlace(_villages[siege.VillageId].Position);
                 story = (_chronicle.Count % 2) switch
