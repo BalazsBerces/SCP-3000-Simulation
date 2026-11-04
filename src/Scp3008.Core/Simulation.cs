@@ -360,6 +360,7 @@ public sealed partial class Simulation : IDisposable
         AdvanceVillages(clock);
         AdvanceFlavour(clock);
         AdvanceOutposts(clock);
+        AdvanceCaravans(clock);
         _villagers.AdvanceGear(StoreClock.TickDuration.TotalHours, clock, ReloadFlashlight);
         AdvancePower(clock);
         AdvanceFridges(clock);
@@ -693,6 +694,7 @@ public sealed partial class Simulation : IDisposable
             Staff = StaffSnapshot(),
             Wounds = _wounds.Values.ToList().AsReadOnly(),
             Hordes = HordeSnapshot(),
+            Caravans = _caravans.ToArray(),
             StaffRemains = RemainsSnapshot(),
             StaffFights = FightSnapshot(),
             Devices = DeviceSnapshot(),

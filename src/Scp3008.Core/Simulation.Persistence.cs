@@ -6,7 +6,7 @@ namespace Scp3008.Core;
 
 public sealed partial class Simulation
 {
-    private const int SaveVersion = 26;
+    private const int SaveVersion = 27;
     private static readonly JsonSerializerOptions SaveJson = CreateSaveJson();
 
     private sealed record SaveFile(int Version, SaveState State);
@@ -124,6 +124,7 @@ public sealed partial class Simulation
         RestoreFurnitureTasks(s.FurnitureTasks, s.Villages);
         _bands.AddRange(s.Bands);
         _villages.AddRange(s.Villages);
+        RestoreCaravans(s.Caravans, s.Villages);
         if (s.LampPower.Select(p => p.FurnitureId).Distinct().Count() != s.LampPower.Count ||
             s.LampPower.Any(p => !s.Furniture.Any(f => f.Id == p.FurnitureId && FurnitureCatalog.Spec(f).IsLamp) ||
                 !double.IsFinite(p.BatteryHours) || p.BatteryHours < 0 || p.BatteryHours > 4))
@@ -151,8 +152,8 @@ public sealed partial class Simulation
         ValidateOutposts();
         RestoreCrops(s);
         _chronicle.AddRange(s.Chronicle);
-        foreach (var gear in s.Gear.Concat(s.Villages.SelectMany(v => v.Gear)).Concat(state.GearSources)) gear.Validate();
-        var liveGear = s.Gear.Concat(s.Villages.SelectMany(v => v.Gear)).Concat(s.Villagers.SelectMany(v => new[] { v.Hand, v.Bag, v.Armour }).OfType<Gear>()).ToArray();
+        foreach (var gear in s.Gear.Concat(s.Villages.SelectMany(v => v.Gear)).Concat(s.Caravans.SelectMany(c => c.Cargo.Gear)).Concat(state.GearSources)) gear.Validate();
+        var liveGear = s.Gear.Concat(s.Villages.SelectMany(v => v.Gear)).Concat(s.Caravans.SelectMany(c => c.Cargo.Gear)).Concat(s.Villagers.SelectMany(v => new[] { v.Hand, v.Bag, v.Armour }).OfType<Gear>()).ToArray();
         if (liveGear.Select(g => g.Id).Distinct().Count() != liveGear.Length || state.NextGearId < 0 ||
             liveGear.Concat(state.GearSources).Any(g => g.Id >= state.NextGearId))
             throw new InvalidDataException("Invalid world save: inconsistent Gear ids.");

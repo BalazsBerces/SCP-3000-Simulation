@@ -49,6 +49,13 @@ public sealed partial class Simulation
             case OutpostAbandoned abandonedPost:
                 story = $"Village {abandonedPost.VillageId} abandoned Outpost {abandonedPost.OutpostId}; its forward barricade fell quiet.";
                 break;
+            case CaravanTraded traded:
+                story = $"A Caravan from Village {traded.FromVillageId} bartered in Village {traded.ToVillageId}, carrying goods worth {traded.Value:0.#}" +
+                    (traded.Paid is { } paid ? $" and coming home with {traded.PaidAmount} {paid}." : " and coming home empty-handed.");
+                break;
+            case CaravanAmbushed ambushed:
+                story = $"The Staff ambushed a Caravan of Village {ambushed.FromVillageId} bound for Village {ambushed.ToVillageId} in {ChroniclePlace(ambushed.Position)}; its cargo was lost.";
+                break;
             case FridgeBroughtHome fridge:
                 story = $"Village {fridge.VillageId} brought a Fridge home to keep its food while powered.";
                 break;

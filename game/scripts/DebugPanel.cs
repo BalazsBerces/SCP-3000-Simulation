@@ -99,6 +99,13 @@ public partial class DebugPanel : Node
                 Rig.Follow(villager.Id);
         };
         column.AddChild(follow);
+        var followCaravan = new Button { Text = "Follow Caravan", FocusMode = Control.FocusModeEnum.None };
+        followCaravan.Pressed += () =>
+        {
+            if (Host.Snapshot.Caravans.FirstOrDefault() is { } caravan)
+                Rig.Follow(caravan.VillagerIds[0]);
+        };
+        column.AddChild(followCaravan);
         column.AddChild(new Label { Text = "F7: place | F8: walk to focus\nF9: +1 Store hour | .: step | 6: 60x" });
         var status = new Label();
         _sandboxStatus = status;

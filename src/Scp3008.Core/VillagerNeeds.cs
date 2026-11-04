@@ -68,7 +68,7 @@ internal sealed partial class Villagers
                 emit(new VillagerDied(world.Clock, body));
                 continue;
             }
-            if (walker.FurnitureTaskId is not null || walker.Crafting || walker.Action is VillagerAction.Cranking or VillagerAction.Fighting or VillagerAction.HaulingRemains or VillagerAction.StandingGuard) continue;
+            if (walker.FurnitureTaskId is not null || walker.Crafting || walker.Action is VillagerAction.Cranking or VillagerAction.Fighting or VillagerAction.HaulingRemains or VillagerAction.StandingGuard or VillagerAction.Trading) continue;
             walker.NextDecision -= hours;
             if (walker.NextDecision > 0)
                 continue;
