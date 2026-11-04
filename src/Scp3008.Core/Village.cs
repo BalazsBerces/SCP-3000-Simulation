@@ -30,6 +30,8 @@ public sealed record Village(int Id, Vector2 Position, IReadOnlyList<int> Villag
     public IReadOnlyList<Moat> Moats { get; init; } = [];
     /// <summary>The arms on the Village's banners, chosen from local fabrics when its first wall is planned.</summary>
     public Heraldry? Heraldry { get; init; }
+    /// <summary>Where the Village believes the Hordes come from; it shapes where it sets its alarms, traps and lures.</summary>
+    public Belief? HordeBelief { get; init; }
     public IReadOnlyDictionary<MaterialKind, int> Materials { get; init; } =
         new System.Collections.ObjectModel.ReadOnlyDictionary<MaterialKind, int>(new Dictionary<MaterialKind, int>());
     public IReadOnlyList<GearKind> Recipes { get; init; } = Array.AsReadOnly(Core.Recipes.Basic.Select(r => r.Gear).ToArray());

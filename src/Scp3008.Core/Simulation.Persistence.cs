@@ -6,7 +6,7 @@ namespace Scp3008.Core;
 
 public sealed partial class Simulation
 {
-    private const int SaveVersion = 24;
+    private const int SaveVersion = 25;
     private static readonly JsonSerializerOptions SaveJson = CreateSaveJson();
 
     private sealed record SaveFile(int Version, SaveState State);
@@ -170,10 +170,13 @@ public sealed partial class Simulation
         _staffNight = state.StaffNight;
         _lastHordeNight = state.LastHordeNight;
         RestoreStaffKills(s);
+        RestoreDevices(s);
         _nextBandId = state.NextBandId;
         // Saves from before Restock kept to the Cafeterias and the Camping ground lose what it no longer looks after.
         foreach (var piece in state.RestockOrigins.Where(Restocked)) _restockOrigins.Add(piece.Id, piece);
         _missingFurniture.AddRange(state.MissingFurniture.Where(m => Restocked(m.Piece)));
+        if (state.DisplacedFurniture.Select(p => p.Id).Distinct().Count() != state.DisplacedFurniture.Length)
+            throw new InvalidDataException("Invalid world save: displaced Furniture repeats a piece.");
         foreach (var piece in state.DisplacedFurniture) _displaced.Add(piece.Id, piece);
         _nextFurnitureId = state.NextFurnitureId;
         _restockHours = state.RestockHours;

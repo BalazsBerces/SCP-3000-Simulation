@@ -73,6 +73,7 @@ namespace Scp3008.Game;
 /// Mess hall check: --villager-sandbox --sandbox-preset=empty --pause --meal-check=directory verifies and captures shared meals.
 /// Restock check: --villager-sandbox --sandbox-preset=empty --pause --restock-check=directory captures and checks refill and return.
 /// Staff kill check: --villager-sandbox --sandbox-preset=empty --pause --staff-kill-check=directory captures a fight, the kill and Staff remains.
+/// Device check: --villager-sandbox --sandbox-preset=empty --pause --device-check=directory captures noise lures, an alarm, a pit and a Furniture trap sprung.
 /// Dwelling check: --villager-sandbox --sandbox-preset=empty --pause --dwelling-check=directory verifies and captures sleeping places.
 /// </summary>
 public partial class DevCapture : Node
@@ -247,6 +248,12 @@ public partial class DevCapture : Node
             {
                 SetProcess(false);
                 CheckSaveLoad(arg["--save-load-check=".Length..]);
+                return;
+            }
+            if (arg.StartsWith("--device-check="))
+            {
+                SetProcess(false);
+                CheckDevices(arg["--device-check=".Length..]);
                 return;
             }
             if (arg.StartsWith("--staff-kill-check="))

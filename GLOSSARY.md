@@ -238,7 +238,7 @@ _Avoid_: Haze, distance fog
 
 **Closing announcement**:
 The PA message ("The Store is now closing.") from the speakers on every Pillar that warns of Closing time.
-_Avoid_: Alarm, siren
+_Avoid_: Siren, alarm (an **Alarm** is a Village's tin-can trip wire)
 
 **Closing time**:
 The dark phase of the day cycle when the Store lights go out and the Staff turn hostile; it runs from 22:00 until the Store reopens at 08:00 (about 40% of a Store day). The rest of the day the Store is **open**.
@@ -408,8 +408,21 @@ The body a killed Staff leaves behind. After a few hours it starts drawing other
 _Avoid_: Corpse, carcass
 
 **Belief**:
-A single claim a Band or Village holds about the Store's hidden rules (how the Staff behave, Limbo, Restock, the clock wall), with a confidence; it may be false. A Village's knowledge of the Store is the set of its Beliefs.
+A single claim a Band or Village holds about the Store's hidden rules (how the Staff behave, Limbo, Restock, the clock wall), with a confidence; it may be false. A Village's knowledge of the Store is the set of its Beliefs. Its **Horde Belief** (where the Hordes come from: first the nearest Ball pit, then the side its last Siege came from) decides where it sets its Devices.
 _Avoid_: Fact, knowledge point, intel
+
+**Device**:
+A noise lure, alarm or trap a Village with late know-how (a late Recipe) sets against the Hordes during the open Store, more of them with every Horde night so far.
+_Avoid_: Contraption, gadget
+
+**Noise lure**:
+A wind-up music box or a radio a Village sets far off to the side; set off (at the start of a Horde night, or by an alarm) it plays for an hour and draws the Hordes it reaches away, and a Horde on its way to one does not besiege.
+
+**Alarm**:
+A tin-can trip wire on the side the Village believes the Hordes come from: a Staff walking into it wakes the Village's Guards (otherwise they rise only when the Siege begins) and sets off its noise lures. Not the Closing announcement.
+
+**Trap**:
+A **Furniture trap** (a stack propped up on a flat-pack box; a Staff walking into it pulls the prop out and the stack falls on it under the stability rules, hurting and pinning it down) or a **pit** (holds a Staff for a while). Staff remains a Village hauls away are left on its trap as **bait**, so the Horde they draw walks into it. A trap hurts but never kills a Staff.
 
 **Tidying**:
 Staff carrying displaced Furniture back to its original place at Closing time. Furniture built into a Village structure or lying behind a Village's walls is never Tidied; loose pieces, a Band's quick barricade and an unbarricaded Furniture yard outside the walls are.

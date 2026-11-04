@@ -77,12 +77,15 @@ public sealed partial class Simulation
         if (Calm) return false;
         if (horde.SiegeVillageId < 0)
         {
+            if (Lured(horde)) return false;
             var lead = acting[0].Position;
             if (_villages.FirstOrDefault(v => Fortified(v) && _space.Distance(lead, v.Position) <= SiegeRange) is not { } found) return false;
             foreach (var s in acting) _staff.Stop(s.Id);
             horde = _hordes[i] = horde with { SiegeVillageId = found.Id, ChaseId = -1, Source = null, SearchUntil = 0,
                 NextBlow = clock.Tick + StoreClock.TicksFor(BlowEvery) };
             Emit(new SiegeBegan(clock, found.Id, horde.Id));
+            LearnHordeSide(found.Id, lead);
+            WakeGuards(found.Id, clock);
         }
         var village = _villages[horde.SiegeVillageId];
         if (village.Fallen || village.VillagerIds.Count == 0)
@@ -152,6 +155,9 @@ public sealed partial class Simulation
             Outposts = Array.AsReadOnly(village.Outposts.Select(o => o with { VillagerIds = [], Abandoned = true }).ToArray()),
         };
         _villagers.LeaveVillage(survivors);
+        // Its Guards stop standing guard over it.
+        foreach (var id in survivors)
+            if (_villagers.ViewOf(id)?.Action == VillagerAction.StandingGuard) _villagers.Release(id, VillagerAction.StandingGuard);
         int? bandId = null;
         if (survivors.Length > 0)
         {

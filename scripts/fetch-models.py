@@ -112,6 +112,8 @@ MODELS = [
 
 # Goods on Stock Furniture shelves (ticket 08r): one model per Goods kind, copied along the shelves.
 GOODS_MODELS = [
+    ("lure_radio", "polyhaven", "boombox", "Boombox", "Noise lure: radio"),
+    ("lure_music_box", "sketchfab", "d93e0f676d9d41c1a7e33930befc366f", "Music Box Prop", "Noise lure: wind-up music box"),
     ("goods_tinned_food", "polyhaven", "long_life_food", "Long Life Food: tin of tomatoes", "Tinned food"),
     ("goods_fresh_food", "polyhaven", "long_life_food", "Long Life Food: milk carton", "Fresh food"),
     ("goods_dry_food", "polyhaven", "russian_food_cans_01", "Russian Food Cans 01: salt box", "Dry food"),

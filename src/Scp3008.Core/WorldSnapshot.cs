@@ -79,6 +79,8 @@ public sealed record WorldSnapshot(
     public IReadOnlyList<StaffRemains> StaffRemains { get; init; } = [];
     /// <summary>The fights going on between Villagers and a Staff.</summary>
     public IReadOnlyList<StaffFight> StaffFights { get; init; } = [];
+    /// <summary>The Villages' noise lures, alarms and traps.</summary>
+    public IReadOnlyList<Device> Devices { get; init; } = [];
     public IReadOnlyList<LampPower> LampPower { get; init; } = [];
     public IReadOnlyList<FridgePower> FridgePower { get; init; } = [];
     public IReadOnlyList<LitArea> LitAreas { get; init; } = [];

@@ -91,6 +91,8 @@ Fitted into the hot food counter wells and dessert counter shelves (ticket 08n).
 
 Copied along the shelves of Stock Furniture, as many as the shelf's stock (ticket 08r).
 
+- Noise lure: radio: [Boombox](https://polyhaven.com/a/boombox) by Thomas Paul Mouilleron, Poly Haven, CC0 (`models/lure_radio`)
+- Noise lure: wind-up music box: [Music Box Prop](https://sketchfab.com/3d-models/music-box-prop-d93e0f676d9d41c1a7e33930befc366f) by Nabbakadnashr, Sketchfab, CC-BY ([CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)) (`models/lure_music_box`)
 - Tinned food: [Long Life Food: tin of tomatoes](https://polyhaven.com/a/long_life_food) by Mia Pecina Zorko, Poly Haven, CC0 (`models/goods_tinned_food`)
 - Fresh food: [Long Life Food: milk carton](https://polyhaven.com/a/long_life_food) by Mia Pecina Zorko, Poly Haven, CC0 (`models/goods_fresh_food`)
 - Dry food: [Russian Food Cans 01: salt box](https://polyhaven.com/a/russian_food_cans_01) by Kosan Aziz, Poly Haven, CC0 (`models/goods_dry_food`)

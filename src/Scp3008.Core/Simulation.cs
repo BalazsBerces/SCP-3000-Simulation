@@ -386,6 +386,7 @@ public sealed partial class Simulation : IDisposable
         AdvanceFights(clock);
         AdvanceStaff(clock);
         AdvanceRemains(clock);
+        AdvanceDevices(clock);
         AdvanceTidying(clock);
         AdvanceWounds();
         // Kept up with every tick, it catches up by a few changes instead of starting over once the Furniture list no
@@ -693,6 +694,7 @@ public sealed partial class Simulation : IDisposable
             Hordes = HordeSnapshot(),
             StaffRemains = RemainsSnapshot(),
             StaffFights = FightSnapshot(),
+            Devices = DeviceSnapshot(),
         };
 
     private sealed class Subscription(Simulation owner, Action<DomainEvent> handler) : IDisposable

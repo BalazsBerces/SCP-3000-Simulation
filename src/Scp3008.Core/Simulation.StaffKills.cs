@@ -270,7 +270,8 @@ public sealed partial class Simulation
         var direction = away.LengthSquared() > 0.01f ? Vector2.Normalize(away) : Vector2.UnitX;
         // Never farther than half the Store across, or the wrap brings them back round to the Village.
         var distance = Math.Min(HaulDistance, _space.Size / 2 - 4);
-        var haulTo = _navigation.NearestWalkable(_space.Wrap(village.Position + direction * distance));
+        // A Village with a trap leaves them on it as bait.
+        var haulTo = BaitTrap(village, remains.Position)?.Position ?? _navigation.NearestWalkable(_space.Wrap(village.Position + direction * distance));
         _villagers.Engage(carrier.Id, VillagerAction.HaulingRemains, remains.Position);
         return remains with { CarrierId = carrier.Id, HaulTo = haulTo };
     }

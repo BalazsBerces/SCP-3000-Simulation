@@ -80,6 +80,8 @@ public sealed partial class Simulation
                 _staffStates[staff.Id] = new(horde.Id, 1f, 0);
             }
         }
+        // The Villages hear them coming and set off their noise lures.
+        foreach (var village in besieged) SetOffLures(village.Id, clock);
         Emit(new HordeNightBegan(clock, night, besieged.Count == 0 ? 0 : size, Array.AsReadOnly(besieged.Select(v => v.Id).ToArray())));
     }
 

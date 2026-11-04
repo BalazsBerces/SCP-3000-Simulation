@@ -32,6 +32,8 @@ public sealed partial class Simulation
     private const int ResidentsPerExtraStaff = 4;
     // Footprint paths reach a few hundred metres at most, so a Staff crosses the Store in legs this long.
     private const float StaffLeg = 80f;
+    // How long a Horde with a member that found no way waits before it tries again.
+    private static readonly TimeSpan StuckRetry = TimeSpan.FromMinutes(10);
     private static readonly TimeSpan FallenFor = TimeSpan.FromMinutes(10);
 
     // Hearing and sight (tuning). Noise radii are what a Villager nearby would hear; the Staff hear it much farther.
@@ -113,7 +115,9 @@ public sealed partial class Simulation
                 else if (staff.Destination is not null) _staff.Stop(id);
             }
             if (acting.Count == 0) continue;
+            if (closing && SpringDevices(acting, clock)) continue;
             if (closing && CarryOffRemains(i, acting, clock)) continue;
+            _hordes[i] = DrawToLures(_hordes[i], acting, clock);
             if (Besiege(i, acting, clock)) continue;
             horde = _hordes[i];
             horde = _hordes[i] = Hear(horde, acting);
@@ -151,14 +155,18 @@ public sealed partial class Simulation
                 continue;
             }
             var target = horde.Route[horde.Next];
-            var arriving = true;
+            var sentAllTheWay = new bool[acting.Count];
             for (var n = 0; n < acting.Count; n++)
-                arriving &= SendStaff(acting[n].Id, _space.Wrap(target + HordeOffset(n)), clock);
-            if (acting.All(s => _staff.ViewOf(s.Id)!.Destination is null))
-                // No way there: try the next waypoint a Store minute later rather than search again every tick.
-                _hordes[i] = horde with { Next = (horde.Next + 1) % horde.Route.Length, WaitUntil = clock.Tick + StoreClock.TicksFor(TimeSpan.FromMinutes(1)) };
-            else if (arriving)
+                sentAllTheWay[n] = SendStaff(acting[n].Id, _space.Wrap(target + HordeOffset(n)), clock);
+            var stuck = acting.Count(s => _staff.ViewOf(s.Id)!.Destination is null);
+            // A member with no way there does not hold the rest at this waypoint.
+            var arriving = Enumerable.Range(0, acting.Count).All(n => sentAllTheWay[n] || _staff.ViewOf(acting[n].Id)!.Destination is null);
+            // No way there for everyone: try the next waypoint.
+            if (stuck == acting.Count || arriving)
                 _hordes[i] = horde with { Next = (horde.Next + 1) % horde.Route.Length };
+            // Any member with no way there costs a long search each try, so the Horde tries again only after a while.
+            if (stuck > 0)
+                _hordes[i] = _hordes[i] with { WaitUntil = clock.Tick + StoreClock.TicksFor(StuckRetry) };
         }
         _noises.Clear();
         _staff.Advance(StoreClock.TickDuration.TotalHours);
@@ -167,7 +175,8 @@ public sealed partial class Simulation
     /// <summary>A noise draws the Horde if it carries as far as the Horde: farther in some regions, muffled by Fog banks and the mattress mountain.</summary>
     private HordeState Hear(HordeState horde, List<Villager> acting)
     {
-        if (_noises.Count == 0 || horde.ChaseId >= 0) return horde;
+        // A playing noise lure drowns out the other noises for the Horde it drew.
+        if (_noises.Count == 0 || horde.ChaseId >= 0 || Lured(horde)) return horde;
         var lead = acting[0].Position;
         var sensitivity = StaffNoiseSensitivity(_snapshot.SectorAt(lead).Id);
         foreach (var noise in _noises)

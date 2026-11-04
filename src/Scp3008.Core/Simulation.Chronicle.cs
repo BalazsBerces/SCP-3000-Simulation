@@ -144,6 +144,16 @@ public sealed partial class Simulation
             case StaffRemainsHauled hauledAway:
                 story = $"{Villager.NameOf(hauledAway.VillagerId)} of Village {hauledAway.VillageId} hauled the Staff remains away to {ChroniclePlace(hauledAway.Position)}, to draw the Staff elsewhere.";
                 break;
+            case HordeLured lured:
+                story = $"A noise lure of Village {lured.VillageId} played in {ChroniclePlace(lured.Position)}, and a Horde of the Staff turned aside after it.";
+                break;
+            case AlarmRaised alarm:
+                story = $"The tin cans of Village {alarm.VillageId} rattled in the dark: the Staff were coming, and its Guards rose.";
+                break;
+            case TrapSprung trap:
+                var trapped = trap.Kind == DeviceKind.Pit ? "a pit swallowed" : "a stack of Furniture came down on";
+                story = $"In {ChroniclePlace(trap.Position)}, {trapped} {trap.StaffIds.Count} Staff{(trap.Baited ? " drawn by the remains laid there as bait" : "")}: a trap of Village {trap.VillageId}.";
+                break;
             case StaffRemainsCarriedOff carriedOff:
                 story = $"The Staff came for the remains in {ChroniclePlace(carriedOff.Position)} and carried them off into the dark.";
                 break;
