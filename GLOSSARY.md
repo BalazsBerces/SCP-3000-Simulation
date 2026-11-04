@@ -317,12 +317,15 @@ The collective temperament of a Band or Village (cautious, bold, builders; peace
 _Avoid_: Culture, alignment, faction type
 
 **Raid**:
-An attack by one Village on another to seize stores, territory (including Pillars) or Captives.
+An attack by one Village on another to seize stores, territory (including Pillars) or Captives. Raiders take each place in turn while they beat its guard, easiest first: an outside Furniture yard, then the open pile, then the Storehouse, which (like the people and the near Holdings) the whole Village defends, doubly behind complete walls. The losing side takes blows: a Villager hit is Wounded, and hit again while Wounded is Taken. How often a Village raids follows its Personality.
 _Avoid_: Siege (reserved for Staff), war
 
 **Captive**:
-A Villager seized in a Raid who may later be absorbed into the captors' Village.
+A Villager seized in a Raid who may later be absorbed into the captors' Village. A Captive belongs to the captors' Village at once (fed and counted there) but is held apart, never sent raiding, until absorbed half a Store day later.
 _Avoid_: Prisoner, slave, hostage
+
+**Holding**:
+A site a Village holds as its territory: a Pillar, the fountain court, a Cafeteria or a Store shelf of food it guards. A Village takes the unheld ones near it; after that they change hands only in Raids.
 
 **Role**:
 A Villager's primary job (scavenger, builder, cook, guard, trader, farmer, night scout); a Villager may switch to another Role when the Village needs it. Skills belong to the person, grow with use and survive Role switches.

@@ -79,6 +79,8 @@ public sealed record WorldSnapshot(
     public IReadOnlyList<Caravan> Caravans { get; init; } = [];
     /// <summary>Villagers on their way with an offer or an answer.</summary>
     public IReadOnlyList<Envoy> Envoys { get; init; } = [];
+    /// <summary>The Raids under way between Villages.</summary>
+    public IReadOnlyList<Raid> Raids { get; init; } = [];
     /// <summary>Lamp signals now shining from besieged Villages' Towers.</summary>
     public IReadOnlyList<LampSignal> Signals { get; init; } = [];
     /// <summary>Marks painted on Pillars.</summary>

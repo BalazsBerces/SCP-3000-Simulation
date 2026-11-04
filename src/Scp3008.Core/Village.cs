@@ -44,6 +44,10 @@ public sealed record Village(int Id, Vector2 Position, IReadOnlyList<int> Villag
     public KnownMap KnownMap { get; init; } = new();
     /// <summary>The Goods kind the Village takes as currency, beyond its own need, because the Villages it knows want it; null for pure barter.</summary>
     public GoodsKind? Currency { get; init; }
+    /// <summary>The territory it holds: Pillars, the fountain court, Cafeterias and Store shelves guarded for food.</summary>
+    public IReadOnlyList<Holding> Holdings { get; init; } = [];
+    /// <summary>Members seized in Raids and not yet absorbed.</summary>
+    public IReadOnlyList<Captive> Captives { get; init; } = [];
     public IReadOnlyDictionary<GoodsKind, int> Stores { get; init; } =
         new System.Collections.ObjectModel.ReadOnlyDictionary<GoodsKind, int>(new Dictionary<GoodsKind, int>());
 

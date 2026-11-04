@@ -30,6 +30,7 @@ public sealed partial class Simulation : IDisposable
     private const int RestockStream = 2;
     private const int StartingBandStream = 3;
     private const int ArrivalStream = 4;
+    private const int RaidStream = 5;
     // Stream 6 is the Staff's Patrol routes (Simulation.Staff.cs).
 
     private readonly object _stepLock = new();
@@ -117,6 +118,7 @@ public sealed partial class Simulation : IDisposable
         var runtimeSeed = config.RuntimeRngSeed ?? Random.Shared.Next();
         _restockRandom = SeededRandom.For(runtimeSeed, RestockStream);
         _arrivalRandom = SeededRandom.For(runtimeSeed, ArrivalStream);
+        _raidRandom = SeededRandom.For(runtimeSeed, RaidStream);
         _weather = new Weather(_space, SeededRandom.For(runtimeSeed, WeatherStream));
         if (sandbox)
             _weather.SetFormation(false);
@@ -363,6 +365,7 @@ public sealed partial class Simulation : IDisposable
         AdvanceCaravans(clock);
         AdvanceCurrency(clock);
         AdvanceEnvoys(clock);
+        AdvanceRaids(clock);
         _villagers.AdvanceGear(StoreClock.TickDuration.TotalHours, clock, ReloadFlashlight);
         AdvancePower(clock);
         AdvanceFridges(clock);
@@ -698,6 +701,7 @@ public sealed partial class Simulation : IDisposable
             Hordes = HordeSnapshot(),
             Caravans = _caravans.ToArray(),
             Envoys = _envoys.ToArray(),
+            Raids = _raids.ToArray(),
             Signals = _signals.ToArray(),
             Marks = _marks.ToArray(),
             Contacts = _contacts.OrderBy(c => c.VillageId).ThenBy(c => c.OtherVillageId).ToArray(),

@@ -129,7 +129,9 @@ public partial class VillagerRenderer
         // shortcut: history identifies Villages by their numbered names; use event references when names become editable.
         var history = world.Chronicle.Where(line => System.Text.RegularExpressions.Regex.IsMatch(line, $@"\bVillage {selected}\b"));
         _villageInfo.Text = $"Village {selected} | Sector {world.SectorAt(current.Position).Name}\nPersonality: {current.Personality} | {current.Department}\n" +
-            $"Currency: {(current.Currency is { } money ? $"{money} (taken beyond need)" : "none, pure barter")}\n\n" +
+            $"Currency: {(current.Currency is { } money ? $"{money} (taken beyond need)" : "none, pure barter")}\n" +
+            $"Holds: {(current.Holdings.Count == 0 ? "nothing" : string.Join(", ", current.Holdings.GroupBy(h => h.Kind).Select(g => $"{g.Count()} {g.Key}")))}" +
+            $" | Captives: {current.Captives.Count}\n\n" +
             $"Dwellings\n{DwellingText(current)}\n\nMess hall\n{messHall}\n\nPopulation: {members.Length}\n\nOutposts\n{outposts}\n\n" + string.Join("\n", members.Select(v => $"{v.Name} — {v.Role}")) +
             $"\n\nStores\n{stores}\n\nStorage\n{StorageText(current)}\n\nMaterials\n{materials}\n\nWorkshops\n{workshops}\n\nRecipes\n{recipes}\n\nSkills\n{skills}\n\nGear\n{gear}\n\nWall condition: {wall}\n\nCastle\n{CastleText(current)}\n\nBeliefs: —\nRelations: —\n\nHistory\n" +
             string.Join("\n\n", history);

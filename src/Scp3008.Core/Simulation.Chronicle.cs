@@ -137,6 +137,21 @@ public sealed partial class Simulation
                         ? $"In {market}, Village {money.VillageId} gave up {GoodsName(old)} as currency and took {GoodsName(kind)} instead."
                         : $"In {market}, Village {money.VillageId} began to take {GoodsName(kind)} as currency, beyond its own need: the Villages it knew all wanted them.";
                 break;
+            case RaidStruck raid:
+                var raided = ChroniclePlace(_villages[raid.ToVillageId].Position);
+                var blood = raid.Hurt > 0 ? $"; {raid.Hurt} fell or were wounded in the fighting" : "";
+                story = !raid.Success
+                    ? $"Village {raid.ToVillageId} drove off Raiders of Village {raid.FromVillageId} in {raided}{blood}."
+                    : raid.Site is { } site
+                        ? $"Raiders of Village {raid.FromVillageId} seized {SiteName(site)} from Village {raid.ToVillageId} in {raided}{blood}."
+                        : raid.CaptiveIds.Count > 0
+                            ? $"Raiders of Village {raid.FromVillageId} fell on Village {raid.ToVillageId} in {raided} and took {string.Join(" and ", raid.CaptiveIds.Select(Villager.NameOf))} captive{blood}."
+                            : $"Raiders of Village {raid.FromVillageId} fell on Village {raid.ToVillageId} in {raided} and carried off {raid.FromYard + raid.FromPile + raid.FromStorehouse} units of its stores" +
+                                (raid.FromYard > 0 ? ", breaking up its Furniture yard outside the walls" : "") + blood + ".";
+                break;
+            case CaptiveAbsorbed absorbed:
+                story = $"{Villager.NameOf(absorbed.VillagerId)}, taken captive from Village {absorbed.FromVillageId}, became one of Village {absorbed.VillageId}'s own.";
+                break;
             case PersonalityChanged shifted:
                 story = $"Hunger changed Village {shifted.VillageId} in {ChroniclePlace(_villages[shifted.VillageId].Position)}: once {shifted.From.ToString().ToLowerInvariant()}, its people now turned to {shifted.To.ToString().ToLowerInvariant()}.";
                 break;
@@ -224,6 +239,14 @@ public sealed partial class Simulation
 
     private static string GoodsName(GoodsKind kind) =>
         System.Text.RegularExpressions.Regex.Replace(kind.ToString(), "(?<=.)([A-Z])", " $1").ToLowerInvariant();
+
+    private string SiteName(Holding site) => site.Kind switch
+    {
+        HoldingKind.Pillar => $"Pillar {_pillars.First(p => p.Id == site.SiteId).Coordinate}",
+        HoldingKind.FountainCourt => "the fountain court",
+        HoldingKind.Cafeteria => "a Cafeteria",
+        _ => "a Store shelf of food",
+    };
 
     private string ChroniclePlace(Vector2 position) =>
         $"Sector {_sectors[Generation.PillarGenerator.SectorIndexAt(_space, _config.PillarLayout, position)].Name}";

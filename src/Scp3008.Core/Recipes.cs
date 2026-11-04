@@ -135,7 +135,7 @@ public sealed partial class Simulation
 
     // Free for a new job: not on a Furniture task, not crafting, not at a meal, not standing guard.
     private static bool IsAvailableWorker(Villager worker) =>
-        worker.FurnitureTaskId is null && !worker.Crafting && worker.Action is not (VillagerAction.GoingToMeal or VillagerAction.SharedMeal or VillagerAction.Cranking or VillagerAction.StandingGuard);
+        worker.FurnitureTaskId is null && !worker.Crafting && worker.Action is not (VillagerAction.GoingToMeal or VillagerAction.SharedMeal or VillagerAction.Cranking or VillagerAction.StandingGuard or VillagerAction.Raiding);
 
     private bool CanMake(Villager worker, Village village, Recipe recipe) =>
         IsAvailableWorker(worker) && worker.CarriedAmount + worker.CarriedMaterials == 0 &&

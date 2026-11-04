@@ -6,7 +6,7 @@ namespace Scp3008.Core;
 
 public sealed partial class Simulation
 {
-    private const int SaveVersion = 30;
+    private const int SaveVersion = 31;
     private static readonly JsonSerializerOptions SaveJson = CreateSaveJson();
 
     private sealed record SaveFile(int Version, SaveState State);
@@ -19,7 +19,7 @@ public sealed partial class Simulation
         MissingFurniture[] MissingFurniture, int NextFurnitureId, double RestockHours,
         double NextFurnitureCheck, StockTarget[] StockTargets, Dictionary<int, double> GoodsRestockCredit,
         ulong RestockRandom, DrySpell? DrySpell, double NextDrySpellHour, Gear[] GearSources, int NextGearId,
-        ulong ArrivalRandom, long NextArrivalTick, SpoilingShelf[] SpoilingShelves, FurniturePiece[] DisplacedFurniture);
+        ulong ArrivalRandom, long NextArrivalTick, SpoilingShelf[] SpoilingShelves, FurniturePiece[] DisplacedFurniture, ulong RaidRandom);
     private sealed record SpoilingShelf(int FurnitureId, GoodsKind Kind, int Units, float Progress);
 
     /// <summary>Saves the entire world at a tick boundary; leaves the caller's stream open.</summary>
@@ -36,7 +36,7 @@ public sealed partial class Simulation
                 _stockTargets.Select(t => new StockTarget(t.Key.FurnitureId, t.Key.Kind, t.Value)).ToArray(),
                 new(_goodsRestockCredit), _restockRandom.State, _drySpell, _nextDrySpellHour, _gearSources.ToArray(), _nextGearId,
                 _arrivalRandom.State, _nextArrivalTick,
-                _spoilingShelf.Select(s => new SpoilingShelf(s.Key.FurnitureId, s.Key.Kind, s.Value.Units, s.Value.Progress)).ToArray(), _displaced.Values.ToArray());
+                _spoilingShelf.Select(s => new SpoilingShelf(s.Key.FurnitureId, s.Key.Kind, s.Value.Units, s.Value.Progress)).ToArray(), _displaced.Values.ToArray(), _raidRandom.State);
             JsonSerializer.Serialize(destination, new SaveFile(SaveVersion, state), SaveJson);
         }
     }
@@ -73,6 +73,7 @@ public sealed partial class Simulation
             throw new InvalidDataException("Invalid world save: arrival schedule is in the past.");
         _arrivalRandom = new SeededRandom(state.ArrivalRandom);
         _nextArrivalTick = state.NextArrivalTick;
+        _raidRandom = new SeededRandom(state.RaidRandom);
         var furnitureIds = s.Furniture.Select(p => p.Id).ToHashSet();
         if (!Enum.IsDefined(_config.PillarLayout) || !Enum.IsDefined(s.Speed) || s.Clock.Tick < 0 ||
             s.Seed != _config.Seed || s.PillarLayout != _config.PillarLayout || s.Space != _config.PillarLayout.Space() ||
@@ -126,6 +127,7 @@ public sealed partial class Simulation
         _villages.AddRange(s.Villages);
         RestoreCaravans(s.Caravans, s.Villages);
         RestoreEnvoys(s);
+        RestoreRaids(s);
         if (s.LampPower.Select(p => p.FurnitureId).Distinct().Count() != s.LampPower.Count ||
             s.LampPower.Any(p => !s.Furniture.Any(f => f.Id == p.FurnitureId && FurnitureCatalog.Spec(f).IsLamp) ||
                 !double.IsFinite(p.BatteryHours) || p.BatteryHours < 0 || p.BatteryHours > 4))
