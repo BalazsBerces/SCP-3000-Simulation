@@ -300,6 +300,10 @@ _Avoid_: Colony, camp, satellite
 What a Band or Village knows of the Store (shared by its members from their own observations): the ground it has explored, known food and water sources, dangerous places and other Villages. Source observations keep when they were last seen; stale observations retain their old amounts until seen again. A showroom tap stays untested until tried, then is remembered as running or dry. Scavenging goes to known places, scouting widens it; it can be traded or passed on, and goes stale as the Store restocks and the Staff move.
 _Avoid_: Fog of war, minimap, map (that is the Observer's strategic map)
 
+**Signal**:
+A message given without sending anyone: a **lamp signal** from a Tower at Closing time (safe, as light does not draw the Staff; a besieged Village calls for help, a Village shows a trade sign), or a **Pillar mark** painted on a Pillar to show a border or warn of a Staff.
+_Avoid_: Beacon, graffiti
+
 **Envoy**:
 A Villager sent to another Village to carry a message, news or an offer.
 _Avoid_: Messenger, diplomat, courier

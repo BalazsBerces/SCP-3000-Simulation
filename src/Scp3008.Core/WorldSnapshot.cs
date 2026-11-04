@@ -77,6 +77,14 @@ public sealed record WorldSnapshot(
     public IReadOnlyList<Horde> Hordes { get; init; } = [];
     /// <summary>The Caravans on the road between Villages.</summary>
     public IReadOnlyList<Caravan> Caravans { get; init; } = [];
+    /// <summary>Villagers on their way with an offer or an answer.</summary>
+    public IReadOnlyList<Envoy> Envoys { get; init; } = [];
+    /// <summary>Lamp signals now shining from besieged Villages' Towers.</summary>
+    public IReadOnlyList<LampSignal> Signals { get; init; } = [];
+    /// <summary>Marks painted on Pillars.</summary>
+    public IReadOnlyList<PillarMark> Marks { get; init; } = [];
+    /// <summary>Which Village knows of which other.</summary>
+    public IReadOnlyList<Contact> Contacts { get; init; } = [];
     /// <summary>The Staff remains in the Store (ADR 0007) and how far each draws Staff now.</summary>
     public IReadOnlyList<StaffRemains> StaffRemains { get; init; } = [];
     /// <summary>The fights going on between Villagers and a Staff.</summary>

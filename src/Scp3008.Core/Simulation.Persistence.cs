@@ -6,7 +6,7 @@ namespace Scp3008.Core;
 
 public sealed partial class Simulation
 {
-    private const int SaveVersion = 27;
+    private const int SaveVersion = 28;
     private static readonly JsonSerializerOptions SaveJson = CreateSaveJson();
 
     private sealed record SaveFile(int Version, SaveState State);
@@ -125,6 +125,7 @@ public sealed partial class Simulation
         _bands.AddRange(s.Bands);
         _villages.AddRange(s.Villages);
         RestoreCaravans(s.Caravans, s.Villages);
+        RestoreEnvoys(s);
         if (s.LampPower.Select(p => p.FurnitureId).Distinct().Count() != s.LampPower.Count ||
             s.LampPower.Any(p => !s.Furniture.Any(f => f.Id == p.FurnitureId && FurnitureCatalog.Spec(f).IsLamp) ||
                 !double.IsFinite(p.BatteryHours) || p.BatteryHours < 0 || p.BatteryHours > 4))

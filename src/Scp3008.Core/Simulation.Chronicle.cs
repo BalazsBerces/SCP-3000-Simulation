@@ -53,6 +53,21 @@ public sealed partial class Simulation
                 story = $"A Caravan from Village {traded.FromVillageId} bartered in Village {traded.ToVillageId}, carrying goods worth {traded.Value:0.#}" +
                     (traded.Paid is { } paid ? $" and coming home with {traded.PaidAmount} {paid}." : " and coming home empty-handed.");
                 break;
+            case FirstContact contact:
+                story = $"Village {contact.VillageId} learned that Village {contact.OtherVillageId} exists, when its people met them.";
+                break;
+            case EnvoySent sent:
+                story = $"Village {sent.FromVillageId} sent {Villager.NameOf(sent.VillagerId)} to Village {sent.ToVillageId} with a {sent.Offer.ToString().ToLowerInvariant()} offer.";
+                break;
+            case EnvoyReturned back:
+                story = $"The Envoy of Village {back.FromVillageId} came back from Village {back.ToVillageId} with its answer: {(back.Accepted ? "yes" : "no")}.";
+                break;
+            case LampSignalSent lamp:
+                story = $"Besieged Village {lamp.VillageId} lit the lamp in its Tower and signalled for help.";
+                break;
+            case LampSignalSeen seen:
+                story = $"Village {seen.SeenByVillageId} saw the lamp signal of Village {seen.VillageId}" + (seen.SendingHelp ? " and sent help." : ".");
+                break;
             case CaravanAmbushed ambushed:
                 story = $"The Staff ambushed a Caravan of Village {ambushed.FromVillageId} bound for Village {ambushed.ToVillageId} in {ChroniclePlace(ambushed.Position)}; its cargo was lost.";
                 break;
