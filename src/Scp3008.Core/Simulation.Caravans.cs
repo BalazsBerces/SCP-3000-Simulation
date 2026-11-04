@@ -79,7 +79,7 @@ public sealed partial class Simulation
         var from = _villages[fromId];
         var people = _villagers.Snapshot();
         var members = from.VillagerIds.Select(id => people.FirstOrDefault(p => p.Id == id)).OfType<Villager>()
-            .Where(p => IsAvailableWorker(p) && p.Action != VillagerAction.Trading && !_wounds.ContainsKey(p.Id))
+            .Where(p => IsAvailableWorker(p) && p.Action != VillagerAction.Trading && !_wounds.ContainsKey(p.Id) && from.Captives.All(c => c.VillagerId != p.Id))
             .OrderBy(p => p.Role != Role.Trader).Take(CaravanMembers).ToArray();
         if (members.Length == 0) throw new InvalidOperationException("No free Villager to lead a Caravan.");
         goods ??= new Dictionary<GoodsKind, int>();

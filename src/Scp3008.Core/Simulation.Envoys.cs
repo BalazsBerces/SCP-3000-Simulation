@@ -76,7 +76,8 @@ public sealed partial class Simulation
             throw new ArgumentException("An Envoy goes between two different Villages.");
         var people = _villagers.Snapshot();
         var sender = _villages[fromId].VillagerIds.Select(id => people.FirstOrDefault(p => p.Id == id)).OfType<Villager>()
-            .Where(p => IsAvailableWorker(p) && p.Action != VillagerAction.Trading && !_wounds.ContainsKey(p.Id))
+            .Where(p => IsAvailableWorker(p) && p.Action != VillagerAction.Trading && !_wounds.ContainsKey(p.Id) &&
+                _villages[fromId].Captives.All(c => c.VillagerId != p.Id))
             .OrderBy(p => offer == EnvoyOffer.Help ? p.Role != Role.Guard : p.Role != Role.Trader).FirstOrDefault()
             ?? throw new InvalidOperationException("No free Villager to send as an Envoy.");
         var envoy = new Envoy(_nextEnvoyId++, fromId, toId, sender.Id, offer, false, null, sender.Position);

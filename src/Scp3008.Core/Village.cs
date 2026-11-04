@@ -41,6 +41,8 @@ public sealed record Village(int Id, Vector2 Position, IReadOnlyList<int> Villag
     public IReadOnlyList<GearKind> Recipes { get; init; } = Array.AsReadOnly(Core.Recipes.Basic.Select(r => r.Gear).ToArray());
     public IReadOnlyList<Gear> Gear { get; init; } = [];
     public bool HasMadeGear { get; init; }
+    /// <summary>The tick it last split or was split from; a Village splits at most once a Store day.</summary>
+    public long? LastSplit { get; init; }
     /// <summary>The Villages it is allied with: mutual defence, shared Recipes and Beliefs, better barter, refuge for Refugees.</summary>
     public IReadOnlyList<int> Allies { get; init; } = [];
     /// <summary>Guards of its allies who came to defend it and have not gone home yet.</summary>
@@ -87,4 +89,5 @@ public sealed record Village(int Id, Vector2 Position, IReadOnlyList<int> Villag
 }
 
 /// <summary>A forward site owned by its Village; WallIndex points to its shared construction Blueprint.</summary>
-public sealed record Outpost(int Id, Vector2 Position, int WallIndex, IReadOnlyList<int> VillagerIds, bool Abandoned = false);
+/// <summary>Founded is the tick it was set up; a distant Outpost drifts apart after a Store day.</summary>
+public sealed record Outpost(int Id, Vector2 Position, int WallIndex, IReadOnlyList<int> VillagerIds, bool Abandoned = false, long Founded = 0);

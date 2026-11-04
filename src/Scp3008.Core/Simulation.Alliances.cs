@@ -56,7 +56,8 @@ public sealed partial class Simulation
             if (ally.Fallen || target.Reinforcements.Any(r => r.FromVillageId == ally.Id) || _hordes.Any(h => h.SiegeVillageId == ally.Id) ||
                 _raids.Any(r => r.ToVillageId == ally.Id)) continue;
             var guards = ally.VillagerIds.Select(_villagers.ViewOf).OfType<Villager>()
-                .Where(v => v.Role == Role.Guard && !_wounds.ContainsKey(v.Id) && IsAvailableWorker(v)).ToArray();
+                .Where(v => v.Role == Role.Guard && !_wounds.ContainsKey(v.Id) && IsAvailableWorker(v) && v.Action != VillagerAction.Trading &&
+                    ally.Captives.All(c => c.VillagerId != v.Id)).ToArray();
             var sent = guards.Take(Math.Min(GuardsPerAlly, guards.Length - 1)).Select(v => v.Id).ToArray();
             if (sent.Length == 0) continue;
             var stand = _navigation.NearestWalkable(target.Position);
@@ -72,7 +73,9 @@ public sealed partial class Simulation
         foreach (var village in _villages.ToArray())
         {
             if (village.Fallen && village.Reinforcements.Count == 0) continue;
-            if (!village.Fallen && _hordes.Any(h => h.SiegeVillageId == village.Id)) SendGuards(village.Id, clock);
+            // Allies march as soon as a Siege begins or Raiders set out, so they can be there when the blows fall.
+            if (!village.Fallen && (_hordes.Any(h => h.SiegeVillageId == village.Id) || _raids.Any(r => r.ToVillageId == village.Id && !r.Returning)))
+                SendGuards(village.Id, clock);
             else if (village.Reinforcements.Count > 0 && !_raids.Any(r => r.ToVillageId == village.Id)) SendHome(village);
         }
         foreach (var a in _villages.Where(v => !v.Fallen && v.Allies.Count > 0).ToArray())

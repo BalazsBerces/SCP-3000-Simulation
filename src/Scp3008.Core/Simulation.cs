@@ -30,7 +30,7 @@ public sealed partial class Simulation : IDisposable
     private const int RestockStream = 2;
     private const int StartingBandStream = 3;
     private const int ArrivalStream = 4;
-    private const int RaidStream = 5;
+    private const int RaidStream = 5; // Raid dispatch by Personality (Simulation.Raids.cs).
     // Stream 6 is the Staff's Patrol routes (Simulation.Staff.cs).
 
     private readonly object _stepLock = new();
@@ -361,6 +361,8 @@ public sealed partial class Simulation : IDisposable
         AdvanceArrivals(clock);
         AdvanceVillages(clock);
         AdvanceFlavour(clock);
+        // Splits come first, so a large or distant Outpost becomes a Village before it can be abandoned.
+        AdvanceSplits(clock);
         AdvanceOutposts(clock);
         AdvanceCaravans(clock);
         AdvanceCurrency(clock);
@@ -690,6 +692,7 @@ public sealed partial class Simulation : IDisposable
             Villages = _villages.ToList().AsReadOnly(),
             Crops = _crops.Values.ToList().AsReadOnly(),
             Chronicle = _chronicle.ToList().AsReadOnly(),
+            Era = _era,
             Gear = _gear.ToList().AsReadOnly(),
             LampPower = _lampPower.Values.ToList().AsReadOnly(),
             FridgePower = Fridges().Select(p => _fridgePower.GetValueOrDefault(p.Id)).OfType<FridgePower>().ToList().AsReadOnly(),

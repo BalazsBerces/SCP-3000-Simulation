@@ -60,7 +60,7 @@ internal sealed partial class Villagers
         _largestPiece = _furnitureIndex.LargestPiece;
     }
 
-    public IEnumerable<FurniturePiece> FurnitureNear(Vector2 position, float range) => _furnitureIndex!.Near(position, range);
+    public IEnumerable<FurniturePiece> FurnitureNear(Vector2 position, float range) => _furnitureIndex?.Near(position, range) ?? [];
 
     private sealed partial class Walker
     {

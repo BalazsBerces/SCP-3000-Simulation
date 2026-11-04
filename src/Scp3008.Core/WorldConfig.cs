@@ -29,7 +29,8 @@ namespace Scp3008.Core;
 /// <param name="StartingBands">Populates a normal Store with Bands; false for isolated scenarios. Sandboxes and showcases stay hand-placed.</param>
 /// <param name="Arrivals">Hidden Wanderer arrival tuning. Defaults to every twelve Store hours; off in sandboxes and showcases.</param>
 /// <param name="HordeNights">Hidden Horde night tuning (period, calm stretch, ceiling). On by default; off in sandboxes and showcases.</param>
+/// <param name="Splits">Whether Villages and Outposts split into new Villages. On by default; off in sandboxes and showcases unless given, as their hand-placed Villages are not tended for morale.</param>
 public sealed record WorldConfig(int Seed, int? RuntimeRngSeed = null, PillarLayout PillarLayout = PillarLayout.ThreeByThree,
     bool LandmarkShowcase = false, bool PointOfInterestShowcase = false, StockConfig? Stock = null,
     WaterConfig? Water = null, NeedsConfig? Needs = null, RestockConfig? Restock = null,
-    bool StartingBands = true, ArrivalConfig? Arrivals = null, HordeNightConfig? HordeNights = null);
+    bool StartingBands = true, ArrivalConfig? Arrivals = null, HordeNightConfig? HordeNights = null, bool? Splits = null);

@@ -6,7 +6,7 @@ namespace Scp3008.Core;
 
 public sealed partial class Simulation
 {
-    private const int SaveVersion = 32;
+    private const int SaveVersion = 33;
     private static readonly JsonSerializerOptions SaveJson = CreateSaveJson();
 
     private sealed record SaveFile(int Version, SaveState State);
@@ -81,6 +81,8 @@ public sealed partial class Simulation
             !double.IsFinite(state.RestockHours) || state.RestockHours < 0 ||
             furnitureIds.Count != s.Furniture.Count ||
             s.Villages.Where((v, i) => v.Id != i).Any() ||
+            s.Villages.Any(v => v.Allies.Concat(v.Reinforcements.Select(r => r.FromVillageId)).Concat(v.Captives.Select(c => c.FromVillageId))
+                .Any(id => id < 0 || id >= s.Villages.Count || id == v.Id)) ||
             s.Villages.Any(v => v.Materials.Any(m => !Enum.IsDefined(m.Key) || m.Value < 0) || v.Currency is { } c && !Enum.IsDefined(c)) ||
             s.Furniture.Any(p => p.Id < 0 || !float.IsFinite(p.Position.X) || !float.IsFinite(p.Position.Y) ||
                 !float.IsFinite(p.Elevation) || !float.IsFinite(p.Rotation) || !(p.Damage is >= 0f and <= 1f)) ||
@@ -155,6 +157,8 @@ public sealed partial class Simulation
         ValidateOutposts();
         RestoreCrops(s);
         _chronicle.AddRange(s.Chronicle);
+        if (s.Era < 1) throw new InvalidDataException("Invalid world save: era before the first.");
+        _era = s.Era;
         foreach (var gear in s.Gear.Concat(s.Villages.SelectMany(v => v.Gear)).Concat(s.Caravans.SelectMany(c => c.Cargo.Gear)).Concat(state.GearSources)) gear.Validate();
         var liveGear = s.Gear.Concat(s.Villages.SelectMany(v => v.Gear)).Concat(s.Caravans.SelectMany(c => c.Cargo.Gear)).Concat(s.Villagers.SelectMany(v => new[] { v.Hand, v.Bag, v.Armour }).OfType<Gear>()).ToArray();
         if (liveGear.Select(g => g.Id).Distinct().Count() != liveGear.Length || state.NextGearId < 0 ||

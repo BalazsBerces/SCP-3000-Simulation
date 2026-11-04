@@ -39,7 +39,7 @@ public sealed partial class Simulation
                 .Take(2).Select(p => p.Id).ToArray();
             if (workers.Length < 2) continue;
             var barricade = CreateBarricade(new Village(village.Id, position, Array.AsReadOnly(workers)));
-            var outpost = new Outpost(village.Outposts.Count, position, village.Walls.Count, Array.AsReadOnly(workers));
+            var outpost = new Outpost(village.Outposts.Count, position, village.Walls.Count, Array.AsReadOnly(workers), Founded: _tick);
             _villages[village.Id] = village with
             {
                 Outposts = Array.AsReadOnly(village.Outposts.Append(outpost).ToArray()),

@@ -175,6 +175,7 @@ public sealed partial class Simulation
         for (var h = 0; h < _hordes.Count; h++)
             if (_hordes[h].SiegeVillageId == village.Id) _hordes[h] = _hordes[h] with { SiegeVillageId = -1 };
         Emit(new VillageFell(clock, village.Id, Array.AsReadOnly(survivors), bandId));
+        CheckEra(clock, village.Id);
     }
 }
 

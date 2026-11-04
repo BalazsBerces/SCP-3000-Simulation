@@ -278,6 +278,12 @@ public partial class SimulationHost : Node
                 case VillageFounded founded:
                     GD.Print($"Band {founded.BandId} founded Village {founded.Village.Id} with {founded.Village.VillagerIds.Count} Villagers.");
                     break;
+                case VillageSplit split:
+                    GD.Print($"Village {split.FromVillageId} split ({split.Reason}): Village {split.Village.Id} founded with {split.Village.VillagerIds.Count} Villagers.");
+                    break;
+                case EraBegan era:
+                    GD.Print($"The last Village fell; era {era.Era} began.");
+                    break;
                 case StoreDayBegan began:
                     GD.Print($"Store day {began.Day} began.");
                     break;

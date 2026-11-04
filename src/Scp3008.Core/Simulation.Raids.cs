@@ -29,7 +29,7 @@ public sealed record Raid(int Id, int FromVillageId, int ToVillageId, RaidGoal G
     /// <summary>Villagers seized and walking home with the Raiders.</summary>
     public IReadOnlyList<int> CaptiveIds { get; init; } = [];
     /// <summary>The Goods and Materials carried home.</summary>
-    public CaravanCargo Loot { get; init; } = new();
+    public CaravanCargo Seized { get; init; } = new();
 }
 
 public sealed record RaidLaunched(StoreClock At, int RaidId, int FromVillageId, int ToVillageId, RaidGoal Goal) : DomainEvent(At);
@@ -115,7 +115,7 @@ public sealed partial class Simulation
                 CaptiveIds = Array.AsReadOnly(raid.CaptiveIds.Where(id => _villagers.ViewOf(id) is not null).ToArray()),
             };
             // All the Raiders Taken: what they carried is lost, their Captives are held where they stand.
-            if (here.VillagerIds.Count == 0) { EndRaid(here with { Loot = new() }, clock); continue; }
+            if (here.VillagerIds.Count == 0) { EndRaid(here with { Seized = new() }, clock); continue; }
             var leader = _villagers.ViewOf(here.VillagerIds[0])!;
             var last = here.Next == here.Route.Count - 1;
             var reached = _space.Distance(leader.Position, here.Route[here.Next]) <= (last ? DestinationReach : WaypointReach);
@@ -177,9 +177,10 @@ public sealed partial class Simulation
         var raiders = raid.VillagerIds.Where(id => !_wounds.ContainsKey(id)).ToArray();
         // Everyone at home stands against them; the unwounded fight, the wounded only suffer.
         if (reached && !target.Fallen) SendGuards(target.Id, new StoreClock(_tick));
-        var present = (target.Fallen || !reached ? [] : target.VillagerIds.Concat(ArrivedReinforcements(_villages[target.Id])).Where(id => target.Captives.All(c => c.VillagerId != id) &&
+        // Allied Guards walk over as Trading, so only the Village's own people away trading or raiding are left out.
+        var present = (target.Fallen || !reached ? [] : target.VillagerIds.Where(id => target.Captives.All(c => c.VillagerId != id) &&
             _villagers.ViewOf(id) is { } p && p.Action is not (VillagerAction.Trading or VillagerAction.Raiding) &&
-            _space.Distance(p.Position, target.Position) <= DefendRange)).OrderBy(_wounds.ContainsKey).ToArray();
+            _space.Distance(p.Position, target.Position) <= DefendRange).Concat(ArrivedReinforcements(_villages[target.Id]))).OrderBy(_wounds.ContainsKey).ToArray();
         double defenders = present.Count(id => !_wounds.ContainsKey(id));
         var inner = target.HomeWalls().Any(w => w.Complete) ? 2 : 1;
         int fromYard = 0, fromPile = 0, fromStorehouse = 0;
@@ -238,7 +239,7 @@ public sealed partial class Simulation
                     break;
                 case RaidGoal.Captives:
                     if (Beat(defenders * inner))
-                        captives.AddRange(present.Reverse().Take(Math.Max(1, raiders.Length / 2)));
+                        captives.AddRange(present.Where(target.VillagerIds.Contains).Reverse().Take(Math.Max(1, raiders.Length / 2)));
                     break;
             }
         // The losing side takes a blow for every two of the winners; a close win costs the Raiders one of theirs.
@@ -264,7 +265,7 @@ public sealed partial class Simulation
         {
             VillagerIds = Array.AsReadOnly(raid.VillagerIds.Where(id => _villagers.ViewOf(id) is not null).ToArray()),
             CaptiveIds = Array.AsReadOnly(captives.ToArray()), Route = route, Next = 0, Returning = true,
-            Loot = new CaravanCargo { Goods = new ReadOnlyDictionary<GoodsKind, int>(goods), Materials = new ReadOnlyDictionary<MaterialKind, int>(materials) },
+            Seized = new CaravanCargo { Goods = new ReadOnlyDictionary<GoodsKind, int>(goods), Materials = new ReadOnlyDictionary<MaterialKind, int>(materials) },
         };
         _raids[_raids.FindIndex(r => r.Id == raid.Id)] = home;
         foreach (var id in home.VillagerIds.Concat(home.CaptiveIds)) _villagers.Engage(id, VillagerAction.Raiding, route[0]);
@@ -296,11 +297,11 @@ public sealed partial class Simulation
     private void EndRaid(Raid raid, StoreClock clock)
     {
         _raids.RemoveAll(r => r.Id == raid.Id);
-        foreach (var (kind, amount) in raid.Loot.Goods) ChangeStores(raid.FromVillageId, kind, amount);
+        foreach (var (kind, amount) in raid.Seized.Goods) ChangeStores(raid.FromVillageId, kind, amount);
         var home = _villages[raid.FromVillageId];
         _villages[home.Id] = home with
         {
-            Materials = raid.Loot.Materials.Aggregate(home.Materials, (m, p) => Plus(m, p.Key, p.Value)),
+            Materials = raid.Seized.Materials.Aggregate(home.Materials, (m, p) => Plus(m, p.Key, p.Value)),
             Captives = Array.AsReadOnly(home.Captives.Concat(raid.CaptiveIds.Select(id => new Captive(id, raid.ToVillageId, _tick))).ToArray()),
         };
         foreach (var id in raid.VillagerIds.Concat(raid.CaptiveIds)) _villagers.Release(id, VillagerAction.Raiding);

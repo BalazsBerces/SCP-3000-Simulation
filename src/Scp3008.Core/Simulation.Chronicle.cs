@@ -180,6 +180,20 @@ public sealed partial class Simulation
                     ? $"Village {villageFell.VillageId} in {fallen} fell to the Staff, and no one was left to flee."
                     : $"Village {villageFell.VillageId} in {fallen} fell to the Staff. {string.Join(", ", villageFell.RefugeeIds.Select(Villager.NameOf))} fled as Refugees.";
                 break;
+            case VillageSplit split:
+                var newHome = ChroniclePlace(split.Village.Position);
+                var founder = Villager.NameOf(split.Village.VillagerIds[0]);
+                story = split.Reason switch
+                {
+                    SplitReason.Overcrowded => $"Village {split.FromVillageId} had grown too crowded: {founder} led {split.Village.VillagerIds.Count} of its people away to found Village {split.Village.Id} in {newHome}.",
+                    SplitReason.LowMorale => $"Quarrels split Village {split.FromVillageId}: {founder} and {split.Village.VillagerIds.Count - 1} others walked out and founded Village {split.Village.Id} in {newHome}.",
+                    SplitReason.OutpostGrew => $"The Outpost of Village {split.FromVillageId} in {newHome} had grown large; under {founder} it became Village {split.Village.Id}.",
+                    _ => $"The far Outpost of Village {split.FromVillageId} in {newHome} drifted apart; under {founder} it became Village {split.Village.Id}.",
+                };
+                break;
+            case EraBegan era:
+                story = $"With Village {era.LastVillageId}, the last Village of the Store fell. An era ended; Wanderers still came among the aisles, and era {era.Era} began.";
+                break;
             case AllianceFormed allied:
                 story = $"Village {allied.VillageId} and Village {allied.OtherVillageId} swore to stand together: guards, Recipes and fair barter between them.";
                 break;

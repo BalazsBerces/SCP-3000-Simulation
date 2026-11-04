@@ -296,21 +296,23 @@ _Avoid_: Night scout (that is a Role), mission, patrol
 A small forward barricade a Village sets up near distant resources once its surroundings run low, held by a few of its Villagers; it is part of that Village until it grows large or drifts apart enough to split off as a Village of its own.
 _Avoid_: Colony, camp, satellite
 
+**Split**:
+A group leaving its Village to found a new one: half its people when it is **overcrowded** (a dozen more people than covered sleeping places) or in internal conflict (low morale; the most discontented leave), or an Outpost that grows to five people or, far from home, has stood a Store day. At most once a Store day per Village; there is no cap on Village size or count.
+
+**Era**:
+A stretch of the Store's history between falls of its last standing Village. When every Village has fallen, Wanderers keep arriving and the chronicle records a new era.
+
 **Known map**:
 What a Band or Village knows of the Store (shared by its members from their own observations): the ground it has explored, known food and water sources, dangerous places and other Villages. Source observations keep when they were last seen; stale observations retain their old amounts until seen again. A showroom tap stays untested until tried, then is remembered as running or dry. Scavenging goes to known places, scouting widens it; it can be traded or passed on, and goes stale as the Store restocks and the Staff move.
 _Avoid_: Fog of war, minimap, map (that is the Observer's strategic map)
 
 **Signal**:
-A message given without sending anyone: a **lamp signal** from a Tower at Closing time (safe, as light does not draw the Staff; a besieged Village calls for help, a Village shows a trade sign), or a **Pillar mark** painted on a Pillar to show a border or warn of a Staff.
+A message given without sending anyone: a **lamp signal** from a Tower at Closing time (safe, as light does not draw the Staff; a besieged Village calls for help), or a **Pillar mark** painted on a Pillar to show a border or warn of a Staff.
 _Avoid_: Beacon, graffiti
 
 **Envoy**:
 A Villager sent to another Village to carry a message, news or an offer.
 _Avoid_: Messenger, diplomat, courier
-
-**Signal**:
-A message a Village gives without sending anyone: lamp signals from a tower at Closing time (safe, as light does not draw the Staff) or marks painted on Pillars and along paths.
-_Avoid_: Beacon, sign
 
 **Personality**:
 The collective temperament of a Band or Village (cautious, bold, builders; peaceful traders, isolationists, raiders…). A Band's comes from its members and shapes how it survives Closing time (hiding, moving on or barricading); a Village inherits its founding Band's, shaped by its Department, and it drifts with events: a prolonged famine turns it toward raiding (the Personalities are cautious, builders, bold, traders, isolationists and raiders). A Village also has **Department flavour**, from the Department it stands in: Bathrooms & kitchens cook better (a cook stretches food further), Lighting & electrical glow (lamps and held lights reach further), Showrooms (the bedrooms) have high morale but weak defence, the Self-serve warehouse is Material-rich, the Plant section puts half its people to farming Crops and the Restaurant is a trade hub that gains food while other Villages stand.

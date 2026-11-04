@@ -132,12 +132,12 @@ public sealed partial class Simulation
             return "Disassembly needs one Village member with hands available.";
         var weight = FurnitureResources.Weight(piece);
         var cart = workers.Length == 1 && workers[0].Hand?.Kind is GearKind.ShoppingCart or GearKind.PlatformCart;
-        var lift = HoistFactor(workers[0].VillageId);
-        if (!disassemble && !cart && weight > 100 * lift)
+        var hoist = HoistFactor(workers[0].VillageId);
+        if (!disassemble && !cart && weight > 100 * hoist)
             return "This piece needs a cart or disassembly.";
         var work = disassemble ? FurnitureWork.Disassemble : cart ? FurnitureWork.CartHaul :
-            workers.Length > 1 && weight <= 25 * workers.Length * lift ? FurnitureWork.TeamCarry :
-            workers.Length == 1 && weight <= 25 * lift ? FurnitureWork.Carry : FurnitureWork.Drag;
+            workers.Length > 1 && weight <= 25 * workers.Length * hoist ? FurnitureWork.TeamCarry :
+            workers.Length == 1 && weight <= 25 * hoist ? FurnitureWork.Carry : FurnitureWork.Drag;
         if (!disassemble && workers.Any(v => v.Hand is not null) && !cart)
             return "Carrying Furniture needs free hands.";
         // A worker known not to get to the piece from where they stand fails it before any search.

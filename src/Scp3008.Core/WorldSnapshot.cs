@@ -70,6 +70,8 @@ public sealed record WorldSnapshot(
     /// <summary>The growth of every Crop piece (ticket 17f).</summary>
     public IReadOnlyList<Crop> Crops { get; init; } = [];
     public IReadOnlyList<string> Chronicle { get; init; } = [];
+    /// <summary>The Store's era: a new one begins each time the last standing Village falls.</summary>
+    public int Era { get; init; } = 1;
     public IReadOnlyList<Gear> Gear { get; init; } = [];
     public IReadOnlyList<Staff> Staff { get; init; } = [];
     /// <summary>The Wounded Villagers and how far each has healed.</summary>

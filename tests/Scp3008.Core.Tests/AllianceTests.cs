@@ -115,6 +115,26 @@ public class AllianceTests
     }
 
     [Fact]
+    public void Allied_Guards_defend_against_a_Raid()
+    {
+        using var sim = Sandbox();
+        var village = Place(sim, At.X, [Role.Cook]);
+        var ally = Place(sim, 52, [Role.Guard, Role.Guard, Role.Guard, Role.Cook]);
+        var raiders = Enumerable.Range(0, 5).Select(i => sim.Scenario.PlaceVillager(new(80 + i * 0.8f, 103)).Id).ToArray();
+        var from = sim.Scenario.PlaceVillage(new(80, 104), raiders, Personality.Isolationists);
+        sim.Scenario.FormAlliance(village.Id, ally.Id);
+        sim.Scenario.SetTimeOfDay(TimeSpan.FromHours(10));
+        var events = new List<DomainEvent>();
+        using var sub = sim.Subscribe(events.Add);
+        var raid = sim.Scenario.SendRaid(from.Id, village.Id, RaidGoal.Stores);
+        RunUntil(sim, () => events.OfType<RaidStruck>().Any(r => r.RaidId == raid.Id));
+        var struck = events.OfType<RaidStruck>().Single(r => r.RaidId == raid.Id);
+        var guards = Assert.Single(events.OfType<GuardsSent>(), e => e.ToVillageId == village.Id).GuardIds;
+        // The allied Guards stand with the lone Cook: they drive the Raiders off or take blows themselves.
+        Assert.True(!struck.Success || events.OfType<VillagerWounded>().Any(w => guards.Contains(w.VillagerId)));
+    }
+
+    [Fact]
     public void Refugees_of_a_fallen_Village_are_taken_in_by_its_ally()
     {
         var (sim, village, ally) = Siege([Role.Scavenger, Role.Builder, Role.Cook], [Role.Scavenger, Role.Builder, Role.Cook]);
