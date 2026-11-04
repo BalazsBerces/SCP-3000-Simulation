@@ -162,7 +162,7 @@ public sealed partial class Simulation
         {
             if (from.Fallen || RaidChance(from.Personality) == 0 || _raids.Any(r => r.FromVillageId == from.Id)) continue;
             var known = from.KnownMap.Villages.Where(v => !v.Abandoned).Select(v => v.VillageId).ToHashSet();
-            var target = _villages.Where(v => v.Id != from.Id && !v.Fallen && v.VillagerIds.Count > 0 && known.Contains(v.Id))
+            var target = _villages.Where(v => v.Id != from.Id && !from.Allies.Contains(v.Id) && !v.Fallen && v.VillagerIds.Count > 0 && known.Contains(v.Id))
                 .OrderBy(v => _space.Distance(from.Position, v.Position)).FirstOrDefault();
             if (target is null || RaidParty(from).Length == 0 || !_raidRandom.Chance(RaidChance(from.Personality))) continue;
             var food = target.Holdings.FirstOrDefault(h => h.Kind is not HoldingKind.Pillar);
@@ -176,7 +176,8 @@ public sealed partial class Simulation
         var target = _villages[raid.ToVillageId];
         var raiders = raid.VillagerIds.Where(id => !_wounds.ContainsKey(id)).ToArray();
         // Everyone at home stands against them; the unwounded fight, the wounded only suffer.
-        var present = (target.Fallen || !reached ? [] : target.VillagerIds.Where(id => target.Captives.All(c => c.VillagerId != id) &&
+        if (reached && !target.Fallen) SendGuards(target.Id, new StoreClock(_tick));
+        var present = (target.Fallen || !reached ? [] : target.VillagerIds.Concat(ArrivedReinforcements(_villages[target.Id])).Where(id => target.Captives.All(c => c.VillagerId != id) &&
             _villagers.ViewOf(id) is { } p && p.Action is not (VillagerAction.Trading or VillagerAction.Raiding) &&
             _space.Distance(p.Position, target.Position) <= DefendRange)).OrderBy(_wounds.ContainsKey).ToArray();
         double defenders = present.Count(id => !_wounds.ContainsKey(id));

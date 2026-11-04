@@ -180,6 +180,15 @@ public sealed partial class Simulation
                     ? $"Village {villageFell.VillageId} in {fallen} fell to the Staff, and no one was left to flee."
                     : $"Village {villageFell.VillageId} in {fallen} fell to the Staff. {string.Join(", ", villageFell.RefugeeIds.Select(Villager.NameOf))} fled as Refugees.";
                 break;
+            case AllianceFormed allied:
+                story = $"Village {allied.VillageId} and Village {allied.OtherVillageId} swore to stand together: guards, Recipes and fair barter between them.";
+                break;
+            case GuardsSent sent:
+                story = $"{string.Join(", ", sent.GuardIds.Select(Villager.NameOf))} of Village {sent.FromVillageId} marched to defend its ally, Village {sent.ToVillageId}.";
+                break;
+            case RefugeesTakenIn taken:
+                story = $"Village {taken.AllyVillageId} took in the Refugees of its fallen ally, Village {taken.FallenVillageId}: {string.Join(", ", taken.VillagerIds.Select(Villager.NameOf))}.";
+                break;
             case StaffKilled killed:
                 var killers = string.Join(", ", killed.VillagerIds.Select(Villager.NameOf));
                 var killPlace = ChroniclePlace(killed.Remains.Position);

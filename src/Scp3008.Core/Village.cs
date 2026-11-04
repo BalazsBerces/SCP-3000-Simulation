@@ -41,6 +41,10 @@ public sealed record Village(int Id, Vector2 Position, IReadOnlyList<int> Villag
     public IReadOnlyList<GearKind> Recipes { get; init; } = Array.AsReadOnly(Core.Recipes.Basic.Select(r => r.Gear).ToArray());
     public IReadOnlyList<Gear> Gear { get; init; } = [];
     public bool HasMadeGear { get; init; }
+    /// <summary>The Villages it is allied with: mutual defence, shared Recipes and Beliefs, better barter, refuge for Refugees.</summary>
+    public IReadOnlyList<int> Allies { get; init; } = [];
+    /// <summary>Guards of its allies who came to defend it and have not gone home yet.</summary>
+    public IReadOnlyList<Reinforcement> Reinforcements { get; init; } = [];
     public KnownMap KnownMap { get; init; } = new();
     /// <summary>The Goods kind the Village takes as currency, beyond its own need, because the Villages it knows want it; null for pure barter.</summary>
     public GoodsKind? Currency { get; init; }

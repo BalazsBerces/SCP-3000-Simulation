@@ -158,6 +158,7 @@ public sealed partial class Simulation
                 if (envoy.Offer == EnvoyOffer.Warning) Learn(to.Id, new KnownMap { Dangers = from.KnownMap.Dangers.Where(d => !d.Stale).ToArray() });
             }
             Learn(from.Id, About(to));
+            if (accepted && envoy.Offer == EnvoyOffer.Alliance) FormAlliance(from.Id, to.Id, clock);
             _envoys[i] = envoy with { Returning = true, Accepted = accepted };
             _villagers.Engage(envoy.VillagerId, VillagerAction.Trading, from.Position);
         }
@@ -172,7 +173,8 @@ public sealed partial class Simulation
             var target = from.KnownMap.Villages.Where(v => !v.Abandoned && v.VillageId != from.Id && !_villages[v.VillageId].Fallen)
                 .OrderBy(v => _space.Distance(from.Position, v.Position)).FirstOrDefault();
             if (target is null) continue;
-            try { SendEnvoy(from.Id, target.VillageId, EnvoyOffer.Trade); }
+            var ally = !from.Allies.Contains(target.VillageId) && _villages[target.VillageId].Personality is not (Personality.Raiders or Personality.Isolationists);
+            try { SendEnvoy(from.Id, target.VillageId, ally ? EnvoyOffer.Alliance : EnvoyOffer.Trade); }
             catch (InvalidOperationException) { /* nobody free to go */ }
         }
     }

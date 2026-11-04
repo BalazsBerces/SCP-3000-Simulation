@@ -130,6 +130,7 @@ public partial class VillagerRenderer
         var history = world.Chronicle.Where(line => System.Text.RegularExpressions.Regex.IsMatch(line, $@"\bVillage {selected}\b"));
         _villageInfo.Text = $"Village {selected} | Sector {world.SectorAt(current.Position).Name}\nPersonality: {current.Personality} | {current.Department}\n" +
             $"Currency: {(current.Currency is { } money ? $"{money} (taken beyond need)" : "none, pure barter")}\n" +
+            $"Allies: {(current.Allies.Count == 0 ? "none" : string.Join(", ", current.Allies.Select(a => $"Village {a}")))}\n" +
             $"Holds: {(current.Holdings.Count == 0 ? "nothing" : string.Join(", ", current.Holdings.GroupBy(h => h.Kind).Select(g => $"{g.Count()} {g.Key}")))}" +
             $" | Captives: {current.Captives.Count}\n\n" +
             $"Dwellings\n{DwellingText(current)}\n\nMess hall\n{messHall}\n\nPopulation: {members.Length}\n\nOutposts\n{outposts}\n\n" + string.Join("\n", members.Select(v => $"{v.Name} — {v.Role}")) +

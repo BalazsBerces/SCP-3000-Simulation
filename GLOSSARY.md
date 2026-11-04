@@ -316,6 +316,10 @@ _Avoid_: Beacon, sign
 The collective temperament of a Band or Village (cautious, bold, builders; peaceful traders, isolationists, raiders…). A Band's comes from its members and shapes how it survives Closing time (hiding, moving on or barricading); a Village inherits its founding Band's, shaped by its Department, and it drifts with events: a prolonged famine turns it toward raiding (the Personalities are cautious, builders, bold, traders, isolationists and raiders). A Village also has **Department flavour**, from the Department it stands in: Bathrooms & kitchens cook better (a cook stretches food further), Lighting & electrical glow (lamps and held lights reach further), Showrooms (the bedrooms) have high morale but weak defence, the Self-serve warehouse is Material-rich, the Plant section puts half its people to farming Crops and the Restaurant is a trade hub that gains food while other Villages stand.
 _Avoid_: Culture, alignment, faction type
 
+**Alliance**:
+A pact between two Villages (sworn through an Envoy's accepted offer): each sends up to two Guards (keeping one home) to the other during a Siege or Raid, they share Recipes and Horde Beliefs, the ally gets better barter terms, and if one falls the other takes its Refugees in instead of letting them wander as a Band. Allies never raid each other.
+_Avoid_: Treaty, league
+
 **Raid**:
 An attack by one Village on another to seize stores, territory (including Pillars) or Captives. Raiders take each place in turn while they beat its guard, easiest first: an outside Furniture yard, then the open pile, then the Storehouse, which (like the people and the near Holdings) the whole Village defends, doubly behind complete walls. The losing side takes blows: a Villager hit is Wounded, and hit again while Wounded is Taken. How often a Village raids follows its Personality.
 _Avoid_: Siege (reserved for Staff), war

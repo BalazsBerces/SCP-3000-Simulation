@@ -96,7 +96,7 @@ public sealed partial class Simulation
             return false;
         }
         // shortcut: Guards defend from anywhere in the Village; walk them to the breach when fights get positions.
-        var guards = village.VillagerIds.Where(id => !_wounds.ContainsKey(id) && _villagers.ViewOf(id) is { Role: Role.Guard }).ToList();
+        var guards = village.VillagerIds.Concat(ArrivedReinforcements(village)).Where(id => !_wounds.ContainsKey(id) && _villagers.ViewOf(id) is { Role: Role.Guard }).ToList();
         var target = NextSiegeTarget(village);
         if (target is null && guards.Count == 0)
         {
@@ -157,11 +157,12 @@ public sealed partial class Simulation
             Outposts = Array.AsReadOnly(village.Outposts.Select(o => o with { VillagerIds = [], Abandoned = true }).ToArray()),
         };
         _villagers.LeaveVillage(survivors);
+        var refuge = TakeInRefugees(village, survivors, clock);
         // Its Guards stop standing guard over it.
         foreach (var id in survivors)
             if (_villagers.ViewOf(id)?.Action == VillagerAction.StandingGuard) _villagers.Release(id, VillagerAction.StandingGuard);
         int? bandId = null;
-        if (survivors.Length > 0)
+        if (survivors.Length > 0 && !refuge)
         {
             var band = new Band(_nextBandId++, Array.AsReadOnly(survivors))
             {

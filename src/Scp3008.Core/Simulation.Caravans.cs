@@ -212,7 +212,7 @@ public sealed partial class Simulation
             // Barter takes Goods only up to the Village's need; its currency it takes whatever the amount. The rest goes home.
             var accepted = cargo.Goods.ToDictionary(g => g.Key, g => to.Currency == g.Key ? g.Value
                 : Math.Clamp(Need(to, g.Key) - to.Stores.GetValueOrDefault(g.Key), 0, g.Value));
-            var value = accepted.Sum(g => g.Value * TradeValue(to, g.Key)) + cargo.Materials.Values.Sum() + cargo.Gear.Count * GearValue +
+            var value = (to.Allies.Contains(caravan.FromVillageId) ? AllyBarterBonus : 1) * accepted.Sum(g => g.Value * TradeValue(to, g.Key)) + cargo.Materials.Values.Sum() + cargo.Gear.Count * GearValue +
                 cargo.Recipes.Count(r => !to.Recipes.Contains(r)) * RecipeValue +
                 (cargo.Map is { } m ? m.Goods.Count + m.Water.Count + m.Dangers.Count + m.Villages.Count : 0) * MapEntryValue;
             foreach (var (kind, amount) in accepted.Where(g => g.Value > 0)) ChangeStores(to.Id, kind, amount);
